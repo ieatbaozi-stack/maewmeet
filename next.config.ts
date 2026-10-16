@@ -2,11 +2,12 @@ import type { NextConfig } from "next";
 
 // เจ้าของไฟล์: OPS (#10) · R0_CONTRACT R0-16 · ADR 0001 §1 · ADR 0008 §4
 //
-// TODO(OPS ขั้น 3): ห่อด้วย next-intl plugin เมื่อ Front-end สร้าง src/i18n/request.ts แล้ว (ADR 0008 §1)
+// next-intl plugin (ADR 0008 §1): **Front-end (#6) เป็นคนเพิ่ม** พร้อม src/i18n/request.ts ใน R0 ขั้น 3
+// (Lead อนุญาตข้อยกเว้นขอบเขตไฟล์นี้ 2026-10-16) — ใส่ก่อนมีไฟล์ request config แล้ว build ล้ม
 //   import createNextIntlPlugin from "next-intl/plugin";
 //   const withNextIntl = createNextIntlPlugin();   // ค้นพบ src/i18n/request.ts อัตโนมัติ
 //   export default withNextIntl(nextConfig);
-// ยังไม่ใส่ตอนนี้ เพราะ plugin จะทำให้ build ล้มถ้าไม่พบไฟล์ request config
+// เทสต์ tests/ops/headers.test.ts อ่าน default export → ต้องยังเรียก .headers() ได้หลังห่อ (withNextIntl คงฟิลด์เดิม)
 
 const isDev = process.env.NODE_ENV === "development";
 

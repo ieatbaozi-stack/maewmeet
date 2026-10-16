@@ -13,7 +13,10 @@
 set -euo pipefail
 
 MAX_AGE="${MAX_VERCEL_CRON_AGE_HOURS:-48}"
-CURL_OPTS=(--silent --show-error --max-time 30 --retry 2 --retry-delay 5 --retry-connrefused)
+# KEEPALIVE_RETRY_DELAY: วินาทีระหว่าง retry (ดีฟอลต์ 5) — เทสต์ tests/ops/keepalive.test.ts ตั้ง 1 ให้เร็ว (0 = curl ใช้ backoff ดีฟอลต์ ไม่ใช่ไม่รอ)
+RETRY_DELAY="${KEEPALIVE_RETRY_DELAY:-5}"
+[[ "$RETRY_DELAY" =~ ^[1-9][0-9]*$ ]] || RETRY_DELAY=5
+CURL_OPTS=(--silent --show-error --max-time 30 --retry 2 --retry-delay "$RETRY_DELAY" --retry-connrefused)
 
 summary() {
   # เขียนลงหน้าสรุปของ run ถ้าอยู่ใน GitHub Actions

@@ -15,9 +15,10 @@ app_secret="$(rand_b64)"
 cron_secret="$(rand_hex)"
 for v in "$pepper" "$app_secret" "$cron_secret"; do echo "::add-mask::$v"; done
 
+# ไม่ตั้ง TURSO_AUTH_TOKEN เลย (แม้แต่ค่าว่าง): drizzle-kit (dialect turso) ถือว่า authToken: '' คือ "ส่งมาแต่ว่าง"
+# แล้ว `drizzle-kit migrate` ล้ม (exit 1) — ทดสอบแล้วกับ drizzle-kit 0.31.11 · แอปเองถือว่าค่าว่าง = ไม่ได้ตั้ง
 {
   echo "TURSO_DATABASE_URL=file:${RUNNER_TEMP}/maewmeet-ci.db"
-  echo "TURSO_AUTH_TOKEN="
   echo "PIN_PEPPER_CURRENT_VERSION=1"
   echo "PIN_PEPPER_V1=${pepper}"
   echo "APP_SECRET=${app_secret}"

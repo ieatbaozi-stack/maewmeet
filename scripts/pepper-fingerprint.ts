@@ -8,7 +8,7 @@
  *   fingerprint = hex(HMAC-SHA256(key = pepper (ถอด base64 แล้ว), msg = "maewmeet/pepper-fingerprint/v1"))
  *   — ต้องใช้ฟังก์ชันเดียวกับที่แอปใช้เขียนตาราง pepper_fingerprint (R1 จะ import จาก src/lib/auth/** ไม่เขียนซ้ำ)
  *
- * วิธีใช้ที่ R1 จะรองรับ (PowerShell บน Windows — docs/OPERATIONS.md ส่วน D):
+ * วิธีใช้ที่ R1 จะรองรับ (PowerShell บน Windows — docs/OPERATIONS.md ส่วน C8):
  *   Get-Clipboard | npx tsx scripts/pepper-fingerprint.ts
  *
  * กติกาที่ R1 ต้องคงไว้:
