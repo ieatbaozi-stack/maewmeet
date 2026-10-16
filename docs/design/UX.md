@@ -247,7 +247,7 @@ iPad: ไม่มี sheet — แผงขวาแสดงวันที่
 │                ไม่บอกรายละเอียด │
 │ [        สร้างนัดวันนี้         ] │
 └───────────────────────────────┘
-ใต้ปฏิทิน (เมื่อ sheet ปิด): คำอธิบาย ✓ว่างครบ ░ว่างเกินครึ่ง ╱ว่างไม่ถึงครึ่ง ▬มีนัด + "ตัวเลขในช่อง = จำนวนคนที่ว่างวันนั้น จากทั้งกลุ่ม 6 คน" · ปุ่มลอย [+ ลงวันไม่ว่าง]
+ใต้ปฏิทิน (เมื่อ sheet ปิด): คำอธิบาย ✓ว่างครบ ░ว่างครึ่งหนึ่งขึ้นไป ╱ว่างไม่ถึงครึ่ง ▬มีนัด + "ตัวเลขในช่อง = จำนวนคนที่ว่างวันนั้น จากทั้งกลุ่ม 6 คน" · ปุ่มลอย [+ ลงวันไม่ว่าง]
 iPad: ปฏิทินซ้าย + แผงวันขวา (ไม่มี scrim) · ปุ่ม [+ ลงวันไม่ว่าง] ย้ายขึ้นหัวหน้า
 กลุ่ม 30+ คน: ตัวเลขยังเป็น "27/32" · รายชื่อใน sheet เรียง "ติด" ขึ้นก่อน แล้วยุบคนว่างทั้งวันเป็นแถวเดียว "ว่างทั้งวัน 25 คน ›"
 ```
@@ -404,7 +404,7 @@ iPad: ปฏิทินซ้าย + แผงวันขวา (ไม่ม
 | appt.cancelled | ยกเลิกแล้ว | Cancelled |
 | cal.addBusy | ลงวันไม่ว่าง | Add busy time |
 | cal.freeCount (aria) | {d} {month} ว่าง {x} จาก {y} คน | {d} {month}, {x} of {y} free |
-| cal.legend.full / some / few / plan | ว่างครบ / ว่างเกินครึ่ง / ว่างไม่ถึงครึ่ง / มีนัด | Everyone free / Most free / Under half free / Has a plan |
+| cal.legend.full / some / few / plan | ว่างครบ / ว่างครึ่งหนึ่งขึ้นไป / ว่างไม่ถึงครึ่ง / มีนัด | Everyone free / Half or more free / Under half free / Has a plan |
 | cal.countNote | ตัวเลขในช่อง = จำนวนคนที่ว่างวันนั้น จากทั้งกลุ่ม {y} คน | Numbers show how many of the {y} members are free that day. |
 | day.allFree | ว่างครบ {y} จาก {y} คน | All {y} members are free |
 | day.someFree | ว่าง {x} จาก {y} คน | {x} of {y} members free |
@@ -450,6 +450,10 @@ iPad: ปฏิทินซ้าย + แผงวันขวา (ไม่ม
 | state.retry | ลองอีกครั้ง | Try again |
 | notFound | ไม่พบหน้านี้ / กลับหน้าหลัก | Page not found / Back to home |
 | date.short / long | ส. 17 ต.ค. 2569 / เสาร์ 24 ตุลาคม 2569 | Sat 17 Oct 2026 / Saturday, 24 October 2026 |
+
+**R0 — ไฟล์จริง** `messages/th.json` / `messages/en.json` (namespace: `app` `brand` `nav` `login` `empty` `notFound` `prefs` `states` `calendar.legend` `a11y` `errors`) · คีย์ในไฟล์จริงชนะคีย์ข้อเสนอในตารางนี้ (เช่น `cal.legend.*` → `calendar.legend.*`, `me.theme.*` → `prefs.theme*`, `{y}` → `{total}`) · `errors.<CODE>` ครบทุกรหัสใน `src/lib/shared/errors.ts`
+- `errors.INVALID_CREDENTIALS` ใช้ `{attemptsRemaining}` ตรงจาก API · `errors.LOGIN_LOCKED` ใช้ `{retryAfterMin}` = `max(1, ceil(retryAfterSec / 60))` ที่ UI คำนวณก่อนเรียก `t()` (API ส่งเป็นวินาที แต่ผู้ใช้อ่านเป็นนาที ตามแถว `auth.locked`) · `errors.RATE_LIMITED` ไม่ใช้ตัวแปร (บางกรณีไม่มีเวลารอ)
+- legend ระดับกลาง = "ว่างครึ่งหนึ่งขึ้นไป" / "Half or more free" (LEAD_DECISIONS: 3/6 ใช้สีเดียวกัน จึงไม่ใช่ "เกินครึ่ง")
 
 หมายเหตุภาษา: ข้อความไทยที่ต่อชื่อคน ("{name}ติดช่วง") ไม่เว้นวรรคระหว่างชื่อกับกริยาตามการเขียนไทย · อังกฤษใช้เครื่องหมาย ’ “ ” แบบโค้ง · "·" ในตารางข้างบนคือการคั่นหลายข้อความในคีย์เดียว ไม่ใช่ข้อความบนจอ — บนจอใช้ไอคอน/ระยะห่างคั่นแทน
 
