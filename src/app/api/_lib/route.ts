@@ -103,11 +103,26 @@ export function checkCsrf(req: Request, env: Env): boolean {
   return /^application\/json\s*(;|$)/i.test(ct);
 }
 
-/** zod issues → {fields: {path: REASON}} (ADR 0008 §3) — ไม่มีข้อความภาษาคน ไม่สะท้อนค่าที่ส่งมา */
+/** จำนวน field สูงสุดใน VALIDATION params — กัน response ขยายตามจำนวนคีย์แปลกที่ผู้เรียกส่งมา (Security R0) */
+export const MAX_VALIDATION_FIELDS = 32;
+const SAFE_FIELD_SEGMENT = /^[A-Za-z0-9_]{1,64}$/;
+
+/** path ที่มี segment มาจากผู้เรียก (คีย์แปลก / คีย์ของ record) → '_' ถ้าไม่ใช่ชื่อธรรมดา (ไม่สะท้อนสตริงของผู้เรียก) */
+function fieldKey(segments: readonly PropertyKey[]): string {
+  const parts = segments.map(String);
+  if (parts.length === 0 || !parts.every((p) => SAFE_FIELD_SEGMENT.test(p))) return '_';
+  return parts.join('.');
+}
+
+/** zod issues → {fields: {path: REASON}} (ADR 0008 §3) — ไม่มีข้อความภาษาคน ไม่สะท้อนค่า/คีย์แปลกที่ส่งมา */
 export function validationParams(error: z.ZodError, raw: unknown): { fields: Record<string, string> } {
-  const fields: Record<string, string> = {};
+  const fields: Record<string, string> = Object.create(null) as Record<string, string>;
+  const put = (key: string, reason: string) => {
+    if (key in fields || Object.keys(fields).length >= MAX_VALIDATION_FIELDS) return;
+    fields[key] = reason;
+  };
   for (const issue of error.issues) {
-    let key = issue.path.map(String).join('.');
+    const key = fieldKey(issue.path);
     let reason: string;
     switch (issue.code) {
       case 'invalid_type':
@@ -120,7 +135,7 @@ export function validationParams(error: z.ZodError, raw: unknown): { fields: Rec
         reason = issue.origin === 'string' ? 'TOO_SHORT' : 'TOO_SMALL';
         break;
       case 'unrecognized_keys':
-        for (const k of issue.keys) fields[[...issue.path.map(String), k].join('.')] = 'UNKNOWN_FIELD';
+        for (const k of issue.keys) put(fieldKey([...issue.path, k]), 'UNKNOWN_FIELD');
         continue;
       case 'invalid_value':
       case 'invalid_format':
@@ -130,10 +145,9 @@ export function validationParams(error: z.ZodError, raw: unknown): { fields: Rec
       default:
         reason = 'INVALID';
     }
-    if (key === '') key = '_';
-    fields[key] ??= reason;
+    put(key, reason);
   }
-  return { fields };
+  return { fields: { ...fields } };
 }
 
 function valueAt(raw: unknown, path: readonly PropertyKey[]): unknown {
