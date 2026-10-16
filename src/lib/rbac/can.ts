@@ -217,8 +217,8 @@ const acceptsResource = (action: Action, resource: Resource): boolean =>
 export function can<A extends Action>(actor: Actor, action: A, resource: ResourceFor<A>): Decision {
   if (!acceptsResource(action, resource)) throw new RbacMisuseError(action, resource.type);
 
-  // 1
-  if (actor.kind === 'anonymous') return isPublicAction(action) ? ALLOW : deny('AUTH_REQUIRED');
+  // 1 — fail closed: อะไรที่ไม่ใช่ kind 'user' ชัด ๆ (anonymous หรือค่าผิดรูปจาก resolver) ได้สิทธิ์เท่า anonymous
+  if (actor?.kind !== 'user') return isPublicAction(action) ? ALLOW : deny('AUTH_REQUIRED');
   // 2
   if (actor.status === 'suspended') return deny('ACCOUNT_SUSPENDED');
   if (actor.status !== 'active') return deny('AUTH_REQUIRED');
