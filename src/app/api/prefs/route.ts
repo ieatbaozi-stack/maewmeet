@@ -1,5 +1,5 @@
 // POST /api/prefs — {locale?, theme?} → cookie mm_locale / mm_theme (1 ปี, SameSite=Lax, Secure) · R0_CONTRACT §3
-// ค่านอกชุด → VALIDATION (wrapper) · ไม่ตั้ง HttpOnly ตามสัญญา (ค่าไม่ลับ; ฝั่งเซิร์ฟเวอร์อ่านใน root layout)
+// ค่านอกชุด → VALIDATION (wrapper) · HttpOnly ตาม ADR 0008 §1 (เซิร์ฟเวอร์อ่านใน root layout/i18n request — JS ไม่ต้องอ่าน)
 import { PREFS_COOKIE_MAX_AGE_SEC, prefsInputSchema, setPrefs } from '@/lib/data/services/prefs';
 import { reply, route } from '../_lib/route';
 
@@ -16,6 +16,7 @@ export const POST = route({
         maxAgeSec: PREFS_COOKIE_MAX_AGE_SEC,
         sameSite: 'Lax' as const,
         secure: true,
+        httpOnly: true,
       })),
     });
   },

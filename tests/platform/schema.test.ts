@@ -1,6 +1,7 @@
 // R0-4: migration จริงจาก drizzle/ บน DB ว่าง · 17 ตาราง · constraint สำคัญปฏิเสธจริง (ARCHITECTURE §3)
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { getTableConfig, type SQLiteTable } from 'drizzle-orm/sqlite-core';
+import { is } from 'drizzle-orm';
+import { getTableConfig, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import * as schema from '@/db/schema';
 import { createTestDb, MIGRATIONS_FOLDER, type TestDb } from '../helpers/db';
@@ -60,9 +61,9 @@ describe('migration', () => {
   });
 
   it('schema.ts ประกาศ 17 ตารางชุดเดียวกับที่อยู่ใน DB', () => {
+    // is(v, SQLiteTable) = type guard ของ drizzle (ตรวจ entityKind) — ไม่ต้องเดาโครงสร้างภายในของตาราง
     const tables = Object.values(schema)
-      .filter((v): v is SQLiteTable => typeof v === 'object' && v !== null && Symbol.for('drizzle:IsDrizzleTable') in v)
-      .map((tb) => getTableConfig(tb).name)
+      .flatMap((v) => (is(v, SQLiteTable) ? [getTableConfig(v).name] : []))
       .sort();
     expect(tables).toEqual(EXPECTED_TABLES);
   });

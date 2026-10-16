@@ -1,7 +1,7 @@
 // R0-5: env ล้มพร้อมชื่อตัวแปรเมื่อขาด/ผิด และข้อความไม่มีค่าลับ (ARCHITECTURE §7 · ADR 0002 §7.1)
 import { randomBytes } from 'node:crypto';
-import { describe, expect, it } from 'vitest';
-import { EnvError, configuredAppOrigin, loadEnv, readPepperEnv } from '@/lib/shared/env';
+import { afterEach, describe, expect, it } from 'vitest';
+import { EnvError, assertEnv, configuredAppOrigin, getEnv, loadEnv, readPepperEnv, resetEnvCache } from '@/lib/shared/env';
 
 const SECRET_32 = randomBytes(32).toString('base64');
 const CRON = 'cron-' + randomBytes(16).toString('hex');
@@ -128,5 +128,36 @@ describe('readPepperEnv (ประกาศชนิดไว้ — R1 บั�
       ok: false,
       problems: ['PIN_PEPPER_V3'],
     });
+  });
+});
+
+describe('assertEnv — จุด "ล้มตอนเริ่ม" (อ่าน process.env จริง)', () => {
+  const KEYS = ['TURSO_DATABASE_URL', 'APP_SECRET', 'CRON_SECRET', 'VERCEL_ENV'] as const;
+  const saved = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));
+  afterEach(() => {
+    for (const k of KEYS) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
+    resetEnvCache();
+  });
+
+  it('ขาด CRON_SECRET → โยน EnvError ข้อความบอกชื่อและที่ดูวิธีตั้ง', () => {
+    Object.assign(process.env, devEnv());
+    delete process.env.VERCEL_ENV;
+    delete process.env.CRON_SECRET;
+    resetEnvCache();
+    expect(() => assertEnv()).toThrow(EnvError);
+    expect(() => assertEnv()).toThrow(
+      'Invalid environment configuration — missing: CRON_SECRET. See .env.example / docs/OPERATIONS.md',
+    );
+  });
+
+  it('ครบ → ไม่โยน และ getEnv cache ค่าเดิม', () => {
+    Object.assign(process.env, devEnv());
+    delete process.env.VERCEL_ENV;
+    resetEnvCache();
+    expect(() => assertEnv()).not.toThrow();
+    expect(getEnv()).toBe(getEnv());
   });
 });

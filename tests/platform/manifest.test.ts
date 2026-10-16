@@ -8,8 +8,8 @@ import { HTTP_METHODS, ROUTE_MANIFEST, type ManifestEntry } from '@/app/api/_lib
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const API_DIR = path.join(ROOT, 'src/app/api');
 
-/** route ที่ลงทะเบียนล่วงหน้าแต่บทบาทอื่นยังไม่สร้างไฟล์ (R0 ขั้น 3) — ลบออกเมื่อไฟล์มาแล้ว */
-const PLANNED = new Set(['GET /api/health']);
+/** route ที่ลงทะเบียนล่วงหน้าแต่บทบาทอื่นยังไม่สร้างไฟล์ — ลบออกเมื่อไฟล์มาแล้ว (GET /api/health ของ OPS มาแล้ว) */
+const PLANNED = new Set<string>([]);
 
 type Found = { file: string; method: string; path: string };
 
