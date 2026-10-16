@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ปฏิทินกลุ่ม — แมวเจอกัน</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<script>
+window.MESSAGES_EN = {
+ "switchGroup": "Switch group: แก๊งมัธยม ห้อง 6/3",
+ "addBusy": "Add busy time",
+ "prevMonth": "Previous month",
+ "nextMonth": "Next month",
+ "month": "October 2026",
+ "lgFull": "Everyone free",
+ "lgSome": "Most free",
+ "lgFew": "Under half free",
+ "lgEvent": "Has a plan",
+ "countNote": "Numbers show how many of the 6 members are free that day.",
+ "tabHome": "Home",
+ "tabCal": "Calendar",
+ "tabGroups": "Groups",
+ "tabMe": "Me",
+ "dayTitle": "Saturday, 24 October 2026",
+ "dayStatus": "All 6 members are free",
+ "close": "Close",
+ "windowsH": "When everyone’s free",
+ "w1": "3 hr",
+ "w2": "4 hr 30 min",
+ "membersH": "6 members",
+ "freeAllDay": "Free all day",
+ "hidden": "Details hidden",
+ "busyLabel": "Busy",
+ "createToday": "Make a plan on this day",
+ "_title": "Calendar — maewmeet",
+ "dow0": "Mon",
+ "dow1": "Tue",
+ "dow2": "Wed",
+ "dow3": "Thu",
+ "dow4": "Fri",
+ "dow5": "Sat",
+ "dow6": "Sun",
+ "a1": "1 October, past",
+ "a2": "2 October, past",
+ "a3": "3 October, past",
+ "a4": "4 October, past",
+ "a5": "5 October, past",
+ "a6": "6 October, past",
+ "a7": "7 October, past",
+ "a8": "8 October, past",
+ "a9": "9 October, past",
+ "a10": "10 October, past",
+ "a11": "11 October, past",
+ "a12": "12 October, past",
+ "a13": "13 October, past",
+ "a14": "14 October, past",
+ "a15": "15 October, 4 of 6 free, today",
+ "a16": "16 October, 3 of 6 free",
+ "a17": "17 October, 6 of 6 free, has a plan",
+ "a18": "18 October, 5 of 6 free",
+ "a19": "19 October, 2 of 6 free",
+ "a20": "20 October, 2 of 6 free",
+ "a21": "21 October, 3 of 6 free",
+ "a22": "22 October, 4 of 6 free",
+ "a23": "23 October, 5 of 6 free",
+ "a24": "24 October, 6 of 6 free",
+ "a25": "25 October, 5 of 6 free",
+ "a26": "26 October, 1 of 6 free",
+ "a27": "27 October, 2 of 6 free",
+ "a28": "28 October, 3 of 6 free",
+ "a29": "29 October, 4 of 6 free",
+ "a30": "30 October, 5 of 6 free",
+ "a31": "31 October, 6 of 6 free, has a plan"
+};
+</script>
+</head>
+<body data-aurora="soft">
+<div class="aurora" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+
+<div class="app">
+  <div class="scrim mobile-only" aria-hidden="true"></div>
+  <header class="topbar">
+    <button class="group-switch" aria-label="เปลี่ยนกลุ่ม: แก๊งมัธยม ห้อง 6/3" data-t-aria="switchGroup">
+      <span class="name">แก๊งมัธยม ห้อง 6/3</span><i data-icon="chevron-down" class="sm"></i>
+    </button>
+    <button class="btn btn-secondary wide-only"><i data-icon="plus"></i><span data-t="addBusy">ลงวันไม่ว่าง</span></button>
+  </header>
+  <main class="main wide">
+    <div class="split">
+      <section aria-labelledby="month">
+        <div class="month-nav">
+          <button class="icon-btn" aria-label="เดือนก่อน" data-t-aria="prevMonth"><i data-icon="chevron-left"></i></button>
+          <h2 id="month" data-t="month">ตุลาคม 2569</h2>
+          <button class="icon-btn" aria-label="เดือนถัดไป" data-t-aria="nextMonth"><i data-icon="chevron-right"></i></button>
+        </div>
+        <div class="cal" role="group" aria-labelledby="month">
+        <span class="dow" aria-hidden="true" data-t="dow0">จ</span><span class="dow" aria-hidden="true" data-t="dow1">อ</span><span class="dow" aria-hidden="true" data-t="dow2">พ</span><span class="dow" aria-hidden="true" data-t="dow3">พฤ</span><span class="dow" aria-hidden="true" data-t="dow4">ศ</span><span class="dow" aria-hidden="true" data-t="dow5">ส</span><span class="dow" aria-hidden="true" data-t="dow6">อา</span>
+        <span class="day pad" aria-hidden="true"></span>
+        <span class="day pad" aria-hidden="true"></span>
+        <span class="day pad" aria-hidden="true"></span>
+        <span class="day past" aria-label="1 ตุลาคม ผ่านไปแล้ว" data-t-aria="a1"><span class="dn">1</span></span>
+        <span class="day past" aria-label="2 ตุลาคม ผ่านไปแล้ว" data-t-aria="a2"><span class="dn">2</span></span>
+        <span class="day past" aria-label="3 ตุลาคม ผ่านไปแล้ว" data-t-aria="a3"><span class="dn">3</span></span>
+        <span class="day past" aria-label="4 ตุลาคม ผ่านไปแล้ว" data-t-aria="a4"><span class="dn">4</span></span>
+        <span class="day past" aria-label="5 ตุลาคม ผ่านไปแล้ว" data-t-aria="a5"><span class="dn">5</span></span>
+        <span class="day past" aria-label="6 ตุลาคม ผ่านไปแล้ว" data-t-aria="a6"><span class="dn">6</span></span>
+        <span class="day past" aria-label="7 ตุลาคม ผ่านไปแล้ว" data-t-aria="a7"><span class="dn">7</span></span>
+        <span class="day past" aria-label="8 ตุลาคม ผ่านไปแล้ว" data-t-aria="a8"><span class="dn">8</span></span>
+        <span class="day past" aria-label="9 ตุลาคม ผ่านไปแล้ว" data-t-aria="a9"><span class="dn">9</span></span>
+        <span class="day past" aria-label="10 ตุลาคม ผ่านไปแล้ว" data-t-aria="a10"><span class="dn">10</span></span>
+        <span class="day past" aria-label="11 ตุลาคม ผ่านไปแล้ว" data-t-aria="a11"><span class="dn">11</span></span>
+        <span class="day past" aria-label="12 ตุลาคม ผ่านไปแล้ว" data-t-aria="a12"><span class="dn">12</span></span>
+        <span class="day past" aria-label="13 ตุลาคม ผ่านไปแล้ว" data-t-aria="a13"><span class="dn">13</span></span>
+        <span class="day past" aria-label="14 ตุลาคม ผ่านไปแล้ว" data-t-aria="a14"><span class="dn">14</span></span>
+        <button class="day l1 today" aria-label="15 ตุลาคม ว่าง 4 จาก 6 คน วันนี้" data-t-aria="a15"><span class="dn">15</span><span class="cnt">4/6</span></button>
+        <button class="day l1" aria-label="16 ตุลาคม ว่าง 3 จาก 6 คน" data-t-aria="a16"><span class="dn">16</span><span class="cnt">3/6</span></button>
+        <button class="day l3 has-event" aria-label="17 ตุลาคม ว่าง 6 จาก 6 คน มีนัด" data-t-aria="a17"><span class="dn">17</span><span class="cnt">6/6<i data-icon="check"></i></span></button>
+        <button class="day l2" aria-label="18 ตุลาคม ว่าง 5 จาก 6 คน" data-t-aria="a18"><span class="dn">18</span><span class="cnt">5/6</span></button>
+        <button class="day l0" aria-label="19 ตุลาคม ว่าง 2 จาก 6 คน" data-t-aria="a19"><span class="dn">19</span><span class="cnt">2/6</span></button>
+        <button class="day l0" aria-label="20 ตุลาคม ว่าง 2 จาก 6 คน" data-t-aria="a20"><span class="dn">20</span><span class="cnt">2/6</span></button>
+        <button class="day l1" aria-label="21 ตุลาคม ว่าง 3 จาก 6 คน" data-t-aria="a21"><span class="dn">21</span><span class="cnt">3/6</span></button>
+        <button class="day l1" aria-label="22 ตุลาคม ว่าง 4 จาก 6 คน" data-t-aria="a22"><span class="dn">22</span><span class="cnt">4/6</span></button>
+        <button class="day l2" aria-label="23 ตุลาคม ว่าง 5 จาก 6 คน" data-t-aria="a23"><span class="dn">23</span><span class="cnt">5/6</span></button>
+        <button class="day l3 selected" aria-label="24 ตุลาคม ว่าง 6 จาก 6 คน" data-t-aria="a24" aria-pressed="true"><span class="dn">24</span><span class="cnt">6/6<i data-icon="check"></i></span></button>
+        <button class="day l2" aria-label="25 ตุลาคม ว่าง 5 จาก 6 คน" data-t-aria="a25"><span class="dn">25</span><span class="cnt">5/6</span></button>
+        <button class="day l0" aria-label="26 ตุลาคม ว่าง 1 จาก 6 คน" data-t-aria="a26"><span class="dn">26</span><span class="cnt">1/6</span></button>
+        <button class="day l0" aria-label="27 ตุลาคม ว่าง 2 จาก 6 คน" data-t-aria="a27"><span class="dn">27</span><span class="cnt">2/6</span></button>
+        <button class="day l1" aria-label="28 ตุลาคม ว่าง 3 จาก 6 คน" data-t-aria="a28"><span class="dn">28</span><span class="cnt">3/6</span></button>
+        <button class="day l1" aria-label="29 ตุลาคม ว่าง 4 จาก 6 คน" data-t-aria="a29"><span class="dn">29</span><span class="cnt">4/6</span></button>
+        <button class="day l2" aria-label="30 ตุลาคม ว่าง 5 จาก 6 คน" data-t-aria="a30"><span class="dn">30</span><span class="cnt">5/6</span></button>
+        <button class="day l3 has-event" aria-label="31 ตุลาคม ว่าง 6 จาก 6 คน มีนัด" data-t-aria="a31"><span class="dn">31</span><span class="cnt">6/6<i data-icon="check"></i></span></button>
+        </div>
+        <p class="legend" style="margin-top: var(--space-3)">
+          <span><span class="sw l3"><i data-icon="check"></i></span><span data-t="lgFull">ว่างครบ</span></span>
+          <span><span class="sw l2"></span><span data-t="lgSome">ว่างเกินครึ่ง</span></span>
+          <span><span class="sw l0"></span><span data-t="lgFew">ว่างไม่ถึงครึ่ง</span></span>
+          <span><span class="sw ev"></span><span data-t="lgEvent">มีนัด</span></span>
+        </p>
+        <p class="small muted" style="margin-top: 0" data-t="countNote">ตัวเลขในช่อง = จำนวนคนที่ว่างวันนั้น จากทั้งกลุ่ม 6 คน</p>
+      </section>
+      <aside class="sheet day-sheet side" aria-labelledby="day-title">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="sheet-head">
+          <div class="t">
+            <h2 id="day-title" data-t="dayTitle">เสาร์ 24 ตุลาคม 2569</h2>
+            <p class="status-line"><i data-icon="circle-check" class="sm"></i><span data-t="dayStatus">ว่างครบ 6 จาก 6 คน</span></p>
+          </div>
+          <button class="icon-btn mobile-only" aria-label="ปิด" data-t-aria="close"><i data-icon="x"></i></button>
+        </div>
+        <div class="sheet-body">
+          <h3 class="sub-h" data-t="windowsH">ช่วงที่ทุกคนว่างพร้อมกัน</h3>
+          <div class="windows">
+            <span class="window"><b>13:00–16:00</b><span data-t="w1">3 ชม.</span></span>
+            <span class="window"><b>17:30–22:00</b><span data-t="w2">4 ชม. 30 นาที</span></span>
+          </div>
+          <h3 class="sub-h" data-t="membersH">สมาชิก 6 คน</h3>
+          <ul class="people">
+            <li class="person"><span class="avatar m1">ต</span><span class="pn">ต้นข้าว</span><span class="ps"><span class="ps-free"><i data-icon="check" class="sm"></i><span data-t="freeAllDay">ว่างทั้งวัน</span></span></span></li>
+            <li class="person"><span class="avatar m6">ป</span><span class="pn">ปาล์ม</span><span class="ps"><span class="ps-busy"><span class="busy-mark" aria-hidden="true"></span><span data-t="busyLabel" class="sr-only">ไม่ว่าง</span>08:00–13:00</span><span class="ps-what">ซ้อมดนตรี</span></span></li>
+            <li class="person"><span class="avatar m7">ม</span><span class="pn">มายด์</span><span class="ps"><span class="ps-busy"><span class="busy-mark" aria-hidden="true"></span><span data-t="busyLabel" class="sr-only">ไม่ว่าง</span>16:00–17:30</span><span class="ps-what">เรียนว่ายน้ำ</span></span></li>
+            <li class="person"><span class="avatar m4">อ</span><span class="pn">โอ๊ต</span><span class="ps"><span class="ps-free"><i data-icon="check" class="sm"></i><span data-t="freeAllDay">ว่างทั้งวัน</span></span></span></li>
+            <li class="person"><span class="avatar m2">ฟ</span><span class="pn">เฟิร์น</span><span class="ps"><span class="ps-busy"><span class="busy-mark" aria-hidden="true"></span><span data-t="busyLabel" class="sr-only">ไม่ว่าง</span>09:00–12:00</span><span class="ps-what"><span data-t="hidden">ไม่บอกรายละเอียด</span></span></span></li>
+            <li class="person"><span class="avatar m5">ณ</span><span class="pn">ณัฐพงศ์ วงศ์สวัสดิ์ศรีสกุล</span><span class="ps"><span class="ps-free"><i data-icon="check" class="sm"></i><span data-t="freeAllDay">ว่างทั้งวัน</span></span></span></li>
+          </ul>
+        </div>
+        <div class="sheet-foot">
+          <a class="btn btn-primary btn-block" href="create.html"><i data-icon="calendar-plus"></i><span data-t="createToday">สร้างนัดวันนี้</span></a>
+        </div>
+      </aside>
+    </div>
+  </main>
+  <button class="btn btn-primary fab mobile-only"><i data-icon="plus"></i><span data-t="addBusy">ลงวันไม่ว่าง</span></button>
+  <nav class="tabbar" aria-label="เมนูหลัก">
+    <a class="tab" href="home.html"><i data-icon="house"></i><span data-t="tabHome">หน้าหลัก</span></a>
+    <a class="tab" href="calendar.html" aria-current="page"><i data-icon="calendar"></i><span data-t="tabCal">ปฏิทิน</span></a>
+    <a class="tab" href="#"><i data-icon="users"></i><span data-t="tabGroups">กลุ่ม</span></a>
+    <a class="tab" href="#"><i data-icon="user"></i><span data-t="tabMe">ฉัน</span></a>
+  </nav>
+</div>
+</body>
+</html>

@@ -1,0 +1,72 @@
+[
+  {
+    "key": "sit",
+    "file": "cat-sit.svg",
+    "th": "นั่ง",
+    "en": "Sitting",
+    "use": "หน้าว่างทั่วไป"
+  },
+  {
+    "key": "wave",
+    "file": "cat-wave.svg",
+    "th": "โบกมือ",
+    "en": "Waving",
+    "use": "หน้าเข้าสู่ระบบ / สมัครสำเร็จ"
+  },
+  {
+    "key": "calendar",
+    "file": "cat-calendar.svg",
+    "th": "ถือปฏิทิน",
+    "en": "Holding a calendar",
+    "use": "ปฏิทินกลุ่มยังไม่มีใครลงวันไม่ว่าง"
+  },
+  {
+    "key": "map",
+    "file": "cat-map.svg",
+    "th": "ถือแผนที่",
+    "en": "Holding a map",
+    "use": "นัดยังไม่ได้ใส่สถานที่"
+  },
+  {
+    "key": "tea",
+    "file": "cat-tea.svg",
+    "th": "ถือแก้วชา",
+    "en": "Holding tea",
+    "use": "ทุกคนว่าง ไม่มีนัด / พัก"
+  },
+  {
+    "key": "pin",
+    "file": "cat-pin.svg",
+    "th": "ถือหมุดสถานที่",
+    "en": "Holding a pin",
+    "use": "สร้างนัดสำเร็จ"
+  },
+  {
+    "key": "cheer",
+    "file": "cat-cheer.svg",
+    "th": "ชูสองมือ",
+    "en": "Cheering",
+    "use": "ทุกคนว่างตรงกัน / ทุกคนตอบรับนัด"
+  },
+  {
+    "key": "sleep",
+    "file": "cat-sleep.svg",
+    "th": "นอน",
+    "en": "Sleeping",
+    "use": "ไม่มีการแจ้งเตือน / ยังไม่มีนัด"
+  },
+  {
+    "key": "peek",
+    "file": "cat-peek.svg",
+    "th": "โผล่ขอบ",
+    "en": "Peeking",
+    "use": "หน้าว่างที่พื้นที่จำกัด (รายการนัด, กลุ่ม)"
+  },
+  {
+    "key": "lost",
+    "file": "cat-lost.svg",
+    "th": "งง",
+    "en": "Lost",
+    "use": "404 / ผิดพลาด"
+  }
+]

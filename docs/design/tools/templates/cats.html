@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ชุดแมว — แมวเจอกัน</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<script>window.MESSAGES_EN = {"_title": "Cat set — maewmeet", "h": "Cat set, first draft", "intro": "One continuous line in the text color, with a little pastel in the ears, cheeks and props. Every pose is built from the same head, body and tail, so proportions stay identical across the set.", "rules": "Where cats appear", "r1": "Logo", "r2": "Empty states (groups, calendar, plans)", "r3": "Success after making a plan", "r4": "404 and error pages", "r5": "Never on every card, never as a repeating pattern", "sizes": "Sizes", "logo": "Logo", "n_sit": "Sitting", "u_sit": "General empty state", "n_wave": "Waving", "u_wave": "Sign-in / account created", "n_calendar": "Holding a calendar", "u_calendar": "Group calendar with no busy times yet", "n_map": "Holding a map", "u_map": "Plan without a place yet", "n_tea": "Holding tea", "u_tea": "Everyone free, no plans / resting", "n_pin": "Holding a pin", "u_pin": "Plan created", "n_cheer": "Cheering", "u_cheer": "Everyone free on the same day / everyone RSVP’d", "n_sleep": "Sleeping", "u_sleep": "No notifications / no plans yet", "n_peek": "Peeking", "u_peek": "Empty state in tight spaces (lists, groups)", "n_lost": "Lost", "u_lost": "404 / error"};</script>
+<style>
+  .cats-page { max-width: calc(var(--content-max) * 1.4); margin: 0 auto; padding: var(--space-5) var(--gutter) var(--space-7); }
+  .cats-page h1 { font-size: var(--text-xl); font-weight: var(--weight-semibold); line-height: var(--leading-heading); }
+  .cats-page > p { max-width: 60ch; margin-top: var(--space-2); color: var(--ink-muted); }
+  .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--space-7) * 3), 1fr)); gap: var(--space-3); margin-top: var(--space-5); }
+  .cat-cell { margin: 0; background: var(--surface); border: var(--border) solid var(--line); border-radius: var(--radius-sm); padding: var(--space-3); display: grid; justify-items: center; gap: var(--space-2); text-align: center; }
+  .cat-lg { width: calc(var(--space-7) * 2.5); height: calc(var(--space-7) * 2.5); }
+  .cat-cell figcaption { display: grid; gap: var(--space-1); }
+  .sizes { display: flex; align-items: flex-end; gap: var(--space-5); margin-top: var(--space-3); flex-wrap: wrap; }
+  .sizes .s1 { width: var(--icon-lg); height: var(--icon-lg); } .sizes .s2 { width: var(--space-7); height: var(--space-7); } .sizes .s3 { width: calc(var(--space-7) * 2); height: calc(var(--space-7) * 2); } .sizes .s4 { width: calc(var(--space-7) * 3); height: calc(var(--space-7) * 3); }
+  .rules { margin-top: var(--space-3); display: grid; gap: var(--space-1); }
+  .rules li { display: flex; gap: var(--space-2); align-items: center; }
+  .rules .icon { color: var(--free-ink); } .rules li.no .icon { color: var(--danger-ink); }
+  .logo-row { display: flex; gap: var(--space-5); align-items: center; flex-wrap: wrap; margin-top: var(--space-3); }
+  .logo-row .logo { height: var(--space-7); }
+</style>
+</head>
+<body>
+<main class="cats-page">
+  <h1 data-t="h">ชุดแมว ร่างแรก</h1>
+  <p data-t="intro">เส้นเดียวหนาเท่ากันสีเดียวกับตัวอักษร ลงสีพาสเทลแค่หู แก้ม และของที่ถือ ทุกท่าประกอบจากหัว ตัว และหางชุดเดียวกัน สัดส่วนจึงเท่ากันทั้งชุด</p>
+  <div class="cat-grid">
+      <figure class="cat-cell">
+        <i data-cat="sit" class="cat-lg" aria-label="นั่ง"></i>
+        <figcaption><b data-t="n_sit">นั่ง</b><span class="small muted">cat-sit.svg</span><span class="small" data-t="u_sit">หน้าว่างทั่วไป</span></figcaption>
+      </figure>
+      <figure class="cat-cell">
+        <i data-cat="wave" class="cat-lg" aria-label="โบกมือ"></i>
+        <figcaption><b data-t="n_wave">โบกมือ</b><span class="small muted">cat-wave.svg</span><span class="small" data-t="u_wave">หน้าเข้าสู่ระบบ / สมัครสำเร็จ</span></figcaption>
+      </figure>
+      <figure class="cat-cell">
+        <i data-cat="calendar" class="cat-lg" aria-label="ถือปฏิทิน"></i>
+        <figcaption><b data-t="n_calendar">ถือปฏิทิน</b><span class="small muted">cat-calendar.svg</span><span class="small" data-t="u_calendar">ปฏิทินกลุ่มยังไม่มีใครลงวันไม่ว่าง</span></figcaption>
+      </figure>
+      <figure class="cat-cell">
+        <i data-cat="map" class="cat-lg" aria-label="ถือแผนที่"></i>
+        <figcaption><b data-t="n_map">ถือแผนที่</b><span class="small muted">cat-map.svg</span><span class="small" data-t="u_map">นัดยังไม่ได้ใส่สถานที่</span></figcaption>
+      </figure>
+      <figure class="cat-cell">
+        <i data-cat="tea" class="cat-lg" aria-label="ถือแก้วชา"></i>
+        <figcaption><b data-t="n_tea">ถือแก้วชา</b><span class="small muted">cat-tea.svg</span><span class="small" data-t="u_tea">ทุกคนว่าง ไม่มีนัด / พัก</span></figcaption>
+      </figure>
+      <figure class="cat-cell">
+        <i data-cat="pin" class="cat-lg" aria-label="ถือหมุดสถานที่"></i>
+        <figcaption><b data-t="n_pin">ถือหมุดสถานที่</b><span class="small muted">cat-pin.svg</span><span class="small" data-t="u_pin">สร้างนัดสำเร็จ</span></figcaption>
+      </figure>
+      <figure class="cat-cell">
+        <i data-cat="cheer" class="cat-lg" aria-label="ชูสองมือ"></i>
+        <figcaption><b data-t="n_cheer">ชูสองมือ</b><span class="small muted">cat-cheer.svg</span><span class="small" data-t="u_cheer">ทุกคนว่างตรงกัน / ทุกคนตอบรับนัด</span></figcaption>
+      </figure>
+      <figure class="cat-cell">
+        <i data-cat="sleep" class="cat-lg" aria-label="นอน"></i>
+        <figcaption><b data-t="n_sleep">นอน</b><span class="small muted">cat-sleep.svg</span><span class="small" data-t="u_sleep">ไม่มีการแจ้งเตือน / ยังไม่มีนัด</span></figcaption>
+      </figure>
+      <figure class="cat-cell">
+        <i data-cat="peek" class="cat-lg" aria-label="โผล่ขอบ"></i>
+        <figcaption><b data-t="n_peek">โผล่ขอบ</b><span class="small muted">cat-peek.svg</span><span class="small" data-t="u_peek">หน้าว่างที่พื้นที่จำกัด (รายการนัด, กลุ่ม)</span></figcaption>
+      </figure>
+      <figure class="cat-cell">
+        <i data-cat="lost" class="cat-lg" aria-label="งง"></i>
+        <figcaption><b data-t="n_lost">งง</b><span class="small muted">cat-lost.svg</span><span class="small" data-t="u_lost">404 / ผิดพลาด</span></figcaption>
+      </figure>
+  </div>
+  <h2 class="h-section" style="margin-top: var(--space-6)" data-t="rules">ใช้แมวตรงไหน</h2>
+  <ul class="rules">
+    <li><i data-icon="check" class="sm"></i><span data-t="r1">โลโก้</span></li>
+    <li><i data-icon="check" class="sm"></i><span data-t="r2">หน้าว่าง (กลุ่ม ปฏิทิน นัด)</span></li>
+    <li><i data-icon="check" class="sm"></i><span data-t="r3">หน้าสำเร็จหลังสร้างนัด</span></li>
+    <li><i data-icon="check" class="sm"></i><span data-t="r4">หน้า 404 และหน้าผิดพลาด</span></li>
+    <li class="no"><i data-icon="x" class="sm"></i><span data-t="r5">ไม่ใส่ทุกการ์ด ไม่ทำเป็นลายซ้ำ</span></li>
+  </ul>
+  <h2 class="h-section" style="margin-top: var(--space-6)" data-t="sizes">ขนาดที่ใช้</h2>
+  <div class="sizes"><i data-cat="sit" class="s1"></i><i data-cat="sit" class="s2"></i><i data-cat="sit" class="s3"></i><i data-cat="sit" class="s4"></i></div>
+  <h2 class="h-section" style="margin-top: var(--space-6)" data-t="logo">โลโก้</h2>
+  <div class="logo-row"><i data-brand="logo-mark" class="logo"></i><i data-brand="logo-th" class="logo"></i><i data-brand="logo-en" class="logo"></i></div>
+</main>
+</body>
+</html>

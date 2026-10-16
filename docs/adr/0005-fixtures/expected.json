@@ -1,0 +1,422 @@
+{
+ "T1": [
+  {
+   "date": "2026-11-02",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  }
+ ],
+ "T2": [
+  {
+   "date": "2026-11-03",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-10:00(120)",
+    "12:00-14:00(120)",
+    "16:00-22:00(360)"
+   ]
+  }
+ ],
+ "T3": [
+  {
+   "date": "2024-12-31",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-22:00(840)"
+   ]
+  },
+  {
+   "date": "2025-01-01",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-22:00(840)"
+   ]
+  }
+ ],
+ "T4": [
+  {
+   "date": "2025-12-31",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-21:00(780)"
+   ]
+  },
+  {
+   "date": "2026-01-01",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "09:00-22:00(780)"
+   ]
+  }
+ ],
+ "T5": [
+  {
+   "date": "2024-12-31",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "00:00-22:00(1320)"
+   ]
+  },
+  {
+   "date": "2025-01-01",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "02:00-24:00(1320)"
+   ]
+  }
+ ],
+ "T6": [
+  {
+   "date": "2024-02-27",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-22:00(840)"
+   ]
+  },
+  {
+   "date": "2024-02-28",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  },
+  {
+   "date": "2024-02-29",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  },
+  {
+   "date": "2024-03-01",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  },
+  {
+   "date": "2024-03-02",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  },
+  {
+   "date": "2024-03-03",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-22:00(840)"
+   ]
+  }
+ ],
+ "T7": [
+  {
+   "date": "2025-02-27",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-22:00(840)"
+   ]
+  },
+  {
+   "date": "2025-02-28",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  },
+  {
+   "date": "2025-03-01",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  },
+  {
+   "date": "2025-03-02",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  },
+  {
+   "date": "2025-03-03",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-22:00(840)"
+   ]
+  }
+ ],
+ "T8": [
+  {
+   "date": "2024-02-28",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-20:00(720)"
+   ]
+  },
+  {
+   "date": "2024-02-29",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  },
+  {
+   "date": "2024-03-01",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "10:00-22:00(720)"
+   ]
+  }
+ ],
+ "T9": [
+  {
+   "date": "2026-04-30",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-22:00(840)"
+   ]
+  },
+  {
+   "date": "2026-05-01",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  },
+  {
+   "date": "2026-05-02",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-22:00(840)"
+   ]
+  }
+ ],
+ "T10": [
+  {
+   "date": "2026-05-05",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-22:00(840)"
+   ]
+  }
+ ],
+ "T11": [
+  {
+   "date": "2026-06-01",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "10:00-20:00(600)"
+   ]
+  }
+ ],
+ "T12": [
+  {
+   "date": "2026-06-02",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-10:00(120)",
+    "20:00-22:00(120)"
+   ]
+  }
+ ],
+ "T13": [
+  {
+   "date": "2026-06-03",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  }
+ ],
+ "T14": [
+  {
+   "date": "2026-06-04",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-10:00(120)",
+    "15:00-22:00(420)"
+   ]
+  }
+ ],
+ "T15a": [
+  {
+   "date": "2026-07-01",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  }
+ ],
+ "T15b": [
+  {
+   "date": "2026-07-01",
+   "free": "2/2",
+   "all_free": true,
+   "segments": [
+    "08:00-22:00(840)"
+   ]
+  }
+ ],
+ "T15c": [
+  {
+   "date": "2026-07-01",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-18:00(600)"
+   ]
+  }
+ ],
+ "T16": [
+  {
+   "date": "2026-07-02",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-22:00(840)"
+   ]
+  }
+ ],
+ "T17": [
+  {
+   "date": "2026-07-03",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "18:00-19:00(60)",
+    "20:30-23:00(150)"
+   ]
+  }
+ ],
+ "T18": [
+  {
+   "date": "2026-12-29",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-22:00(840)"
+   ]
+  },
+  {
+   "date": "2026-12-30",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  },
+  {
+   "date": "2026-12-31",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  },
+  {
+   "date": "2027-01-01",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  },
+  {
+   "date": "2027-01-02",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  },
+  {
+   "date": "2027-01-03",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-22:00(840)"
+   ]
+  }
+ ],
+ "T19": [
+  {
+   "date": "2026-11-10",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "10:00-22:00(720)"
+   ]
+  }
+ ],
+ "T20": [
+  {
+   "date": "2026-11-11",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  },
+  {
+   "date": "2026-11-12",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-22:00(840)"
+   ]
+  }
+ ],
+ "T21": [
+  {
+   "date": "2026-01-31",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-18:00(600)"
+   ]
+  },
+  {
+   "date": "2026-02-01",
+   "free": "2/3",
+   "all_free": false,
+   "segments": []
+  },
+  {
+   "date": "2026-02-02",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "09:00-22:00(780)"
+   ]
+  }
+ ],
+ "T22": [
+  {
+   "date": "2026-03-29",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "03:00-24:00(1260)"
+   ]
+  }
+ ],
+ "T23": [
+  {
+   "date": "2026-08-01",
+   "free": "3/3",
+   "all_free": true,
+   "segments": [
+    "08:00-10:00(120)",
+    "16:00-22:00(360)"
+   ]
+  }
+ ],
+ "T24": [
+  {
+   "date": "2026-08-02",
+   "free": "3/3",
+   "all_free": false,
+   "segments": []
+  }
+ ]
+}

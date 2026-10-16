@@ -1,0 +1,11 @@
+Pre-start/
+node_modules/
+.next/
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+coverage/
+playwright-report/
+test-results/

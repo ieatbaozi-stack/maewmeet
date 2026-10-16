@@ -1,0 +1,283 @@
+/*
+ * maewmeet design tokens — เจ้าของ: UX & Brand
+ * แหล่งความจริงเดียวของ สี / ระยะ / รัศมี / ตัวอักษร / การเคลื่อนไหว
+ * ห้ามใส่ค่า hex/px ในคอมโพเนนต์ ให้อ้าง var(--*) จากไฟล์นี้เท่านั้น
+ *
+ * ธีม:
+ *   :root                                   = สว่าง (ค่าเริ่มต้น)
+ *   [data-theme="dark"]                     = มืด (ผู้ใช้เลือกเอง)
+ *   @media (prefers-color-scheme: dark)
+ *     :root:not([data-theme="light"])       = มืดตามระบบ (ค่าเดียวกับบล็อกบน — docs/design/tools/contrast.mjs ตรวจว่าตรงกัน)
+ *
+ * คอนทราสต์ของทุกคู่ข้อความ/พื้น: docs/design/CONTRAST.md (สร้างจากสคริปต์)
+ * ฟอนต์ (@font-face): src/styles/tokens.fonts.css
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ---------- พื้นผิว ---------- */
+  --bg: #FAF8F5;            /* พื้นหลังหลัก ขาวอุ่น */
+  --surface: #FFFFFF;       /* การ์ด, sheet */
+  --surface-2: #F2EFE9;     /* พื้นยุบ: segmented, ช่องวันที่ผ่านไปแล้ว, ช่องค้นหา */
+  --line: #E6E1D9;          /* เส้นแบ่งบาง (ตกแต่ง ไม่ใช่ขอบควบคุม) */
+  --line-control: #807B8C;  /* ขอบช่องกรอก/สวิตช์ (WCAG 1.4.11 ≥ 3:1 รวมบน veil เหนือ aurora) */
+  --scrim: rgba(36, 33, 46, 0.42);
+  --hatch: rgba(122, 46, 42, 0.22); /* ลายเฉียงของ busy */
+
+  /* ---------- ตัวอักษร ---------- */
+  --ink: #2A2833;
+  --ink-muted: #5F5C6B;
+
+  /* ---------- สถานะ (พื้นพาสเทล + ตัวอักษรเข้ม) ---------- */
+  --free: #CFE8D8;
+  --free-ink: #25573B;
+  --busy: #F6D3D0;
+  --busy-ink: #7A2E2A;
+  --event: #D3DFF5;
+  --event-ink: #27407A;
+  --warn: #F6E6BF;
+  --warn-ink: #66480C;
+  --danger: #A83A35;        /* ปุ่ม destructive */
+  --on-danger: #FFFFFF;
+  --danger-soft: #F8DCD9;
+  --danger-ink: #85302B;
+
+  /* ระดับความว่างของวัน (ปฏิทินเดือน) — ตัวอักษรบนทุกระดับใช้ --ink */
+  --avail-none: #F2EFE9;    /* ว่าง < 50% → + ลายเฉียง */
+  --avail-low: #E9F2EC;     /* 50–74% */
+  --avail-mid: #D9ECDF;     /* 75–99% */
+  --avail-full: #B9DFC7;    /* ครบทุกคน → + ไอคอนถูก */
+
+  /* ---------- ปุ่มหลัก (1 สีเท่านั้น) ---------- */
+  --accent: #4B59C2;        /* ปรับจาก #6E7FD8 ให้ตัวอักษรขาวผ่าน 4.5:1 */
+  --on-accent: #FFFFFF;
+  --accent-ink: #3F4CB3;    /* accent เมื่อใช้เป็นตัวอักษร/ลิงก์ */
+  --accent-soft: #E3E6F7;   /* พื้นสิ่งที่ถูกเลือก */
+  --accent-soft-ink: #2F3A94;
+  --focus: #3F4CB3;         /* วงโฟกัส */
+
+  /* ---------- สีประจำสมาชิก (8 สี คัดมือ) — ตัวอักษรย่อใช้ --member-ink ---------- */
+  --member-ink: #2A2833;
+  --member-1: #F2C6BD;      /* กุหลาบ */
+  --member-2: #F4D9A8;      /* แอปริคอต */
+  --member-3: #E2DFA2;      /* มะนาวหม่น */
+  --member-4: #C3E2C6;      /* มินต์ */
+  --member-5: #BCDDE2;      /* ฟ้าน้ำ */
+  --member-6: #C8D2F1;      /* ลาเวนเดอร์ฟ้า */
+  --member-7: #DCCBEF;      /* ไลแลค */
+  --member-8: #EBCADD;      /* ชมพูหม่น */
+
+  /* ---------- แมว ---------- */
+  --cat-line: var(--ink);
+  --cat-coat: var(--surface); /* ขนแมว = พื้นผิว (บังเส้นด้านหลัง) */
+  --cat-fill: #F4D9A8;      /* ลงสีบางส่วน (หู แก้ม ของที่ถือ) */
+  --cat-fill-2: #CFE8D8;
+
+  /* ---------- Aurora (ชั้นพื้นหลัง — boss สั่ง 2026-10-16) ----------
+     ก้อนแสง radial-gradient 4 ก้อนบนเลเยอร์ blur เดียว · ค่าความทึบคือ alpha ที่ "จุดกลาง" ของก้อน
+     ข้อความที่วางบน aurora ตรงๆ ต้องผ่านกรณีแย่สุด (ทุกก้อนซ้อนกันที่จุดกลาง) — ดู contrast.mjs */
+  --aurora-1: rgba(120, 134, 230, 0.46);   /* ม่วงคราม (accent) */
+  --aurora-2: rgba(140, 205, 168, 0.58);   /* เขียว (free) */
+  --aurora-3: rgba(140, 190, 240, 0.54);   /* ฟ้า (event) */
+  --aurora-4: rgba(238, 160, 175, 0.50);   /* ชมพูหม่น (busy) */
+  --aurora-hero: 1;                         /* ความเข้ม: เข้าสู่ระบบ, หน้าว่าง, หน้าสำเร็จ, หัวหน้าหลัก */
+  --aurora-soft: 0.24;                      /* ความเข้ม: ปฏิทิน, ฟอร์ม */
+  --aurora-blob: 64vmax;                    /* เส้นผ่านศูนย์กลางก้อนแสง */
+  --aurora-blur: 56px;
+  --aurora-dur-1: 36s;
+  --aurora-dur-2: 28s;
+  --aurora-dur-3: 44s;
+  --aurora-drift: 10vmax;                   /* ระยะเคลื่อนสูงสุดของแต่ละก้อน */
+  --surface-veil: rgba(255, 255, 255, 0.86); /* แถบล่าง, bottom sheet, การ์ดหน้าเข้าสู่ระบบ */
+  --veil-blur: 18px;                        /* backdrop-filter เฉพาะแถบล่างและ bottom sheet */
+
+  /* ---------- เงา (เฉพาะชั้นลอย: sheet, popover) ---------- */
+  --shadow-float: 0 -6px 24px rgba(42, 40, 51, 0.10);
+  --shadow-pop: 0 8px 24px rgba(42, 40, 51, 0.12);
+
+  /* ---------- ระยะ (สเกล 4) ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --gutter: var(--space-4);  /* ขอบจอ */
+
+  /* ---------- ขนาดควบคุม ---------- */
+  --tap: 44px;               /* เป้าแตะขั้นต่ำ */
+  --tap-lg: 56px;            /* แป้น PIN, ปุ่มหลักใน sheet */
+  --nav-h: 64px;             /* แถบนำทางล่าง (ไม่รวม safe-area) */
+  --cell-h: 56px;            /* ช่องวันในปฏิทินเดือน (มือถือ) */
+  --avatar: 32px;
+  --avatar-sm: 24px;
+  --icon-sm: 16px;
+  --icon: 20px;
+  --icon-lg: 24px;
+  --icon-stroke: 1.75;       /* Lucide stroke-width */
+  --border: 1px;
+  --border-strong: 2px;
+  --focus-ring: 2px;
+  --sheet-handle-w: 36px;
+  --sheet-handle-h: 4px;
+  --content-max: 640px;      /* คอลัมน์เดียวบนจอกว้าง */
+  --split-side: 320px;       /* คอลัมน์รายละเอียดบน iPad */
+
+  /* ---------- รัศมี (2 ระดับ + วงกลม) ---------- */
+  --radius-sm: 8px;
+  --radius-lg: 16px;         /* bottom sheet, การ์ดนัดถัดไป */
+  --radius-full: 999px;      /* อวตาร, จุดสถานะ เท่านั้น */
+
+  /* ---------- ตัวอักษร ---------- */
+  --font-sans: "IBM Plex Sans Thai", "IBM Plex Sans", "Noto Sans Thai", system-ui, sans-serif;
+  --text-xs: 13px;           /* ตัวเลขในช่องวัน, คำอธิบายย่อย */
+  --text-sm: 14px;           /* คำอธิบาย, เมตา */
+  --text-md: 16px;           /* เนื้อหา, ช่องกรอก (กัน iOS zoom) */
+  --text-lg: 17px;           /* หัวข้อย่อย */
+  --text-xl: 22px;           /* หัวเรื่องหน้า */
+  --text-2xl: 24px;          /* ชื่อนัดในการ์ดนัดถัดไป */
+  --text-display: 32px;      /* ตัวเลขนับถอยหลัง "อีก 2 วัน" เท่านั้น */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --leading: 1.6;            /* เนื้อหาไทย */
+  --leading-heading: 1.5;    /* หัวเรื่องไทย (≥ 1.5 ตาม UI_DIRECTION) */
+  --leading-tight: 1.2;      /* ตัวเลขล้วนเท่านั้น */
+  --tracking-num: 0;
+
+  /* ---------- การเคลื่อนไหว ---------- */
+  --dur-fast: 150ms;
+  --dur: 180ms;
+  --dur-slow: 220ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ภาษาอังกฤษ: ไม่มีวรรณยุกต์ซ้อน ใช้ line-height แน่นขึ้นเล็กน้อย */
+:root:lang(en) {
+  --leading: 1.5;
+  --leading-heading: 1.3;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #17161C;
+  --surface: #211F28;
+  --surface-2: #2A2832;
+  --line: #34313D;
+  --line-control: #7E7A8B;
+  --scrim: rgba(6, 5, 10, 0.62);
+  --hatch: rgba(242, 184, 178, 0.16);
+  --ink: #ECE9F1;
+  --ink-muted: #ABA6B7;
+  --free: #1D3829;
+  --free-ink: #A9DCBC;
+  --busy: #432629;
+  --busy-ink: #F2B8B2;
+  --event: #222E4A;
+  --event-ink: #B9C9F0;
+  --warn: #3B311D;
+  --warn-ink: #EBCF8E;
+  --danger: #E3877F;
+  --on-danger: #1E1416;
+  --danger-soft: #42262A;
+  --danger-ink: #F2B3AE;
+  --avail-none: #24222B;
+  --avail-low: #1E2B24;
+  --avail-mid: #25392D;
+  --avail-full: #2F5A3F;
+  --accent: #A8B2F0;
+  --on-accent: #191935;
+  --accent-ink: #B4BDF4;
+  --accent-soft: #2B2F50;
+  --accent-soft-ink: #CAD0F7;
+  --focus: #B4BDF4;
+  --member-ink: #F1EEF5;
+  --member-1: #5C3B37;
+  --member-2: #5A4628;
+  --member-3: #4C4A27;
+  --member-4: #2F4A35;
+  --member-5: #2A4A50;
+  --member-6: #34405F;
+  --member-7: #47395E;
+  --member-8: #573648;
+  --cat-line: var(--ink);
+  --cat-coat: var(--surface);
+  --cat-fill: #7D6446;
+  --cat-fill-2: #2D5641;
+  --shadow-float: 0 -6px 24px rgba(0, 0, 0, 0.45);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --aurora-soft: 0.35;
+  --aurora-1: rgba(112, 124, 240, 0.34);
+  --aurora-2: rgba(64, 170, 124, 0.26);
+  --aurora-3: rgba(64, 150, 220, 0.28);
+  --aurora-4: rgba(214, 92, 146, 0.24);
+  --surface-veil: rgba(33, 31, 40, 0.84);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #17161C;
+    --surface: #211F28;
+    --surface-2: #2A2832;
+    --line: #34313D;
+    --line-control: #7E7A8B;
+    --scrim: rgba(6, 5, 10, 0.62);
+    --hatch: rgba(242, 184, 178, 0.16);
+    --ink: #ECE9F1;
+    --ink-muted: #ABA6B7;
+    --free: #1D3829;
+    --free-ink: #A9DCBC;
+    --busy: #432629;
+    --busy-ink: #F2B8B2;
+    --event: #222E4A;
+    --event-ink: #B9C9F0;
+    --warn: #3B311D;
+    --warn-ink: #EBCF8E;
+    --danger: #E3877F;
+    --on-danger: #1E1416;
+    --danger-soft: #42262A;
+    --danger-ink: #F2B3AE;
+    --avail-none: #24222B;
+    --avail-low: #1E2B24;
+    --avail-mid: #25392D;
+    --avail-full: #2F5A3F;
+    --accent: #A8B2F0;
+    --on-accent: #191935;
+    --accent-ink: #B4BDF4;
+    --accent-soft: #2B2F50;
+    --accent-soft-ink: #CAD0F7;
+    --focus: #B4BDF4;
+    --member-ink: #F1EEF5;
+    --member-1: #5C3B37;
+    --member-2: #5A4628;
+    --member-3: #4C4A27;
+    --member-4: #2F4A35;
+    --member-5: #2A4A50;
+    --member-6: #34405F;
+    --member-7: #47395E;
+    --member-8: #573648;
+    --cat-line: var(--ink);
+    --cat-coat: var(--surface);
+    --cat-fill: #7D6446;
+    --cat-fill-2: #2D5641;
+    --shadow-float: 0 -6px 24px rgba(0, 0, 0, 0.45);
+    --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --aurora-soft: 0.35;
+  --aurora-1: rgba(112, 124, 240, 0.34);
+    --aurora-2: rgba(64, 170, 124, 0.26);
+    --aurora-3: rgba(64, 150, 220, 0.28);
+    --aurora-4: rgba(214, 92, 146, 0.24);
+    --surface-veil: rgba(33, 31, 40, 0.84);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+    --dur-slow: 0ms;
+  }
+}

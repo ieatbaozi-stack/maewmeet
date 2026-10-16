@@ -1,0 +1,232 @@
+<!-- สร้างจาก docs/design/tools/templates/create.html ด้วย build-samples.mjs — แก้ที่ template -->
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>สร้างนัด — แมวเจอกัน</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<script>
+window.MESSAGES_EN = {
+ "switchGroup": "Switch group: แก๊งมัธยม ห้อง 6/3",
+ "addBusy": "Add busy time",
+ "prevMonth": "Previous month",
+ "nextMonth": "Next month",
+ "month": "October 2026",
+ "lgFull": "Everyone free",
+ "lgSome": "Most free",
+ "lgFew": "Under half free",
+ "lgEvent": "Has a plan",
+ "countNote": "Numbers show how many of the 6 members are free that day.",
+ "tabHome": "Home",
+ "tabCal": "Calendar",
+ "tabGroups": "Groups",
+ "tabMe": "Me",
+ "dayTitle": "Saturday, 24 October 2026",
+ "dayStatus": "All 6 members are free",
+ "close": "Close",
+ "windowsH": "When everyone’s free",
+ "w1": "3 hr",
+ "w2": "4 hr 30 min",
+ "membersH": "6 members",
+ "freeAllDay": "Free all day",
+ "hidden": "Details hidden",
+ "busyLabel": "Busy",
+ "createToday": "Make a plan on this day",
+ "_title": "New plan — maewmeet",
+ "dow0": "Mon",
+ "dow1": "Tue",
+ "dow2": "Wed",
+ "dow3": "Thu",
+ "dow4": "Fri",
+ "dow5": "Sat",
+ "dow6": "Sun",
+ "a1": "1 October, past",
+ "a2": "2 October, past",
+ "a3": "3 October, past",
+ "a4": "4 October, past",
+ "a5": "5 October, past",
+ "a6": "6 October, past",
+ "a7": "7 October, past",
+ "a8": "8 October, past",
+ "a9": "9 October, past",
+ "a10": "10 October, past",
+ "a11": "11 October, past",
+ "a12": "12 October, past",
+ "a13": "13 October, past",
+ "a14": "14 October, past",
+ "a15": "15 October, 4 of 6 free, today",
+ "a16": "16 October, 3 of 6 free",
+ "a17": "17 October, 6 of 6 free, has a plan",
+ "a18": "18 October, 5 of 6 free",
+ "a19": "19 October, 2 of 6 free",
+ "a20": "20 October, 2 of 6 free",
+ "a21": "21 October, 3 of 6 free",
+ "a22": "22 October, 4 of 6 free",
+ "a23": "23 October, 5 of 6 free",
+ "a24": "24 October, 6 of 6 free",
+ "a25": "25 October, 5 of 6 free",
+ "a26": "26 October, 1 of 6 free",
+ "a27": "27 October, 2 of 6 free",
+ "a28": "28 October, 3 of 6 free",
+ "a29": "29 October, 4 of 6 free",
+ "a30": "30 October, 5 of 6 free",
+ "a31": "31 October, 6 of 6 free, has a plan",
+ "createTitle": "New plan",
+ "inGroup": "In",
+ "fTitle": "What’s the plan?",
+ "fDate": "Date",
+ "fDateVal": "Sat 24 Oct 2026",
+ "fTime": "Time",
+ "to": "to",
+ "startAria": "Starts 17:30",
+ "endAria": "Ends 21:00",
+ "fitHint": "Everyone’s free then (17:30–22:00)",
+ "fPlace": "Place",
+ "optional": "(optional)",
+ "search": "Search",
+ "results": "Place search results",
+ "pasteLink": "Or paste a map link or coordinates",
+ "fNote": "Notes",
+ "notifyNote": "All 6 members will see this on their home screen",
+ "createBtn": "Create plan"
+};
+</script>
+</head>
+<body data-aurora="soft">
+<div class="aurora" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+
+<div class="app">
+  <div inert>
+  <header class="topbar">
+    <button class="group-switch" aria-label="เปลี่ยนกลุ่ม: แก๊งมัธยม ห้อง 6/3" data-t-aria="switchGroup">
+      <span class="name">แก๊งมัธยม ห้อง 6/3</span><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6" /></svg>
+    </button>
+    <button class="btn btn-secondary wide-only"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14" /> <path d="M12 5v14" /></svg><span data-t="addBusy">ลงวันไม่ว่าง</span></button>
+  </header>
+  <main class="main wide">
+    <div class="split">
+      <section aria-labelledby="month">
+        <div class="month-nav">
+          <button class="icon-btn" aria-label="เดือนก่อน" data-t-aria="prevMonth"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 18-6-6 6-6" /></svg></button>
+          <h2 id="month" data-t="month">ตุลาคม 2569</h2>
+          <button class="icon-btn" aria-label="เดือนถัดไป" data-t-aria="nextMonth"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6" /></svg></button>
+        </div>
+        <div class="cal" role="group" aria-labelledby="month">
+        <span class="dow" aria-hidden="true" data-t="dow0">จ</span><span class="dow" aria-hidden="true" data-t="dow1">อ</span><span class="dow" aria-hidden="true" data-t="dow2">พ</span><span class="dow" aria-hidden="true" data-t="dow3">พฤ</span><span class="dow" aria-hidden="true" data-t="dow4">ศ</span><span class="dow" aria-hidden="true" data-t="dow5">ส</span><span class="dow" aria-hidden="true" data-t="dow6">อา</span>
+        <span class="day pad" aria-hidden="true"></span>
+        <span class="day pad" aria-hidden="true"></span>
+        <span class="day pad" aria-hidden="true"></span>
+        <span class="day past" aria-label="1 ตุลาคม ผ่านไปแล้ว" data-t-aria="a1"><span class="dn">1</span></span>
+        <span class="day past" aria-label="2 ตุลาคม ผ่านไปแล้ว" data-t-aria="a2"><span class="dn">2</span></span>
+        <span class="day past" aria-label="3 ตุลาคม ผ่านไปแล้ว" data-t-aria="a3"><span class="dn">3</span></span>
+        <span class="day past" aria-label="4 ตุลาคม ผ่านไปแล้ว" data-t-aria="a4"><span class="dn">4</span></span>
+        <span class="day past" aria-label="5 ตุลาคม ผ่านไปแล้ว" data-t-aria="a5"><span class="dn">5</span></span>
+        <span class="day past" aria-label="6 ตุลาคม ผ่านไปแล้ว" data-t-aria="a6"><span class="dn">6</span></span>
+        <span class="day past" aria-label="7 ตุลาคม ผ่านไปแล้ว" data-t-aria="a7"><span class="dn">7</span></span>
+        <span class="day past" aria-label="8 ตุลาคม ผ่านไปแล้ว" data-t-aria="a8"><span class="dn">8</span></span>
+        <span class="day past" aria-label="9 ตุลาคม ผ่านไปแล้ว" data-t-aria="a9"><span class="dn">9</span></span>
+        <span class="day past" aria-label="10 ตุลาคม ผ่านไปแล้ว" data-t-aria="a10"><span class="dn">10</span></span>
+        <span class="day past" aria-label="11 ตุลาคม ผ่านไปแล้ว" data-t-aria="a11"><span class="dn">11</span></span>
+        <span class="day past" aria-label="12 ตุลาคม ผ่านไปแล้ว" data-t-aria="a12"><span class="dn">12</span></span>
+        <span class="day past" aria-label="13 ตุลาคม ผ่านไปแล้ว" data-t-aria="a13"><span class="dn">13</span></span>
+        <span class="day past" aria-label="14 ตุลาคม ผ่านไปแล้ว" data-t-aria="a14"><span class="dn">14</span></span>
+        <button class="day l1 today" aria-label="15 ตุลาคม ว่าง 4 จาก 6 คน วันนี้" data-t-aria="a15"><span class="dn">15</span><span class="cnt">4/6</span></button>
+        <button class="day l1" aria-label="16 ตุลาคม ว่าง 3 จาก 6 คน" data-t-aria="a16"><span class="dn">16</span><span class="cnt">3/6</span></button>
+        <button class="day l3 has-event" aria-label="17 ตุลาคม ว่าง 6 จาก 6 คน มีนัด" data-t-aria="a17"><span class="dn">17</span><span class="cnt">6/6<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5" /></svg></span></button>
+        <button class="day l2" aria-label="18 ตุลาคม ว่าง 5 จาก 6 คน" data-t-aria="a18"><span class="dn">18</span><span class="cnt">5/6</span></button>
+        <button class="day l0" aria-label="19 ตุลาคม ว่าง 2 จาก 6 คน" data-t-aria="a19"><span class="dn">19</span><span class="cnt">2/6</span></button>
+        <button class="day l0" aria-label="20 ตุลาคม ว่าง 2 จาก 6 คน" data-t-aria="a20"><span class="dn">20</span><span class="cnt">2/6</span></button>
+        <button class="day l1" aria-label="21 ตุลาคม ว่าง 3 จาก 6 คน" data-t-aria="a21"><span class="dn">21</span><span class="cnt">3/6</span></button>
+        <button class="day l1" aria-label="22 ตุลาคม ว่าง 4 จาก 6 คน" data-t-aria="a22"><span class="dn">22</span><span class="cnt">4/6</span></button>
+        <button class="day l2" aria-label="23 ตุลาคม ว่าง 5 จาก 6 คน" data-t-aria="a23"><span class="dn">23</span><span class="cnt">5/6</span></button>
+        <button class="day l3 selected" aria-label="24 ตุลาคม ว่าง 6 จาก 6 คน" data-t-aria="a24" aria-pressed="true"><span class="dn">24</span><span class="cnt">6/6<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5" /></svg></span></button>
+        <button class="day l2" aria-label="25 ตุลาคม ว่าง 5 จาก 6 คน" data-t-aria="a25"><span class="dn">25</span><span class="cnt">5/6</span></button>
+        <button class="day l0" aria-label="26 ตุลาคม ว่าง 1 จาก 6 คน" data-t-aria="a26"><span class="dn">26</span><span class="cnt">1/6</span></button>
+        <button class="day l0" aria-label="27 ตุลาคม ว่าง 2 จาก 6 คน" data-t-aria="a27"><span class="dn">27</span><span class="cnt">2/6</span></button>
+        <button class="day l1" aria-label="28 ตุลาคม ว่าง 3 จาก 6 คน" data-t-aria="a28"><span class="dn">28</span><span class="cnt">3/6</span></button>
+        <button class="day l1" aria-label="29 ตุลาคม ว่าง 4 จาก 6 คน" data-t-aria="a29"><span class="dn">29</span><span class="cnt">4/6</span></button>
+        <button class="day l2" aria-label="30 ตุลาคม ว่าง 5 จาก 6 คน" data-t-aria="a30"><span class="dn">30</span><span class="cnt">5/6</span></button>
+        <button class="day l3 has-event" aria-label="31 ตุลาคม ว่าง 6 จาก 6 คน มีนัด" data-t-aria="a31"><span class="dn">31</span><span class="cnt">6/6<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5" /></svg></span></button>
+        </div>
+        <p class="legend" style="margin-top: var(--space-3)">
+          <span><span class="sw l3"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5" /></svg></span><span data-t="lgFull">ว่างครบ</span></span>
+          <span><span class="sw l2"></span><span data-t="lgSome">ว่างเกินครึ่ง</span></span>
+          <span><span class="sw l0"></span><span data-t="lgFew">ว่างไม่ถึงครึ่ง</span></span>
+          <span><span class="sw ev"></span><span data-t="lgEvent">มีนัด</span></span>
+        </p>
+        <p class="small muted" style="margin-top: 0" data-t="countNote">ตัวเลขในช่อง = จำนวนคนที่ว่างวันนั้น จากทั้งกลุ่ม 6 คน</p>
+      </section>
+
+    </div>
+  </main>
+  <button class="btn btn-primary fab mobile-only" tabindex="-1" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14" /> <path d="M12 5v14" /></svg><span data-t="addBusy">ลงวันไม่ว่าง</span></button>
+  <nav class="tabbar" aria-label="เมนูหลัก">
+    <a class="tab" href="home.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /> <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg><span data-t="tabHome">หน้าหลัก</span></a>
+    <a class="tab" href="calendar.html" aria-current="page"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 2v3" /> <path d="M16 2v3" /> <rect x="3" y="3" width="18" height="18" rx="2" /> <path d="M3 9h18" /></svg><span data-t="tabCal">ปฏิทิน</span></a>
+    <a class="tab" href="#"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /> <path d="M16 3.128a4 4 0 0 1 0 7.744" /> <path d="M22 21v-2a4 4 0 0 0-3-3.87" /> <circle cx="9" cy="7" r="4" /></svg><span data-t="tabGroups">กลุ่ม</span></a>
+    <a class="tab" href="#"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="tabMe">ฉัน</span></a>
+  </nav>
+  </div>
+  <div class="scrim" aria-hidden="true"></div>
+  <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="create-title">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <div class="t">
+        <h2 id="create-title" data-t="createTitle">สร้างนัด</h2>
+        <p class="small muted"><span data-t="inGroup">ในกลุ่ม</span> แก๊งมัธยม ห้อง 6/3</p>
+      </div>
+      <button class="icon-btn" aria-label="ปิด" data-t-aria="close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 6 6 18" /> <path d="m6 6 12 12" /></svg></button>
+    </div>
+    <form class="sheet-body" onsubmit="return false">
+      <div class="field" style="margin-top: 0">
+        <label for="f-title" data-t="fTitle">ชื่อนัด</label>
+        <input id="f-title" class="input" value="เดินตลาดน้ำ แล้วกินข้าวเย็นริมคลอง" autocomplete="off">
+      </div>
+      <div class="field">
+        <span class="label" id="l-date" data-t="fDate">วัน</span>
+        <button type="button" class="input" aria-labelledby="l-date f-date"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 2v3" /> <path d="M16 2v3" /> <rect x="3" y="3" width="18" height="18" rx="2" /> <path d="M3 9h18" /></svg><span id="f-date" data-t="fDateVal">เสาร์ 24 ต.ค. 2569</span></button>
+      </div>
+      <div class="field">
+        <span class="label" data-t="fTime">เวลา</span>
+        <div class="pair">
+          <button type="button" class="input num" aria-label="เวลาเริ่ม 17:30" data-t-aria="startAria"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" /></svg>17:30</button>
+          <span class="to" data-t="to">ถึง</span>
+          <button type="button" class="input num" aria-label="เวลาจบ 21:00" data-t-aria="endAria"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" /></svg>21:00</button>
+        </div>
+        <p class="hint"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="m16 9-5.5 5.5L8 12" /></svg><span data-t="fitHint">อยู่ในช่วงที่ทุกคนว่าง (17:30–22:00)</span></p>
+      </div>
+      <div class="field">
+        <label for="f-place"><span data-t="fPlace">สถานที่</span> <span class="opt" data-t="optional">(ไม่ใส่ก็ได้)</span></label>
+        <div class="search-row">
+          <span class="input"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m21 21-4.34-4.34" /> <circle cx="11" cy="11" r="8" /></svg><input id="f-place" class="input-bare" value="ตลาดน้ำ" aria-describedby="place-hint"></span>
+          <button type="button" class="btn btn-secondary" style="min-height: var(--tap-lg)" data-t="search">ค้นหา</button>
+        </div>
+        <div class="places" role="radiogroup" aria-label="ผลการค้นหาสถานที่" data-t-aria="results">
+          <div class="place" role="radio" aria-checked="true" tabindex="0">
+            <span class="radio" aria-hidden="true"></span>
+            <span><span class="pn" style="display:block">ตลาดน้ำขวัญเรียม</span><span class="small muted" style="display:block">ถนนรามคำแหง แขวงมีนบุรี เขตมีนบุรี กรุงเทพมหานคร</span></span>
+          </div>
+          <div class="place" role="radio" aria-checked="false" tabindex="-1">
+            <span class="radio" aria-hidden="true"></span>
+            <span><span class="pn" style="display:block">ตลาดน้ำตลิ่งชัน</span><span class="small muted" style="display:block">ถนนฉิมพลี แขวงฉิมพลี เขตตลิ่งชัน กรุงเทพมหานคร</span></span>
+          </div>
+        </div>
+        <p class="or-link small" id="place-hint"><a href="#" style="display:inline-flex;align-items:center;min-height:var(--tap)" data-t="pasteLink">หรือวางลิงก์แผนที่/พิกัดแทน</a></p>
+      </div>
+      <div class="field">
+        <label for="f-note"><span data-t="fNote">รายละเอียด</span> <span class="opt" data-t="optional">(ไม่ใส่ก็ได้)</span></label>
+        <textarea id="f-note" class="input">เจอกันหน้าทางเข้าฝั่งวัด ใครถึงก่อนจองโต๊ะริมน้ำไว้ก่อนนะ</textarea>
+      </div>
+    </form>
+    <div class="sheet-foot">
+      <p class="note"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /> <path d="M16 3.128a4 4 0 0 1 0 7.744" /> <path d="M22 21v-2a4 4 0 0 0-3-3.87" /> <circle cx="9" cy="7" r="4" /></svg><span data-t="notifyNote">สมาชิกทั้ง 6 คนจะเห็นนัดนี้ในหน้าหลัก</span></p>
+      <button class="btn btn-primary btn-block" data-t="createBtn">สร้างนัด</button>
+    </div>
+  </section>
+</div>
+</body>
+</html>

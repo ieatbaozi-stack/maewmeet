@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>เข้าสู่ระบบ — แมวเจอกัน</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<script>
+window.MESSAGES_EN = {
+  _title: 'Sign in — maewmeet',
+  langGroup: 'Language',
+  title: 'Sign in',
+  username: 'Username',
+  pin: '6-digit PIN',
+  pinProgress: '3 of 6 digits entered',
+  pinHint: 'Enter your PIN',
+  checking: 'Checking…',
+  wrong: 'Wrong username or PIN. 3 tries left.',
+  forgot: 'Forgot PIN',
+  del: 'Delete',
+  noAccount: 'New here?',
+  signUp: 'Create an account'
+};
+</script>
+</head>
+<body data-aurora="hero">
+<div class="aurora" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<main class="app login" style="padding-bottom: var(--space-5)">
+  <div class="login-top">
+    <i data-brand="logo-mark" class="brand-mark"></i>
+    <nav class="lang-switch" aria-label="ภาษา" data-t-aria="langGroup">
+      <a href="?lang=th" lang="th" aria-current="true" class="js-th">ไทย</a>
+      <a href="?lang=en" lang="en" class="js-en">EN</a>
+    </nav>
+  </div>
+
+  <div class="login-hero">
+    <i data-brand="logo-th" class="logo js-logo-th"></i>
+    <i data-brand="logo-en" class="logo js-logo-en" hidden></i>
+    <h1 data-t="title">เข้าสู่ระบบ</h1>
+  </div>
+
+  <section class="panel login-card" aria-labelledby="pin-label">
+    <div class="field" style="margin-top: 0">
+      <label for="u" data-t="username">ชื่อผู้ใช้</label>
+      <input id="u" class="input" value="tonkhao" autocomplete="username" autocapitalize="none" spellcheck="false">
+    </div>
+    <p class="label sr-only" id="pin-label" data-t="pin">PIN 6 หลัก</p>
+    <div class="pin-dots" role="img" aria-label="กรอกแล้ว 3 จาก 6 หลัก" data-t-aria="pinProgress">
+      <span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span><span></span>
+    </div>
+    <p class="pin-msg" data-state-show="normal" data-t="pinHint">ใส่ PIN ของคุณ</p>
+    <p class="pin-msg" data-state-show="loading" hidden role="status" data-t="checking">กำลังตรวจสอบ…</p>
+    <p class="pin-msg err" data-state-show="error" hidden role="alert" data-t="wrong">PIN หรือชื่อผู้ใช้ไม่ถูกต้อง เหลืออีก 3 ครั้ง</p>
+    <div class="keypad" aria-labelledby="pin-label">
+      <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+      <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+      <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+      <button class="key ghost" data-t="forgot">ลืม PIN</button>
+      <button class="key">0</button>
+      <button class="key ghost" aria-label="ลบ" data-t-aria="del"><i data-icon="delete" class="lg"></i></button>
+    </div>
+  </section>
+
+  <p class="login-foot"><span data-t="noAccount">ยังไม่มีบัญชี?</span> <a href="#" data-t="signUp">สร้างบัญชีใหม่</a></p>
+</main>
+<script>
+  // หน้าตัวอย่าง: สลับโลโก้/ลิงก์ภาษาตาม ?lang และคง ?theme ไว้ในลิงก์
+  (function () {
+    var q = new URLSearchParams(location.search), en = q.get('lang') === 'en', t = q.get('theme');
+    document.querySelector('.js-logo-th').toggleAttribute('hidden', en);
+    document.querySelector('.js-logo-en').toggleAttribute('hidden', !en);
+    document.querySelector('.js-th').setAttribute('aria-current', String(!en));
+    document.querySelector('.js-en').setAttribute('aria-current', String(en));
+    if (t) document.querySelectorAll('.lang-switch a').forEach(function (a) { a.href += '&theme=' + t; });
+  })();
+</script>
+</body>
+</html>
