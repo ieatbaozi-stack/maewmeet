@@ -19,6 +19,7 @@
     "usernameHint": "ตัวอักษรอังกฤษพิมพ์เล็ก ตัวเลข จุด หรือขีดล่าง",
     "pin": "PIN 6 หลัก",
     "pinProgress": "ใส่แล้ว {count} จาก 6 หลัก",
+    "pinHint": "ใส่ PIN ของคุณ",
     "next": "ถัดไป",
     "checking": "กำลังตรวจสอบ…",
     "forgotPin": "ลืม PIN",
@@ -87,6 +88,7 @@
     "themeSystem": "ตามเครื่อง",
     "themeLight": "สว่าง",
     "themeDark": "มืด",
+    "toggleTheme": "สลับธีมสว่าง/มืด",
     "savedLocalOnly": "เปลี่ยนในเครื่องนี้แล้ว แต่ยังบันทึกเข้าบัญชีไม่ได้"
   },
   "states": {

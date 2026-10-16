@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 
 // เจ้าของไฟล์: OPS (#10) · R0_CONTRACT R0-16 · ADR 0001 §1 · ADR 0008 §4
 //
@@ -101,4 +102,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default withNextIntl(nextConfig);

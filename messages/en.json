@@ -19,6 +19,7 @@
     "usernameHint": "Lowercase letters, numbers, dots or underscores",
     "pin": "6-digit PIN",
     "pinProgress": "{count} of 6 digits entered",
+    "pinHint": "Enter your PIN",
     "next": "Next",
     "checking": "Checking…",
     "forgotPin": "Forgot PIN",
@@ -87,6 +88,7 @@
     "themeSystem": "System",
     "themeLight": "Light",
     "themeDark": "Dark",
+    "toggleTheme": "Switch light/dark theme",
     "savedLocalOnly": "Changed on this device, but we couldn’t save it to your account."
   },
   "states": {
