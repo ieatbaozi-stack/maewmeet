@@ -10,7 +10,8 @@ export default defineConfig({
   strict: true,
   verbose: true,
   dbCredentials: {
-    url: process.env.TURSO_DATABASE_URL ?? 'file:./local.db',
-    authToken: process.env.TURSO_AUTH_TOKEN,
+    url: process.env.TURSO_DATABASE_URL || 'file:./local.db',
+    // '' จาก .env.example (`TURSO_AUTH_TOKEN=`) ทำให้ drizzle-kit migrate ล้มกับ file: — ค่าว่าง = ไม่ส่ง token
+    authToken: process.env.TURSO_AUTH_TOKEN || undefined,
   },
 });
