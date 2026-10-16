@@ -69,7 +69,8 @@ const PERMISSIONS_POLICY = [
   "usb=()",
   "serial=()",
   "hid=()",
-  "bluetooth=()",
+  // ไม่ใส่ "bluetooth" — Chromium 141 ไม่รู้จัก feature นี้ใน Permissions-Policy แล้วขึ้น console warning
+  // "Unrecognized feature: 'bluetooth'" ทุกหน้า (OPS ทดลองจริงด้วย Chromium 141.0.7390.37: รายการที่เหลือไม่มี warning)
   "midi=()",
   "magnetometer=()",
   "gyroscope=()",

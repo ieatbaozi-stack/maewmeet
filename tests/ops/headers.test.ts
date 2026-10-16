@@ -66,6 +66,12 @@ describe('next.config.ts (production)', () => {
     expect(headers.get('x-frame-options')).toBe('DENY');
     const pp = headers.get('permissions-policy')!;
     for (const feature of ['camera', 'microphone', 'geolocation', 'payment']) expect(pp).toContain(`${feature}=()`);
+    // ทุกรายการต้องเป็นรูป feature=() และไม่มี feature ที่ Chromium ไม่รู้จัก (ขึ้น console warning ทุกหน้า)
+    const features = pp.split(',').map((s) => s.trim());
+    for (const f of features) expect(f).toMatch(/^[a-z-]+=\(\)$/);
+    const names = features.map((f) => f.split('=')[0]);
+    expect(new Set(names).size).toBe(names.length);
+    for (const unknown of ['bluetooth']) expect(names).not.toContain(unknown);
   });
 
   it('agentRules: false (กัน next dev สร้าง AGENTS.md) · poweredByHeader: false', async () => {
