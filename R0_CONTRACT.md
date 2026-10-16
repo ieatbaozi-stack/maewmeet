@@ -1,6 +1,6 @@
 # R0_CONTRACT.md — Foundation
 
-> ผู้เขียน: Lead · 2026-10-16 · สถานะ: **boss เห็นชอบแล้ว** 2026-10-16 18:52 (เลือกให้ทีม commit/push เอง หลังตรวจครบ — ดู §7.1)
+> ผู้เขียน: Lead · 2026-10-16 · สถานะ: **boss เห็นชอบแล้ว** 2026-10-16 18:52 · ส่งงานแบบ bundle (§7.1)
 > อ้างอิง: [PRD](docs/prd/PRD.md) · [ADR 0001–0008](docs/adr/) · [ARCHITECTURE](docs/design/ARCHITECTURE.md) · [UI_DIRECTION](docs/design/UI_DIRECTION.md) · [LEAD_DECISIONS](docs/prd/LEAD_DECISIONS.md)
 > ข้อเสนอเลขเวอร์ชันเมื่อจบรอบ: **v0.1.0** (boss เป็นคนรัน release และ push)
 
@@ -87,7 +87,7 @@ Stories ที่แตะ: U14, U15 (โครงและกลไก) · §3 
 
 ## 7. ความเสี่ยง / สิ่งที่ boss ต้องตัดสินใจ
 **ตัดสินใจ**
-1. **โค้ดไปถึง GitHub ของ boss ทางไหน** — **ตัดสินแล้ว: Lead push เอง** หลังเกตครบ + ตรวจอิสระ → branch `r0` + PR → merge เมื่อ CI เขียว (CLAUDE.md กฎ 10 ฉบับแก้) · repo `ieatbaozi-stack/maewmeet` (private)
+1. **โค้ดไปถึง GitHub ของ boss ทางไหน** — **ตัดสินแล้ว (ก) bundle** (boss 19:03): Lead ส่ง `maewmeet-r0.bundle` + คำสั่งให้ boss pull/push เอง · CI บน GitHub จะรันครั้งแรกหลัง boss push → Lead ตรวจผลจากที่ boss แจ้ง · repo `ieatbaozi-stack/maewmeet` (private)
    - (ก) **แนะนำ**: ทีมทำงานใน git ของเราเอง (commit แยกตามบทบาท) แล้วส่ง `maewmeet-r0.bundle` ไฟล์เดียวเข้าโฟลเดอร์ boss → boss รัน 2 คำสั่ง (`git pull <bundle> main` + `git push`) — ได้ประวัติ commit ครบ
    - (ข) boss ให้สิทธิ์ repo กับ session นี้ → ทีม push เป็น branch `r0` แล้ว boss กด merge PR เอง
 2. อนุมัติ contract นี้ (หรือสั่งแก้)
