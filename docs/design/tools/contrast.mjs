@@ -20,8 +20,10 @@ function block(selectorRe) {
   return vars;
 }
 const light = block(/(^|\n):root\s*\{/);
-const darkAttr = block(/\n\[data-theme="dark"\]\s*\{/);
-const darkMedia = block(/:root:not\(\[data-theme="light"\]\)\s*\{/);
+const darkAttr = block(/\n:root\[data-theme="dark"\]\s*\{/);
+// ธีม system บนเครื่องที่ตั้งมืด (ADR 0008 §4 / LEAD_DECISIONS Q10)
+const darkMedia = block(/:root\[data-theme="system"\],\s*:root:not\(\[data-theme\]\)\s*\{/);
+if (!/@media \(prefers-color-scheme: dark\)\s*\{\s*:root\[data-theme="system"\]/.test(css)) throw new Error('บล็อก system ต้องอยู่ใน @media (prefers-color-scheme: dark)');
 
 const mismatch = Object.keys({ ...darkAttr, ...darkMedia }).filter((k) => darkAttr[k] !== darkMedia[k]);
 const dark = { ...light, ...darkAttr };
@@ -91,14 +93,17 @@ function rgba(str) {
 }
 const over = (top, a, base) => [0, 1, 2].map((i) => top[i] * a + base[i] * (1 - a));
 const toHex = (c) => '#' + c.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('').toUpperCase();
+// noise กัน banding (A5): เทากลาง 50% ทับบนก้อนแสง ความทึบสูงสุด = --aurora-noise-opacity × ความเข้มของหน้า → คิดทั้งแบบมีและไม่มี
+const GRAY = [128, 128, 128];
 function auroraCandidates(theme, strength) {
   const base = rgba(resolveVar(theme, '--bg'));
   const blobs = [1, 2, 3, 4].map((i) => rgba(resolveVar(theme, `--aurora-${i}`)));
+  const noise = parseFloat(resolveVar(theme, '--aurora-noise-opacity')) * strength;
   const out = [];
-  for (let mask = 1; mask < 16; mask++) {
+  for (let mask = 0; mask < 16; mask++) {
     let c = base.slice(0, 3);
     blobs.forEach((b, i) => { if (mask & (1 << i)) c = over(b, b[3] * strength, c); });
-    out.push(c);
+    out.push(c, over(GRAY, noise, c));
   }
   return out;
 }
@@ -123,6 +128,8 @@ const auroraPairs = [
   ['--line-control', 'veil', UI, 'ขอบช่องกรอก/ปุ่มแป้น PIN บน veil'],
   ['--focus', 'veil', UI, 'วงโฟกัสบน veil'],
   ['--accent', 'veil', UI, 'ขอบเขตปุ่มหลักบน veil (ปุ่มหลักไม่วางบน aurora ตรงๆ)'],
+  ['--ink-muted', 'nav', T, 'ป้ายแท็บที่ไม่ได้เลือกบนแถบล่าง (--surface-nav เหนือ aurora เข้ม/การ์ดที่เลื่อนผ่าน)'],
+  ['--accent-ink', 'nav', T, 'แท็บที่เลือกบนแถบล่าง'],
 ];
 for (const [themeName, theme] of [['light', light], ['dark', dark]]) {
   const hero = auroraCandidates(theme, parseFloat(resolveVar(theme, '--aurora-hero')));
@@ -130,8 +137,12 @@ for (const [themeName, theme] of [['light', light], ['dark', dark]]) {
   const veil = rgba(resolveVar(theme, '--surface-veil'));
   const scrim = rgba(resolveVar(theme, '--scrim'));
   const veiled = hero.flatMap((c) => [over(veil, veil[3], c), over(veil, veil[3], over(scrim, scrim[3], c))]);
-  const layers = { hero, soft, veil: veiled };
-  const label = { hero: 'aurora เข้ม (แย่สุด)', soft: 'aurora จาง (แย่สุด)', veil: 'veil เหนือ aurora (แย่สุด)' };
+  // แถบล่าง: ด้านหลังเป็น aurora เข้ม หรือการ์ด/ข้อความที่เลื่อนผ่าน (--surface, --ink, --ink-muted, --event)
+  const nav = rgba(resolveVar(theme, '--surface-nav'));
+  const behindNav = [...hero, ...['--surface', '--ink', '--ink-muted', '--event', '--accent'].map((v) => rgba(resolveVar(theme, v)).slice(0, 3))];
+  const navved = behindNav.map((c) => over(nav, nav[3], c));
+  const layers = { hero, soft, veil: veiled, nav: navved };
+  const label = { hero: 'aurora เข้ม (แย่สุด)', soft: 'aurora จาง (แย่สุด)', veil: 'veil เหนือ aurora (แย่สุด)', nav: 'แถบล่างเหนือเนื้อหา (แย่สุด)' };
   for (const [fg, layer, min, use] of auroraPairs) {
     const w = worst(theme, fg, layers[layer]);
     const ok = w.r >= min; if (!ok) fails++;
@@ -139,6 +150,26 @@ for (const [themeName, theme] of [['light', light], ['dark', dark]]) {
   }
 }
 
+// แถบล่าง (A4): ข้อความที่เลื่อนผ่านด้านหลังต้องจางจนอ่านไม่ออก — คอนทราสต์ของ --ink ที่ทะลุ (แย่สุด) เทียบพื้นแถบ ต้อง < 1.15:1
+let navBleedFail = [];
+for (const [themeName, theme] of [['light', light], ['dark', dark]]) {
+  const nav = rgba(resolveVar(theme, '--surface-nav'));
+  const surf = rgba(resolveVar(theme, '--surface')).slice(0, 3);
+  const ink = rgba(resolveVar(theme, '--ink')).slice(0, 3);
+  const r = ratio(toHex(over(nav, nav[3], ink)), toHex(over(nav, nav[3], surf)));
+  console.log(`แถบล่าง ${themeName}: ข้อความ --ink ที่ทะลุ vs พื้นการ์ดใต้แถบ = ${r.toFixed(3)}:1 (ต้อง < 1.15)`);
+  if (r >= 1.15) navBleedFail.push(themeName);
+}
+// <meta name="theme-color"> (src/styles/tokens.meta.ts) ต้องตรงกับ --bg ของแต่ละธีม
+let metaFail = [];
+try {
+  const meta = readFileSync(resolve(root, 'src/styles/tokens.meta.ts'), 'utf8');
+  for (const [k, theme] of [['light', light], ['dark', dark]]) {
+    const v = (meta.match(new RegExp(`${k}:\\s*'(#[0-9A-Fa-f]{6})'`)) || [])[1];
+    if (!v || v.toUpperCase() !== resolveVar(theme, '--bg').toUpperCase()) metaFail.push(`${k}=${v} ≠ ${resolveVar(theme, '--bg')}`);
+  }
+} catch { metaFail.push('ไม่พบ src/styles/tokens.meta.ts'); }
+console.log(`theme-color ใน tokens.meta.ts ตรงกับ --bg: ${metaFail.length ? 'ไม่ตรง → ' + metaFail.join(', ') : 'ตรง'}`);
 const md = process.argv.includes('--md');
 for (const [themeName, theme] of [['light', light], ['dark', dark]]) {
   for (const [fg, bg, use, min] of pairs) {
@@ -160,4 +191,4 @@ const minText = Math.min(...rows.filter((x) => x.min === T).map((x) => x.r));
 console.log(`\nสรุป: ${rows.length} คู่ (${pairs.length} คู่พื้นทึบ + ${auroraPairs.length} คู่บน aurora/veil × 2 ธีม) · ไม่ผ่าน ${fails} · คู่ข้อความต่ำสุด ${minText.toFixed(2)}:1`);
 console.log(`บล็อกมืด [data-theme="dark"] กับ @media prefers-color-scheme: ${mismatch.length ? 'ไม่ตรงกัน → ' + mismatch.join(', ') : 'ตรงกันทุก token'} (${Object.keys(darkAttr).length} token)`);
 console.log(`token สีของธีมสว่างที่ไม่มีค่าธีมมืด: ${missingDark.length ? missingDark.join(', ') : 'ไม่มี'}`);
-process.exit(fails || mismatch.length || missingDark.length ? 1 : 0);
+process.exit(fails || mismatch.length || missingDark.length || navBleedFail.length || metaFail.length ? 1 : 0);

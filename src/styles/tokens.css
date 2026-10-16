@@ -3,11 +3,14 @@
  * แหล่งความจริงเดียวของ สี / ระยะ / รัศมี / ตัวอักษร / การเคลื่อนไหว
  * ห้ามใส่ค่า hex/px ในคอมโพเนนต์ ให้อ้าง var(--*) จากไฟล์นี้เท่านั้น
  *
- * ธีม:
- *   :root                                   = สว่าง (ค่าเริ่มต้น)
- *   [data-theme="dark"]                     = มืด (ผู้ใช้เลือกเอง)
+ * ธีม (ADR 0008 §4 — <html data-theme="system|light|dark"> มาจาก cookie mm_theme ฝั่งเซิร์ฟเวอร์ ไม่มี script ก่อน paint):
+ *   :root                                   = สว่าง (ค่าพื้นฐาน; ใช้กับ data-theme="light" และ "system" บนเครื่องที่ตั้งสว่าง)
+ *   :root[data-theme="dark"]                = มืด (ผู้ใช้เลือกเอง)
  *   @media (prefers-color-scheme: dark)
- *     :root:not([data-theme="light"])       = มืดตามระบบ (ค่าเดียวกับบล็อกบน — docs/design/tools/contrast.mjs ตรวจว่าตรงกัน)
+ *     :root[data-theme="system"],
+ *     :root:not([data-theme])               = มืดตามเครื่อง (ไม่มี attribute = ถือเป็น system)
+ *                                             ค่าเหมือนบล็อกมืดด้านบนทุกตัว — docs/design/tools/contrast.mjs ตรวจว่าตรงกัน
+ *   data-theme="light"                      = ไม่มีบล็อกของตัวเอง → ได้ :root (สว่าง) แม้เครื่องตั้งมืด
  *
  * คอนทราสต์ของทุกคู่ข้อความ/พื้น: docs/design/CONTRAST.md (สร้างจากสคริปต์)
  * ฟอนต์ (@font-face): src/styles/tokens.fonts.css
@@ -89,7 +92,13 @@
   --aurora-dur-2: 28s;
   --aurora-dur-3: 44s;
   --aurora-drift: 10vmax;                   /* ระยะเคลื่อนสูงสุดของแต่ละก้อน */
-  --surface-veil: rgba(255, 255, 255, 0.86); /* แถบล่าง, bottom sheet, การ์ดหน้าเข้าสู่ระบบ */
+  /* noise บางๆ บนชั้น aurora กัน banding 8 บิตของ gradient (LEAD_DECISIONS A5) — SVG feTurbulence ฝังใน token ไม่โหลดรูปภายนอก
+     สีเทากลาง (50%) · alpha ของพิกเซล ≤ 1 → ความทึบสูงสุดจริง = --aurora-noise-opacity × ความเข้มของหน้า (contrast.mjs คิดกรณีแย่สุดนี้) */
+  --aurora-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --aurora-noise-opacity: 0.07;
+  --aurora-noise-size: 180px;
+  --surface-veil: rgba(255, 255, 255, 0.92); /* bottom sheet, การ์ดหน้าเข้าสู่ระบบ/หน้าว่าง (A5: .86 → .92) */
+  --surface-nav: rgba(255, 255, 255, 0.95);  /* แถบนำทางล่าง (A4: แยก token จาก veil — ทึบกว่า veil) */
   --veil-blur: 18px;                        /* backdrop-filter เฉพาะแถบล่างและ bottom sheet */
 
   /* ---------- เงา (เฉพาะชั้นลอย: sheet, popover) ---------- */
@@ -124,6 +133,22 @@
   --sheet-handle-h: 4px;
   --content-max: 640px;      /* คอลัมน์เดียวบนจอกว้าง */
   --split-side: 320px;       /* คอลัมน์รายละเอียดบน iPad */
+  --topbar-h: calc(var(--tap) + var(--space-3)); /* หัวหน้า (ชื่อหน้า/โลโก้ + ปุ่มไอคอน) */
+
+  /* ---------- แบรนด์ (ขนาดแมว/โลโก้ — <Cat size>, <Logo>) ---------- */
+  --cat-sm: 48px;            /* ขั้นต่ำของแมวเต็มตัว (เล็กกว่านี้ใช้ logo-mark) */
+  --cat-md: 96px;            /* หน้าว่างในพื้นที่จำกัด (แถวรายการ, sheet) */
+  --cat-lg: 144px;           /* หน้าว่างเต็มแท็บ, 404 */
+  --logo-mark: 32px;         /* หัวแมวในหัวหน้า/หน้าเข้าสู่ระบบ */
+  --logo-h: 48px;            /* โลโก้ตัวอักษร (wordmark) หน้าเข้าสู่ระบบ */
+
+  /* ---------- ลำดับชั้น (z-index) ---------- */
+  --z-aurora: 0;
+  --z-content: 1;
+  --z-fab: 9;
+  --z-nav: 10;
+  --z-scrim: 20;
+  --z-sheet: 21;
 
   /* ---------- รัศมี (2 ระดับ + วงกลม) ---------- */
   --radius-sm: 8px;
@@ -160,7 +185,7 @@
   --leading-heading: 1.3;
 }
 
-[data-theme="dark"] {
+:root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #17161C;
   --surface: #211F28;
@@ -213,11 +238,14 @@
   --aurora-2: rgba(64, 170, 124, 0.26);
   --aurora-3: rgba(64, 150, 220, 0.28);
   --aurora-4: rgba(214, 92, 146, 0.24);
-  --surface-veil: rgba(33, 31, 40, 0.84);
+  --surface-veil: rgba(33, 31, 40, 0.92);  /* A5 */
+  --surface-nav: rgba(33, 31, 40, 0.97);   /* A4: ข้อความรายการที่เลื่อนผ่านหลังแถบล่างต้องไม่ทะลุ */
+  --aurora-noise-opacity: 0.05;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root[data-theme="system"],
+  :root:not([data-theme]) {
     color-scheme: dark;
     --bg: #17161C;
     --surface: #211F28;
@@ -266,11 +294,13 @@
     --shadow-float: 0 -6px 24px rgba(0, 0, 0, 0.45);
     --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.5);
     --aurora-soft: 0.35;
-  --aurora-1: rgba(112, 124, 240, 0.34);
+    --aurora-1: rgba(112, 124, 240, 0.34);
     --aurora-2: rgba(64, 170, 124, 0.26);
     --aurora-3: rgba(64, 150, 220, 0.28);
     --aurora-4: rgba(214, 92, 146, 0.24);
-    --surface-veil: rgba(33, 31, 40, 0.84);
+    --surface-veil: rgba(33, 31, 40, 0.92);
+    --surface-nav: rgba(33, 31, 40, 0.97);
+    --aurora-noise-opacity: 0.05;
   }
 }
 
