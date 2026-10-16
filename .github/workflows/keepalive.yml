@@ -1,0 +1,45 @@
+# keep-alive ชั้นที่ 2 ของ Turso + สัญญาณเตือน (ADR 0001 §3.1 · ARCHITECTURE §8 · R0-15) — เจ้าของ: OPS (#10)
+#
+# ทุก 12 ชม.: POST /api/cron/heartbeat (Bearer CRON_SECRET) → GET /api/health
+# ล้มเมื่อ status ≠ 2xx หรือ heartbeat ของ Vercel cron เก่ากว่า 48 ชม. → GitHub ส่งอีเมลแจ้ง "workflow ล้ม"
+#
+# ข้อควรรู้ (docs/OPERATIONS.md ส่วน E):
+# - GitHub ส่งแจ้งเตือนของ scheduled workflow ให้ "ผู้ใช้ที่สร้าง workflow" (หรือคนล่าสุดที่แก้บรรทัด cron / เปิดใช้ใหม่)
+#   → ไฟล์นี้ต้องถูก push จากบัญชี GitHub ของ boss และ boss เปิดแจ้งเตือน Actions ทางอีเมล (Only notify for failed workflows)
+#   https://docs.github.com/en/actions/concepts/workflows-and-actions/notifications-for-workflow-runs
+# - schedule รันจาก default branch (main) เท่านั้น และอาจหน่วงช่วงโหลดสูง (นาที 17 เลี่ยงต้นชั่วโมงตามคำแนะนำ GitHub)
+# - repo ต้องเป็น private: repo สาธารณะที่ไม่เคลื่อนไหว 60 วันจะถูกปิด scheduled workflow อัตโนมัติ
+# - ยังไม่ตั้ง secret APP_ORIGIN / CRON_SECRET → ขั้นตอนจะ "ข้าม" พร้อม ::warning:: (ไม่ล้ม และไม่ส่งอีเมล)
+# - ตรรกะทั้งหมดอยู่ใน .github/scripts/keepalive.sh (ทดสอบกับ server จำลองได้บนเครื่อง)
+
+name: keepalive
+
+on:
+  schedule:
+    - cron: '17 */12 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+          sparse-checkout-cone-mode: true
+
+      - name: heartbeat + health
+        env:
+          APP_ORIGIN: ${{ secrets.APP_ORIGIN }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          MAX_VERCEL_CRON_AGE_HOURS: '48'
+        run: bash .github/scripts/keepalive.sh

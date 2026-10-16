@@ -1,0 +1,144 @@
+# CI ของ maewmeet (R0_CONTRACT R0-14 · PROCESS.md เกต) — เจ้าของ: OPS (#10)
+# รันบนทุก PR และทุก push เข้า main · ไม่ใช้ secret จริง (DB = libSQL file: ใน runner, ความลับสุ่มต่อรอบ)
+# Node ตาม .nvmrc (24) · ทุก job ติดตั้งด้วย npm ci + cache npm ของ setup-node
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+  CI: 'true'
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: npm run lint
+        run: npm run lint
+      - name: .env.example ไม่มีค่าลับ (R0-5)
+        run: bash .github/scripts/check-env-example.sh .env.example
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: npm run typecheck
+        run: npm run typecheck
+
+  test:
+    # รวม migration gate: drizzle-kit check + apply ทุก migration บน DB ว่าง (เทสต์ของ Platform/TEST ใน npm test)
+    name: test + migration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: env ทดสอบแบบสุ่ม
+        run: bash .github/scripts/ci-env.sh
+      - name: npm run db:check (drizzle-kit check)
+        run: npm run db:check
+      - name: npm test (Vitest — รวม apply migration บน DB ว่าง)
+        run: npm test
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: env ทดสอบแบบสุ่ม
+        run: bash .github/scripts/ci-env.sh
+      - name: npm run build
+        run: npm run build
+
+  contrast:
+    # ไม่มี dependency (docs/design/tools/contrast.mjs) — ไม่ต้อง npm ci
+    name: contrast
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - name: npm run contrast (R0-13)
+        run: npm run contrast
+
+  e2e:
+    name: e2e (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: env ทดสอบแบบสุ่ม
+        run: bash .github/scripts/ci-env.sh
+      - name: ติดตั้ง Chromium ของ Playwright
+        # CI ใช้ browser ของตัวเอง (ไม่ตั้ง PW_CHROMIUM_PATH)
+        run: npx playwright install --with-deps chromium
+      - name: npm run build
+        run: npm run build
+      - name: npm run test:e2e
+        run: npm run test:e2e
+      - name: เก็บรายงาน + ภาพหน้าจอ
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14
