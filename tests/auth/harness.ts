@@ -168,10 +168,15 @@ export type Harness = {
   cleanup(): Promise<void>;
 };
 
+let prevTrust: string | undefined;
+
 export async function setupHarness(
   opts: { peppers?: Record<number, string>; current?: number | null; startAt?: number; initFingerprint?: boolean } = {},
 ): Promise<Harness> {
   const t = await installTestDb({ APP_ORIGIN: ORIGIN });
+  // S4/S5: Client ส่ง x-real-ip เป็น "IP ของเครื่อง" — service เชื่อ header นี้เฉพาะเมื่อ operator ยืนยัน (ที่นี่จำลองว่าอยู่หลัง proxy)
+  prevTrust = process.env.TRUST_PROXY_HEADERS;
+  process.env.TRUST_PROXY_HEADERS = '1';
   const peppers = opts.peppers ?? { 1: freshPepper() };
   setPepperEnv(peppers, opts.current === undefined ? Math.max(...Object.keys(peppers).map(Number)) : opts.current);
   resetPepperCache();
@@ -218,6 +223,8 @@ export async function setupHarness(
     },
     async cleanup() {
       resetClock();
+      if (prevTrust === undefined) delete process.env.TRUST_PROXY_HEADERS;
+      else process.env.TRUST_PROXY_HEADERS = prevTrust;
       for (const k of Object.keys(process.env)) if (PEPPER_KEY.test(k)) delete process.env[k];
       resetDbClient();
       resetEnvCache();

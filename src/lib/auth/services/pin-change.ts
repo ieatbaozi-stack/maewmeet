@@ -13,16 +13,7 @@ import { currentPepper, pepperOfVersion, requirePepper } from '../pepper';
 import { hashPin, verifyDummy, verifyPin } from '../pin';
 import { assertAcceptableNewPin, isPinFormat, normalizeUsername } from '../pin-rules';
 import { readSessionId, revokeAllSessions, revokeOtherSessions } from '../session';
-import {
-  assertNotLocked,
-  assertRateNotFull,
-  clearFailures,
-  countRate,
-  failureOutcome,
-  ipHashOf,
-  RATE_LIMITS,
-  usernameThrottleKey,
-} from '../throttle';
+import { failedAttempt, reserveIpSlot, reserveUsernameSlot, succeededAttempt, usernameThrottleKey } from '../throttle';
 import { pinField, userIdOf } from './shared';
 
 export const changePinInputSchema = z
@@ -51,17 +42,13 @@ export async function changePin(
     if (input.currentPin === undefined) throw new AppError('VALIDATION', { fields: { currentPin: 'REQUIRED' } });
     if (!isPinFormat(input.currentPin)) throw new AppError('PIN_FORMAT');
     const key = usernameThrottleKey(normalizeUsername(me.username));
-    const ipId = ipHashOf(ctx.req, ctx.appSecret);
-    await assertRateNotFull(db, RATE_LIMITS.loginIp, ipId, now);
-    await assertNotLocked(db, key, now);
     const pepper = me.pinHash ? pepperOfVersion(pepperCtx, me.pinPepperVersion) : null;
-    if (me.pinHash && !pepper) throw new AppError('AUTH_MAINTENANCE');
+    if (me.pinHash && !pepper) throw new AppError('AUTH_MAINTENANCE'); // ก่อนจอง — ไม่นับ (เหมือน login)
+    // จองก่อน verify (S1): IP แล้ว username — เต็ม/ล็อก = ไม่ verify · ใช้ตัวนับชุดเดียวกับ login
+    const attempt = await reserveUsernameSlot(await reserveIpSlot(db, ctx.req, ctx.appSecret, key, now));
     const ok = me.pinHash && pepper ? await verifyPin(input.currentPin, me.pinHash, pepper.secret) : await verifyDummy(input.currentPin);
-    if (!ok) {
-      await countRate(db, RATE_LIMITS.loginIp, ipId, now);
-      throw await failureOutcome(db, key, now);
-    }
-    await clearFailures(db, key, now);
+    if (!ok) throw await failedAttempt(attempt);
+    await succeededAttempt(attempt);
   }
 
   const cur = currentPepper(pepperCtx);

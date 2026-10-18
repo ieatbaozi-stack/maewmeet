@@ -40,7 +40,7 @@ describe.each(BREAKS)('%s', (_name, breakIt) => {
       users: await h.count('user'),
     });
     const before = await snapshot();
-    expect(before.throttle).toHaveLength(1);
+    expect(before.throttle).toHaveLength(2); // bob (ผิด 1) + alice (login สำเร็จ → จองแล้วล้างเป็น 0)
     expect(before.fingerprints).toHaveLength(1);
 
     breakIt();

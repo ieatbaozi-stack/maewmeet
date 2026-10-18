@@ -11,7 +11,7 @@ import { assertAcceptableNewPin, DISPLAY_NAME_MAX, parseNewUsername, USERNAME_MA
 import { currentPepper, requirePepper } from '../pepper';
 import { hashPin } from '../pin';
 import { issueSession, sessionUserDto, type AuthCookie, type SessionUserDto } from '../session';
-import { hitRateOrThrow, ipHashOf, RATE_LIMITS } from '../throttle';
+import { hitRateOrThrow, ipHashOf, ipRateSpec, RATE_LIMITS } from '../throttle';
 import { pinField, prefsCookies, prefsFromCookies } from './shared';
 
 export const signupInputSchema = z
@@ -39,7 +39,7 @@ export async function signup(actor: Actor, input: SignupInput, ctx: AuthCtx): Pr
   assertAcceptableNewPin(input.pin);
   if (input.pin !== input.pinConfirm) throw new AppError('PIN_MISMATCH');
 
-  await hitRateOrThrow(db, RATE_LIMITS.signupIp, ipHashOf(ctx.req, ctx.appSecret), now);
+  await hitRateOrThrow(db, ipRateSpec(RATE_LIMITS.signupIp, ctx.req), ipHashOf(ctx.req, ctx.appSecret), now);
 
   const pepper = currentPepper(pepperCtx);
   const pinHash = await hashPin(input.pin, pepper);

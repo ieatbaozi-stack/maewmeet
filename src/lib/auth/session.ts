@@ -17,7 +17,7 @@ import {
 import type { Actor, UserActor } from '@/lib/rbac/types';
 import { clock } from '@/lib/shared/clock';
 import { readCookie } from './request';
-import { newSessionToken, sha256Hex } from './tokens';
+import { newSessionToken, parseDeviceCookie, sha256Hex, type ParsedDeviceCookie } from './tokens';
 
 export const SESSION_COOKIE_PROD = '__Host-mm_session';
 export const SESSION_COOKIE_DEV = 'mm_session';
@@ -73,9 +73,10 @@ export function readSessionId(req: Request): string | null {
   return token ? sha256Hex(token) : null;
 }
 
-export function readResetDeviceToken(req: Request): string | null {
+/** คุกกี้ reset ของเครื่องนี้ (เซ็นด้วย APP_SECRET) — MAC/รูปผิด = null (ถือว่าไม่มีคุกกี้) */
+export function readResetDevice(req: Request, appSecretB64: string): ParsedDeviceCookie | null {
   const v = readCookie(req, resetCookieName());
-  return v && TOKEN_SHAPE.test(v) ? v : null;
+  return v ? parseDeviceCookie(v, appSecretB64) : null;
 }
 
 export type SessionIssue = { token: string; sessionId: string; expiresAt: number; cookie: AuthCookie };

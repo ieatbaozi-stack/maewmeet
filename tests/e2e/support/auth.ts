@@ -1,7 +1,7 @@
 // fixture การยืนยันตัวตนของ E2E (R1) — ผู้ใช้สุ่มต่อเทสต์ · IP ต่อเทสต์ · แก้ DB ตรง ๆ แทนขั้นตอนที่ boss ทำเอง (is_admin)
 //
 // ทำไมต้อง x-real-ip: rate limit ของ auth นับต่อ IP (signup 5/ชม., reset 3/ชม.) — เทสต์ทั้งชุดมาจาก IP เดียว
-//   นอก Vercel แอปเชื่อ x-real-ip (src/lib/auth/request.ts) → ให้ทุกเทสต์/ทุก "เครื่อง" มี IP สมมติของตัวเอง
+//   แอปเชื่อ x-real-ip เฉพาะเมื่อ VERCEL หรือ TRUST_PROXY_HEADERS=1 (src/lib/auth/request.ts · e2e ตั้งใน tests/e2e/support/env.ts) → ให้ทุกเทสต์/ทุก "เครื่อง" มี IP สมมติของตัวเอง
 //   (ไม่ได้ทำให้เทสต์ผ่านด้วยการปิด limit — limit ทำงานจริง เพียงแต่ไม่ชนกันข้ามเทสต์)
 // ทำไมไม่มีนาฬิกาจำลองในเบราว์เซอร์: `next start` เป็นโปรเซสแยก ไม่มี hook ปรับ clock จากภายนอก
 //   (clock.ts ใช้ setClock ในโปรเซสเดียวกันเท่านั้น) → เคส "เกิน 24 ชม." ทดสอบที่ระดับ integration:

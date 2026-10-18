@@ -158,7 +158,9 @@ describe('หลัง approve', () => {
     const twin = new Client();
     phone.cloneJarTo(twin);
     const [a, b] = await Promise.all([phone.login('alice', RESET_PIN), twin.login('alice', RESET_PIN)]);
-    expect([a.status, b.status].sort()).toEqual([200, 401]);
+    // ผู้แพ้: แพ้ UPDATE (401) หรือชนล็อกเขียนของ file: DB ในโปรเซสเดียว (409 CONFLICT ให้ลองใหม่ — S7 ธุรกรรม rollback ทั้งก้อน)
+    expect([a.status, b.status].filter((x) => x === 200)).toHaveLength(1);
+    expect([a.status, b.status].find((x) => x !== 200)).toBeOneOf([401, 409]);
     expect(await h.rows('SELECT * FROM session WHERE user_id = (SELECT id FROM user WHERE username = \'alice\')')).toHaveLength(1);
   });
 

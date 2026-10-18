@@ -2,7 +2,7 @@
 //   approved && now >= expires_at → expired · pending && now >= pending_expires_at → expired
 // การเปลี่ยนสถานะทุกตัวเป็น UPDATE … WHERE status = <เดิม> (+ เงื่อนไขเวลา) RETURNING เดียว → ใช้ซ้ำสองครั้งสำเร็จได้แค่ครั้งเดียว
 // partial unique index pin_reset_one_open_uq (user_id WHERE status IN ('pending','approved')) กันซ้ำที่ชั้น DB
-import { and, desc, eq, inArray, lte, or, gt } from 'drizzle-orm';
+import { and, desc, eq, inArray, lte, ne, or, gt } from 'drizzle-orm';
 import { pinResetRequest, user } from '@/db/schema';
 import type { DbOrTx } from '@/db/client';
 import { DAY_MS } from '@/lib/shared/clock';
@@ -132,12 +132,22 @@ export async function listPendingPinResets(db: DbOrTx, now: number): Promise<Pen
     .orderBy(pinResetRequest.requestedAt);
 }
 
-/** pending → approved (ต้องยังไม่เลย pending_expires_at) · expires_at = now + 24 ชม. · ไม่ใช่ pending → null */
+/**
+ * pending → approved (ต้องยังไม่เลย pending_expires_at) · expires_at = now + 24 ชม. · ไม่ใช่ pending → null
+ * ผู้อนุมัติอนุมัติคำขอของตัวเองไม่ได้ (S2): เงื่อนไข user_id <> decidedBy อยู่ใน UPDATE เดียวกัน (service ตรวจก่อนเพื่อตอบ 403 · นี่คือแนวป้องกันชั้นข้อมูล)
+ */
 export async function approvePinReset(db: DbOrTx, id: string, decidedBy: string, now: number): Promise<PinResetRow | null> {
   const rows = await db
     .update(pinResetRequest)
     .set({ status: 'approved', decidedBy, decidedAt: now, expiresAt: now + PIN_RESET_APPROVED_TTL_MS })
-    .where(and(eq(pinResetRequest.id, id), eq(pinResetRequest.status, 'pending'), gt(pinResetRequest.pendingExpiresAt, now)))
+    .where(
+      and(
+        eq(pinResetRequest.id, id),
+        eq(pinResetRequest.status, 'pending'),
+        gt(pinResetRequest.pendingExpiresAt, now),
+        ne(pinResetRequest.userId, decidedBy),
+      ),
+    )
     .returning();
   return rows[0] ?? null;
 }

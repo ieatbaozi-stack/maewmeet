@@ -159,6 +159,8 @@ Get-Clipboard | npx tsx scripts/pepper-fingerprint.ts
 ☐ **D6** Project → **Settings → Domains** ดูโดเมน production (ปกติ `https://maewmeet.vercel.app` ถ้าชื่อว่าง) — ถ้า**ไม่ตรง**กับ `APP_ORIGIN` ที่ใส่ใน D3 ให้แก้ `APP_ORIGIN` เป็นค่าจริง (ขึ้นต้น `https://` ไม่มี `/` ท้าย ไม่มี path) แล้ว **Deployments → … → Redeploy**
 ☐ **D7** Project → **Settings → Cron Jobs** ควรเห็น `/api/cron/daily` ตาราง `0 19 * * *` (= ตี 2 เวลาไทย คลาดได้ถึง 59 นาที) · cron ทำงานเฉพาะ production deployment
 
+> **IP ของผู้เรียก (rate limit — ADR 0002 §3):** แอปเชื่อ header `x-vercel-forwarded-for` / `x-real-ip` / `x-forwarded-for` **เฉพาะเมื่อมี env `VERCEL`** (Vercel ใส่ให้เอง — บน Vercel ไม่ต้องทำอะไร) หรือ **`TRUST_PROXY_HEADERS=1`** (ตั้งเองเฉพาะเมื่อ self-host หลัง reverse proxy ที่เขียนทับ header เหล่านี้เอง) · ถ้าไม่เข้าเงื่อนไขใด ๆ (เช่น `next start` ตรง ๆ บนเครื่อง dev) แอป**ไม่เชื่อ header** และทุกคำขอรวมอยู่ใน **ถัง `unknown` ถังเดียว** — เพดานต่อ IP ของถังนี้คูณ **50** (login 1,000 / signup 250 / reset 150 ต่อหน้าต่าง) เพื่อไม่ให้ทุกคนล็อกกันเองเมื่อไม่รู้ IP · ชั้นที่กัน brute-force จริงคือ lockout ต่อ username (ไม่ขึ้นกับ IP) · **อย่าตั้ง `TRUST_PROXY_HEADERS=1` ถ้าแอปเปิดรับคำขอจากอินเทอร์เน็ตโดยตรงโดยไม่มี proxy** (ผู้โจมตีปลอม IP หลบเพดานได้)
+
 > **ทุกครั้งที่แก้ env ใน Vercel ต้อง Redeploy** ค่าใหม่จึงมีผล (Deployments → … → Redeploy)
 > **Function region (แนะนำ)**: Settings → Functions → เลือก region ที่ใกล้ location ของฐาน Turso ใน B1 ที่สุด (ระยะทาง app↔ฐานมีผลกับความเร็วทุก request)
 
@@ -360,4 +362,5 @@ document.cookie = "__Host-mm_reset=ค่า_cookie; path=/; Secure"
 | `CRON_SECRET` (≥ 16 ตัว) | ทุกที่ | แอปไม่เริ่ม: ทุก URL 500 (G1) · keepalive ล้ม |
 | `APP_ORIGIN` | production (preview ใช้ `VERCEL_URL` แทนได้) | แอปไม่เริ่ม: ทุก URL 500 (G1) |
 | `PIN_PEPPER_CURRENT_VERSION`, `PIN_PEPPER_V<n>` | ทุกที่ที่ต้อง login/สมัคร (บังคับตั้งแต่ R1) | แอปยังเริ่มได้ แต่ **health 503** (`pepper.ok:false`) และ login/สมัครตอบ `AUTH_MAINTENANCE` — ไม่มีใครถูกล็อก (G7) |
+| `TRUST_PROXY_HEADERS` | ไม่บังคับ — ตั้ง `1` เฉพาะ self-host หลัง proxy ที่เขียนทับ header IP (Vercel ไม่ต้องตั้ง) | ไม่เชื่อ header IP → ถัง `unknown` ร่วม เพดาน ×50 |
 | `PLACE_SEARCH_ENABLED`, `NOMINATIM_*`, `NEXT_PUBLIC_MAP_*`, `LOG_LEVEL` | ไม่บังคับ (มีค่าเริ่มต้น) | ใช้ค่าเริ่มต้น |

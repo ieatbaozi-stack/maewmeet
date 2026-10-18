@@ -3,8 +3,8 @@
 //  - rate_limit_bucket: fixed window · IP ถูก HMAC ด้วย subkey ของ APP_SECRET (HKDF) ก่อนเป็นคีย์ · IPv6 ใช้ /64
 import { createHmac, hkdfSync } from 'node:crypto';
 import type { DbOrTx } from '@/db/client';
-import { getLoginThrottle, lockRemainingSec, recordLoginFailure, resetLoginThrottle } from '@/lib/data/repos/login-throttle';
-import { hitBucket, peekBucket } from '@/lib/data/repos/rate-limit-bucket';
+import { lockRemainingSec, reserveLoginAttempt, resetLoginThrottle, type LoginThrottleRow } from '@/lib/data/repos/login-throttle';
+import { hitBucket, refundBucket, reserveBucket } from '@/lib/data/repos/rate-limit-bucket';
 import { HOUR_MS, MINUTE_MS } from '@/lib/shared/clock';
 import { AppError } from '@/lib/shared/errors';
 import { callerId, clientIp } from './request';
@@ -21,6 +21,12 @@ export function lockMsFor(failures: number): number {
 }
 
 export const usernameThrottleKey = (usernameNormalized: string): string => `u:${usernameNormalized}`;
+
+/**
+ * ผู้เรียกที่ระบุ IP ไม่ได้ (ไม่เชื่อ header — ดู clientIp) ทุกคนใช้ถัง 'unknown' ร่วมกัน → เพดานคูณด้วยค่านี้ เพื่อไม่ให้ทั้งระบบล็อกกันเอง
+ * (dev/e2e/self-host ตรง ๆ) · ยังเป็นเพดานจริง: ผู้โจมตีถูกจำกัดรวมที่ limit × factor ต่อหน้าต่าง · ชั้นที่กัน brute-force จริงคือ lockout ต่อ username
+ */
+export const UNKNOWN_CALLER_LIMIT_FACTOR = 50;
 
 export type RateSpec = { readonly prefix: string; readonly limit: number; readonly windowMs: number };
 
@@ -56,7 +62,12 @@ export const rateKey = (spec: RateSpec, id: string): string => `${spec.prefix}:$
 const limited = (windowEnd: number, now: number): AppError =>
   new AppError('RATE_LIMITED', undefined, { retryAfterSec: Math.max(1, Math.ceil((windowEnd - now) / 1000)) });
 
-/** นับ 1 ครั้งแล้วคืนว่าเกินหรือไม่ (ครั้งที่ limit+1 เป็นต้นไปเกิน) */
+/** spec ที่ปรับเพดานตามผู้เรียก: ระบุ IP ไม่ได้ → ถังร่วม 'unknown' เพดานสูงขึ้น (UNKNOWN_CALLER_LIMIT_FACTOR) */
+export function ipRateSpec(spec: RateSpec, req: Request): RateSpec {
+  return callerId(clientIp(req)) === 'unknown' ? { ...spec, limit: spec.limit * UNKNOWN_CALLER_LIMIT_FACTOR } : spec;
+}
+
+/** นับ 1 ครั้งแล้วคืนว่าเกินหรือไม่ (ครั้งที่ limit+1 เป็นต้นไปเกิน) — signup/reset (นับทุกครั้ง) */
 export async function hitRate(
   db: DbOrTx,
   spec: RateSpec,
@@ -73,38 +84,72 @@ export async function hitRateOrThrow(db: DbOrTx, spec: RateSpec, id: string, now
   if (r.exceeded) throw new AppError('RATE_LIMITED', undefined, { retryAfterSec: r.retryAfterSec });
 }
 
-/** ตรวจโดยไม่นับ (login: นับเฉพาะครั้งที่ผิด) — เต็มแล้วโยน RATE_LIMITED */
-export async function assertRateNotFull(db: DbOrTx, spec: RateSpec, id: string, now: number): Promise<void> {
-  const p = await peekBucket(db, rateKey(spec, id), spec.windowMs, now);
-  if (p.count >= spec.limit) throw limited(p.windowEnd, now);
-}
-
-export async function countRate(db: DbOrTx, spec: RateSpec, id: string, now: number): Promise<void> {
-  await hitBucket(db, rateKey(spec, id), spec.windowMs, now);
-}
-
-// ───────── lockout ต่อ username ─────────
+// ───────── จองความพยายามล็อกอินแบบอะตอมมิก (S1) ─────────
+// ไม่มี check-then-act: ทั้ง IP และ username "จอง" ก่อน verify ด้วย UPSERT เดียวที่ตัดสินในคำสั่งเดียวกัน
+// ถูกปฏิเสธ (เต็ม/ล็อก) → ไม่ verify · verify ได้สูงสุดเท่าจำนวนช่องที่จองได้ ไม่ว่าจะมีคำขอขนานกี่ตัว
 
 export const loginLocked = (retryAfterSec: number): AppError =>
   new AppError('LOGIN_LOCKED', { retryAfterSec }, { retryAfterSec });
 
-/** ล็อกอยู่ไหม → โยน LOGIN_LOCKED (ไม่นับ ไม่ verify) */
-export async function assertNotLocked(db: DbOrTx, key: string, now: number): Promise<void> {
-  const sec = lockRemainingSec(await getLoginThrottle(db, key), now);
-  if (sec > 0) throw loginLocked(sec);
+export type LoginAttempt = {
+  readonly db: DbOrTx;
+  readonly now: number;
+  readonly ipSpec: RateSpec;
+  readonly ipId: string;
+  readonly userKey: string;
+  /** แถว login_throttle หลังจองครั้งนี้ · null = ไม่ได้จอง username (เส้นทาง reset-device ที่ข้ามล็อก) */
+  readonly row: LoginThrottleRow | null;
+};
+
+/** ขั้น 1: จองช่อง IP — เต็ม → RATE_LIMITED (ยังไม่ verify · ไม่แตะ username) */
+export async function reserveIpSlot(db: DbOrTx, req: Request, appSecret: string, userKey: string, now: number): Promise<LoginAttempt> {
+  const ipSpec = ipRateSpec(RATE_LIMITS.loginIp, req);
+  const ipId = ipHashOf(req, appSecret);
+  const slot = await reserveBucket(db, rateKey(ipSpec, ipId), ipSpec.windowMs, ipSpec.limit, now);
+  if (!slot.admitted) throw limited(slot.windowEnd, now);
+  return { db, now, ipSpec, ipId, userKey, row: null };
+}
+
+/** คืนช่อง IP ที่จองไว้ (ผู้เรียกที่ไม่ verify / ล้มก่อนตัดสิน) */
+export async function releaseIpSlot(a: LoginAttempt): Promise<void> {
+  await refundBucket(a.db, rateKey(a.ipSpec, a.ipId), a.ipSpec.windowMs, a.now);
 }
 
 /**
- * บันทึกผิด 1 ครั้งแล้วคืน error ที่ต้องตอบ: ครบเกณฑ์ล็อก → LOGIN_LOCKED(retryAfterSec) · ไม่งั้น INVALID_CREDENTIALS(attemptsRemaining)
- * (เรียกเฉพาะตอน "ไม่ได้ล็อกอยู่" — ระหว่างล็อกไม่นับเพิ่ม ตามข้อตัดสินของ Lead)
+ * ขั้น 2: จอง username — ล็อกอยู่ → คืนช่อง IP แล้วโยน LOGIN_LOCKED (ระหว่างล็อกไม่นับทั้งสองถัง ไม่ verify)
+ * ผ่าน → คืน attempt ที่มีแถวหลังนับ (ครั้งนี้ถูกนับเป็น "ผิด" ไว้ก่อนแล้ว จนกว่าจะสำเร็จ → succeededAttempt)
  */
-export async function failureOutcome(db: DbOrTx, key: string, now: number): Promise<AppError> {
-  const row = await recordLoginFailure(db, key, now, lockMsFor);
-  const sec = lockRemainingSec(row, now);
+export async function reserveUsernameSlot(a: LoginAttempt): Promise<LoginAttempt> {
+  let r;
+  try {
+    r = await reserveLoginAttempt(a.db, a.userKey, a.now, lockMsFor);
+  } catch (e) {
+    await releaseIpSlot(a).catch(() => undefined);
+    throw e;
+  }
+  if (!r.admitted) {
+    await releaseIpSlot(a);
+    throw loginLocked(Math.max(1, Math.ceil((r.lockedUntil - a.now) / 1000)));
+  }
+  return { ...a, row: r.row };
+}
+
+/** ผิด: ตอบจากแถวที่จองไว้ (ครบเกณฑ์ → LOGIN_LOCKED · ไม่งั้น INVALID_CREDENTIALS + attemptsRemaining) — ไม่เขียนเพิ่ม (ถูกนับตอนจองแล้ว) */
+export async function failedAttempt(a: LoginAttempt): Promise<AppError> {
+  let row = a.row;
+  if (!row) {
+    // เส้นทาง reset ที่ยึดสิทธิ์ไม่สำเร็จ (แพ้การแข่ง) → นับเป็นความผิดตอนนี้
+    const r = await reserveLoginAttempt(a.db, a.userKey, a.now, lockMsFor);
+    if (!r.admitted) return loginLocked(Math.max(1, Math.ceil((r.lockedUntil - a.now) / 1000)));
+    row = r.row;
+  }
+  const sec = lockRemainingSec(row, a.now);
   if (sec > 0) return loginLocked(sec);
   return new AppError('INVALID_CREDENTIALS', { attemptsRemaining: Math.max(0, LOCK_STARTS_AT_FAILURE - row.failures) });
 }
 
-export async function clearFailures(db: DbOrTx, key: string, now: number): Promise<void> {
-  await resetLoginThrottle(db, key, now);
+/** สำเร็จ: คืนช่อง IP ที่จองไว้ (นับเฉพาะครั้งที่ผิด) + ล้างตัวนับ/ล็อกของ username */
+export async function succeededAttempt(a: LoginAttempt, exec: DbOrTx = a.db): Promise<void> {
+  await refundBucket(exec, rateKey(a.ipSpec, a.ipId), a.ipSpec.windowMs, a.now);
+  await resetLoginThrottle(exec, a.userKey, a.now);
 }

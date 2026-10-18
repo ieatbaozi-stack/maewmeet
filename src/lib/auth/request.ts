@@ -1,5 +1,6 @@
 // helper อ่านข้อมูลจาก Request (ไม่พึ่ง next/headers → เทสต์เรียก handler ตรงได้) — cookie · IP · UA · ประเทศ
 import { isIP } from 'node:net';
+import { trustsProxyHeaders, type EnvSource } from '@/lib/shared/env';
 
 /** อ่านค่า cookie ตามชื่อ (ตัวแรกที่เจอชนะ) · ไม่มี = null */
 export function readCookie(req: Request, name: string): string | null {
@@ -14,13 +15,20 @@ export function readCookie(req: Request, name: string): string | null {
 }
 
 /**
- * IP ของ client — บน Vercel `x-real-ip` / `x-forwarded-for` ถูกแพลตฟอร์มเขียนทับ ปลอมไม่ได้
- * (นอก Vercel/dev ผู้เรียกปลอมได้ — ใช้เป็นคีย์ rate limit เท่านั้น ไม่ใช่การยืนยันตัวตน)
+ * IP ของ client สำหรับ rate limit — เชื่อ header จาก proxy **เฉพาะ** เมื่อ trustsProxyHeaders() (env VERCEL ถูกตั้ง หรือ TRUST_PROXY_HEADERS=1):
+ * บน Vercel แพลตฟอร์มเขียนทับ x-vercel-forwarded-for / x-real-ip / x-forwarded-for เอง ปลอมไม่ได้
+ * ลำดับ: x-vercel-forwarded-for → x-real-ip → x-forwarded-for (ตัวแรก)
+ * ไม่เชื่อ (เช่น dev/self-host ตรง ๆ) → null → callerId = 'unknown' ถังร่วมที่เพดานสูง (UNKNOWN_CALLER_LIMIT_FACTOR) — ผู้เรียกปลอม header เปลี่ยนถังไม่ได้
+ * ใช้เป็นคีย์ rate limit เท่านั้น ไม่ใช่การยืนยันตัวตน
  */
-export function clientIp(req: Request): string | null {
-  const real = req.headers.get('x-real-ip')?.trim();
+export function clientIp(req: Request, env: EnvSource = process.env): string | null {
+  if (!trustsProxyHeaders(env)) return null;
+  const h = req.headers;
+  const vercel = h.get('x-vercel-forwarded-for')?.split(',')[0]?.trim();
+  if (vercel) return vercel;
+  const real = h.get('x-real-ip')?.trim();
   if (real) return real;
-  const xff = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+  const xff = h.get('x-forwarded-for')?.split(',')[0]?.trim();
   return xff || null;
 }
 
