@@ -31,6 +31,13 @@ const SAMPLE_BODY: Record<string, unknown> = {
   'POST /api/auth/login': { username: 'someone', pin: '482915' },
   'POST /api/auth/pin-reset': { username: 'someone' },
   'POST /api/auth/pin': { newPin: RESET_PIN, newPinConfirm: RESET_PIN }, // ตั้งใจใช้ PIN ต้องห้าม เพื่อไม่เปลี่ยนสถานะ
+  // R2 (Platform): route ที่ zod ตรวจ body ก่อน actor (route.ts ขั้น 2 ก่อนขั้น 3) ต้องมีตัวอย่างที่ผ่าน validation
+  'POST /api/groups': { name: 'x' },
+  'PATCH /api/groups/:gid': { name: 'x' },
+  'PATCH /api/groups/:gid/members/:uid': { role: 'member' },
+  'POST /api/groups/:gid/transfer-admin': { toUserId: UUID },
+  'POST /api/groups/:gid/invites/direct': { username: 'someone' },
+  'POST /api/invites/redeem': { code: 'ABCD-EFGH' },
 };
 
 const concretePath = (e: ManifestEntry) => e.path.replace(/:\w+/g, UUID);
