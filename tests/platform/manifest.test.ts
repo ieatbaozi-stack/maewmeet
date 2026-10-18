@@ -93,10 +93,10 @@ describe('route manifest', () => {
 
   it('ด้านลบ: ไฟล์ route ที่ไม่ลงทะเบียนถูกจับได้', () => {
     const fake = [
-      { file: path.join(API_DIR, 'groups/[gid]/route.ts'), source: 'export const GET = route(...);\nexport async function DELETE() {}' },
+      { file: path.join(API_DIR, 'appointments/[aid]/route.ts'), source: 'export const GET = route(...);\nexport async function DELETE() {}' },
       { file: path.join(API_DIR, 'sneaky/route.ts'), source: 'const POST = () => 1; export { POST };' },
     ];
     const missing = unregistered(scanRoutes(fake), ROUTE_MANIFEST).map((f) => `${f.method} ${f.path}`);
-    expect(missing.sort()).toEqual(['DELETE /api/groups/:gid', 'GET /api/groups/:gid', 'POST /api/sneaky']);
+    expect(missing.sort()).toEqual(['DELETE /api/appointments/:aid', 'GET /api/appointments/:aid', 'POST /api/sneaky']);
   });
 });
