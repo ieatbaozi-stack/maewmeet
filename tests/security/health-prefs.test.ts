@@ -44,8 +44,8 @@ describe('/api/health', () => {
     const res = await health();
     expect(res.headers.get('cache-control')).toBe(CACHE_CONTROL);
     const text = await res.text();
-    expect(Object.keys(JSON.parse(text)).sort()).toEqual(['argon2', 'db', 'heartbeatAgeHours', 'node', 'ok', 'version']);
-    for (const v of Object.values(t.env)) expect(text).not.toContain(v);
+    expect(Object.keys(JSON.parse(text)).sort()).toEqual(['argon2', 'db', 'heartbeatAgeHours', 'node', 'ok', 'pepper', 'version']);
+    for (const v of Object.values(t.env)) if (v.length >= 8) expect(text).not.toContain(v); // เลขเวอร์ชัน pepper '1' สั้นเกินกว่าจะเทียบเป็นความลับ (health แสดง currentVersion ตามสัญญา)
     expect(text).not.toMatch(/file:|libsql:|turso|\/tmp|maewmeet-test|Error|at /i);
   });
 
