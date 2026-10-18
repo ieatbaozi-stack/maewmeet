@@ -122,7 +122,7 @@ export function PinChangeFlow({ requireCurrent, labels, onSuccess, onAuthLost }:
           </p>
         ) : (
           <p className="pin-msg" role="status">
-            {t("login.pinHint")}
+            {phase === "current" ? t("login.pinHint") : phase === "new" ? t("pinChange.hintNew") : t("pinChange.hintConfirm")}
           </p>
         )}
       </PinPad>

@@ -117,3 +117,21 @@ describe('R0-9 ICU', () => {
     expect(icuArgs('no args')).toEqual([]);
   });
 });
+
+// D4: คำใต้แป้นกรอก PIN ของขั้น "ตั้ง/ยืนยัน PIN ใหม่" ต้องไม่ใช่ "Enter your PIN" (คำของหน้า login) ที่ขัดกับหัวข้อ "Enter the new PIN again"
+describe('PinChangeFlow: คำใต้แป้นตรงกับขั้นตอน (D4)', () => {
+  it('มี pinChange.hintNew / hintConfirm ทั้งสองภาษา และไม่ซ้ำกับ login.pinHint', () => {
+    for (const l of LOCALES) {
+      for (const k of ['pinChange.hintNew', 'pinChange.hintConfirm']) {
+        expect(M[l][k], `${l}:${k}`).toBeTruthy();
+        expect(M[l][k], `${l}:${k}`).not.toBe(M[l]['login.pinHint']);
+      }
+    }
+    expect(M.en['setPin.pinConfirm']).toBe('Enter the new PIN again');
+    expect(M.en['pinChange.hintConfirm']).not.toMatch(/your PIN/i);
+  });
+  it('component ใช้คำใต้แป้นตามขั้น (current → login.pinHint · new → hintNew · confirm → hintConfirm)', () => {
+    const src = readFileSync(path.join(ROOT, 'src/components/auth/PinChangeFlow.tsx'), 'utf8');
+    expect(src).toMatch(/phase === "current" \? t\("login\.pinHint"\) : phase === "new" \? t\("pinChange\.hintNew"\) : t\("pinChange\.hintConfirm"\)/);
+  });
+});

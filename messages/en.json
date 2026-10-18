@@ -153,6 +153,10 @@
     "haveAccount": "Already have an account?",
     "signIn": "Sign in"
   },
+  "pinChange": {
+    "hintNew": "Choose 6 digits you’ll remember",
+    "hintConfirm": "Enter the same 6 digits once more"
+  },
   "pinRules": {
     "title": "What makes a valid PIN",
     "digits": "6 digits",
