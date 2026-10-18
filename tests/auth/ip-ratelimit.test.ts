@@ -97,8 +97,7 @@ describe('การเก็บ IP', () => {
     expect(keys.length).toBeGreaterThanOrEqual(4);
     for (const k of keys) {
       expect(k).not.toContain(v4);
-      expect(k).not.toContain('2001');
-      expect(k).not.toContain('db8');
+      expect(k).not.toContain(v6); // เทียบทั้งสตริง IPv6 (ไม่ใช่ชิ้น '2001'/'db8' — คีย์เป็น hex สุ่ม 32 ตัว มีโอกาส ~3% ที่บังเอิญมี 'db8' ทำให้เทสต์เดิมไม่นิ่ง)
       expect(k).toMatch(/^(login:ip|signup:ip|reset:ip|reset:u):[0-9a-f]{32}$/);
     }
   });
