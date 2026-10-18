@@ -53,10 +53,34 @@ describe('CSP (production) — ไม่มี source กว้างเกิ�
   });
 });
 
+// allow-list ของ placeholder ที่เอกสาร/เทสต์ใช้ — ต้องเป็นชื่อโฮสต์ placeholder ทั้งชื่อเท่านั้น (ไม่ใช่แค่ prefix) · ห้ามเพิ่มโฮสต์ที่ดูเหมือนจริง
+//  - maewmeet-prod-xxxx. / maewmeet-x. / <…>   : placeholder ใน .env.example และเอกสาร (prefix + จุด)
+//  - example.turso.io : โฮสต์ placeholder ที่เอกสารกำหนด (tests/ops/admin-reset-pin-script.test.ts ใช้เป็น "URL ระยะไกลแต่ไม่มี token")
+//    ตรงทั้งชื่อ (ตามด้วยขอบเขตคำ) จึงไม่ปล่อย example.turso.io.evil.test หรือ myexample.turso.io
+// โฮสต์ Turso จริงมีหลาย label (<db>-<org>.<region>.turso.io) จึงให้ label เป็นจุดคั่นได้ — แพตเทิร์นเดิมไม่จับรูปแบบนี้เลย
+const TURSO_REAL_URL = /libsql:\/\/(?!maewmeet-prod-xxxx\.|maewmeet-x\.|<|example\.turso\.io(?![a-z0-9.-]))[a-z0-9-]+(?:\.[a-z0-9-]+)*\.turso\.io/;
+
+describe('allow-list ของ Turso URL — ตัวอย่าง placeholder ผ่าน แต่โฮสต์ที่ดูเหมือนจริงยังถูกจับ', () => {
+  // ประกอบสตริงจากชิ้นส่วน เพื่อไม่ให้ตัวเทสต์เองไปติดการสแกน tree/history ด้านล่าง
+  const url = (host: string) => 'libsql://' + host;
+  it('placeholder ที่เอกสารกำหนดไม่ถูกจับ', () => {
+    for (const h of ['example.turso.io', 'maewmeet-prod-xxxx.turso.io', 'maewmeet-x.turso.io']) expect(TURSO_REAL_URL.test(url(h)), h).toBe(false);
+    expect(TURSO_REAL_URL.test(url('<db-name>.turso.io'))).toBe(false);
+  });
+  it('โฮสต์ที่ดูเหมือนจริงยังถูกจับ', () => {
+    const real = 'maewmeet-prod-abc.aws-ap-northeast-1' + '.turso.io';
+    expect(TURSO_REAL_URL.test(url(real))).toBe(true);
+    expect(TURSO_REAL_URL.test(`TURSO_DATABASE_URL="${url(real)}"`)).toBe(true);
+    expect(TURSO_REAL_URL.test(url('myexample' + '.turso.io'))).toBe(true);
+    expect(TURSO_REAL_URL.test(url('example-prod' + '.turso.io'))).toBe(true);
+    expect(TURSO_REAL_URL.test(url('example.turso.io' + '.attacker.turso.io'))).toBe(true); // placeholder ต้องตรงทั้งชื่อ
+  });
+});
+
 describe('ความลับไม่อยู่ใน repo (working tree ที่ track + ทุก commit)', () => {
   const PATTERNS: [string, RegExp][] = [
     ['JWT/Turso token', /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}/],
-    ['Turso URL จริง', /libsql:\/\/(?!maewmeet-prod-xxxx\.|maewmeet-x\.|<)[a-z0-9-]+\.turso\.io/],
+    ['Turso URL จริง', TURSO_REAL_URL],
     ['ค่าความลับใน KEY=', /^\+?\s*(?:export\s+)?(PIN_PEPPER_V\d+|APP_SECRET|CRON_SECRET|TURSO_AUTH_TOKEN)\s*=\s*["']?[A-Za-z0-9+/_-]{16,}/m],
     ['GitHub token', /\b(ghp|gho|ghs|github_pat)_[A-Za-z0-9_]{20,}/],
     ['private key', /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
