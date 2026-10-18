@@ -16,7 +16,8 @@
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:check": "drizzle-kit check",
-    "contrast": "node docs/design/tools/contrast.mjs"
+    "contrast": "node docs/design/tools/contrast.mjs",
+    "member-palette": "node docs/design/tools/member-palette.mjs"
   },
   "dependencies": {
     "@libsql/client": "0.18.0",
