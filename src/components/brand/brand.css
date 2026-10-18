@@ -1,0 +1,11 @@
+/*
+ * ขนาด/สีของแมวและโลโก้ — เจ้าของ: UX & Brand · ทุกค่ามาจาก src/styles/tokens.css (ห้าม hex/px)
+ */
+.mm-cat { display: block; flex: none; color: var(--cat-line); width: var(--cat-lg); height: var(--cat-lg); }
+.mm-cat[data-size="md"] { width: var(--cat-md); height: var(--cat-md); }
+.mm-cat[data-size="sm"] { width: var(--cat-sm); height: var(--cat-sm); }
+
+.mm-logo { display: block; flex: none; color: var(--cat-line); }
+.mm-logo[data-variant="mark"] { width: var(--logo-mark); height: var(--logo-mark); }
+.mm-logo[data-variant="th"],
+.mm-logo[data-variant="en"] { height: var(--logo-h); width: auto; max-width: 100%; }

@@ -1,0 +1,168 @@
+# CI ของ maewmeet (R0_CONTRACT R0-14 · PROCESS.md เกต) — เจ้าของ: OPS (#10)
+# รันบนทุก PR และทุก push เข้า main · ไม่ใช้ secret จริง (DB = libSQL file: ใน runner, ความลับสุ่มต่อรอบ)
+# Node ตาม .nvmrc (24) · ทุก job ติดตั้งด้วย npm ci + cache npm ของ setup-node
+#
+# เกต R0 → job
+#   R0-1 build Node 24 ............ build (ยืนยัน node -v + crypto.argon2)
+#   R0-2 lint + typecheck ......... lint · typecheck
+#   R0-3 กฎ ESLint ................ test (เทสต์ไฟล์ฝ่าฝืนของ TEST)  · R0_CONTRACT §2 hex/px → lint (check-style-literals.sh)
+#   R0-4 migration ................ test (drizzle-kit check + drizzle-kit migrate บน DB ว่าง ×2 + เทสต์ schema/constraint)
+#   R0-5 env ...................... lint (check-env-example.sh) · test (env.test)
+#   R0-6..R0-11 ................... test (Vitest) · e2e (ธีม/aurora)
+#   R0-12 E2E มือถือ + ภาพหน้าจอ ... e2e (upload-artifact)
+#   R0-13 คอนทราสต์ ................ contrast
+#   R0-16 header จริง .............. e2e (เทสต์ของ TEST) · config → test (tests/ops/headers.test.ts)
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+  CI: 'true'
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: npm run lint
+        run: npm run lint
+      - name: .env.example ไม่มีค่าลับ (R0-5)
+        run: bash .github/scripts/check-env-example.sh .env.example
+      - name: ไม่มีสี hex / px นอก src/styles/tokens* (R0_CONTRACT §2)
+        run: bash .github/scripts/check-style-literals.sh src
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: npm run typecheck
+        run: npm run typecheck
+
+  test:
+    # รวม migration gate: drizzle-kit check + apply ทุก migration บน DB ว่าง (เทสต์ของ Platform/TEST ใน npm test)
+    name: test + migration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: env ทดสอบแบบสุ่ม
+        run: bash .github/scripts/ci-env.sh
+      - name: npm run db:check (drizzle-kit check)
+        run: npm run db:check
+      - name: apply ทุก migration บน DB ว่าง ด้วย drizzle-kit migrate (คำสั่งเดียวกับ OPERATIONS.md ส่วน B) + รันซ้ำต้องไม่พัง
+        run: |
+          npx drizzle-kit migrate
+          npx drizzle-kit migrate
+      - name: npm test (Vitest — รวม apply migration บน DB ว่าง)
+        run: npm test
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: ยืนยัน Node 24 (R0-1)
+        run: |
+          node -v
+          node -e "if (!process.versions.node.startsWith('24.')) { console.error('ต้องเป็น Node 24.x'); process.exit(1) }"
+          node -e "if (typeof require('node:crypto').argon2 !== 'function') { console.error('ไม่มี crypto.argon2 (ต้อง Node >= 24.7)'); process.exit(1) }"
+      - name: env ทดสอบแบบสุ่ม
+        run: bash .github/scripts/ci-env.sh
+      - name: npm run build
+        run: npm run build
+
+  contrast:
+    # ไม่มี dependency (docs/design/tools/contrast.mjs) — ไม่ต้อง npm ci
+    name: contrast
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - name: npm run contrast (R0-13)
+        run: npm run contrast
+
+  e2e:
+    name: e2e (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: env ทดสอบแบบสุ่ม
+        run: bash .github/scripts/ci-env.sh
+      - name: migration บน DB ว่างของ job นี้ (ให้ /api/health ตอบ 200 ระหว่าง e2e)
+        run: npx drizzle-kit migrate
+      - name: ติดตั้ง Chromium ของ Playwright
+        # CI ใช้ browser ของตัวเอง (ไม่ตั้ง PW_CHROMIUM_PATH)
+        run: npx playwright install --with-deps chromium
+      - name: npm run build
+        run: npm run build
+      - name: npm run test:e2e
+        run: npm run test:e2e
+      - name: เก็บรายงาน + ภาพหน้าจอ
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14

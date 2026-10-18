@@ -9,3 +9,24 @@ node_modules/
 coverage/
 playwright-report/
 test-results/
+
+# --- เพิ่มโดย Full-stack (R0 scaffold) ---
+# env ทุกแบบ ยกเว้นแม่แบบ
+.env*
+!.env.example
+# SQLite/libSQL ชั่วคราว (*.db, *.db-wal, *.db-shm, *.db-journal)
+*.db*
+# Next.js / TypeScript
+/out/
+/build/
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+# Playwright
+/blob-report/
+/playwright/.cache/
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+docs/design/screenshots/

@@ -1,0 +1,158 @@
+{
+  "app": {
+    "name": "maewmeet",
+    "description": "See which days your friends are all free, and make plans in one place."
+  },
+  "brand": {
+    "appName": "maewmeet"
+  },
+  "nav": {
+    "label": "Main menu",
+    "home": "Home",
+    "calendar": "Calendar",
+    "groups": "Groups",
+    "me": "Me"
+  },
+  "login": {
+    "title": "Sign in",
+    "username": "Username",
+    "usernameHint": "Lowercase letters, numbers, dots or underscores",
+    "pin": "6-digit PIN",
+    "pinProgress": "{count} of 6 digits entered",
+    "pinHint": "Enter your PIN",
+    "next": "Next",
+    "checking": "Checking…",
+    "forgotPin": "Forgot PIN",
+    "noAccount": "New here?",
+    "createAccount": "Create an account",
+    "notYet": "Signing in isn’t available yet. This is a preview of the screen.",
+    "keypad": {
+      "label": "PIN keypad",
+      "delete": "Delete last digit"
+    }
+  },
+  "empty": {
+    "home": {
+      "title": "No plans yet",
+      "body": "Find a day when everyone’s free, then make a plan from it.",
+      "cta": "Find a free day"
+    },
+    "homeNoGroup": {
+      "title": "You’re not in a group yet",
+      "body": "Start a group with your friends, then see which days work for everyone.",
+      "cta": "Create a group",
+      "joinCode": "Got an invite code? Enter it"
+    },
+    "calendar": {
+      "title": "No one’s added busy time this month",
+      "body": "Add yours first so friends know when you’re tied up.",
+      "cta": "Add busy time"
+    },
+    "calendarNoGroup": {
+      "title": "No group calendar yet",
+      "body": "Join or create a group and the calendar will show when everyone’s free.",
+      "cta": "Go to groups"
+    },
+    "calendarSolo": {
+      "title": "It’s just you in this group",
+      "body": "Invite friends to see which days you’re all free.",
+      "cta": "Invite friends"
+    },
+    "groups": {
+      "title": "You’re not in a group yet",
+      "body": "Create a group, then bring friends in with an invite code.",
+      "cta": "Create a group",
+      "joinCode": "Got an invite code? Enter it"
+    },
+    "me": {
+      "title": "Account settings aren’t here yet",
+      "body": "You can change language and theme for now. Your name and PIN come after you sign in.",
+      "cta": "Go to sign in"
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The link might be wrong, or the page has moved.",
+    "cta": "Back to home"
+  },
+  "prefs": {
+    "display": "Display",
+    "language": "Language",
+    "languageLabel": "Choose language",
+    "languageTh": "ไทย",
+    "languageEn": "English",
+    "languageShortTh": "TH",
+    "languageShortEn": "EN",
+    "theme": "Theme",
+    "themeLabel": "Choose theme",
+    "themeSystem": "System",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "toggleTheme": "Switch light/dark theme",
+    "savedLocalOnly": "Changed on this device, but we couldn’t save it to your account."
+  },
+  "states": {
+    "loading": "Loading…",
+    "retry": "Try again",
+    "error": {
+      "generic": "Something went wrong on our side. Try again in a moment.",
+      "network": "Can’t connect. Check your connection and try again.",
+      "dataSafe": "Nothing you saved is lost."
+    }
+  },
+  "calendar": {
+    "legend": {
+      "title": "What the colours mean",
+      "full": "Everyone free",
+      "some": "Half or more free",
+      "few": "Under half free",
+      "plan": "Has a plan",
+      "countNote": "Numbers show how many of the {total} members are free that day."
+    }
+  },
+  "a11y": {
+    "skipToContent": "Skip to content",
+    "currentPage": "Current page",
+    "close": "Close",
+    "back": "Back",
+    "notifications": "Notifications",
+    "notificationsUnread": "Notifications, new items",
+    "opensNewTab": "Opens in a new tab"
+  },
+  "errors": {
+    "VALIDATION": "Some fields need a fix. Check the highlighted ones and try again.",
+    "NOT_FOUND": "We couldn’t find that. It may have been deleted, or you’re no longer in that group.",
+    "FORBIDDEN": "You don’t have permission to do that. Ask a group admin if you think you should.",
+    "CONFLICT": "Someone changed this in the meantime. Reload to see the latest, then try again.",
+    "RATE_LIMITED": "That’s a lot at once. Wait a moment and try again.",
+    "FEATURE_DISABLED": "This is turned off for now. Try again later.",
+    "UNKNOWN": "Something went wrong on our side. Try again in a moment.",
+    "AUTH_MAINTENANCE": "Sign-in is down for maintenance. Your data is safe. Try again later.",
+    "AUTH_REQUIRED": "Sign in to continue.",
+    "ACCOUNT_SUSPENDED": "This account is suspended. If you think that’s a mistake, contact the app admin.",
+    "PIN_CHANGE_REQUIRED": "Set a new PIN to continue.",
+    "INVALID_CREDENTIALS": "Wrong username or PIN. {attemptsRemaining, plural, one {# try left.} other {# tries left.}}",
+    "LOGIN_LOCKED": "Too many tries. Try again in {retryAfterMin} min.",
+    "USERNAME_TAKEN": "That username’s taken. Try another one.",
+    "USERNAME_FORMAT": "Usernames are 3–20 characters: a–z, 0–9, dots and underscores only.",
+    "PIN_FORMAT": "Your PIN needs to be 6 digits.",
+    "PIN_MISMATCH": "The PINs don’t match. Try again.",
+    "PIN_TOO_WEAK": "That PIN is too easy to guess. Avoid sequences and repeats.",
+    "CSRF_REJECTED": "We couldn’t verify that request. Reload the page and try again.",
+    "ADMIN_TRANSFER_REQUIRED": "Make someone else the group admin first, then try again.",
+    "INVITE_INVALID": "This code doesn’t work. Ask someone in the group for a new one.",
+    "ALREADY_MEMBER": "You’re already in this group.",
+    "USER_NOT_FOUND": "No one has that username. Check the spelling, or send them an invite code instead.",
+    "INVALID_RANGE": "The end has to be after the start.",
+    "INVALID_DATE": "That date doesn’t exist. Pick one from the calendar.",
+    "INVALID_LOCAL_TIME": "That time doesn’t exist in this time zone because the clocks change. Pick another time.",
+    "TIME_NOT_ON_STEP": "Times go in half-hour steps, like 18:00 or 18:30.",
+    "DATE_OUT_OF_RANGE": "That date is outside the range we support. Pick one from the calendar.",
+    "RANGE_TOO_LARGE": "That date range is too long. Try a shorter one.",
+    "INVALID_TIMEZONE": "We don’t recognise that time zone. Pick one from the list.",
+    "INVALID_WINDOW": "The group’s free-time hours don’t work. The end has to be after the start.",
+    "INVALID_MAP_URL": "We can’t read a location from that link. Try copying it from the Share button in your maps app.",
+    "INVALID_COORDINATES": "Those coordinates don’t look right. Check the latitude and longitude.",
+    "APPOINTMENT_CANCELLED": "This plan was cancelled, so it can’t be changed."
+  }
+}

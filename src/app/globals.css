@@ -1,0 +1,271 @@
+/*
+ * สไตล์ของแอป — เจ้าของ: Front-end (#6)
+ * ลำดับ: Tailwind 4 → ฟอนต์ (tokens.fonts.css) → tokens.css (แหล่งความจริงเดียวของค่า) → คอมโพเนนต์
+ * กติกา: ห้าม hex/px ในไฟล์นี้ — ทุกค่ามาจาก var(--*) (CI: .github/scripts/check-style-literals.sh)
+ * ข้อยกเว้นเดียว: จุดตัด @media เป็น em (CSS var ใช้ใน media query ไม่ได้) — 48em = iPad แนวตั้ง (UX §6)
+ * ต้นแบบ: docs/design/samples/app.css (หน้าตัวอย่างที่ boss อนุมัติ)
+ */
+@import "tailwindcss";
+@import "../styles/tokens.fonts.css";
+@import "../styles/tokens.css";
+
+/* Tailwind: ล้างค่าดีฟอลต์ทั้งหมด แล้ว map เข้ากับ tokens เท่านั้น — utility ที่ไม่มี token ใช้ไม่ได้ */
+@theme inline {
+  --*: initial;
+  --breakpoint-md: 48em;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-control: var(--line-control);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-free: var(--free);
+  --color-free-ink: var(--free-ink);
+  --color-busy: var(--busy);
+  --color-busy-ink: var(--busy-ink);
+  --color-event: var(--event);
+  --color-event-ink: var(--event-ink);
+  --color-warn: var(--warn);
+  --color-warn-ink: var(--warn-ink);
+  --color-danger: var(--danger);
+  --color-on-danger: var(--on-danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-ink: var(--danger-ink);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-ink: var(--accent-soft-ink);
+
+  --spacing-0: 0;
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+  --spacing-6: var(--space-6);
+  --spacing-7: var(--space-7);
+  --spacing-gutter: var(--gutter);
+  --spacing-tap: var(--tap);
+  --spacing-tap-lg: var(--tap-lg);
+
+  --radius-sm: var(--radius-sm);
+  --radius-lg: var(--radius-lg);
+  --radius-full: var(--radius-full);
+
+  --font-sans: var(--font-sans);
+  --text-xs: var(--text-xs);
+  --text-sm: var(--text-sm);
+  --text-md: var(--text-md);
+  --text-lg: var(--text-lg);
+  --text-xl: var(--text-xl);
+  --text-2xl: var(--text-2xl);
+  --text-display: var(--text-display);
+  --font-weight-regular: var(--weight-regular);
+  --font-weight-medium: var(--weight-medium);
+  --font-weight-semibold: var(--weight-semibold);
+  --leading-normal: var(--leading);
+  --leading-heading: var(--leading-heading);
+  --leading-tight: var(--leading-tight);
+  --container-content: var(--content-max);
+}
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; background: var(--bg); }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    line-height: var(--leading);
+    font-weight: var(--weight-regular);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, p, ul, ol { margin: 0; padding: 0; }
+  ul, ol { list-style: none; }
+  button, input, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  button:disabled { cursor: default; }
+  a { color: var(--accent-ink); }
+  :focus-visible { outline: var(--focus-ring) solid var(--focus); outline-offset: var(--focus-ring); }
+  [hidden] { display: none !important; }
+}
+
+@layer components {
+  .sr-only { position: absolute; width: var(--border); height: var(--border); overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* ข้ามไปเนื้อหา — มองเห็นเมื่อโฟกัสเท่านั้น */
+  .skip-link {
+    position: fixed; z-index: var(--z-sheet); top: var(--space-2); left: var(--gutter);
+    display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 var(--space-4);
+    background: var(--surface); color: var(--accent-ink); border: var(--border) solid var(--line-control);
+    border-radius: var(--radius-sm); font-weight: var(--weight-semibold); text-decoration: none;
+    transform: translateY(calc(-100% - var(--space-4)));
+  }
+  .skip-link:focus { transform: none; }
+
+  .icon { width: var(--icon); height: var(--icon); stroke-width: var(--icon-stroke); flex: none; }
+  .icon.sm { width: var(--icon-sm); height: var(--icon-sm); }
+  .icon.lg { width: var(--icon-lg); height: var(--icon-lg); }
+
+  /* ---------- โครงแอป ---------- */
+  .app { position: relative; z-index: var(--z-content); min-height: 100dvh; padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); }
+  .topbar {
+    position: relative; z-index: var(--z-content);
+    display: flex; align-items: center; gap: var(--space-2);
+    min-height: var(--topbar-h);
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--gutter);
+  }
+  .topbar .title { flex: 1; min-width: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); line-height: var(--leading-heading); }
+  .brand { display: flex; align-items: center; gap: var(--space-2); flex: 1; min-width: 0; }
+  .brand-name { font-size: var(--text-lg); font-weight: var(--weight-semibold); }
+
+  .icon-btn {
+    position: relative; display: inline-grid; place-items: center;
+    width: var(--tap); height: var(--tap); flex: none; padding: 0;
+    border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--ink);
+  }
+  .main { position: relative; z-index: var(--z-content); padding: 0 var(--gutter) var(--space-6); max-width: calc(var(--content-max) + var(--gutter) * 2); margin: 0 auto; }
+  .main > .empty { margin-top: var(--space-5); }
+  .main-center { min-height: 100dvh; display: grid; align-content: center; padding-top: var(--space-6); }
+  .main-center > .empty { margin-top: 0; }
+  .stack-lg { display: grid; gap: var(--space-5); padding-top: var(--space-2); }
+  .stack-lg > .empty { margin-top: 0; }
+
+  /* แถบนำทางล่าง (A4: --surface-nav ทึบกว่า veil) */
+  .tabbar {
+    position: fixed; inset: auto 0 0 0; z-index: var(--z-nav);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--surface-nav); border-top: var(--border) solid var(--line);
+    -webkit-backdrop-filter: blur(var(--veil-blur)); backdrop-filter: blur(var(--veil-blur));
+  }
+  .tab {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1);
+    min-height: var(--tap); text-decoration: none; color: var(--ink-muted);
+    font-size: var(--text-xs); line-height: var(--leading-tight);
+  }
+  .tab[aria-current="page"] { color: var(--accent-ink); font-weight: var(--weight-semibold); }
+  .tab[aria-current="page"] .icon { stroke-width: calc(var(--icon-stroke) + 0.5); }
+
+  /* ---------- ตัวอักษร ---------- */
+  .h-section { font-size: var(--text-lg); font-weight: var(--weight-semibold); line-height: var(--leading-heading); }
+  .muted { color: var(--ink-muted); }
+
+  /* ---------- ปุ่ม ---------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+    min-height: var(--tap); padding: 0 var(--space-4);
+    border: var(--border) solid transparent; border-radius: var(--radius-sm);
+    font-weight: var(--weight-semibold); font-size: var(--text-md); text-decoration: none;
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+  .btn-primary { background: var(--accent); color: var(--on-accent); }
+  .btn-primary:disabled { background: var(--surface-2); color: var(--ink-muted); border-color: var(--line-control); }
+  .btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--line-control); }
+  .link-btn {
+    display: inline-flex; align-items: center; min-height: var(--tap); padding: 0;
+    border: 0; background: transparent; color: var(--accent-ink); font-weight: var(--weight-medium);
+  }
+
+  /* segmented (ตัวเลือกภาษา/ธีม, RSVP) */
+  .segmented { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-1); padding: var(--space-1); background: var(--surface-2); border-radius: var(--radius-sm); }
+  .segmented.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .segmented button {
+    min-height: var(--tap); min-width: 0; padding: 0 var(--space-2);
+    border: var(--border) solid transparent; border-radius: calc(var(--radius-sm) - var(--space-1));
+    background: transparent; color: var(--ink); font-weight: var(--weight-medium);
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1);
+  }
+  .segmented button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-soft-ink); border-color: var(--line-control); font-weight: var(--weight-semibold); }
+
+  /* ---------- แผงบน aurora ---------- */
+  .panel { background: var(--surface-veil); border: var(--border) solid var(--line); border-radius: var(--radius-lg); }
+
+  /* ---------- สถานะ: ว่าง / โหลด / ผิดพลาด ---------- */
+  .empty { text-align: center; padding: var(--space-6) var(--space-4); display: grid; justify-items: center; gap: var(--space-3); }
+  .empty p { max-width: 30ch; }
+  .empty .mm-cat { margin-bottom: var(--space-2); }
+  .loading { padding-top: var(--space-3); }
+  .skeleton { background: var(--surface-2); border-radius: var(--radius-sm); }
+  .skeleton-title { height: var(--space-5); width: 40%; margin: var(--space-3) 0; }
+  .skeleton-card { height: calc(var(--space-7) * 5); border-radius: var(--radius-lg); }
+  .loading-note { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--ink); margin-top: var(--space-3); padding: var(--space-1) var(--space-3); background: var(--surface); border-radius: var(--radius-sm); }
+  .error-state { padding-top: var(--space-4); display: grid; gap: var(--space-4); justify-items: start; }
+  .alert { display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-4); border-radius: var(--radius-sm); background: var(--danger-soft); color: var(--danger-ink); width: 100%; }
+  .alert b { display: block; font-weight: var(--weight-semibold); }
+
+  /* ---------- ตั้งค่า (แท็บ ฉัน) ---------- */
+  .settings { background: var(--surface); border: var(--border) solid var(--line); border-radius: var(--radius-sm); padding: var(--space-4); display: grid; gap: var(--space-4); }
+  .setting { display: grid; gap: var(--space-2); }
+  .setting-label { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--ink); }
+  .form-error { font-size: var(--text-sm); color: var(--danger-ink); font-weight: var(--weight-medium); }
+  .form-error:empty { display: none; }
+
+  /* ---------- ฟอร์ม ---------- */
+  .field { margin-top: var(--space-4); }
+  .field.field-first { margin-top: 0; }
+  .field > label { display: block; font-size: var(--text-sm); font-weight: var(--weight-medium); margin-bottom: var(--space-2); }
+  .input {
+    display: flex; align-items: center; gap: var(--space-2); width: 100%;
+    min-height: var(--tap-lg); padding: 0 var(--space-3);
+    background: var(--surface); border: var(--border) solid var(--line-control); border-radius: var(--radius-sm);
+    font-size: var(--text-md); text-align: left; color: var(--ink);
+  }
+
+  /* ---------- หน้าเข้าสู่ระบบ ---------- */
+  .login { position: relative; z-index: var(--z-content); min-height: 100dvh; display: flex; flex-direction: column; padding: var(--space-2) var(--gutter) var(--space-5); max-width: calc(var(--content-max) * 0.7); margin: 0 auto; }
+  .login-top { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); min-height: var(--tap); }
+  .login-prefs { position: relative; display: inline-flex; align-items: center; gap: var(--space-1); }
+  .lang-switch { display: inline-flex; gap: var(--space-1); }
+  .lang-switch button {
+    min-width: var(--tap); min-height: var(--tap); padding: 0 var(--space-1);
+    display: inline-grid; place-items: center; border: 0; background: transparent;
+    color: var(--ink); font-size: var(--text-sm); font-weight: var(--weight-medium); border-radius: var(--radius-sm);
+  }
+  .lang-switch button[aria-pressed="true"] { font-weight: var(--weight-semibold); text-decoration: underline; text-underline-offset: var(--space-1); text-decoration-thickness: var(--border-strong); }
+  .login-prefs-error {
+    position: absolute; top: 100%; right: 0; z-index: var(--z-nav); width: max-content; max-width: calc(var(--content-max) * 0.5);
+    padding: var(--space-2) var(--space-3); background: var(--surface); border: var(--border) solid var(--line);
+    border-radius: var(--radius-sm); color: var(--danger-ink); font-size: var(--text-sm);
+  }
+  /* ไอคอนสลับธีม: แสดง "พระจันทร์" เมื่อธีมที่เห็นจริงสว่าง · "พระอาทิตย์" เมื่อมืด */
+  .theme-toggle .when-dark { display: none; }
+  :root[data-theme="dark"] .theme-toggle .when-light { display: none; }
+  :root[data-theme="dark"] .theme-toggle .when-dark { display: block; }
+  @media (prefers-color-scheme: dark) {
+    :root[data-theme="system"] .theme-toggle .when-light { display: none; }
+    :root[data-theme="system"] .theme-toggle .when-dark { display: block; }
+  }
+  .login-hero { padding: var(--space-5) 0; }
+  .login-hero .logo { color: var(--ink); }
+  .login-hero h1 { margin-top: var(--space-3); font-size: var(--text-2xl); font-weight: var(--weight-semibold); line-height: var(--leading-heading); color: var(--ink); }
+  .login-card { padding: var(--space-4); }
+  .pin-dots { display: flex; justify-content: center; gap: var(--space-4); margin: var(--space-5) 0 var(--space-2); }
+  .pin-dots span { width: var(--space-3); height: var(--space-3); border-radius: var(--radius-full); border: var(--border-strong) solid var(--line-control); }
+  .pin-dots span.on { background: var(--ink); border-color: var(--ink); }
+  .pin-msg { text-align: center; font-size: var(--text-sm); min-height: calc(var(--text-sm) * 1.6); color: var(--ink-muted); }
+  .pin-msg.note { color: var(--ink); font-weight: var(--weight-medium); }
+  .keypad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); margin-top: var(--space-3); }
+  .key {
+    min-height: var(--tap-lg); border: var(--border) solid var(--line-control); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--ink); font-size: var(--text-xl); font-weight: var(--weight-medium);
+    font-variant-numeric: tabular-nums; display: inline-grid; place-items: center; padding: 0 var(--space-1);
+  }
+  .key.ghost { border-color: transparent; background: transparent; font-size: var(--text-sm); color: var(--accent-ink); }
+  .key:disabled { color: var(--ink-muted); }
+  /* อยู่บน aurora hero ตรงๆ → --ink เท่านั้น (UI_DIRECTION §3.5 · contrast.mjs รับรองเฉพาะ --ink) · ลิงก์ใช้เส้นใต้แทนสี accent */
+  .login-foot { margin-top: var(--space-3); text-align: center; font-size: var(--text-sm); color: var(--ink); }
+  .login-foot .link-btn { color: var(--ink); font-weight: var(--weight-semibold); text-decoration: underline; text-underline-offset: var(--space-1); }
+
+  /* ---------- iPad (≥ 48em) ---------- */
+  @media (min-width: 48em) {
+    .topbar { padding-right: var(--gutter); }
+    .tabbar { padding-left: calc((100% - var(--content-max)) / 2); padding-right: calc((100% - var(--content-max)) / 2); }
+  }
+}

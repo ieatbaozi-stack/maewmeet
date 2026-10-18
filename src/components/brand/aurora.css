@@ -1,0 +1,43 @@
+/*
+ * Aurora (ชั้นพื้นหลัง) — UI_DIRECTION §3.5 · เจ้าของ: UX & Brand
+ * แหล่งเดียวของสไตล์ aurora: ทั้งแอป (<Aurora>) และหน้าตัวอย่าง docs/design/samples ใช้ไฟล์นี้
+ * - เลเยอร์ fixed ชั้นเดียว · filter: blur ครั้งเดียวที่ .aurora-field · ก้อนแสง 4 ก้อนเคลื่อนด้วย transform เท่านั้น
+ * - ความเข้ม: data-intensity="hero|soft" บน .aurora (hero = --aurora-hero, soft = --aurora-soft)
+ * - noise กัน banding (A5): ::after ทับก้อนแสง ไม่มี filter · ความทึบ = --aurora-noise-opacity × ความเข้ม
+ * - หยุด: prefers-reduced-motion และเมื่อแท็บไม่ active (<AuroraPause> ตั้ง data-aurora-paused บน <html>)
+ * - ห้ามค่า hex/px ในไฟล์นี้ — ทุกค่ามาจาก src/styles/tokens.css
+ */
+.aurora {
+  position: fixed; inset: 0; z-index: var(--z-aurora);
+  overflow: hidden; pointer-events: none;
+  opacity: var(--aurora-soft);
+  contain: strict;
+}
+.aurora[data-intensity="hero"] { opacity: var(--aurora-hero); }
+.aurora::after {
+  content: ""; position: absolute; inset: 0;
+  background-image: var(--aurora-noise); background-size: var(--aurora-noise-size);
+  opacity: var(--aurora-noise-opacity);
+}
+.aurora-field { position: absolute; inset: calc(var(--aurora-blur) * -2); filter: blur(var(--aurora-blur)); }
+.aurora-blob {
+  position: absolute; width: var(--aurora-blob); height: var(--aurora-blob); border-radius: var(--radius-full);
+  margin: calc(var(--aurora-blob) / -2) 0 0 calc(var(--aurora-blob) / -2); /* จุดกลางก้อน = ตำแหน่ง top/left */
+  will-change: transform;
+  animation: aurora-drift-a var(--aurora-dur-1) ease-in-out infinite alternate;
+}
+/* ไล่สีแบบมี "ที่ราบ" 30% แรก: พื้นที่เห็นสีกว้างขึ้นโดยค่าสูงสุด (alpha ของ token) ไม่เพิ่ม → คอนทราสต์กรณีแย่สุดเท่าเดิม */
+.aurora .b1 { top: calc(var(--aurora-blur) * 2 + 8%); left: calc(var(--aurora-blur) * 2 + 10%); background: radial-gradient(circle closest-side, var(--aurora-1) 0 30%, transparent); }
+.aurora .b2 { top: calc(var(--aurora-blur) * 2 + 14%); left: calc(var(--aurora-blur) * 2 + 92%); background: radial-gradient(circle closest-side, var(--aurora-3) 0 30%, transparent); animation-name: aurora-drift-b; animation-duration: var(--aurora-dur-2); }
+.aurora .b3 { top: calc(var(--aurora-blur) * 2 + 62%); left: calc(var(--aurora-blur) * 2 + 4%); background: radial-gradient(circle closest-side, var(--aurora-2) 0 30%, transparent); animation-name: aurora-drift-c; animation-duration: var(--aurora-dur-3); }
+.aurora .b4 { top: calc(var(--aurora-blur) * 2 + 46%); left: calc(var(--aurora-blur) * 2 + 96%); background: radial-gradient(circle closest-side, var(--aurora-4) 0 30%, transparent); animation-name: aurora-drift-b; animation-duration: var(--aurora-dur-3); animation-direction: alternate-reverse; }
+@keyframes aurora-drift-a { to { transform: translate3d(var(--aurora-drift), calc(var(--aurora-drift) * 0.6), 0) scale(1.12); } }
+@keyframes aurora-drift-b { to { transform: translate3d(calc(var(--aurora-drift) * -1), calc(var(--aurora-drift) * 0.8), 0) scale(0.92); } }
+@keyframes aurora-drift-c { to { transform: translate3d(calc(var(--aurora-drift) * 0.8), calc(var(--aurora-drift) * -0.7), 0) scale(1.08); } }
+
+/* แท็บไม่ active → หยุดค้างที่ตำแหน่งเดิม (ไม่กระโดดกลับจุดเริ่มเมื่อกลับมา) */
+:root[data-aurora-paused="true"] .aurora-blob { animation-play-state: paused; }
+/* ลดการเคลื่อนไหว → นิ่งสนิท */
+@media (prefers-reduced-motion: reduce) {
+  .aurora .aurora-blob { animation: none; }
+}

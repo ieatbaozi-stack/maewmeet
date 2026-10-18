@@ -31,7 +31,7 @@ a { color: var(--accent-ink); }
 .cat { color: var(--cat-line); display: block; }
 
 /* ---------- โครงแอป ---------- */
-.app { position: relative; z-index: 1; min-height: 100dvh; padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); }
+.app { position: relative; z-index: var(--z-content); min-height: 100dvh; padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); }
 .topbar {
   display: flex; align-items: center; gap: var(--space-2);
   min-height: calc(var(--tap) + var(--space-3));
@@ -56,11 +56,11 @@ a { color: var(--accent-ink); }
 
 /* แถบนำทางล่าง */
 .tabbar {
-  position: fixed; inset: auto 0 0 0; z-index: 10;
+  position: fixed; inset: auto 0 0 0; z-index: var(--z-nav);
   display: grid; grid-template-columns: repeat(4, 1fr);
   height: calc(var(--nav-h) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
-  background: var(--surface-veil); border-top: var(--border) solid var(--line);
+  background: var(--surface-nav); border-top: var(--border) solid var(--line);
   -webkit-backdrop-filter: blur(var(--veil-blur)); backdrop-filter: blur(var(--veil-blur));
 }
 .tab {
@@ -92,7 +92,7 @@ a { color: var(--accent-ink); }
 .btn-text { background: transparent; color: var(--accent-ink); padding: 0 var(--space-2); }
 .btn-block { width: 100%; min-height: var(--tap-lg); }
 .fab {
-  position: fixed; z-index: 9; right: var(--gutter);
+  position: fixed; z-index: var(--z-fab); right: var(--gutter);
   bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + var(--space-4));
   box-shadow: var(--shadow-pop); min-height: var(--tap-lg); border-radius: var(--radius-lg);
 }
@@ -219,9 +219,9 @@ a { color: var(--accent-ink); }
 .day.selected { border: var(--border-strong) solid var(--accent); box-shadow: inset 0 0 0 var(--border) var(--surface); }
 
 /* ---------- bottom sheet ---------- */
-.scrim { position: fixed; inset: 0; z-index: 20; background: var(--scrim); }
+.scrim { position: fixed; inset: 0; z-index: var(--z-scrim); background: var(--scrim); }
 .sheet {
-  position: fixed; z-index: 21; left: 0; right: 0; bottom: 0;
+  position: fixed; z-index: var(--z-sheet); left: 0; right: 0; bottom: 0;
   max-height: 72dvh; display: flex; flex-direction: column;
   background: var(--surface-veil); border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   -webkit-backdrop-filter: blur(var(--veil-blur)); backdrop-filter: blur(var(--veil-blur));
@@ -324,26 +324,8 @@ textarea.input { padding: var(--space-3); min-height: calc(var(--tap-lg) * 1.6);
 @media (min-width: 48em) { .mobile-only { display: none !important; } }
 
 /* ---------- Aurora (ชั้นพื้นหลัง) ----------
- * เลเยอร์ fixed ชั้นเดียว · blur ครั้งเดียวที่ .aurora-field · ก้อนแสง 4 ก้อนเคลื่อนด้วย transform เท่านั้น
- * ความเข้มตามหน้า: <body data-aurora="hero|soft"> · ข้อความบน aurora เข้มต้องเป็น --ink เท่านั้น (ดู CONTRAST.md)
+ * ย้ายไป src/components/brand/aurora.css (แหล่งเดียว ใช้ทั้งแอปและหน้าตัวอย่าง) · ความเข้ม: data-intensity="hero|soft" บน .aurora
  */
-.aurora { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; opacity: var(--aurora-soft); }
-[data-aurora="hero"] .aurora { opacity: var(--aurora-hero); }
-.aurora-field { position: absolute; inset: calc(var(--aurora-blur) * -2); filter: blur(var(--aurora-blur)); }
-.aurora-blob {
-  position: absolute; width: var(--aurora-blob); height: var(--aurora-blob); border-radius: var(--radius-full);
-  margin: calc(var(--aurora-blob) / -2) 0 0 calc(var(--aurora-blob) / -2); /* จุดกลางก้อน = ตำแหน่ง top/left */
-  will-change: transform; animation: aurora-drift-a var(--aurora-dur-1) ease-in-out infinite alternate;
-}
-/* ไล่สีแบบมี "ที่ราบ" 30% แรก: พื้นที่เห็นสีกว้างขึ้นโดยค่าสูงสุด (alpha ของ token) ไม่เพิ่ม → คอนทราสต์กรณีแย่สุดเท่าเดิม */
-.aurora .b1 { top: calc(var(--aurora-blur) * 2 + 8%); left: calc(var(--aurora-blur) * 2 + 10%); background: radial-gradient(circle closest-side, var(--aurora-1) 0 30%, transparent); }
-.aurora .b2 { top: calc(var(--aurora-blur) * 2 + 14%); left: calc(var(--aurora-blur) * 2 + 92%); background: radial-gradient(circle closest-side, var(--aurora-3) 0 30%, transparent); animation-name: aurora-drift-b; animation-duration: var(--aurora-dur-2); }
-.aurora .b3 { top: calc(var(--aurora-blur) * 2 + 62%); left: calc(var(--aurora-blur) * 2 + 4%); background: radial-gradient(circle closest-side, var(--aurora-2) 0 30%, transparent); animation-name: aurora-drift-c; animation-duration: var(--aurora-dur-3); }
-.aurora .b4 { top: calc(var(--aurora-blur) * 2 + 46%); left: calc(var(--aurora-blur) * 2 + 96%); background: radial-gradient(circle closest-side, var(--aurora-4) 0 30%, transparent); animation-name: aurora-drift-b; animation-duration: var(--aurora-dur-3); animation-direction: alternate-reverse; }
-@keyframes aurora-drift-a { to { transform: translate3d(var(--aurora-drift), calc(var(--aurora-drift) * 0.6), 0) scale(1.12); } }
-@keyframes aurora-drift-b { to { transform: translate3d(calc(var(--aurora-drift) * -1), calc(var(--aurora-drift) * 0.8), 0) scale(0.92); } }
-@keyframes aurora-drift-c { to { transform: translate3d(calc(var(--aurora-drift) * 0.8), calc(var(--aurora-drift) * -0.7), 0) scale(1.08); } }
-@media (prefers-reduced-motion: reduce) { .aurora .aurora-blob { animation: none; } }
 
 /* พื้นผิวกึ่งทึบเหนือ aurora (ไม่มี backdrop-filter — ใช้ blur เฉพาะแถบล่างและ sheet) */
 .panel { background: var(--surface-veil); border: var(--border) solid var(--line); border-radius: var(--radius-lg); }

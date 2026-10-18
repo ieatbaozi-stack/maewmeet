@@ -6,6 +6,7 @@
 <title>สร้างนัด — แมวเจอกัน</title>
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
 <link rel="stylesheet" href="app.css">
 <script src="sample.js"></script>
 <script>
@@ -16,7 +17,7 @@ window.MESSAGES_EN = {
  "nextMonth": "Next month",
  "month": "October 2026",
  "lgFull": "Everyone free",
- "lgSome": "Most free",
+ "lgSome": "Half or more free",
  "lgFew": "Under half free",
  "lgEvent": "Has a plan",
  "countNote": "Numbers show how many of the 6 members are free that day.",
@@ -95,8 +96,8 @@ window.MESSAGES_EN = {
 };
 </script>
 </head>
-<body data-aurora="soft">
-<div class="aurora" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<body>
+<div class="aurora" data-intensity="soft" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
 
 <div class="app">
   <div inert>
@@ -153,7 +154,7 @@ window.MESSAGES_EN = {
         </div>
         <p class="legend" style="margin-top: var(--space-3)">
           <span><span class="sw l3"><i data-icon="check"></i></span><span data-t="lgFull">ว่างครบ</span></span>
-          <span><span class="sw l2"></span><span data-t="lgSome">ว่างเกินครึ่ง</span></span>
+          <span><span class="sw l2"></span><span data-t="lgSome">ว่างครึ่งหนึ่งขึ้นไป</span></span>
           <span><span class="sw l0"></span><span data-t="lgFew">ว่างไม่ถึงครึ่ง</span></span>
           <span><span class="sw ev"></span><span data-t="lgEvent">มีนัด</span></span>
         </p>

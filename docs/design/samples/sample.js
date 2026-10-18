@@ -1,4 +1,4 @@
-// สลับภาษา/ธีม/สถานะของหน้าตัวอย่างผ่าน URL: ?lang=th|en  &theme=light|dark  &state=normal|loading|empty|error
+// สลับภาษา/ธีม/สถานะของหน้าตัวอย่างผ่าน URL: ?lang=th|en  &theme=system|light|dark (ไม่ใส่ = system)  &state=normal|loading|empty|error
 // ข้อความไทยอยู่ใน HTML · ข้อความอังกฤษอยู่ใน window.MESSAGES_EN (key = data-t) — โครงเดียวกับ messages/en.json ในอนาคต
 (function () {
   var q = new URLSearchParams(location.search);
@@ -7,7 +7,7 @@
   var state = q.get('state') || 'normal';
   var html = document.documentElement;
   html.lang = lang;
-  if (theme === 'dark' || theme === 'light') html.setAttribute('data-theme', theme);
+  html.setAttribute('data-theme', theme === 'dark' || theme === 'light' ? theme : 'system');
   html.setAttribute('data-state', state);
   function apply() {
     document.querySelectorAll('[data-state-show]').forEach(function (el) {
