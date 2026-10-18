@@ -1,42 +1,87 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
+import { callApi } from "@/components/auth/api";
+import { PinPad } from "@/components/auth/PinPad";
+import { useCountdown } from "@/components/auth/useCountdown";
 import { Icon } from "@/components/icons/Icon";
+import { lockedMessage, messageRefOf } from "@/i18n/auth-messages";
 
-const PIN_LENGTH = 6;
-const DIGITS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"] as const;
+export type ResetBanner = { status: "pending" } | { status: "approved"; expiresAt: number } | null;
+
+interface LoginResponse {
+  user: { mustChangePin: boolean };
+}
 
 /**
- * ฟอร์มเข้าสู่ระบบ (UX W1) — R0 เป็นหน้าแสดงเท่านั้น: ไม่ส่งข้อมูล
- * ครบ 6 หลัก / กดลืม PIN / สร้างบัญชี → แสดง login.notYet (R1 จะต่อกับ /api/auth)
- * จุด 6 จุดแสดงความคืบหน้า ไม่แสดงตัวเลขที่กด · ปุ่มแป้นสูง --tap-lg
+ * ฟอร์มเข้าสู่ระบบ (UX W1) — POST /api/auth/login
+ * ครบ 6 หลัก (และมีชื่อผู้ใช้) → ส่งทันที · ผิด: "เหลืออีก N ครั้ง" · ล็อก: นับถอยหลังจาก retryAfterSec แป้นปิด (ลืม PIN ยังกดได้)
+ * AUTH_MAINTENANCE / RATE_LIMITED / เครือข่าย → ข้อความจาก messages ไม่นับเป็น PIN ผิด
  */
-export function LoginForm() {
-  const t = useTranslations("login");
+export function LoginForm({ reset }: { reset: ResetBanner }) {
+  const t = useTranslations();
+  const format = useFormatter();
+  const router = useRouter();
   const id = useId();
+  const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
-  const [notYet, setNotYet] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lock, setLock] = useState<{ until: number; username: string } | null>(null);
 
-  function press(digit: string) {
-    if (pin.length >= PIN_LENGTH) return;
-    const next = pin + digit;
-    setPin(next);
-    if (next.length === PIN_LENGTH) setNotYet(true);
+  const lockedFor = lock && lock.username === username.trim().toLowerCase() ? lock : null;
+  const remainingSec = useCountdown(lockedFor?.until ?? null);
+  const locked = lockedFor !== null && remainingSec > 0;
+  const lockRef = lockedMessage(remainingSec);
+
+  async function submit(fullPin: string) {
+    setBusy(true);
+    setError(null);
+    const res = await callApi<LoginResponse>("/api/auth/login", { body: { username: username.trim(), pin: fullPin } });
+    if (res.ok) {
+      router.replace(res.data.user.mustChangePin ? "/set-pin" : "/");
+      router.refresh();
+      return; // ค้างสถานะ busy จนกว่าหน้าจะเปลี่ยน
+    }
+    setPin("");
+    setBusy(false);
+    if (res.kind === "network") {
+      setError(t("states.error.network"));
+      return;
+    }
+    if (res.error.code === "LOGIN_LOCKED") {
+      const sec = typeof res.error.values.retryAfterSec === "number" ? res.error.values.retryAfterSec : 60;
+      setLock({ until: Date.now() + sec * 1000, username: username.trim().toLowerCase() });
+      return;
+    }
+    const ref = messageRefOf(res.error);
+    setError(t(ref.key, ref.values));
   }
 
-  function del() {
-    setPin((p) => p.slice(0, -1));
-    setNotYet(false);
-  }
-
-  const full = pin.length >= PIN_LENGTH;
+  const disabled = busy || locked || username.trim() === "";
+  const expires =
+    reset?.status === "approved"
+      ? format.dateTime(reset.expiresAt, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
+      : "";
 
   return (
     <>
-      <section className="panel login-card" aria-labelledby={`${id}-pin`}>
+      {reset ? (
+        <div className="banner" role="status">
+          <Icon name={reset.status === "approved" ? "circle-check" : "clock"} size="sm" />
+          <p>{reset.status === "approved" ? t("login.resetBanner.approved", { expires }) : t("login.resetBanner.pending")}</p>
+          <Link className="link-btn" href="/forgot">
+            {t("login.resetBanner.action")}
+          </Link>
+        </div>
+      ) : null}
+
+      <section className="panel login-card" aria-labelledby={`${id}-pin`} aria-busy={busy}>
         <div className="field field-first">
-          <label htmlFor={`${id}-u`}>{t("username")}</label>
+          <label htmlFor={`${id}-u`}>{t("login.username")}</label>
           <input
             id={`${id}-u`}
             name="username"
@@ -45,54 +90,60 @@ export function LoginForm() {
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
+            maxLength={64}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             aria-describedby={`${id}-uh`}
           />
           <p className="sr-only" id={`${id}-uh`}>
-            {t("usernameHint")}
+            {t("login.usernameHint")}
           </p>
         </div>
 
         <p className="sr-only" id={`${id}-pin`}>
-          {t("pin")}
+          {t("login.pin")}
         </p>
-        <div className="pin-dots" role="img" aria-label={t("pinProgress", { count: pin.length })}>
-          {Array.from({ length: PIN_LENGTH }, (_, i) => (
-            <span key={i} className={i < pin.length ? "on" : undefined} />
-          ))}
-        </div>
-        <p className={notYet ? "pin-msg note" : "pin-msg"} role="status">
-          {notYet ? t("notYet") : t("pinHint")}
-        </p>
-
-        <div className="keypad" role="group" aria-label={t("keypad.label")}>
-          {DIGITS.map((d) => (
-            <button key={d} type="button" className="key" disabled={full} onClick={() => press(d)}>
-              {d}
-            </button>
-          ))}
-          <button type="button" className="key ghost" onClick={() => setNotYet(true)}>
-            {t("forgotPin")}
-          </button>
-          <button type="button" className="key" disabled={full} onClick={() => press("0")}>
-            0
-          </button>
-          <button
-            type="button"
-            className="key ghost"
-            aria-label={t("keypad.delete")}
-            disabled={pin.length === 0}
-            onClick={del}
-          >
-            <Icon name="delete" size="lg" />
-          </button>
-        </div>
+        <PinPad
+          value={pin}
+          onChange={(v) => {
+            setPin(v);
+            if (error) setError(null);
+          }}
+          onComplete={(p) => void submit(p)}
+          disabled={disabled}
+          leftKey={
+            <Link className="key ghost" href="/forgot">
+              {t("login.forgotPin")}
+            </Link>
+          }
+        >
+          {locked ? (
+            <div className="lock-box" role="alert">
+              <p className="lock-title">{t("login.locked.title")}</p>
+              <p>{t(lockRef.key, lockRef.values)}</p>
+              <p className="muted">{t("login.locked.hint")}</p>
+            </div>
+          ) : error ? (
+            <p className="pin-msg err" role="alert">
+              {error}
+            </p>
+          ) : busy ? (
+            <p className="pin-msg" role="status">
+              {t("login.checking")}
+            </p>
+          ) : (
+            <p className="pin-msg" role="status">
+              {t("login.pinHint")}
+            </p>
+          )}
+        </PinPad>
       </section>
 
       <p className="login-foot">
-        <span>{t("noAccount")}</span>{" "}
-        <button type="button" className="link-btn" onClick={() => setNotYet(true)}>
-          {t("createAccount")}
-        </button>
+        <span>{t("login.noAccount")}</span>{" "}
+        <Link className="link-btn" href="/signup">
+          {t("login.createAccount")}
+        </Link>
       </p>
     </>
   );

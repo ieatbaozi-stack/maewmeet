@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Aurora, Logo } from "@/components/brand";
-import { LoginForm } from "@/components/login/LoginForm";
+import { getResetStatus, redirectIfSignedIn } from "@/app/_lib/session";
+import { LoginForm, type ResetBanner } from "@/components/login/LoginForm";
 import { LoginPrefs } from "@/components/prefs/LoginPrefs";
 import { THEME_COOKIE, parseLocale, parseTheme } from "@/i18n/config";
 
@@ -13,6 +14,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** หน้าเข้าสู่ระบบ (UX W1 · samples/login.html) — aurora hero: บน aurora ตรงๆ มีแค่โลโก้ หัวข้อ ปุ่มภาษา (--ink) */
 export default async function LoginPage() {
+  await redirectIfSignedIn();
+  const status = await getResetStatus();
+  const reset: ResetBanner =
+    status.status === "pending"
+      ? { status: "pending" }
+      : status.status === "approved"
+        ? { status: "approved", expiresAt: status.expiresAt }
+        : null;
   const locale = parseLocale(await getLocale());
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   const t = await getTranslations();
@@ -28,7 +37,7 @@ export default async function LoginPage() {
           <Logo variant={locale} title={t("brand.appName")} className="logo" />
           <h1>{t("login.title")}</h1>
         </div>
-        <LoginForm />
+        <LoginForm reset={reset} />
       </main>
     </>
   );

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { requireUser } from "@/app/_lib/session";
 import { Aurora } from "@/components/brand";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { TopBar } from "@/components/shell/TopBar";
@@ -11,6 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** กลุ่ม (UX W9) — R0 ยังไม่มีกลุ่ม · สร้างกลุ่มมาใน R2 → ปุ่มปิดไว้ */
 export default async function GroupsPage() {
+  await requireUser();
   const t = await getTranslations();
   return (
     <>

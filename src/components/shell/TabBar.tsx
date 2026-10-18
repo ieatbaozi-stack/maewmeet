@@ -13,6 +13,8 @@ const TABS: readonly { href: string; icon: IconName; label: "home" | "calendar" 
 ];
 
 function isActive(pathname: string, href: string): boolean {
+  // หน้า admin เป็นของแท็บ "ฉัน" (ทางเข้าอยู่ในแท็บนั้น)
+  if (href === "/me" && (pathname === "/admin" || pathname.startsWith("/admin/"))) return true;
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 }
 
