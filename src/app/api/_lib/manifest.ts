@@ -31,6 +31,18 @@ export const ROUTE_MANIFEST = [
   { method: 'GET', path: '/api/health', action: null, auth: 'public', owner: 'ops' },
   // ── U14/U15 (R0) ──
   { method: 'POST', path: '/api/prefs', action: 'prefs.cookie.set', auth: 'actor', owner: 'platform' },
+  // ── U1–U3, U12, U13 (R1 · Auth & Access) ──
+  { method: 'POST', path: '/api/auth/signup', action: 'auth.signup', auth: 'actor', owner: 'auth' },
+  { method: 'POST', path: '/api/auth/login', action: 'auth.login', auth: 'actor', owner: 'auth' },
+  { method: 'POST', path: '/api/auth/logout', action: 'auth.logout', auth: 'actor', owner: 'auth' },
+  { method: 'POST', path: '/api/auth/logout-all', action: 'self.session.revokeAll', auth: 'actor', owner: 'auth' },
+  { method: 'GET', path: '/api/auth/session', action: 'self.read', auth: 'actor', owner: 'auth' },
+  { method: 'POST', path: '/api/auth/pin-reset', action: 'auth.pinReset.request', auth: 'actor', owner: 'auth' },
+  { method: 'GET', path: '/api/auth/pin-reset/status', action: 'auth.pinReset.status', auth: 'actor', owner: 'auth' },
+  { method: 'GET', path: '/api/auth/admin/pin-resets', action: 'pinReset.list', auth: 'actor', owner: 'auth' },
+  { method: 'POST', path: '/api/auth/admin/pin-resets/:id/approve', action: 'pinReset.decide', auth: 'actor', owner: 'auth' },
+  { method: 'POST', path: '/api/auth/admin/pin-resets/:id/reject', action: 'pinReset.decide', auth: 'actor', owner: 'auth' },
+  { method: 'POST', path: '/api/auth/pin', action: 'self.pin.change', auth: 'actor', owner: 'auth' },
 ] as const satisfies readonly ManifestEntry[];
 
 export function findRoute(method: string, path: string): ManifestEntry | undefined {

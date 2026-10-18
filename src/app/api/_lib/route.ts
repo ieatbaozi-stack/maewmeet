@@ -14,10 +14,14 @@ import type { Actor } from '@/lib/rbac/types';
 import { clock } from '@/lib/shared/clock';
 import { configuredAppOrigin, getEnv, isEnvError, type Env } from '@/lib/shared/env';
 import { AppError, errorBody, httpStatusOf, isErrorCode, type ErrorCode, type ErrorParams } from '@/lib/shared/errors';
-import { resolveActor } from './actor';
+import { resolveActor, setActorResolver } from './actor';
+import { getActor } from '@/lib/auth/session';
 import { serializeCookie, type CookieSpec } from './cookies';
 import { isAuthorizedCron } from './cron-auth';
 import { findRoute, type HttpMethod, type ManifestEntry } from './manifest';
+
+// R1: เสียบตัวหา actor จริง (Lead อนุมัติข้อยกเว้น 1 บรรทัด) — ก่อนหน้านี้ = anonymous
+setActorResolver(getActor);
 
 export const CACHE_CONTROL = 'private, no-store';
 export const MAX_BODY_BYTES = 64 * 1024;
