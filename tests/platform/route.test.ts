@@ -95,6 +95,59 @@ describe('VALIDATION', () => {
     expect((await bodyOf(res)).error?.params).toEqual({ fields: { _body: 'TOO_LARGE' } });
   });
 
+  // SEC#3: อ่าน body แบบ stream นับไบต์ — ต้องหยุดอ่าน+ยกเลิก stream เมื่อเกิน 64 KiB (ไม่ buffer ทั้งก้อน) แม้ไม่มี content-length (chunked)
+  function chunkedRequest(totalBytes: number, chunkBytes = 64 * 1024, declaredLength?: number) {
+    const state = { pulled: 0, cancelled: false };
+    let sent = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (sent >= totalBytes) return controller.close();
+        const n = Math.min(chunkBytes, totalBytes - sent);
+        sent += n;
+        state.pulled += n;
+        controller.enqueue(new Uint8Array(n).fill(0x20));
+      },
+      cancel() {
+        state.cancelled = true;
+      },
+    }, { highWaterMark: 0 });
+    const headers = new Headers({ origin: ORIGIN, 'content-type': 'application/json' });
+    if (declaredLength !== undefined) headers.set('content-length', String(declaredLength));
+    const req = new Request(`${ORIGIN}/api/prefs`, { method: 'POST', headers, body, duplex: 'half' } as RequestInit);
+    return { req, state };
+  }
+
+  it('chunked 5 MB ไม่มี content-length → 400 TOO_LARGE, อ่านจริงไม่เกิน ~128 KiB แล้ว cancel stream (ไม่ buffer ทั้งก้อน)', async () => {
+    const { req, state } = chunkedRequest(5 * 1024 * 1024);
+    expect(req.headers.get('content-length')).toBeNull();
+    const res = await prefsPOST(req);
+    expect(res.status).toBe(400);
+    expect((await bodyOf(res)).error?.params).toEqual({ fields: { _body: 'TOO_LARGE' } });
+    expect(state.pulled).toBeLessThanOrEqual(128 * 1024);
+    expect(state.cancelled).toBe(true);
+  });
+
+  it('content-length โกหก (ประกาศ 10 ไบต์ ส่งจริง 5 MB) → ยังหยุดที่ 64 KiB · ประกาศเกินเพดานตรง ๆ → ปฏิเสธโดยไม่อ่านเลย', async () => {
+    const lying = chunkedRequest(5 * 1024 * 1024, 16 * 1024, 10);
+    const res = await prefsPOST(lying.req);
+    expect(res.status).toBe(400);
+    expect((await bodyOf(res)).error?.params).toEqual({ fields: { _body: 'TOO_LARGE' } });
+    expect(lying.state.pulled).toBeLessThanOrEqual(64 * 1024 + 16 * 1024);
+    const declared = chunkedRequest(5 * 1024 * 1024, 64 * 1024, 5 * 1024 * 1024);
+    expect((await prefsPOST(declared.req)).status).toBe(400);
+    expect(declared.state.pulled).toBe(0);
+  });
+
+  it('ขอบเขตพอดี: body = 64 KiB ผ่านด่านขนาด (ไปติด zod) · 64 KiB + 1 ไบต์ → TOO_LARGE · ตัวอักษร multi-byte นับเป็นไบต์', async () => {
+    const pad = (n: number) => JSON.stringify({ theme: 'dark' }).padEnd(n, ' ');
+    const exact = await prefsPOST(prefsRequest({ body: pad(64 * 1024) }));
+    expect(exact.status).toBe(200);
+    const over = await prefsPOST(prefsRequest({ body: pad(64 * 1024 + 1) }));
+    expect((await bodyOf(over)).error?.params).toEqual({ fields: { _body: 'TOO_LARGE' } });
+    const thai = await prefsPOST(prefsRequest({ body: JSON.stringify({ theme: 'ก'.repeat(30 * 1024) }) })); // 30k ตัว = 90 KB
+    expect((await bodyOf(thai)).error?.params).toEqual({ fields: { _body: 'TOO_LARGE' } });
+  });
+
   it('validationParams: แปลง zod issue เป็นรหัส ไม่สะท้อนค่าที่ส่งมา', () => {
     const schema = z.object({ name: z.string().max(3), age: z.number().min(1), nested: z.object({ x: z.string() }) });
     const raw = { name: 'secret-value', age: 0 };
