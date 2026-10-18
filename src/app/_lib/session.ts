@@ -20,19 +20,38 @@ export async function pageRequest(): Promise<Request> {
 
 export type PageUser = Pick<UserRow, "id" | "username" | "displayName" | "isAdmin" | "mustChangePin">;
 
+/**
+ * อ่านผู้ใช้ไม่สำเร็จเพราะฐานข้อมูลมีปัญหาชั่วคราว (เช่น SQLITE_BUSY / เชื่อมต่อไม่ได้) — ไม่ใช่ "ไม่ได้ล็อกอิน"
+ * โยนต่อให้ error.tsx แสดงสถานะข้อผิดพลาด + ปุ่มลองใหม่ (ไม่ redirect ไป /login ซึ่งทำให้คนที่ล็อกอินอยู่เหมือนถูกเตะออก)
+ * โครงสร้างเดียวกับ AppError: status 503 (ใช้ตัดสินใจฝั่ง route/log ได้) · ไม่มีรายละเอียดฐานข้อมูลใน message
+ */
+export class SessionUnavailableError extends Error {
+  readonly status = 503;
+  constructor(options?: { cause?: unknown }) {
+    super("SESSION_UNAVAILABLE", options);
+    this.name = "SessionUnavailableError";
+  }
+}
+
 export const getPageUser = cache(async (): Promise<PageUser | null> => {
   const req = await pageRequest();
-  const actor = await getActor(req);
-  if (actor.kind !== "user") return null;
-  const row = await findUserById(getDb(), (actor as UserActor).id);
-  if (!row || row.status !== "active") return null;
-  return {
-    id: row.id,
-    username: row.username,
-    displayName: row.displayName,
-    isAdmin: row.isAdmin,
-    mustChangePin: row.mustChangePin,
-  };
+  // เฉพาะการอ่านจาก DB อยู่ใน try — null (= ไม่มี session จริง) ต้องคืนตามเดิมเพื่อให้ guard redirect ไป /login
+  // redirect()/notFound() ของ Next โยน error พิเศษ จึงถูกเรียกนอก try เสมอ (ใน requireUser ฯลฯ)
+  try {
+    const actor = await getActor(req);
+    if (actor.kind !== "user") return null;
+    const row = await findUserById(getDb(), (actor as UserActor).id);
+    if (!row || row.status !== "active") return null;
+    return {
+      id: row.id,
+      username: row.username,
+      displayName: row.displayName,
+      isAdmin: row.isAdmin,
+      mustChangePin: row.mustChangePin,
+    };
+  } catch (e) {
+    throw new SessionUnavailableError({ cause: e });
+  }
 });
 
 /** หน้าที่ต้องล็อกอิน: ไม่ล็อกอิน → /login · ต้องเปลี่ยน PIN → /set-pin */
