@@ -14,6 +14,7 @@ import {
   findInviteById,
   findInviteInGroup,
   findUsableCodeInvite,
+  hasDeclinedSince,
   insertCodeInviteIfRoom,
   insertDirectInvite,
   joinGroupWithCode,
@@ -30,7 +31,7 @@ import { ipHashOf, ipRateSpec, rateKey, type RateSpec } from '@/lib/auth/throttl
 import { authorize, can } from '@/lib/rbac/can';
 import { isPolicyError } from '@/lib/rbac/errors';
 import type { Actor, GroupCtx } from '@/lib/rbac/types';
-import { HOUR_MS, MINUTE_MS } from '@/lib/shared/clock';
+import { DAY_MS, HOUR_MS, MINUTE_MS } from '@/lib/shared/clock';
 import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
 import { GROUP_LIMITS } from '@/lib/shared/limits';
@@ -50,6 +51,9 @@ export const INVITE_RATE_LIMITS = {
   /** ชวนตรง: 30 ครั้ง/ชม./ผู้ใช้ (Q4) — นับทุกครั้งที่ลอง */
   directUser: { prefix: 'invite:direct:u', limit: 30, windowMs: HOUR_MS },
 } as const satisfies Record<string, RateSpec>;
+
+/** ผู้รับปฏิเสธแล้ว ผู้ชวนคนเดิมชวนซ้ำในกลุ่มเดิมไม่ได้ 24 ชม. (กันสแปมผู้รับ) */
+export const DIRECT_INVITE_COOLDOWN_MS = DAY_MS;
 
 const limited = (windowEnd: number, now: number): AppError =>
   new AppError('RATE_LIMITED', undefined, { retryAfterSec: Math.max(1, Math.ceil((windowEnd - now) / 1000)) });
@@ -81,12 +85,13 @@ export async function createCodeInvite(actor: Actor, groupId: string, ctx: DataC
     // ชน unique ของ code_hash (โอกาส ~10^-12 ต่อโค้ด) → สุ่มใหม่ · คำสั่งที่ล้มไม่ทำให้ transaction เสีย
     for (let attempt = 0; attempt < 3; attempt++) {
       const normalized = generateInviteCode();
-      let outcome: 'ok' | 'full' | 'gone';
+      let outcome: 'ok' | 'full' | 'gone' | 'stale';
       try {
         outcome = await insertCodeInviteIfRoom(
           tx,
           { id, groupId, codeHash: hashInviteCode(normalized, ctx.appSecret), codeHint: inviteCodeHint(normalized), createdBy: me.id, expiresAt, cap: GROUP_LIMITS.activeCodesPerGroup },
           now,
+          { actorId: me.id, actorRole: group.actorRole }, // ผู้สร้างต้องยังเป็นสมาชิก/ถือ role เดิมในคำสั่งเดียวกัน (ถูกลบกลางทาง → 'stale')
         );
       } catch (e) {
         if (constraintKind(e) === 'unique') continue;
@@ -94,6 +99,7 @@ export async function createCodeInvite(actor: Actor, groupId: string, ctx: DataC
       }
       if (outcome === 'full') throw new AppError('LIMIT_REACHED', { limit: 'codes', max: GROUP_LIMITS.activeCodesPerGroup });
       if (outcome === 'gone') throw new AppError('NOT_FOUND');
+      if (outcome === 'stale') throw new AppError('CONFLICT');
       // audit ไม่มีโค้ด/hint (repo ปฏิเสธคีย์ที่มีคำว่า code อยู่แล้ว) — เก็บแค่ id ของคำเชิญ
       await audit(tx, me, allow, { action: 'invite.code.create', targetType: 'invite', targetId: id, groupId, meta: { inviteId: id } }, now);
       return normalized;
@@ -119,6 +125,8 @@ export async function createDirectInvite(actor: Actor, groupId: string, input: D
   const invitee = await findUserByUsernameNormalized(db, normalizeUsername(input.username));
   if (!invitee || invitee.status !== 'active') throw new AppError('USER_NOT_FOUND');
   if (await findMember(db, groupId, invitee.id)) throw new AppError('ALREADY_MEMBER');
+  // คูลดาวน์: ผู้รับเพิ่งปฏิเสธคำเชิญของผู้ชวนคนนี้ในกลุ่มนี้ภายใน 24 ชม. → ชวนซ้ำไม่ได้ (409 CONFLICT — UI map เป็น alreadyInvited)
+  if (await hasDeclinedSince(db, { groupId, inviterId: me.id, inviteeUserId: invitee.id }, now - DIRECT_INVITE_COOLDOWN_MS)) throw new AppError('CONFLICT');
 
   const groupRow = await findGroupById(db, groupId);
   const inviter = await findUserById(db, me.id);
@@ -128,10 +136,15 @@ export async function createDirectInvite(actor: Actor, groupId: string, input: D
   const expiresAt = now + GROUP_LIMITS.inviteTtlMs;
   const row = await inTx(db, async (tx) => {
     await expireDueDirectInvites(tx, groupId, invitee.id, now);
-    const created = await insertDirectInvite(tx, { id, groupId, inviteeUserId: invitee.id, createdBy: me.id, expiresAt }, now).catch((e: unknown) => {
+    const created = await insertDirectInvite(tx, { id, groupId, inviteeUserId: invitee.id, createdBy: me.id, expiresAt }, now, { actorId: me.id, actorRole: group.actorRole }).catch((e: unknown) => {
       // มีคำเชิญ active ถึงคนเดียวกันในกลุ่มนี้อยู่แล้ว (group_invite_direct_active_uq)
       throw constraintKind(e) === 'unique' ? new AppError('CONFLICT') : e;
     });
+    if (!created) {
+      // ผู้ชวนไม่ถือ role เดิมแล้ว (ถูกลบ/เปลี่ยน role กลางทาง) หรือกลุ่มถูกลบ
+      const again = await findGroupById(tx, groupId);
+      throw new AppError(again && again.deletedAt === null ? 'CONFLICT' : 'NOT_FOUND');
+    }
     await insertNotification(
       tx,
       { id: newId(), userId: invitee.id, kind: NOTIFY_KIND.inviteReceived, params: { groupId, groupName: groupRow.name, inviterName: inviter.displayName, inviteId: id } },
@@ -175,12 +188,12 @@ export async function revokeInvite(actor: Actor, groupId: string, inviteId: stri
   const me = asUser(actor);
   const { now } = ctx;
   await inTx(ctx.db, async (tx) => {
-    const done = await revokeInviteRow(tx, groupId, inviteId, me.id, now);
+    const done = await revokeInviteRow(tx, groupId, inviteId, me.id, now, { actorId: me.id, actorRole: group.actorRole });
     if (!done) {
       // เพิกถอนไปแล้ว = สำเร็จ (idempotent) · ถูกใช้/ตอบ/หมดอายุไปแล้ว = CONFLICT
       const again = await findInviteInGroup(tx, groupId, inviteId);
       if (again?.status === 'revoked') return;
-      throw new AppError('CONFLICT');
+      throw new AppError('CONFLICT'); // ถูกใช้/ตอบ/หมดอายุไปแล้ว หรือผู้เพิกถอนไม่ถือ role เดิมแล้ว
     }
     await audit(tx, me, allow, { action: 'invite.revoke', targetType: 'invite', targetId: inviteId, groupId, meta: { inviteId, kind: invite.kind } }, now);
   });

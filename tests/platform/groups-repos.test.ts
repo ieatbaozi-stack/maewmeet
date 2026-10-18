@@ -60,6 +60,9 @@ async function addMember(g: string, u: string, role: 'member' | 'moderator' = 'm
   await db.$client.execute({ sql: 'INSERT INTO group_member VALUES (?, ?, ?, ?)', args: [g, u, role, NOW] });
 }
 
+/** super admin นอกกลุ่ม: ไม่มี role ให้ตรวจ (ข้าม ActorGuard) */
+const OUT = { actorId: 'sa', actorRole: null } as const;
+
 describe('เพดานกลุ่มต่อผู้ใช้ (insertGroupIfUnderCap)', () => {
   it('ผู้ตัดสินคือ SQL: อ่านเห็น 9 → มีคนสร้างแทรกเป็น 10 → คำสั่งของเรา (cap 10) ถูกปฏิเสธ · ลบแล้วนับใหม่', async () => {
     const u = await user();
@@ -68,7 +71,7 @@ describe('เพดานกลุ่มต่อผู้ใช้ (insertGroup
     expect(Number(seen)).toBe(9); // ผู้อ่านเห็นว่ายังเหลือ 1
     const sneaky = await group(u); // อีกคำขอแทรกก่อน
     expect(await insertGroupIfUnderCap(db, { id: newId(), name: 'late', createdBy: u, cap: 10 }, NOW)).toBe(false);
-    expect(await softDeleteGroup(db, sneaky, NOW)).toBe(true);
+    expect(await softDeleteGroup(db, sneaky, NOW, OUT)).toBe(true);
     expect(await insertGroupIfUnderCap(db, { id: newId(), name: 'ok', createdBy: u, cap: 10 }, NOW)).toBe(true);
   });
 });
@@ -89,7 +92,7 @@ describe('เพดานสมาชิก (insertMemberIfRoom)', () => {
   it('กลุ่มถูกลบระหว่างทาง → gone (ไม่เพิ่มสมาชิกให้กลุ่มที่ลบแล้ว) · กลุ่มไม่มีจริง → gone', async () => {
     const admin = await user();
     const g = await group(admin);
-    await softDeleteGroup(db, g, NOW);
+    await softDeleteGroup(db, g, NOW, OUT);
     expect(await insertMemberIfRoom(db, { groupId: g, userId: await user(), cap: 50 }, NOW)).toBe('gone');
     expect(await insertMemberIfRoom(db, { groupId: newId(), userId: await user(), cap: 50 }, NOW)).toBe('gone');
     expect(await countMembers(db, g)).toBe(1);
@@ -224,7 +227,7 @@ describe('คำเชิญ / โค้ด', () => {
 
   async function codeInvite(g: string, by: string, code: string, expiresAt = NOW + 1000): Promise<string> {
     const id = newId();
-    expect(await insertCodeInviteIfRoom(db, { id, groupId: g, codeHash: H(code), codeHint: code.slice(-4), createdBy: by, expiresAt, cap: 20 }, NOW)).toBe('ok');
+    expect(await insertCodeInviteIfRoom(db, { id, groupId: g, codeHash: H(code), codeHint: code.slice(-4), createdBy: by, expiresAt, cap: 20 }, NOW, OUT)).toBe('ok');
     return id;
   }
 
@@ -234,12 +237,12 @@ describe('คำเชิญ / โค้ด', () => {
     const ids: string[] = [];
     for (let i = 0; i < 20; i++) ids.push(await codeInvite(g, a, `AAAAAA${String(i).padStart(2, '2')}`));
     const over = { id: newId(), groupId: g, codeHash: H('BBBBBBBB'), codeHint: 'BBBB', createdBy: a, expiresAt: NOW + 1000, cap: 20 };
-    expect(await insertCodeInviteIfRoom(db, over, NOW)).toBe('full');
-    expect(await revokeInvite(db, g, ids[0]!, a, NOW)).not.toBeNull();
-    expect(await insertCodeInviteIfRoom(db, over, NOW)).toBe('ok');
-    expect(await insertCodeInviteIfRoom(db, { ...over, id: newId(), codeHash: H('CCCCCCCC') }, NOW + 2000)).toBe('ok'); // 20 ตัวเดิมหมดอายุแล้ว
-    await softDeleteGroup(db, g, NOW);
-    expect(await insertCodeInviteIfRoom(db, { ...over, id: newId(), codeHash: H('DDDDDDDD') }, NOW)).toBe('gone');
+    expect(await insertCodeInviteIfRoom(db, over, NOW, OUT)).toBe('full');
+    expect(await revokeInvite(db, g, ids[0]!, a, NOW, OUT)).not.toBeNull();
+    expect(await insertCodeInviteIfRoom(db, over, NOW, OUT)).toBe('ok');
+    expect(await insertCodeInviteIfRoom(db, { ...over, id: newId(), codeHash: H('CCCCCCCC') }, NOW + 2000, OUT)).toBe('ok'); // 20 ตัวเดิมหมดอายุแล้ว
+    await softDeleteGroup(db, g, NOW, OUT);
+    expect(await insertCodeInviteIfRoom(db, { ...over, id: newId(), codeHash: H('DDDDDDDD') }, NOW, OUT)).toBe('gone');
   });
 
   it('code_hash ซ้ำถูกปฏิเสธโดย unique index · kind/ช่อง null ผิดรูปถูกปฏิเสธโดย CHECK', async () => {
@@ -248,7 +251,7 @@ describe('คำเชิญ / โค้ด', () => {
     await codeInvite(g, a, 'EEEEEEEE');
     let err: unknown;
     try {
-      await insertCodeInviteIfRoom(db, { id: newId(), groupId: g, codeHash: H('EEEEEEEE'), codeHint: 'EEEE', createdBy: a, expiresAt: NOW + 1, cap: 20 }, NOW);
+      await insertCodeInviteIfRoom(db, { id: newId(), groupId: g, codeHash: H('EEEEEEEE'), codeHint: 'EEEE', createdBy: a, expiresAt: NOW + 1, cap: 20 }, NOW, OUT);
     } catch (e) {
       err = e;
     }
@@ -274,11 +277,11 @@ describe('คำเชิญ / โค้ด', () => {
     // 2) หมดอายุ
     expect(await joinGroupWithCode(db, { codeHash: H('FFFFFFFF'), userId: u2, cap: 50 }, NOW + 1000)).toBeNull();
     // 3) เพิกถอน
-    expect(await revokeInvite(db, g, id, a, NOW)).not.toBeNull();
+    expect(await revokeInvite(db, g, id, a, NOW, OUT)).not.toBeNull();
     expect(await joinGroupWithCode(db, { codeHash: H('FFFFFFFF'), userId: u2, cap: 50 }, NOW)).toBeNull();
     // 4) กลุ่มถูกลบ
     const id2 = await codeInvite(g, a, 'GGGGGGGG');
-    await softDeleteGroup(db, g, NOW);
+    await softDeleteGroup(db, g, NOW, OUT);
     expect(await joinGroupWithCode(db, { codeHash: H('GGGGGGGG'), userId: u3, cap: 50 }, NOW)).toBeNull();
     expect(id2).toBeTruthy();
     expect(await roleOf(g, u2)).toBeNull();
@@ -305,7 +308,7 @@ describe('คำเชิญ / โค้ด', () => {
     const g = await group(a);
     const mk = async (invitee: string, by = a) => {
       const id = newId();
-      await insertDirectInvite(db, { id, groupId: g, inviteeUserId: invitee, createdBy: by, expiresAt: NOW + 1000 }, NOW);
+      await insertDirectInvite(db, { id, groupId: g, inviteeUserId: invitee, createdBy: by, expiresAt: NOW + 1000 }, NOW, OUT);
       return id;
     };
     const i1 = await mk(b);
@@ -322,7 +325,7 @@ describe('คำเชิญ / โค้ด', () => {
     expect(await closeDirectInvite(db, { inviteId: i1, inviteeUserId: b, to: 'accepted' }, NOW)).toBeNull(); // ซ้ำ
     expect(await closeDirectInvite(db, { inviteId: i1, inviteeUserId: b, to: 'declined' }, NOW)).toBeNull();
     const i2 = await mk(c);
-    await softDeleteGroup(db, g, NOW);
+    await softDeleteGroup(db, g, NOW, OUT);
     expect(await closeDirectInvite(db, { inviteId: i2, inviteeUserId: c, to: 'accepted' }, NOW)).toBeNull(); // กลุ่มลบแล้ว
   });
 });
@@ -331,11 +334,11 @@ describe('แก้กลุ่ม', () => {
   it('updateGroup ไม่แก้กลุ่มที่ลบแล้ว · ละเมิด CHECK หน้าต่างวันว่างถูกปฏิเสธระดับ DB (check)', async () => {
     const a = await user();
     const g = await group(a);
-    await expect(updateGroup(db, g, { freeWindowStartMin: 1300 }, NOW)).rejects.toSatisfy((e) => constraintKind(e) === 'check');
-    await expect(updateGroup(db, g, { minFreeMinutes: 45 }, NOW)).rejects.toSatisfy((e) => constraintKind(e) === 'check');
-    expect((await updateGroup(db, g, { name: 'ใหม่', minFreeMinutes: 60 }, NOW + 1))?.name).toBe('ใหม่');
-    await softDeleteGroup(db, g, NOW);
-    expect(await updateGroup(db, g, { name: 'หลังลบ' }, NOW)).toBeNull();
-    expect(await softDeleteGroup(db, g, NOW)).toBe(false);
+    await expect(updateGroup(db, g, { freeWindowStartMin: 1300 }, NOW, OUT)).rejects.toSatisfy((e) => constraintKind(e) === 'check');
+    await expect(updateGroup(db, g, { minFreeMinutes: 45 }, NOW, OUT)).rejects.toSatisfy((e) => constraintKind(e) === 'check');
+    expect((await updateGroup(db, g, { name: 'ใหม่', minFreeMinutes: 60 }, NOW + 1, OUT))?.name).toBe('ใหม่');
+    await softDeleteGroup(db, g, NOW, OUT);
+    expect(await updateGroup(db, g, { name: 'หลังลบ' }, NOW, OUT)).toBeNull();
+    expect(await softDeleteGroup(db, g, NOW, OUT)).toBe(false);
   });
 });

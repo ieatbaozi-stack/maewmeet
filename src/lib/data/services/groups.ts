@@ -21,6 +21,7 @@ import type { Actor, GroupCtx } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
 import { GROUP_LIMITS } from '@/lib/shared/limits';
+import type { DbOrTx } from '@/db/client';
 import type { DataCtx } from '../context';
 import { parseGroupName } from '../group-name';
 import { loadGroupCtx } from '../policy-context';
@@ -75,6 +76,12 @@ async function requireTargetMember(actor: Actor, group: GroupCtx, ctx: DataCtx, 
     throw new AppError('NOT_FOUND');
   }
   return target;
+}
+
+/** การเขียนที่มี ActorGuard ไม่ได้แถว: กลุ่มยังอยู่ = สิทธิ์ของผู้กระทำเปลี่ยนไประหว่างทาง (CONFLICT) · ไม่อยู่แล้ว = NOT_FOUND */
+async function staleOrGone(db: DbOrTx, groupId: string): Promise<AppError> {
+  const row = await findGroupById(db, groupId);
+  return new AppError(row && row.deletedAt === null ? 'CONFLICT' : 'NOT_FOUND');
 }
 
 // ───────── U4 ─────────
@@ -132,11 +139,11 @@ export async function updateGroupSettings(actor: Actor, groupId: string, input: 
   const { now } = ctx;
   await inTx(ctx.db, async (tx) => {
     // ค่าที่ไม่ได้ส่งมาอ้างจากแถวที่อ่านไว้ — ถ้ามีคนแก้พร้อมกันจนหน้าต่างไม่สอดคล้อง CHECK ของ DB เป็นด่านสุดท้าย (→ INVALID_WINDOW)
-    const updated = await updateGroup(tx, groupId, patch, now).catch((e: unknown) => {
+    const updated = await updateGroup(tx, groupId, patch, now, { actorId: me.id, actorRole: group.actorRole }).catch((e: unknown) => {
       if (constraintKind(e) === 'check') throw new AppError('INVALID_WINDOW');
       throw e;
     });
-    if (!updated) throw new AppError('NOT_FOUND');
+    if (!updated) throw await staleOrGone(tx, groupId);
     await audit(tx, me, allow, { action: 'group.update', targetType: 'group', targetId: groupId, groupId, meta: { fields: Object.keys(patch) } }, now);
   });
   return getGroup(actor, groupId, ctx);
@@ -149,7 +156,8 @@ export async function deleteGroup(actor: Actor, groupId: string, ctx: DataCtx): 
   const { now } = ctx;
   await inTx(ctx.db, async (tx) => {
     // soft delete: คำสั่งเดียว · สมาชิก/คำเชิญ/โค้ดของกลุ่มนี้ใช้ไม่ได้ทันที เพราะทุก query ผูก groups.deleted_at IS NULL
-    if (!(await softDeleteGroup(tx, groupId, now))) throw new AppError('NOT_FOUND');
+    // ผู้กระทำต้องยังถือ role เดิมในคำสั่งเดียวกัน (แข่งกับโอน admin/ลดสิทธิ์/ลบสมาชิก — ADR 0003 membership-guard)
+    if (!(await softDeleteGroup(tx, groupId, now, { actorId: me.id, actorRole: group.actorRole }))) throw await staleOrGone(tx, groupId);
     await audit(tx, me, allow, { action: 'group.delete', targetType: 'group', targetId: groupId, groupId }, now);
   });
   return { deleted: true };

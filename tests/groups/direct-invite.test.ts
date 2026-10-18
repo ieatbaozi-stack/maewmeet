@@ -3,6 +3,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { GROUP_LIMITS } from '@/lib/shared/limits';
 import { DAY, del, get, join, makeCode, makeGroup, person, post, roleOf, setupHarness, type Harness, type Person } from './harness';
 
+// เทสต์เพดาน/แข่งกันสร้างสมาชิก 50 คนจริงผ่าน HTTP handler: ปกติ 0.4–3.5 วินาที แต่ช้าลง 5–10 เท่าเมื่อเครื่องมีงานอื่นรัน (ทั้งชุด vitest ขนานกัน)
+// → ให้เวลาเผื่อเยอะ (ไม่ใช้ retry เพราะ retry จะบังความผิดพลาดจริงของการแข่งกัน)
+const SLOW_MS = 60_000;
+
 let h: Harness;
 let a: Person;
 let b: Person;
@@ -111,7 +115,7 @@ describe('รับ/ปฏิเสธ', () => {
     expect(await h.count('group_member WHERE group_id = ?', [gid])).toBe(2);
   });
 
-  it('ปฏิเสธ → ไม่เป็นสมาชิก, คำเชิญ declined, ผู้ชวนได้ notification · ชวนใหม่ได้หลังปฏิเสธ', async () => {
+  it('ปฏิเสธ → ไม่เป็นสมาชิก, คำเชิญ declined, ผู้ชวนได้ notification · ชวนซ้ำทันทีไม่ได้ (คูลดาวน์ 24 ชม. — ดูชุดคูลดาวน์)', async () => {
     const inv = (await invite(a, 'bob')).data.invite.id;
     const r = await post(b.c, `/api/me/invites/${inv}/decline`);
     expect(r.status).toBe(200);
@@ -119,7 +123,46 @@ describe('รับ/ปฏิเสธ', () => {
     expect(await roleOf(h, gid, b.id)).toBeNull();
     expect(await h.count("notification WHERE kind = 'group.invite.declined' AND user_id = ?", [a.id])).toBe(1);
     expect((await post(b.c, `/api/me/invites/${inv}/accept`)).code).toBe('CONFLICT');
-    expect((await invite(a, 'bob')).status).toBe(201);
+    expect((await invite(a, 'bob')).status).toBe(409);
+  });
+
+  // SEC#8: ผู้รับปฏิเสธแล้ว ผู้ชวนคนเดิมชวนซ้ำในกลุ่มเดิมไม่ได้ 24 ชม. (นาฬิกา inject — ไม่รอจริง)
+  describe('คูลดาวน์หลังปฏิเสธ (24 ชม.)', () => {
+    const declineFirst = async () => {
+      const inv = (await invite(a, 'bob')).data.invite.id;
+      expect((await post(b.c, `/api/me/invites/${inv}/decline`)).status).toBe(200);
+    };
+
+    it('ชวนซ้ำตอน 24 ชม. ยังไม่ครบ → 409 CONFLICT และไม่สร้างแถว/notification · ครบ 24 ชม. พอดีชวนได้', async () => {
+      await declineFirst();
+      const before = await h.count('group_invite WHERE kind = ?', ['direct']);
+      const notif = await h.count("notification WHERE kind = 'group.invite.received'");
+      h.clock.advance(DAY - 1);
+      const blocked = await invite(a, 'bob');
+      expect([blocked.status, blocked.code]).toEqual([409, 'CONFLICT']);
+      expect(await h.count('group_invite WHERE kind = ?', ['direct'])).toBe(before);
+      expect(await h.count("notification WHERE kind = 'group.invite.received'")).toBe(notif);
+      h.clock.advance(1);
+      expect((await invite(a, 'bob')).status).toBe(201);
+    });
+
+    it('คูลดาวน์ผูกกับ (ผู้ชวน, กลุ่ม, ผู้รับ): ผู้ชวนคนอื่น / กลุ่มอื่น / ผู้รับคนอื่นไม่ถูกบล็อก', async () => {
+      await declineFirst();
+      const c = await person(h, 'carol');
+      await join(a, c, gid); // carol เป็นสมาชิก ชวน bob ได้ (คนละผู้ชวน)
+      expect((await invite(c, 'bob')).status).toBe(201);
+      const g2 = await makeGroup(a, 'อีกกลุ่ม');
+      expect((await invite(a, 'bob', g2)).status).toBe(201); // คนละกลุ่ม
+      const d = await person(h, 'dave');
+      expect((await invite(a, 'dave')).status).toBe(201); // คนละผู้รับ
+      expect(d.id).toBeTruthy();
+    });
+
+    it('ผู้รับ "รับ" หรือคำเชิญหมดอายุเอง ไม่ทำให้เกิดคูลดาวน์', async () => {
+      await invite(a, 'bob');
+      h.clock.advance(7 * DAY); // หมดอายุ ไม่ใช่ปฏิเสธ
+      expect((await invite(a, 'bob')).status).toBe(201);
+    });
   });
 
   it('หมดอายุ 7 วัน → รับไม่ได้ (404) ไม่เป็นสมาชิก', async () => {
@@ -178,7 +221,7 @@ describe('รับ/ปฏิเสธ', () => {
     expect(await h.count("notification WHERE kind = 'group.invite.accepted'")).toBe(0);
     await h.rows('DELETE FROM group_member WHERE user_id = ?', [ids[0]!]);
     expect((await post(b.c, `/api/me/invites/${inv}/accept`)).status).toBe(200);
-  });
+  }, SLOW_MS);
 
   it('รับพร้อมกัน 2 ครั้ง → สำเร็จครั้งเดียว · เป็นสมาชิกแล้วมาถูกชวนซ้ำ → alreadyMember', async () => {
     const inv = (await invite(a, 'bob')).data.invite.id;

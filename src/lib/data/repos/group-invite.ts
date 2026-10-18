@@ -4,6 +4,7 @@
 import { and, asc, desc, eq, gt, isNull, sql } from 'drizzle-orm';
 import { groupInvite, groups, user } from '@/db/schema';
 import type { DbOrTx } from '@/db/client';
+import { actorGuardClause, actorHolds, type ActorGuard } from './group-member';
 
 export type InviteRow = typeof groupInvite.$inferSelect;
 export type InviteStatus = InviteRow['status'];
@@ -11,24 +12,27 @@ export type InviteStatus = InviteRow['status'];
 // ───────── สร้าง ─────────
 
 /**
- * สร้างโค้ดถ้ากลุ่มยังไม่ถูกลบและโค้ดที่ยังใช้ได้ (active + ยังไม่หมดอายุ) < cap — คำสั่งเดียวอะตอมมิก
- * คืน 'ok' | 'full' (เต็มเพดาน) | 'gone' (กลุ่มไม่มี/ถูกลบ) · ชน unique ของ code_hash → โยน (ผู้เรียกสุ่มใหม่)
+ * สร้างโค้ดถ้ากลุ่มยังไม่ถูกลบ + ผู้สร้างยังถือ role ที่ตัดสินสิทธิ์ไว้ (ActorGuard — สมาชิกที่ถูกลบกลางทางสร้างไม่ได้) + โค้ดที่ยังใช้ได้ < cap — คำสั่งเดียวอะตอมมิก
+ * คืน 'ok' | 'full' (เต็มเพดาน) | 'gone' (กลุ่มไม่มี/ถูกลบ) | 'stale' (ผู้สร้างไม่ถือ role เดิมแล้ว) · ชน unique ของ code_hash → โยน (ผู้เรียกสุ่มใหม่)
  */
 export async function insertCodeInviteIfRoom(
   db: DbOrTx,
   input: { id: string; groupId: string; codeHash: string; codeHint: string; createdBy: string; expiresAt: number; cap: number },
   now: number,
-): Promise<'ok' | 'full' | 'gone'> {
+  guard: ActorGuard,
+): Promise<'ok' | 'full' | 'gone' | 'stale'> {
   const rows = await db.all<{ id: string }>(sql`
     INSERT INTO group_invite (id, group_id, kind, code_hash, code_hint, status, uses_count, created_by, created_at, expires_at)
     SELECT ${input.id}, ${input.groupId}, 'code', ${input.codeHash}, ${input.codeHint}, 'active', 0, ${input.createdBy}, ${now}, ${input.expiresAt}
     WHERE EXISTS (SELECT 1 FROM groups WHERE id = ${input.groupId} AND deleted_at IS NULL)
+      AND ${actorGuardClause(input.groupId, guard)}
       AND (SELECT count(*) FROM group_invite
             WHERE group_id = ${input.groupId} AND kind = 'code' AND status = 'active' AND expires_at > ${now}) < ${input.cap}
     RETURNING id`);
   if (rows.length === 1) return 'ok';
   const g = await db.select({ d: groups.deletedAt }).from(groups).where(eq(groups.id, input.groupId)).limit(1);
-  return g[0] && g[0].d === null ? 'full' : 'gone';
+  if (!g[0] || g[0].d !== null) return 'gone';
+  return (await actorHolds(db, input.groupId, guard)) ? 'full' : 'stale';
 }
 
 /** ปิดคำเชิญตรงที่ค้างแต่หมดอายุของคู่ (กลุ่ม, ผู้รับ) เพื่อให้สร้างใหม่ได้ (unique index ตรวจ status = active) */
@@ -47,26 +51,43 @@ export async function expireDueDirectInvites(db: DbOrTx, groupId: string, invite
     );
 }
 
-/** สร้างคำเชิญตรง · มีคำเชิญ active คู่เดียวกันอยู่ (unique index) → โยน unique violation ให้ผู้เรียกแปลง */
+/**
+ * สร้างคำเชิญตรง ถ้ากลุ่มยังไม่ถูกลบ + ผู้ชวนยังถือ role ที่ตัดสินสิทธิ์ไว้ (ActorGuard) — คำสั่งเดียวอะตอมมิก
+ * มีคำเชิญ active คู่เดียวกันอยู่ (unique index) → โยน unique violation ให้ผู้เรียกแปลง · คืน null = ไม่เข้าเงื่อนไข (ผู้เรียกวินิจฉัยด้วย findGroupById)
+ */
 export async function insertDirectInvite(
   db: DbOrTx,
   input: { id: string; groupId: string; inviteeUserId: string; createdBy: string; expiresAt: number },
   now: number,
-): Promise<InviteRow> {
-  const rows = await db
-    .insert(groupInvite)
-    .values({
-      id: input.id,
-      groupId: input.groupId,
-      kind: 'direct',
-      inviteeUserId: input.inviteeUserId,
-      status: 'active',
-      createdBy: input.createdBy,
-      createdAt: now,
-      expiresAt: input.expiresAt,
-    })
-    .returning();
-  return rows[0]!;
+  guard: ActorGuard,
+): Promise<InviteRow | null> {
+  const rows = await db.all<{ id: string }>(sql`
+    INSERT INTO group_invite (id, group_id, kind, invitee_user_id, status, uses_count, created_by, created_at, expires_at)
+    SELECT ${input.id}, ${input.groupId}, 'direct', ${input.inviteeUserId}, 'active', 0, ${input.createdBy}, ${now}, ${input.expiresAt}
+    WHERE EXISTS (SELECT 1 FROM groups WHERE id = ${input.groupId} AND deleted_at IS NULL)
+      AND ${actorGuardClause(input.groupId, guard)}
+    RETURNING id`);
+  if (rows.length !== 1) return null;
+  return (await findInviteById(db, input.id)) ?? null;
+}
+
+/**
+ * ผู้ชวนคนนี้เคยถูกผู้รับ "ปฏิเสธ" คำเชิญตรงของกลุ่มนี้ตั้งแต่ `since` ไหม (คูลดาวน์กันชวนซ้ำ) · เวลาที่ปฏิเสธอ่านจาก audit_log
+ * (invite.direct.respond decision=declined — เขียนใน transaction เดียวกับการปฏิเสธ จึงไม่ต้องเพิ่มคอลัมน์)
+ */
+export async function hasDeclinedSince(
+  db: DbOrTx,
+  input: { groupId: string; inviterId: string; inviteeUserId: string },
+  since: number,
+): Promise<boolean> {
+  const rows = await db.all<{ n: number }>(sql`
+    SELECT count(*) AS n
+      FROM audit_log a JOIN group_invite i ON i.id = a.target_id
+     WHERE a.action = 'invite.direct.respond' AND a.target_type = 'invite' AND a.created_at > ${since}
+       AND json_extract(a.meta, '$.decision') = 'declined'
+       AND i.group_id = ${input.groupId} AND i.created_by = ${input.inviterId} AND i.invitee_user_id = ${input.inviteeUserId}
+       AND i.kind = 'direct' AND i.status = 'declined'`);
+  return Number(rows[0]?.n ?? 0) > 0;
 }
 
 // ───────── อ่าน ─────────
@@ -186,12 +207,26 @@ export async function findUsableCodeInvite(db: DbOrTx, codeHash: string, now: nu
 
 // ───────── เปลี่ยนสถานะ ─────────
 
-/** เพิกถอน (เฉพาะที่ยัง active) · คืนแถวที่เปลี่ยน หรือ null */
-export async function revokeInvite(db: DbOrTx, groupId: string, inviteId: string, revokedBy: string, now: number): Promise<InviteRow | null> {
+/** เพิกถอน (เฉพาะที่ยัง active + ผู้เพิกถอนยังถือ role ที่ตัดสินสิทธิ์ไว้ — ActorGuard) · คืนแถวที่เปลี่ยน หรือ null */
+export async function revokeInvite(
+  db: DbOrTx,
+  groupId: string,
+  inviteId: string,
+  revokedBy: string,
+  now: number,
+  guard: ActorGuard,
+): Promise<InviteRow | null> {
   const rows = await db
     .update(groupInvite)
     .set({ status: 'revoked', revokedAt: now, revokedBy })
-    .where(and(eq(groupInvite.id, inviteId), eq(groupInvite.groupId, groupId), eq(groupInvite.status, 'active')))
+    .where(
+      and(
+        eq(groupInvite.id, inviteId),
+        eq(groupInvite.groupId, groupId),
+        eq(groupInvite.status, 'active'),
+        actorGuardClause(groupId, guard),
+      ),
+    )
     .returning();
   return rows[0] ?? null;
 }

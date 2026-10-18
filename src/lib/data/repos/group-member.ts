@@ -11,8 +11,20 @@ export type MemberRow = typeof groupMember.$inferSelect;
 /** role ที่ผู้กระทำถืออยู่ ณ ตอนตัดสินสิทธิ์ · null = ไม่ใช่สมาชิก (super admin นอกกลุ่ม) */
 export type ActorGuard = { actorId: string; actorRole: GroupRole | null };
 
-const actorStillHolds = (groupId: string, g: ActorGuard) =>
+export const actorStillHolds = (groupId: string, g: ActorGuard) =>
   sql`(SELECT role FROM group_member WHERE group_id = ${groupId} AND user_id = ${g.actorId}) IS ${g.actorRole}`;
+
+/**
+ * ด่าน "ผู้กระทำยังถือ role เดิม" สำหรับการเขียนที่ผู้เรียกตัดสินสิทธิ์จาก role ที่อ่านมา (ADR 0003 กฎ membership-guard)
+ * ผู้กระทำที่เป็นสมาชิก → ต้องยังถือ role เดิมในคำสั่งเดียวกับการเขียน · super admin ที่กระทำจากนอกกลุ่ม (actorRole = null) → ไม่มีอะไรให้ตรวจ
+ */
+export const actorGuardClause = (groupId: string, g: ActorGuard) => (g.actorRole === null ? sql`1` : actorStillHolds(groupId, g));
+
+/** ผู้กระทำยังถือ role เดิมไหม (ใช้วินิจฉัยหลังการเขียนถูกปฏิเสธ — การอ่านนี้ไม่มีผลต่อความปลอดภัย) */
+export async function actorHolds(db: DbOrTx, groupId: string, g: ActorGuard): Promise<boolean> {
+  const rows = await db.all<{ ok: number }>(sql`SELECT ${actorGuardClause(groupId, g)} AS ok`);
+  return Number(rows[0]?.ok ?? 0) === 1;
+}
 
 export type GroupAccessRow = { id: string; deletedAt: number | null; role: GroupRole | null };
 

@@ -3,6 +3,7 @@
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { groupMember, groups } from '@/db/schema';
 import type { DbOrTx } from '@/db/client';
+import { actorGuardClause, type ActorGuard } from './group-member';
 
 export type GroupRow = typeof groups.$inferSelect;
 export type GroupRole = (typeof groupMember.$inferSelect)['role'];
@@ -33,22 +34,25 @@ export async function findGroupById(db: DbOrTx, id: string): Promise<GroupRow | 
   return rows[0] ?? null;
 }
 
-/** แก้เฉพาะกลุ่มที่ยังไม่ลบ · ละเมิด CHECK ของหน้าต่างวันว่าง → โยน (ผู้เรียกแปลงด้วย constraintKind) · คืน null = ไม่มี/ลบแล้ว */
-export async function updateGroup(db: DbOrTx, id: string, patch: GroupPatch, now: number): Promise<GroupRow | null> {
+/**
+ * แก้เฉพาะกลุ่มที่ยังไม่ลบ + ผู้กระทำยังถือ role ที่ตัดสินสิทธิ์ไว้ (ActorGuard) · ละเมิด CHECK ของหน้าต่างวันว่าง → โยน (ผู้เรียกแปลงด้วย constraintKind)
+ * คืน null = ไม่มี/ลบแล้ว/ผู้กระทำไม่ถือ role เดิมแล้ว (ผู้เรียกวินิจฉัยต่อ)
+ */
+export async function updateGroup(db: DbOrTx, id: string, patch: GroupPatch, now: number, guard: ActorGuard): Promise<GroupRow | null> {
   const rows = await db
     .update(groups)
     .set({ ...patch, updatedAt: now })
-    .where(and(eq(groups.id, id), isNull(groups.deletedAt)))
+    .where(and(eq(groups.id, id), isNull(groups.deletedAt), actorGuardClause(id, guard)))
     .returning();
   return rows[0] ?? null;
 }
 
-/** soft delete (U6) · คืน false = ไม่มี/ลบไปแล้ว */
-export async function softDeleteGroup(db: DbOrTx, id: string, now: number): Promise<boolean> {
+/** soft delete (U6) · ผู้กระทำต้องยังถือ role ที่ตัดสินสิทธิ์ไว้ในคำสั่งเดียวกัน (ActorGuard) · คืน false = ไม่มี/ลบไปแล้ว/ผู้กระทำไม่ถือ role เดิมแล้ว */
+export async function softDeleteGroup(db: DbOrTx, id: string, now: number, guard: ActorGuard): Promise<boolean> {
   const rows = await db
     .update(groups)
     .set({ deletedAt: now, updatedAt: now })
-    .where(and(eq(groups.id, id), isNull(groups.deletedAt)))
+    .where(and(eq(groups.id, id), isNull(groups.deletedAt), actorGuardClause(id, guard)))
     .returning({ id: groups.id });
   return rows.length === 1;
 }
