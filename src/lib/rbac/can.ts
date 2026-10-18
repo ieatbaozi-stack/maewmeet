@@ -244,3 +244,39 @@ export function authorize<A extends Action>(actor: Actor, action: A, resource: R
   if (!decision.allow) throw new PolicyError(decision.code, action);
   return decision;
 }
+
+/** resource ที่ผูกกลุ่ม → id ของกลุ่มที่ resource สังกัด */
+const groupIdOf = (resource: Resource): string | null => ('group' in resource ? resource.group.id : null);
+
+/**
+ * กัน IDOR ข้ามกลุ่ม (R2-6): route แบบ `/api/groups/:gid/<ของในกลุ่ม>/:id` ส่ง `:gid` จาก URL มาด้วย
+ * resource ที่โหลดมาอยู่คนละกลุ่มกับ `:gid` → NOT_FOUND (ทุกคนรวม SA — ของนั้นไม่มีใน path นี้)
+ * ด่านบัญชี (anonymous / suspended / mustChangePin) ตัดสินก่อนเสมอ · resource ที่ไม่ผูกกลุ่ม = บั๊กผู้เรียก (`RbacMisuseError`)
+ */
+export function canInGroup<A extends Action>(
+  actor: Actor,
+  action: A,
+  resource: ResourceFor<A>,
+  urlGroupId: string,
+): Decision {
+  const resourceGroupId = groupIdOf(resource);
+  if (resourceGroupId === null) throw new RbacMisuseError(action, resource.type);
+  const base = can(actor, action, resource);
+  if (!base.allow && ACCOUNT_GATE_CODES.has(base.code)) return base;
+  if (resourceGroupId !== urlGroupId) return deny('NOT_FOUND');
+  return base;
+}
+
+const ACCOUNT_GATE_CODES: ReadonlySet<PolicyErrorCode> = new Set(['AUTH_REQUIRED', 'ACCOUNT_SUSPENDED', 'PIN_CHANGE_REQUIRED']);
+
+/** `canInGroup` แบบ throw — บรรทัดแรกของ service ที่รับ `:gid` + id ของของในกลุ่ม */
+export function authorizeInGroup<A extends Action>(
+  actor: Actor,
+  action: A,
+  resource: ResourceFor<A>,
+  urlGroupId: string,
+): Allow {
+  const decision = canInGroup(actor, action, resource, urlGroupId);
+  if (!decision.allow) throw new PolicyError(decision.code, action);
+  return decision;
+}

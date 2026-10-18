@@ -252,3 +252,26 @@ export const EXPECT_SA_AUDITED_SA_ONLY: readonly Action[] = [
   'admin.user.unlock',
   'admin.audit.view',
 ];
+
+// ───────── R2-1: ข้อกำหนดกลุ่ม/สมาชิก/คำเชิญที่ตรวจเป็น "กฎ" ข้ามช่อง (ถอดจาก PRD §3 + D7/D8 ตรง ๆ) ─────────
+
+/**
+ * D7/D8: "ไม่มีใครลบ/เปลี่ยน role ของ admin ได้ นอกจากผ่านการโอน" — เป้าหมายถือ role admin
+ * ต้องไม่ allow ให้ actor ใดเลย (ทั้ง 7 คอลัมน์)
+ */
+export const ADMIN_TARGET_NEVER_ALLOWED: readonly Action[] = ['member.remove', 'member.setRole', 'group.transferAdmin'];
+
+/** D7: moderator ลบได้เฉพาะ role member */
+export const MOD_REMOVABLE_TARGET_ROLES = ['member'] as const;
+
+/**
+ * `invite.list` (§3 แถว 6): คนที่ "เห็นทุกโค้ดในกลุ่ม" vs "เห็นเฉพาะที่ตัวเองสร้าง" — data layer กรองด้วย
+ * can(actor,'invite.revoke',row) ดังนั้นผลกรองต้องตรงตารางนี้ (own = โค้ดที่ actor สร้าง, other = โค้ดของคนอื่น)
+ */
+export const INVITE_LIST_VISIBLE: Readonly<Record<'SA_nonmember' | 'SA_member' | 'GA' | 'MOD' | 'MEM', { own: boolean; other: boolean }>> = {
+  SA_nonmember: { own: true, other: true },
+  SA_member: { own: true, other: true },
+  GA: { own: true, other: true },
+  MOD: { own: true, other: true },
+  MEM: { own: true, other: false },
+};
