@@ -102,6 +102,105 @@ describe('ชื่อกลุ่ม', () => {
   });
 });
 
+// SEC#6 + QA D2 — ชื่อ "ว่าง"/หน้าตาหลอก · ZWJ เฉพาะใน emoji sequence
+describe('ชื่อกลุ่ม: ชื่อที่มองไม่เห็น / เครื่องหมายผสม / ช่องว่าง / ZWJ (table-driven)', () => {
+  const u = (...cps: number[]) => String.fromCodePoint(...cps);
+  const INVALID = { ok: false, reason: 'INVALID' } as const;
+
+  it.each([
+    ['U+2800 braille blank ตัวเดียว', u(0x2800)],
+    ['U+2800 หลายตัว', u(0x2800).repeat(5)],
+    ['U+2800 ปนช่องว่างปกติ', ` ${u(0x2800)} ${u(0x2800)} `],
+    ['U+034F CGJ ล้วน', u(0x34f).repeat(3)],
+    ['U+FE0F ล้วน', u(0xfe0f).repeat(2)],
+    ['ZWJ ล้วน', u(0x200d, 0x200d)],
+    ['ZWNJ/ZWSP ล้วน', u(0x200c, 0x200b)],
+    ['เครื่องหมายผสมล้วน (ไม่มีตัวฐาน)', u(0x301, 0x302)],
+    ['วรรณยุกต์ไทยล้วน', u(0x0e48, 0x0e49)],
+    ['ผสมของที่มองไม่เห็นทั้งหมด', ` ${u(0x2800, 0x34f, 0xfe0f, 0x200d)} `],
+    ['Hangul filler ล้วน', u(0x3164, 0x115f, 0xffa0)],
+    ['U+2800 ฝังกลางชื่อที่มีตัวอักษร', `a${u(0x2800)}b`],
+    ['CGJ ฝังกลางชื่อที่มีตัวอักษร', `a${u(0x34f)}b`],
+  ])('ไม่มีตัวที่มองเห็น: %s → INVALID', (_l, name) => {
+    expect(checkGroupName(name)).toEqual(INVALID);
+  });
+
+  it.each([
+    ['เครื่องหมายผสมนำหน้า', `${u(0x301)}a`],
+    ['เครื่องหมายผสมหลังช่องว่าง', `a ${u(0x301)}b`],
+    ['ซ้อน 4 ตัวบนตัวฐานเดียว (zalgo)', `x${u(0x300, 0x301, 0x302, 0x303)}`],
+    ['ซ้อน 20 ตัว', `x${u(0x300).repeat(20)}`],
+    ['ไทยซ้อน 4 ชั้น', `ก${u(0x0e38, 0x0e39, 0x0e48, 0x0e49)}`],
+    ['VS16 ซ้อนหลายตัว', `❤${u(0xfe0f).repeat(4)}`],
+  ])('เครื่องหมายผสมไม่ถูกต้อง: %s → INVALID', (_l, name) => {
+    expect(checkGroupName(name)).toEqual(INVALID);
+  });
+
+  it.each([
+    ['NBSP', 0x00a0],
+    ['en space', 0x2002],
+    ['em space', 0x2003],
+    ['thin space', 0x2009],
+    ['narrow NBSP', 0x202f],
+    ['medium math space', 0x205f],
+    ['ideographic space', 0x3000],
+    ['ogham space mark', 0x1680],
+    ['figure space', 0x2007],
+  ])('ช่องว่างกลางชื่อที่ไม่ใช่ U+0020: %s → INVALID', (_l, cp) => {
+    expect(checkGroupName(`a${u(cp)}b`)).toEqual(INVALID);
+    expect(checkGroupName(`ก๊วน${u(cp)}แมว`)).toEqual(INVALID);
+  });
+
+  it('ช่องว่างปกติ: ยุบที่ซ้ำเป็นตัวเดียว · ตัดหัวท้าย · ไม่นับช่องว่างที่ยุบแล้วเข้าความยาว', () => {
+    expect(checkGroupName('  a    b   c  ')).toEqual({ ok: true, name: 'a b c' });
+    expect(checkGroupName(`${'a '.repeat(20)}`.trimEnd() + '    ')).toEqual({ ok: true, name: 'a '.repeat(20).trimEnd() });
+    expect(checkGroupName(`a${' '.repeat(100)}b`)).toEqual({ ok: true, name: 'a b' });
+  });
+
+  it.each([
+    ['แมวดำ 🐈‍⬛', '🐈‍⬛'],
+    ['ครอบครัว 👨‍👩‍👧', '👨‍👩‍👧'],
+    ['ครอบครัวสี่คน 👨‍👩‍👧‍👦', '👨‍👩‍👧‍👦'],
+    ['ธงรุ้ง (VS16 ก่อน ZWJ)', '🏳️‍🌈'],
+    ['แพทย์ผิวสี (skin tone ก่อน ZWJ)', '🧑🏽‍⚕️'],
+  ])('ZWJ ระหว่าง Extended_Pictographic: %s → ผ่านและคง ZWJ ไว้', (_l, emoji) => {
+    expect(checkGroupName(emoji)).toEqual({ ok: true, name: emoji });
+    expect(checkGroupName(`กลุ่ม ${emoji}`)).toEqual({ ok: true, name: `กลุ่ม ${emoji}` });
+  });
+
+  it.each([
+    ['ZWJ ระหว่างตัวอักษร', 'ก\u200dข'],
+    ['ZWJ หลังอักษรก่อน emoji', 'a\u200d🐈'],
+    ['ZWJ หลัง emoji ก่อนอักษร', '🐈\u200da'],
+    ['ZWJ นำหน้า', '\u200d🐈'],
+    ['ZWJ ท้ายสุด', '🐈\u200d'],
+    ['ZWJ ซ้อน', '🐈\u200d\u200d⬛'],
+    ['ZWJ คั่นช่องว่าง', '🐈 \u200d ⬛'],
+    ['bidi override', '🐈\u202e⬛'],
+    ['zero-width space ใน emoji', '🐈\u200b⬛'],
+    ['tag character (ธงสกอตแลนด์แบบ tag sequence)', '🏴\u{e0067}\u{e0062}\u{e0073}\u{e0063}\u{e0074}\u{e007f}'],
+    ['word joiner', 'a\u2060b'],
+    ['soft hyphen', 'a\u00adb'],
+    ['control char', 'a\u0001b'],
+  ])('ยังห้าม: %s → INVALID', (_l, name) => {
+    expect(checkGroupName(name)).toEqual(INVALID);
+  });
+
+  it.each([
+    ['ไทยมีวรรณยุกต์ซ้อนสระ', 'ก๊วนแมว ปั๊มนม ผู้ใหญ่ ที่นี่'],
+    ['emoji VS16 (❤️ ☀️)', '❤️ ☀️ แมว'],
+    ['keycap 1️⃣', '1️⃣ กลุ่ม'],
+    ['ธง regional indicator 🇹🇭', '🇹🇭 กลุ่มไทย'],
+    ['ตัวอักษรมีเครื่องหมาย 3 ตัวพอดี', `x${u(0x300, 0x301, 0x302)}`],
+    ['เครื่องหมายวรรคตอนล้วน', '?!'],
+    ['ตัวเลขล้วน', '8888'],
+    ['symbol ล้วน', '★'],
+    ['ภาษาอื่น', 'Café 猫 привет नमस्ते'],
+  ])('ยังผ่าน: %s', (_l, name) => {
+    expect(checkGroupName(name)).toMatchObject({ ok: true });
+  });
+});
+
 describe('สีสมาชิก', () => {
   it('เป็นจำนวนเต็ม 0–9, deterministic, คงที่ต่อ (กลุ่ม, ผู้ใช้) และต่างกันตามกลุ่ม', () => {
     const g = '11111111-1111-4111-8111-111111111111';
