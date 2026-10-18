@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const git = (...args: string[]) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
@@ -30,8 +30,15 @@ async function cspDirectives(nodeEnv: string): Promise<Map<string, string[]>> {
 }
 
 describe('CSP (production) — ไม่มี source กว้างเกิน', () => {
+  // R1 TEST: การ import next.config.ts ครั้งแรกใน worker เป็น cold import (vite transform + next-intl/plugin) ที่ไปนับรวมใน
+  // งบ 5s ของ it() เดิม — ตอน `vitest run` เต็มชุด (worker ต่อไฟล์ ~25 ตัวบน CPU น้อย) เคยหมดเวลาครั้งเดียวใน 5 รอบ
+  // จึงย้ายมาโหลดใน beforeAll (hookTimeout 30s ระบุชัด; ไม่แตะ testTimeout ส่วนกลาง) ให้ it() เหลือแค่ assert
+  let d: Map<string, string[]>;
+  beforeAll(async () => {
+    d = await cspDirectives('production');
+  }, 30_000);
+
   it('ไม่มี *, https:, http:, data: ใน script/connect/frame · ไม่มี unsafe-eval / strict-dynamic ที่ไม่ได้ตั้งใจ', async () => {
-    const d = await cspDirectives('production');
     for (const [name, values] of d) {
       for (const v of values) expect(['*', 'https:', 'http:', "'unsafe-hashes'"], `${name} ${v}`).not.toContain(v);
     }

@@ -1,5 +1,5 @@
 // R0-16: security headers ใน next.config.ts — ตรวจ config (unit) · header จริงจาก server ตรวจใน E2E (TEST) + `next start` (Lead)
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { NextConfig } from 'next';
 
 type Header = { key: string; value: string };
@@ -30,6 +30,11 @@ function csp(value: string): Map<string, string[]> {
 afterEach(() => {
   vi.unstubAllEnvs();
 });
+
+// R1 TEST: warm-up — cold import ของ next.config.ts ครั้งแรกใน worker ไม่ควรกินงบ 5s ของเทสต์แรก (ดู tests/security/config-hygiene.test.ts)
+beforeAll(async () => {
+  await loadConfig('production');
+}, 30_000);
 
 describe('next.config.ts (production)', () => {
   it('ใช้กับทุก path', async () => {
