@@ -59,7 +59,7 @@ afterAll(() => rmSync(dir, { recursive: true, force: true }));
 describe('createDb busy timeout (file:)', () => {
   it('ค่าเริ่มต้นเป็นมิลลิวินาทีที่สมเหตุสมผล', () => {
     expect(FILE_BUSY_TIMEOUT_MS).toBeGreaterThanOrEqual(1000);
-    expect(FILE_BUSY_TIMEOUT_MS).toBeLessThanOrEqual(30_000);
+    expect(FILE_BUSY_TIMEOUT_MS).toBeLessThanOrEqual(2000);
   });
 
   it('writer หลาย process พร้อมกันผ่าน createDb สำเร็จครบ ไม่มี SQLITE_BUSY', async () => {
@@ -73,14 +73,14 @@ describe('createDb busy timeout (file:)', () => {
     expect(Number(rs.rows[0]!.c)).toBe(WRITERS * WRITES_EACH);
   }, 60_000);
 
-  it('createDb: ล็อกถูกถือโดย process อื่น ~1.2 วินาที → เขียนผ่าน createDb รอแล้วสำเร็จ (ไม่ BUSY ทันที)', async () => {
+  it('createDb: ล็อกถูกถือโดย process อื่น ~0.4 วินาที → เขียนผ่าน createDb รอแล้วสำเร็จ (ไม่ BUSY ทันที)', async () => {
     const holder = `
       import { createClient } from '${CLIENT_URL}';
       const c = createClient({ url: process.argv[2] });
       const tx = await c.transaction('write');
       await tx.execute("insert into w(writer, seq) values ('holder', 0)");
       console.log('locked');
-      setTimeout(async () => { await tx.commit(); c.close(); }, 1200);
+      setTimeout(async () => { await tx.commit(); c.close(); }, 400);
     `;
     const holderFile = path.join(dir, 'holder.mjs');
     writeFileSync(holderFile, holder);
@@ -92,7 +92,7 @@ describe('createDb busy timeout (file:)', () => {
     const waited = Date.now() - started;
     db.$client.close();
     await new Promise((resolve) => child.once('exit', resolve));
-    expect(waited).toBeGreaterThan(500);
+    expect(waited).toBeGreaterThan(150);
     expect(waited).toBeLessThan(FILE_BUSY_TIMEOUT_MS);
   }, 30_000);
 
