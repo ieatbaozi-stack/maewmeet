@@ -76,7 +76,7 @@ export const pinResetRequest = sqliteTable('pin_reset_request', {
 // ───────── กลุ่ม (U4–U6, D6–D9) ─────────
 export const groups = sqliteTable('groups', {
   id: text('id').primaryKey(),
-  name: text('name').notNull(),                                       // 1–60
+  name: text('name').notNull(),                                       // 1–40 (R2 §3 ข้อ 1 — บังคับใน service: trim, ห้ามควบคุม/bidi/zero-width)
   tz: text('tz').notNull().default('Asia/Bangkok'),                   // ADR 0004 §4
   freeWindowStartMin: integer('free_window_start_min').notNull().default(480),   // 08:00
   freeWindowEndMin: integer('free_window_end_min').notNull().default(1320),      // 22:00
@@ -86,6 +86,7 @@ export const groups = sqliteTable('groups', {
   updatedAt: ms('updated_at').notNull(),
   deletedAt: ms('deleted_at'),                                        // soft delete (U6)
 }, (t) => [
+  index('groups_created_by_idx').on(t.createdBy),                      // R2: นับกลุ่มที่สร้าง (เพดาน 10) — migration 0001
   check('groups_window_ck', sql`${t.freeWindowStartMin} >= 0 and ${t.freeWindowStartMin} < ${t.freeWindowEndMin}
         and ${t.freeWindowEndMin} <= 1440 and ${t.freeWindowStartMin} % 30 = 0 and ${t.freeWindowEndMin} % 30 = 0`),
   check('groups_min_free_ck', sql`${t.minFreeMinutes} >= 30 and ${t.minFreeMinutes} % 30 = 0
@@ -109,8 +110,8 @@ export const groupInvite = sqliteTable('group_invite', {
   groupId: text('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
   kind: text('kind', { enum: ['direct', 'code'] }).notNull(),
   inviteeUserId: text('invitee_user_id').references(() => user.id, { onDelete: 'cascade' }),   // direct
-  codeHash: text('code_hash'),                                        // code: HMAC-SHA256(APP_SECRET-derived, code) — ไม่เก็บโค้ดดิบ
-  codeHint: text('code_hint'),                                        // 2 ตัวท้าย ให้ผู้สร้างจำได้ในรายการ
+  codeHash: text('code_hash'),                                        // code: HMAC-SHA256(HKDF(APP_SECRET,'maewmeet/invite-code/v1'), โค้ด normalize แล้ว) hex — ไม่เก็บโค้ดดิบ
+  codeHint: text('code_hint'),                                        // 4 ตัวท้ายของโค้ด (ไม่มีขีด) ให้ผู้สร้าง/admin/mod จำได้ในรายการ
   status: text('status', { enum: ['active', 'accepted', 'declined', 'revoked', 'expired'] }).notNull().default('active'),
   usesCount: integer('uses_count').notNull().default(0),
   createdBy: text('created_by').notNull().references(() => user.id),

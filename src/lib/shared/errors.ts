@@ -29,6 +29,7 @@ export const ERROR_CODES = [
   'INVITE_INVALID',
   'ALREADY_MEMBER',
   'USER_NOT_FOUND',
+  'LIMIT_REACHED',
   // เวลา
   'INVALID_RANGE',
   'INVALID_DATE',
@@ -78,6 +79,7 @@ export const ERROR_HTTP_STATUS = {
   INVITE_INVALID: 400,
   ALREADY_MEMBER: 409, // ปกติใช้เป็นธงในผลสำเร็จ (ARCHITECTURE §6) — status นี้ใช้เฉพาะถ้ามีใครโยนเป็น error
   USER_NOT_FOUND: 404,
+  LIMIT_REACHED: 409, // R2: เพดานกลุ่มต่อผู้ใช้ (10) / สมาชิกต่อกลุ่ม (50) / โค้ดเชิญที่ใช้ได้พร้อมกัน (20) — params: { limit: 'groups' | 'members' | 'codes', max }
 
   INVALID_RANGE: 400,
   INVALID_DATE: 400,
