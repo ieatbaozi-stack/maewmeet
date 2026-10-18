@@ -13,8 +13,19 @@ export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 /** repo รับได้ทั้ง db และ tx */
 export type DbOrTx = Db | Tx;
 
+/**
+ * busy timeout (มิลลิวินาที) ของ `file:` — หลาย process/worker เขียนไฟล์เดียวกัน (E2E, next start + cron) ต้องรอล็อกแทนตอบ SQLITE_BUSY ทันที
+ * (ค่าเริ่มต้นของ @libsql/client 0.18 = 0 = ไม่รอ) · หน่วยของ option `timeout` คือ ms (ตรวจใน tests/platform/db-busy-timeout.test.ts)
+ * หมายเหตุ: driver ของ file: เป็น sync — การรอล็อกบล็อก event loop ของ process นั้นจนกว่าจะได้ล็อกหรือครบเวลา จึงต้องไม่ตั้งยาวเกินจำเป็น
+ */
+export const FILE_BUSY_TIMEOUT_MS = 5000;
+
 export function createDb(options: { url: string; authToken?: string }): Db {
-  const client = createClient({ url: options.url, authToken: options.authToken });
+  const client = createClient({
+    url: options.url,
+    authToken: options.authToken,
+    ...(options.url.startsWith('file:') ? { timeout: FILE_BUSY_TIMEOUT_MS } : {}),
+  });
   return drizzle(client, { schema });
 }
 
