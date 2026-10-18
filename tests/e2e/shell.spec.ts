@@ -1,16 +1,18 @@
-// R0-12 — shell ทุกแท็บ + login + 404 × th/en × light/dark บนทุก project (375/390/768)
+// R0-12 / R1 — shell ทุกแท็บ (ล็อกอินแล้ว) + login (ยังไม่ล็อกอิน) + 404 × th/en × light/dark บนทุก project (375/390/768)
+// R1: แท็บทุกหน้าต้องล็อกอิน → สมัครผู้ใช้ใหม่ผ่าน API ต่อเทสต์ (ก่อน setPrefs ไม่ได้ — setPrefs ก่อน เพื่อให้ค่าภาษา/ธีมเข้า user)
 // ต่อหน้า: สถานะ HTTP · <html lang/data-theme> ตาม cookie · h1 เป็นภาษาที่เลือก · ไม่มี horizontal scroll ·
 // a/button/input ทุกตัว ≥ 44px · ไม่มี console error / CSP violation · ภาพหน้าจอเต็มหน้าเก็บเป็น artifact
-import { expect, measureLayout, setPrefs, test, watchConsole } from './support/fixtures';
+import { expect, test } from './support/auth';
+import { measureLayout, watchConsole } from './support/fixtures';
 import { LOCALES, msg } from './support/messages';
 
-type Shell = { name: string; path: string; status: number; h1: string; tab?: 'home' | 'calendar' | 'groups' | 'me' };
+type Shell = { name: string; path: string; status: number; h1: string; tab?: 'home' | 'calendar' | 'groups' | 'me'; signedIn?: boolean };
 
 const PAGES: readonly Shell[] = [
-  { name: 'หน้าหลัก', path: '/', status: 200, h1: 'empty.home.title', tab: 'home' },
-  { name: 'ปฏิทิน', path: '/calendar', status: 200, h1: 'nav.calendar', tab: 'calendar' },
-  { name: 'กลุ่ม', path: '/groups', status: 200, h1: 'nav.groups', tab: 'groups' },
-  { name: 'ฉัน', path: '/me', status: 200, h1: 'nav.me', tab: 'me' },
+  { name: 'หน้าหลัก', path: '/', status: 200, signedIn: true, h1: 'empty.home.title', tab: 'home' },
+  { name: 'ปฏิทิน', path: '/calendar', status: 200, signedIn: true, h1: 'nav.calendar', tab: 'calendar' },
+  { name: 'กลุ่ม', path: '/groups', status: 200, signedIn: true, h1: 'nav.groups', tab: 'groups' },
+  { name: 'ฉัน', path: '/me', status: 200, signedIn: true, h1: 'nav.me', tab: 'me' },
   { name: 'เข้าสู่ระบบ', path: '/login', status: 200, h1: 'login.title' },
   { name: '404', path: '/no-such-page-r0', status: 404, h1: 'notFound.title' },
 ];
@@ -20,8 +22,9 @@ for (const p of PAGES) {
   test.describe(`${p.name} (${p.path})`, () => {
     for (const locale of LOCALES) {
       for (const theme of THEMES) {
-        test(`${locale} · ${theme}`, async ({ page, context, baseURL }, testInfo) => {
-          await setPrefs(context, baseURL!, { locale, theme });
+        test(`${locale} · ${theme}`, async ({ world, openAs }, testInfo) => {
+          // ล็อกอินด้วย cookie jar ของ worker (สร้างครั้งเดียว) — หน้า public/404 ใช้ jar ว่าง
+          const { page } = await openAs(p.signedIn ? world.user : { cookies: [], origins: [] }, { locale, theme });
           // หน้า 404: เบราว์เซอร์รายงาน "Failed to load resource … 404" ของตัวเอกสารเอง — คาดไว้แล้ว
           const problems = watchConsole(
             page,
@@ -61,8 +64,8 @@ for (const p of PAGES) {
   });
 }
 
-test('แถบนำทางล่างพาไปทุกแท็บ และ aria-current ตามหน้า', async ({ page, context, baseURL }) => {
-  await setPrefs(context, baseURL!, { locale: 'en', theme: 'light' });
+test('แถบนำทางล่างพาไปทุกแท็บ และ aria-current ตามหน้า', async ({ world, openAs }) => {
+  const { page } = await openAs(world.user, { locale: 'en', theme: 'light' });
   const problems = watchConsole(page);
   await page.goto('/', { waitUntil: 'networkidle' });
   const nav = page.getByRole('navigation', { name: msg('en', 'nav.label') });

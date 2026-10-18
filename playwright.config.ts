@@ -7,6 +7,8 @@
 //   ในเครื่องใช้ server ที่รันอยู่แล้วได้ (reuseExistingServer) · CI สตาร์ตใหม่เสมอ
 // - DB: TURSO_DATABASE_URL จาก env ถ้ามี (CI ตั้งเป็น file: ใน runner) ไม่งั้น file: ชั่วคราวใน tmpdir
 //   globalSetup apply migration (drizzle/) ก่อนเทสต์แรก — webServer ตรวจความพร้อมที่ /login (ไม่แตะ DB)
+// - R1: เซิร์ฟเวอร์ได้ pepper ทดสอบ (CI: PIN_PEPPER_V1 จาก ci-env.sh · เครื่อง: ค่าตายตัวที่ไม่ใช่ความลับ) · เทสต์สมัครผู้ใช้สุ่มต่อเทสต์ผ่าน API
+//   และใช้ x-real-ip สมมติต่อเทสต์เพื่อไม่ชน rate limit ต่อ IP (ดู tests/e2e/support/auth.ts)
 // - ภาพหน้าจอทุกหน้า × ภาษา × ธีม → test-results/ (+ แนบใน playwright-report/) = artifact ของ CI
 import { defineConfig, type PlaywrightTestConfig } from '@playwright/test';
 import { e2eServerEnv, E2E_BASE_URL, E2E_PORT } from './tests/e2e/support/env';
@@ -29,9 +31,11 @@ export default defineConfig({
   outputDir: 'test-results',
   fullyParallel: true,
   forbidOnly: isCI,
-  retries: isCI ? 1 : 0,
-  timeout: 30_000,
-  expect: { timeout: 5_000 },
+  // 2 รอบ: DB ไฟล์ของ E2E ไม่มี busy timeout ฝั่งแอป (src/db/client.ts ไม่ส่ง `timeout` ให้ createClient) → การเขียนซ้อนกันของหลาย worker
+  // ตอบ 500 เป็นครั้งคราว (Handoff D1) · ลดเหลือ 1 (CI)/0 (เครื่อง) เมื่อ Platform แก้แล้ว
+  retries: 2,
+  timeout: 60_000, // R1: signup/login hash argon2 + หลายหน้า/เครื่องต่อเทสต์ — runner 2 vCPU ที่ --workers=4 ช้ากว่า 30 วิ
+  expect: { timeout: 10_000 },
   reporter: isCI
     ? [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }], ['github']]
     : [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],

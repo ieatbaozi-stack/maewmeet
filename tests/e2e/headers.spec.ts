@@ -1,7 +1,8 @@
 // R0-16 — security headers จริงจาก `next start` (ไม่ใช่แค่อ่าน next.config.ts)
-import { expect, test, watchConsole } from './support/fixtures';
+import { signupViaApi, test, uniqueUsername } from './support/auth';
+import { expect, watchConsole } from './support/fixtures';
 
-const PATHS = ['/', '/login', '/me', '/no-such-page-r0', '/api/health'];
+const PATHS = ['/', '/login', '/signup', '/forgot', '/me', '/no-such-page-r0', '/api/health'];
 const TILE_ORIGIN = 'https://tile.openstreetmap.org';
 
 function parseCsp(header: string): Map<string, string[]> {
@@ -40,6 +41,19 @@ for (const path of PATHS) {
     expect(h['x-powered-by']).toBeUndefined();
   });
 }
+
+// R1: หน้าที่ต้องล็อกอินตอบ header ชุดเดียวกันเมื่อล็อกอินแล้ว (ไม่ใช่แค่ redirect ของผู้ไม่ได้ล็อกอิน)
+test('ล็อกอินแล้ว: / /me /admin/pin-resets (404 สำหรับผู้ใช้ทั่วไป) ได้ CSP + nosniff ครบ และไม่ถูก cache', async ({ context }) => {
+  await signupViaApi(context.request, { username: uniqueUsername() });
+  for (const path of ['/', '/me', '/admin/pin-resets']) {
+    const res = await context.request.get(path);
+    const h = res.headers();
+    expect(h['content-security-policy'], path).toBeTruthy();
+    expect(h['content-security-policy'], path).not.toContain('unsafe-eval');
+    expect(h['x-content-type-options'], path).toBe('nosniff');
+    expect(h['cache-control'] ?? '', path).not.toMatch(/public|s-maxage/);
+  }
+});
 
 test('/api/health ตอบ 200 บน DB ที่ migrate แล้ว (env ของ E2E ครบ)', async ({ request }) => {
   const res = await request.get('/api/health');

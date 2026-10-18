@@ -1,9 +1,14 @@
 // R0-11 — aurora: เลเยอร์ filter เดียว · ≤ 4 ก้อน · reduced-motion หยุด · แท็บไม่ active หยุด · ไม่มีสคริปต์ภายนอก
 // ไม่อิงชื่อ class: หาเลเยอร์จาก computed style (element เดียวในหน้าที่มี filter) แล้วนับลูกที่เคลื่อนไหว
 import type { Page } from '@playwright/test';
-import { expect, test } from './support/fixtures';
+import { test } from './support/auth';
+import { expect } from './support/fixtures';
 
-const AURORA_PAGES = ['/', '/me', '/calendar', '/groups', '/login', '/no-such-page-r0'];
+// R1: แท็บในแอปต้องล็อกอิน — หน้าที่ต้องล็อกอินสมัครผู้ใช้ใหม่ผ่าน API ก่อน (ไม่งั้นเทสต์จะวัดหน้า /login ซ้ำ ๆ)
+const ANON = { cookies: [], origins: [] };
+const NEEDS_LOGIN = new Set(['/', '/me', '/calendar', '/groups']);
+
+const AURORA_PAGES = ['/', '/me', '/calendar', '/groups', '/login', '/signup', '/forgot', '/no-such-page-r0'];
 
 /** ข้อมูลเลเยอร์ filter + animation ของลูก */
 async function auroraInfo(page: Page) {
@@ -25,8 +30,10 @@ async function auroraInfo(page: Page) {
 }
 
 for (const path of AURORA_PAGES) {
-  test(`${path}: เลเยอร์ filter เดียว ≤ 4 ก้อน ซ่อนจาก screen reader`, async ({ page }) => {
+  test(`${path}: เลเยอร์ filter เดียว ≤ 4 ก้อน ซ่อนจาก screen reader`, async ({ world, openAs }) => {
+    const { page } = await openAs(NEEDS_LOGIN.has(path) ? world.user : ANON);
     await page.goto(path, { waitUntil: 'networkidle' });
+    await expect(page).toHaveURL(new RegExp(`${path === '/' ? '/$' : path}$`));
     const a = await auroraInfo(page);
     expect(a.filterLayers).toBe(1);
     expect(a.blobs).toBeGreaterThanOrEqual(1);
@@ -35,7 +42,8 @@ for (const path of AURORA_PAGES) {
     expect(a.fixed).toBe('fixed');
   });
 
-  test(`${path}: ไม่มี <script src> จากโดเมนภายนอก และไม่โหลดสคริปต์ภายนอก`, async ({ page, baseURL }) => {
+  test(`${path}: ไม่มี <script src> จากโดเมนภายนอก และไม่โหลดสคริปต์ภายนอก`, async ({ world, openAs, baseURL }) => {
+    const { page } = await openAs(NEEDS_LOGIN.has(path) ? world.user : ANON);
     const origin = new URL(baseURL!).origin;
     const external: string[] = [];
     page.on('request', (r) => {
@@ -52,7 +60,7 @@ for (const path of AURORA_PAGES) {
 test('เคลื่อนไหวตามปกติเมื่อไม่ได้ลดการเคลื่อนไหว', async ({ browser }) => {
   const ctx = await browser.newContext({ reducedMotion: 'no-preference' });
   const page = await ctx.newPage();
-  await page.goto('/', { waitUntil: 'networkidle' });
+  await page.goto('/login', { waitUntil: 'networkidle' });
   const a = await auroraInfo(page);
   expect(a.animating).toBeGreaterThan(0);
   expect(a.animNames.some((n) => n !== 'none')).toBe(true);
@@ -62,7 +70,7 @@ test('เคลื่อนไหวตามปกติเมื่อไม�
 test('prefers-reduced-motion: reduce → animation หยุดนิ่ง', async ({ browser }) => {
   const ctx = await browser.newContext({ reducedMotion: 'reduce' });
   const page = await ctx.newPage();
-  for (const path of ['/', '/login']) {
+  for (const path of ['/login', '/signup']) {
     await page.goto(path, { waitUntil: 'networkidle' });
     const a = await auroraInfo(page);
     expect(a.animating, path).toBe(0);
@@ -74,7 +82,7 @@ test('prefers-reduced-motion: reduce → animation หยุดนิ่ง', as
 test('แท็บไม่ active (visibilitychange) → animation หยุด และกลับมาเล่นต่อ', async ({ browser }) => {
   const ctx = await browser.newContext({ reducedMotion: 'no-preference' });
   const page = await ctx.newPage();
-  await page.goto('/', { waitUntil: 'networkidle' });
+  await page.goto('/login', { waitUntil: 'networkidle' });
   const setHidden = (hidden: boolean) =>
     page.evaluate((h) => {
       Object.defineProperty(document, 'hidden', { configurable: true, get: () => h });
