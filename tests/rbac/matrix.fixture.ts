@@ -178,8 +178,8 @@ export const MATRIX = {
       'target:moderator': r(OK, OK, OK, FB, FB, NF, AUTH),
       // GA: admin มีคนเดียว = ตัวเอง → ดู target:self
       'target:admin': r(ATR, ATR, NA, FB, FB, NF, AUTH),
-      // SA_member ลบตัวเอง: SA "ทุกคน" (ตรงตัวอักษร PRD — ดูคำถามถึง Lead) · GA "ยกเว้นตัวเอง"
-      'target:self': r(NA, OK, FB, FB, FB, NA, NA),
+      // R1_CONTRACT §3 ข้อ 1 (Lead): ลบตัวเองผ่าน member.remove ไม่ได้ทุกคนรวม SA → ใช้ group.leave + กฎ D8
+      'target:self': r(NA, FB, FB, FB, FB, NA, NA),
     },
   },
   'group.update': {
@@ -194,7 +194,8 @@ export const MATRIX = {
       'target:member': r(OK, OK, OK, FB, FB, NF, AUTH),
       'target:moderator': r(OK, OK, OK, FB, FB, NF, AUTH),
       'target:admin': r(FB, FB, NA, FB, FB, NF, AUTH),
-      'target:self': r(NA, OK, FB, FB, FB, NA, NA),
+      // R1_CONTRACT §3 ข้อ 1: เปลี่ยน role ตัวเองไม่ได้ทุกคนรวม SA
+      'target:self': r(NA, FB, FB, FB, FB, NA, NA),
     },
   },
   'group.transferAdmin': {
@@ -241,5 +242,13 @@ export const MATRIX = {
 /** action ที่ระหว่าง must_change_pin ยังทำได้ (PRD U3 + ADR 0003 เพิ่ม prefs.cookie.set) */
 export const EXPECT_PIN_CHANGE_ALLOWED: readonly Action[] = ['self.pin.change', 'auth.logout', 'prefs.cookie.set'];
 
-/** action ที่ SA ทำแล้วต้องลง audit (ADR 0003 Test requirements: audit) — ใช้ตรวจธง auditAsSuperAdmin */
-export const EXPECT_SA_AUDITED_SA_ONLY: readonly Action[] = ['pinReset.decide', 'admin.user.suspend', 'admin.user.unlock'];
+/**
+ * action ที่ SA ทำแล้วต้องลง audit (ADR 0003 Test requirements: audit) — ใช้ตรวจธง auditAsSuperAdmin
+ * R1_CONTRACT §3 ข้อ 4: เพิ่ม admin.audit.view (การเปิดดู audit เป็นเรื่องอ่อนไหว)
+ */
+export const EXPECT_SA_AUDITED_SA_ONLY: readonly Action[] = [
+  'pinReset.decide',
+  'admin.user.suspend',
+  'admin.user.unlock',
+  'admin.audit.view',
+];

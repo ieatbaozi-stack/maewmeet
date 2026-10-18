@@ -283,10 +283,30 @@ describe('กรณีขอบ', () => {
     expect(can(user('ga'), 'group.leave', { type: 'group', group: g('moderator') })).toMatchObject({ allow: true });
   });
 
-  it('SA ที่เป็น group admin ลบตัวเอง → 409 (D8 ใช้กับทุกคน)', () => {
+  it('R1 §3 ข้อ 1: SA ลบ/เปลี่ยน role ตัวเองผ่าน member.remove / member.setRole → 403 ทุก role ในกลุ่ม · ใช้ group.leave + D8 แทน', () => {
+    for (const actorRole of [null, 'member', 'moderator', 'admin'] as const) {
+      const targetRole: GroupRole = actorRole ?? 'member';
+      for (const action of ['member.remove', 'member.setRole'] as const) {
+        expect(
+          can(sa('s'), action, { type: 'member', group: g(actorRole), targetUserId: 's', targetRole }),
+          `${action}/${String(actorRole)}`,
+        ).toEqual({ allow: false, code: 'FORBIDDEN', status: 403 });
+      }
+    }
+    // เส้นทางที่ถูกต้อง: SA ที่เป็น admin ออกเองต้องโอนก่อน (D8) · เป็น member ออกได้
+    expect(can(sa('s'), 'group.leave', { type: 'group', group: g('admin') })).toMatchObject({ code: 'ADMIN_TRANSFER_REQUIRED' });
+    expect(can(sa('s'), 'group.leave', { type: 'group', group: g('member') })).toMatchObject({ allow: true });
+    // SA ทำกับคนอื่นยังได้ (ไม่กระทบ Q2: เป้าหมาย admin คนอื่น → 409)
     expect(
-      can(sa('s'), 'member.remove', { type: 'member', group: g('admin'), targetUserId: 's', targetRole: 'admin' }),
-    ).toMatchObject({ allow: false, code: 'ADMIN_TRANSFER_REQUIRED' });
+      can(sa('s'), 'member.remove', { type: 'member', group: g('member'), targetUserId: 'x', targetRole: 'member' }),
+    ).toMatchObject({ allow: true });
+  });
+
+  it('R1 §3 ข้อ 4: admin.audit.view ติดธง audit (การเปิดดู audit ถูกบันทึก) · list อื่นยังไม่ติด', () => {
+    expect(can(sa(), 'admin.audit.view', { type: 'none' })).toEqual({ allow: true, auditAsSuperAdmin: true });
+    for (const a of ['pinReset.list', 'admin.console.view', 'admin.user.list', 'admin.group.list'] as const) {
+      expect(can(sa(), a, { type: 'none' })).toEqual({ allow: true, auditAsSuperAdmin: false });
+    }
   });
 
   it('D4: member แก้/ยกเลิกนัดของตัวเองได้ ของคนอื่นไม่ได้', () => {

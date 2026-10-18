@@ -109,12 +109,14 @@ export const SUPER_ADMIN_ONLY = [
 /**
  * action เฉพาะ super admin ที่เปลี่ยนข้อมูลของผู้ใช้อื่น → `auditAsSuperAdmin: true`
  * (PRD §3 กติกาเสริม "ทุกการกระทำของ super admin ต่อกลุ่ม/ผู้ใช้อื่น ลง audit log")
- * action ดูรายการ (list/view) ไม่ติดธง — ดูคำถามถึง Lead ในรายงาน R0
+ * action ดูรายการ (list/view) ไม่ติดธง ยกเว้น `admin.audit.view` — การเปิดดู audit เป็นเรื่องอ่อนไหว
+ * (R1_CONTRACT §3 ข้อ 4, Lead ตัดสิน)
  */
 export const SUPER_ADMIN_AUDITED = [
   'pinReset.decide',
   'admin.user.suspend',
   'admin.user.unlock',
+  'admin.audit.view',
 ] as const satisfies readonly (typeof SUPER_ADMIN_ONLY)[number][];
 
 /** ชนิด resource (ดู `Resource` ใน types.ts) */

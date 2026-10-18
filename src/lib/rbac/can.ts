@@ -104,6 +104,8 @@ const superAdminAction =
 /** §3 แถว 12 (D7, Q2) */
 const memberRemove: Rule<MemberResource> = inGroup<MemberResource>(({ actor, role, sa, resource }) => {
   const isSelf = resource.targetUserId === actor.id;
+  // R1_CONTRACT §3 ข้อ 1: ลบตัวเองผ่าน member.remove ไม่ได้ทุกคนรวม SA — ใช้ group.leave (และกฎ D8) แทน
+  if (isSelf) return deny('FORBIDDEN');
   const roleAllows =
     (role === 'admin' && !isSelf) || // GA: ทุกคนยกเว้นตัวเอง
     (role === 'moderator' && !isSelf && resource.targetRole === 'member'); // MOD: เฉพาะ member (D7)
@@ -115,7 +117,9 @@ const memberRemove: Rule<MemberResource> = inGroup<MemberResource>(({ actor, rol
 });
 
 /** §3 แถว 14 — member ↔ moderator เท่านั้น เป้าหมายไม่ใช่ admin */
-const memberSetRole: Rule<MemberResource> = inGroup<MemberResource>(({ role, sa, resource }) => {
+const memberSetRole: Rule<MemberResource> = inGroup<MemberResource>(({ actor, role, sa, resource }) => {
+  // R1_CONTRACT §3 ข้อ 1: เปลี่ยน role ตัวเองไม่ได้ทุกคนรวม SA
+  if (resource.targetUserId === actor.id) return deny('FORBIDDEN');
   const decision = grant(role === 'admin', sa);
   if (!decision.allow) return decision;
   if (resource.targetRole === 'admin') return deny('FORBIDDEN');
