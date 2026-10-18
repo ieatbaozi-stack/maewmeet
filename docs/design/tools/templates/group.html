@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-m="group.settings"></title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/members.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<!--MESSAGES_EN-->
+</head>
+<body>
+<div class="aurora" data-intensity="soft" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<div class="app">
+  <header class="topbar">
+    <a class="icon-btn" href="groups.html" data-m-aria="group.back"><i data-icon="chevron-left"></i></a>
+    <span class="title" style="font-size: var(--text-lg)"></span>
+    <a class="icon-btn" href="group-settings.html" data-m-aria="group.settings"><i data-icon="settings"></i></a>
+  </header>
+  <main class="main" style="padding: 0">
+    <div class="group-head">
+      <h1>แก๊งมัธยม ห้อง 6/3</h1>
+      <p class="meta" data-state-show="normal"><span data-m="groups.memberCount" data-m-v='{"count":6}'></span><span>·</span><span data-m="group.yourRole" data-m-v='{"role":"admin"}'></span></p>
+      <p class="meta" data-state-show="member" hidden><span data-m="groups.memberCount" data-m-v='{"count":6}'></span><span>·</span><span data-m="group.yourRole" data-m-v='{"role":"member"}'></span></p>
+      <p class="meta" data-state-show="solo" hidden><span data-m="groups.memberCount" data-m-v='{"count":1}'></span><span>·</span><span data-m="group.yourRole" data-m-v='{"role":"admin"}'></span></p>
+    </div>
+    <div style="padding: 0 var(--gutter); max-width: var(--content-max); margin: 0 auto">
+      <div data-state-show="normal member" class="btn-row" style="margin-top: 0">
+        <button class="btn btn-primary"><i data-icon="user-plus"></i><span data-m="group.invite"></span></button>
+      </div>
+
+      <section data-state-show="normal member" aria-labelledby="mem-h">
+        <h2 class="h-section" id="mem-h" style="margin-bottom: var(--space-3)" data-m="group.members.title"></h2>
+        <ul class="rows m-rows" data-state-show="normal">
+        <li><div class="row" role="group" aria-label="ต้นข้าว">
+          <span class="member-avatar lg" data-slot="1" aria-hidden="true"><span class="member-initial">ต</span></span>
+          <span class="row-main"><span class="row-title">ต้นข้าว</span><span class="you"><span data-m="group.members.you"></span></span><span class="tag tag-role is-admin"><i data-icon="crown" class="sm"></i><span data-m="roles.admin"></span></span></span>
+          </div></li>
+        <li><div class="row" role="group" aria-label="ปาล์ม">
+          <span class="member-avatar lg" data-slot="3" aria-hidden="true"><span class="member-initial">ป</span></span>
+          <span class="row-main"><span class="row-title">ปาล์ม</span><span class="tag tag-role"><i data-icon="shield" class="sm"></i><span data-m="roles.moderator"></span></span></span>
+          <button class="icon-btn" data-m-aria="group.members.actionsAria" data-m-v='{"name": "ปาล์ม"}'><i data-icon="ellipsis"></i></button></div></li>
+        <li><div class="row" role="group" aria-label="มายด์">
+          <span class="member-avatar lg" data-slot="5" aria-hidden="true"><span class="member-initial">ม</span></span>
+          <span class="row-main"><span class="row-title">มายด์</span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span>
+          <button class="icon-btn" data-m-aria="group.members.actionsAria" data-m-v='{"name": "มายด์"}'><i data-icon="ellipsis"></i></button></div></li>
+        <li><div class="row" role="group" aria-label="โอ๊ต">
+          <span class="member-avatar lg" data-slot="8" aria-hidden="true"><span class="member-initial">อ</span></span>
+          <span class="row-main"><span class="row-title">โอ๊ต</span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span>
+          <button class="icon-btn" data-m-aria="group.members.actionsAria" data-m-v='{"name": "โอ๊ต"}'><i data-icon="ellipsis"></i></button></div></li>
+        <li><div class="row" role="group" aria-label="ฟ้า">
+          <span class="member-avatar lg" data-slot="10" aria-hidden="true"><span class="member-initial">ฟ</span></span>
+          <span class="row-main"><span class="row-title">ฟ้า</span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span>
+          <button class="icon-btn" data-m-aria="group.members.actionsAria" data-m-v='{"name": "ฟ้า"}'><i data-icon="ellipsis"></i></button></div></li>
+        <li><div class="row" role="group" aria-label="บีม">
+          <span class="member-avatar lg" data-slot="2" aria-hidden="true"><span class="member-initial">บ</span></span>
+          <span class="row-main"><span class="row-title">บีม</span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span>
+          <button class="icon-btn" data-m-aria="group.members.actionsAria" data-m-v='{"name": "บีม"}'><i data-icon="ellipsis"></i></button></div></li>
+        </ul>
+        <ul class="rows m-rows" data-state-show="member" hidden>
+        <li><div class="row" role="group" aria-label="ต้นข้าว">
+          <span class="member-avatar lg" data-slot="1" aria-hidden="true"><span class="member-initial">ต</span></span>
+          <span class="row-main"><span class="row-title">ต้นข้าว</span><span class="tag tag-role is-admin"><i data-icon="crown" class="sm"></i><span data-m="roles.admin"></span></span></span>
+          </div></li>
+        <li><div class="row" role="group" aria-label="ปาล์ม">
+          <span class="member-avatar lg" data-slot="3" aria-hidden="true"><span class="member-initial">ป</span></span>
+          <span class="row-main"><span class="row-title">ปาล์ม</span><span class="tag tag-role"><i data-icon="shield" class="sm"></i><span data-m="roles.moderator"></span></span></span>
+          </div></li>
+        <li><div class="row" role="group" aria-label="มายด์">
+          <span class="member-avatar lg" data-slot="5" aria-hidden="true"><span class="member-initial">ม</span></span>
+          <span class="row-main"><span class="row-title">มายด์</span><span class="you"><span data-m="group.members.you"></span></span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span>
+          </div></li>
+        <li><div class="row" role="group" aria-label="โอ๊ต">
+          <span class="member-avatar lg" data-slot="8" aria-hidden="true"><span class="member-initial">อ</span></span>
+          <span class="row-main"><span class="row-title">โอ๊ต</span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span>
+          </div></li>
+        <li><div class="row" role="group" aria-label="ฟ้า">
+          <span class="member-avatar lg" data-slot="10" aria-hidden="true"><span class="member-initial">ฟ</span></span>
+          <span class="row-main"><span class="row-title">ฟ้า</span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span>
+          </div></li>
+        <li><div class="row" role="group" aria-label="บีม">
+          <span class="member-avatar lg" data-slot="2" aria-hidden="true"><span class="member-initial">บ</span></span>
+          <span class="row-main"><span class="row-title">บีม</span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span>
+          </div></li>
+        </ul>
+      </section>
+
+      <!-- เหลือคนเดียว -->
+      <section data-state-show="solo" hidden class="empty panel" style="margin-top: var(--space-2)">
+        <i data-cat="sit"></i>
+        <h2 class="h-section" data-m="group.solo.title"></h2>
+        <p class="muted" data-m="group.solo.body"></p>
+        <button class="btn btn-primary"><i data-icon="user-plus"></i><span data-m="group.invite"></span></button>
+      </section>
+      <section data-state-show="solo" hidden aria-labelledby="mem2-h" style="margin-top: var(--space-5)">
+        <h2 class="h-section" id="mem2-h" style="margin-bottom: var(--space-3)" data-m="group.members.title"></h2>
+        <ul class="rows m-rows">
+        <li><div class="row" role="group" aria-label="ต้นข้าว">
+          <span class="member-avatar lg" data-slot="1" aria-hidden="true"><span class="member-initial">ต</span></span>
+          <span class="row-main"><span class="row-title">ต้นข้าว</span><span class="you"><span data-m="group.members.you"></span></span><span class="tag tag-role is-admin"><i data-icon="crown" class="sm"></i><span data-m="roles.admin"></span></span></span>
+          </div></li>
+        </ul>
+      </section>
+
+      <!-- ที่ว่างของปฏิทิน (R3–R4) -->
+      <section data-state-show="normal member" class="panel soon" aria-labelledby="soon-h">
+        <i data-cat="calendar"></i>
+        <div><h2 class="h-section" id="soon-h" data-m="group.calendarSoon.title"></h2><p data-m="group.calendarSoon.body"></p></div>
+      </section>
+    </div>
+  </main>
+  <nav class="tabbar" data-m-aria="nav.label">
+    <a class="tab" href="home.html"><i data-icon="house"></i><span data-m="nav.home"></span></a>
+    <a class="tab" href="calendar.html"><i data-icon="calendar"></i><span data-m="nav.calendar"></span></a>
+    <a class="tab" href="groups.html" aria-current="page"><i data-icon="users"></i><span data-m="nav.groups"></span></a>
+    <a class="tab" href="#"><i data-icon="user"></i><span data-m="nav.me"></span></a>
+  </nav>
+</div>
+</body>
+</html>

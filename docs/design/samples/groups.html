@@ -1,0 +1,140 @@
+<!-- สร้างจาก docs/design/tools/templates/groups.html ด้วย build-samples.mjs — แก้ที่ template -->
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-t="groups.title">กลุ่ม</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/members.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<script>window.MESSAGES_EN = Object.assign(window.MESSAGES_EN || {}, {"groups.title":"Groups","groups.create":"New group","groups.join.cta":"Enter invite code","groups.invites.title":"Invites for you","groups.invites.item~1":"ปาล์ม invited you to “ก๊วนแบดสวนลุม”","groups.invites.expires~2":"Expires 25 Oct 2026","groups.invites.accept~3":"Join","groups.invites.decline~4":"Decline","groups.invites.item~5":"beam_88 invited you to “ทีมงานแต่งงานน้องมายด์และคุณโอ๊ต ฝั่งเจ้าสาว”","groups.invites.accept~6":"Join","groups.invites.decline~7":"Decline","groups.listLabel":"Your groups","groups.memberCount~8":"6 members","group.yourRole~9":"You’re an admin","groups.memberCount~10":"12 members","group.yourRole~11":"You’re a member","groups.memberCount~12":"3 members","group.yourRole~13":"You’re a moderator","groups.memberCount~14":"48 members","empty.groups.title":"You’re not in a group yet","empty.groups.body":"Create a group, then bring friends in with an invite code.","empty.groups.cta":"Create a group","empty.groups.joinCode":"Got an invite code? Enter it","states.loading":"Loading…","nav.home":"Home","nav.calendar":"Calendar","nav.groups":"Groups","nav.me":"Me","groups.createSheet.title":"New group","groups.createSheet.name":"Group name","groups.createSheet.hint~15":"Up to 40 characters. Everyone in the group sees this name.","groups.createSheet.role":"You’ll be the admin of this group, and you can rename it later.","groups.createSheet.submit":"Create group","common.cancel":"Cancel","groups.join.title":"Join with an invite code","groups.join.label":"Invite code","errors.INVITE_INVALID":"This code doesn’t work. Ask someone in the group for a new one.","groups.join.hint":"Ask someone in the group for it. Capitals and the dash are optional. Codes never use 0, O, 1, I or L, so nothing gets mixed up.","groups.join.submit":"Join group","groups.invites.acceptAria~16":"Join “ก๊วนแบดสวนลุม”","groups.invites.declineAria~17":"Decline the invite to “ก๊วนแบดสวนลุม”","groups.invites.acceptAria~18":"Join “ทีมงานแต่งงานน้องมายด์และคุณโอ๊ต ฝั่งเจ้าสาว”","groups.invites.declineAria~19":"Decline the invite to “ทีมงานแต่งงานน้องมายด์และคุณโอ๊ต ฝั่งเจ้าสาว”","nav.label":"Main menu","a11y.close":"Close","groups.createSheet.placeholder":"e.g. Saturday badminton crew","groups.join.placeholder":"e.g. K7QM-3RXA"});</script>
+</head>
+<body>
+<div class="aurora" data-intensity="soft" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<div class="app">
+  <header class="topbar">
+    <h1 class="title" data-t="groups.title">กลุ่ม</h1>
+  </header>
+  <main class="main">
+    <div class="btn-row" data-state-show="normal list invites loading">
+      <button class="btn btn-primary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14" /> <path d="M12 5v14" /></svg><span data-t="groups.create">สร้างกลุ่ม</span></button>
+      <button class="btn btn-secondary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" /> <path d="m21 2-9.6 9.6" /> <circle cx="7.5" cy="15.5" r="5.5" /></svg><span data-t="groups.join.cta">ใส่โค้ดเชิญ</span></button>
+    </div>
+
+    <!-- คำเชิญตรงที่ค้าง -->
+    <section data-state-show="normal invites" aria-labelledby="inv-h">
+      <h2 class="h-section" id="inv-h" data-t="groups.invites.title">คำเชิญถึงคุณ</h2>
+      <article class="panel invite-card">
+        <div><p class="who-line"><span data-t="groups.invites.item~1">ปาล์ม ชวนคุณเข้ากลุ่ม “ก๊วนแบดสวนลุม”</span></p><p class="small muted"><span data-t="groups.invites.expires~2">หมดอายุ 25 ต.ค. 2569</span></p></div>
+        <div class="actions">
+          <button class="btn btn-primary" data-t="groups.invites.accept~3" aria-label="เข้าร่วมกลุ่ม “ก๊วนแบดสวนลุม”" data-t-aria="groups.invites.acceptAria~16">เข้าร่วม</button>
+          <button class="btn btn-secondary" data-t="groups.invites.decline~4" aria-label="ปฏิเสธคำเชิญเข้ากลุ่ม “ก๊วนแบดสวนลุม”" data-t-aria="groups.invites.declineAria~17">ปฏิเสธ</button>
+        </div>
+      </article>
+      <article class="panel invite-card">
+        <div><p class="who-line"><span data-t="groups.invites.item~5">beam_88 ชวนคุณเข้ากลุ่ม “ทีมงานแต่งงานน้องมายด์และคุณโอ๊ต ฝั่งเจ้าสาว”</span></p><p class="small muted"><span data-t="groups.invites.expires~2">หมดอายุ 25 ต.ค. 2569</span></p></div>
+        <div class="actions">
+          <button class="btn btn-primary" data-t="groups.invites.accept~6" aria-label="เข้าร่วมกลุ่ม “ทีมงานแต่งงานน้องมายด์และคุณโอ๊ต ฝั่งเจ้าสาว”" data-t-aria="groups.invites.acceptAria~18">เข้าร่วม</button>
+          <button class="btn btn-secondary" data-t="groups.invites.decline~7" aria-label="ปฏิเสธคำเชิญเข้ากลุ่ม “ทีมงานแต่งงานน้องมายด์และคุณโอ๊ต ฝั่งเจ้าสาว”" data-t-aria="groups.invites.declineAria~19">ปฏิเสธ</button>
+        </div>
+      </article>
+    </section>
+
+    <!-- รายการกลุ่ม -->
+    <section data-state-show="normal list invites" aria-labelledby="gl-h" style="margin-top: var(--space-5)">
+      <h2 class="h-section" id="gl-h" data-t="groups.listLabel">กลุ่มของคุณ</h2>
+      <ul class="rows group-rows" style="margin-top: var(--space-3)">
+        <li><a class="row" href="group.html" aria-label="แก๊งมัธยม ห้อง 6/3">
+          <span class="mstack"><span class="member-avatar sm" data-slot="1" aria-hidden="true"><span class="member-initial">ต</span></span><span class="member-avatar sm" data-slot="3" aria-hidden="true"><span class="member-initial">ป</span></span><span class="member-avatar sm" data-slot="5" aria-hidden="true"><span class="member-initial">ม</span></span></span>
+          <span class="row-main"><span class="row-title">แก๊งมัธยม ห้อง 6/3</span><span class="row-meta"><span data-t="groups.memberCount~8">6 คน</span> · <span data-t="group.yourRole~9">คุณเป็นผู้ดูแล</span></span></span>
+          <svg class="icon chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6" /></svg></a></li>
+        <li><a class="row" href="group.html" aria-label="ก๊วนแบดสวนลุม">
+          <span class="mstack"><span class="member-avatar sm" data-slot="2" aria-hidden="true"><span class="member-initial">บ</span></span><span class="member-avatar sm" data-slot="10" aria-hidden="true"><span class="member-initial">ฟ</span></span><span class="member-avatar sm" data-slot="8" aria-hidden="true"><span class="member-initial">อ</span></span></span>
+          <span class="row-main"><span class="row-title">ก๊วนแบดสวนลุม</span><span class="row-meta"><span data-t="groups.memberCount~10">12 คน</span> · <span data-t="group.yourRole~11">คุณเป็นสมาชิก</span></span></span>
+          <svg class="icon chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6" /></svg></a></li>
+        <li><a class="row" href="group.html" aria-label="บ้านเรา">
+          <span class="mstack"><span class="member-avatar sm" data-slot="4" aria-hidden="true"><span class="member-initial">ย</span></span><span class="member-avatar sm" data-slot="6" aria-hidden="true"><span class="member-initial">ม</span></span><span class="member-avatar sm" data-slot="9" aria-hidden="true"><span class="member-initial">ต</span></span></span>
+          <span class="row-main"><span class="row-title">บ้านเรา</span><span class="row-meta"><span data-t="groups.memberCount~12">3 คน</span> · <span data-t="group.yourRole~13">คุณเป็นผู้ช่วยดูแล</span></span></span>
+          <svg class="icon chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6" /></svg></a></li>
+        <li><a class="row" href="group.html" aria-label="ทีมงานแต่งงานน้องมายด์และคุณโอ๊ต ฝั่งเจ้าสาว">
+          <span class="mstack"><span class="member-avatar sm" data-slot="7" aria-hidden="true"><span class="member-initial">ก</span></span><span class="member-avatar sm" data-slot="3" aria-hidden="true"><span class="member-initial">ข</span></span><span class="member-avatar sm" data-slot="1" aria-hidden="true"><span class="member-initial">ส</span></span></span>
+          <span class="row-main"><span class="row-title">ทีมงานแต่งงานน้องมายด์และคุณโอ๊ต ฝั่งเจ้าสาว</span><span class="row-meta"><span data-t="groups.memberCount~14">48 คน</span> · <span data-t="group.yourRole~11">คุณเป็นสมาชิก</span></span></span>
+          <svg class="icon chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6" /></svg></a></li>
+      </ul>
+    </section>
+
+    <!-- ว่าง -->
+    <div data-state-show="empty" hidden class="empty panel" style="margin-top: var(--space-5)">
+      <svg class="cat" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(0 20)"><path d="M40 50 C38 40 39 30 42 19 L54 27 C58 26 62 26 66 27 L78 19 C81 30 82 40 80 50 C78 60 70 65 60 65 C50 65 42 60 40 50 Z" fill="var(--cat-coat)"/><path d="M44.5 25 L45.5 33 L51 28.5 Z" fill="var(--cat-fill)" stroke="none"/><path d="M75.5 25 L74.5 33 L69 28.5 Z" fill="var(--cat-fill)" stroke="none"/><circle cx="46.5" cy="53.5" r="3.2" fill="var(--cat-fill)" stroke="none"/><circle cx="73.5" cy="53.5" r="3.2" fill="var(--cat-fill)" stroke="none"/><circle cx="52" cy="46" r="2.3" fill="currentColor" stroke="none"/><circle cx="68" cy="46" r="2.3" fill="currentColor" stroke="none"/><path d="M58.3 51.5 L61.7 51.5 L60 53.3 Z" fill="currentColor" stroke="none"/><path d="M60 53.5 Q58 56.5 55.8 55" fill="none"/><path d="M60 53.5 Q62 56.5 64.2 55" fill="none"/></g><path d="M12 86 L108 86" fill="none"/><path d="M42 86 C42 79 51 79 51 86" fill="var(--cat-coat)"/><path d="M69 86 C69 79 78 79 78 86" fill="var(--cat-coat)"/>
+</svg>
+      <h2 class="h-section" data-t="empty.groups.title">ยังไม่มีกลุ่ม</h2>
+      <p class="muted" data-t="empty.groups.body">สร้างกลุ่มแล้วชวนเพื่อนเข้ามาด้วยโค้ดเชิญ</p>
+      <button class="btn btn-primary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14" /> <path d="M12 5v14" /></svg><span data-t="empty.groups.cta">สร้างกลุ่ม</span></button>
+      <button class="btn btn-text" style="min-height: var(--tap)" data-t="empty.groups.joinCode">มีโค้ดเชิญ? ใส่โค้ด</button>
+    </div>
+
+    <!-- โหลด -->
+    <div data-state-show="loading" hidden aria-busy="true">
+      <div class="skeleton" style="height: calc(var(--space-7) * 1.5); margin-top: var(--space-3)"></div>
+      <div class="skeleton" style="height: calc(var(--space-7) * 1.5); margin-top: var(--space-3)"></div>
+      <div class="skeleton" style="height: calc(var(--space-7) * 1.5); margin-top: var(--space-3)"></div>
+      <p class="loading-note" role="status" data-t="states.loading">กำลังโหลด…</p>
+    </div>
+  </main>
+
+  <nav class="tabbar" aria-label="เมนูหลัก" data-t-aria="nav.label">
+    <a class="tab" href="home.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /> <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg><span data-t="nav.home">หน้าหลัก</span></a>
+    <a class="tab" href="calendar.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 2v3" /> <path d="M16 2v3" /> <rect x="3" y="3" width="18" height="18" rx="2" /> <path d="M3 9h18" /></svg><span data-t="nav.calendar">ปฏิทิน</span></a>
+    <a class="tab" href="groups.html" aria-current="page"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /> <path d="M16 3.128a4 4 0 0 1 0 7.744" /> <path d="M22 21v-2a4 4 0 0 0-3-3.87" /> <circle cx="9" cy="7" r="4" /></svg><span data-t="nav.groups">กลุ่ม</span></a>
+    <a class="tab" href="#"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="nav.me">ฉัน</span></a>
+  </nav>
+
+  <!-- สร้างกลุ่ม (sheet) -->
+  <div data-state-show="create" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="cg-t">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="cg-t" data-t="groups.createSheet.title">สร้างกลุ่มใหม่</h2></div><button class="icon-btn" aria-label="ปิด" data-t-aria="a11y.close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 6 6 18" /> <path d="m6 6 12 12" /></svg></button></div>
+      <div class="sheet-body">
+        <div class="field" style="margin-top: 0">
+          <label for="cg-name" data-t="groups.createSheet.name">ชื่อกลุ่ม</label>
+          <div class="input"><input id="cg-name" class="input-bare" value="ก๊วนแบดวันเสาร์" placeholder="เช่น ก๊วนแบดวันเสาร์" data-t-ph="groups.createSheet.placeholder" aria-describedby="cg-hint"><span class="counter num">14/40</span></div>
+          <p class="field-hint" id="cg-hint" data-t="groups.createSheet.hint~15">ไม่เกิน 40 ตัวอักษร สมาชิกทุกคนจะเห็นชื่อนี้</p>
+        </div>
+        <p class="note-box"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z" /> <path d="M5 21h14" /></svg><span data-t="groups.createSheet.role">คุณจะเป็นผู้ดูแลของกลุ่มนี้ และเปลี่ยนชื่อได้ทีหลัง</span></p>
+      </div>
+      <div class="sheet-foot sheet-actions">
+        <button class="btn btn-primary btn-block" data-t="groups.createSheet.submit">สร้างกลุ่ม</button>
+        <button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)" data-t="common.cancel">ยกเลิก</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ใส่โค้ดเชิญ (sheet) + ข้อผิดพลาด INVITE_INVALID -->
+  <div data-state-show="join" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="jn-t">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="jn-t" data-t="groups.join.title">เข้ากลุ่มด้วยโค้ดเชิญ</h2></div><button class="icon-btn" aria-label="ปิด" data-t-aria="a11y.close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 6 6 18" /> <path d="m6 6 12 12" /></svg></button></div>
+      <div class="sheet-body">
+        <div class="field" style="margin-top: 0">
+          <label for="jn-code" data-t="groups.join.label">โค้ดเชิญ</label>
+          <div class="input" aria-invalid="true"><input id="jn-code" class="input-bare" value="K7QM-3RXB" placeholder="เช่น K7QM-3RXA" data-t-ph="groups.join.placeholder" aria-invalid="true" aria-describedby="jn-err jn-hint" autocapitalize="characters" autocomplete="off"></div>
+          <p class="field-error" id="jn-err" role="alert"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <line x1="12" x2="12" y1="8" y2="12" /> <line x1="12" x2="12.01" y1="16" y2="16" /></svg><span data-t="errors.INVITE_INVALID">ใช้โค้ดนี้ไม่ได้ ขอโค้ดใหม่จากเพื่อนในกลุ่ม</span></p>
+          <p class="field-hint" id="jn-hint" data-t="groups.join.hint">ขอโค้ดจากเพื่อนในกลุ่ม จะพิมพ์ตัวเล็กหรือไม่ใส่ขีดก็ได้ โค้ดไม่มี 0, O, 1, I, L จึงไม่ต้องกังวลว่าจะสับสน</p>
+        </div>
+      </div>
+      <div class="sheet-foot sheet-actions">
+        <button class="btn btn-primary btn-block" data-t="groups.join.submit">เข้ากลุ่ม</button>
+        <button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)" data-t="common.cancel">ยกเลิก</button>
+      </div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

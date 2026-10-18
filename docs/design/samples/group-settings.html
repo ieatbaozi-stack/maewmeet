@@ -1,0 +1,241 @@
+<!-- สร้างจาก docs/design/tools/templates/group-settings.html ด้วย build-samples.mjs — แก้ที่ template -->
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-t="groupSettings.title">ตั้งค่ากลุ่ม</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/members.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<script>window.MESSAGES_EN = Object.assign(window.MESSAGES_EN || {}, {"groupSettings.title":"Group settings","group.yourRole~1":"You’re an admin","groupSettings.name.title":"Group name","groupSettings.name.label":"Group name","groupSettings.name.hint~2":"Up to 40 characters","common.save":"Save","groupSettings.window.title":"Free-time window","groupSettings.window.body":"Used to find days when everyone’s free. It takes effect once the group calendar is live.","groupSettings.window.start":"From","groupSettings.window.end":"To","groupSettings.window.min":"Free for at least","groupSettings.window.durationHour~3":"2 hr","groupSettings.window.stepHint":"Pick in 30-minute steps","groupSettings.window.summary~4":"Only 08:00–22:00 counts, and we’ll show stretches when everyone’s free for at least 2 hr.","groupSettings.members.title":"Members and roles","group.members.you":"You","roles.admin":"Admin","roles.moderator":"Moderator","roles.member":"Member","groupSettings.invite.title":"Invite friends","groupSettings.invite.code.title":"Invite codes","groupSettings.invite.code.body":"Send a code to a friend and ask them to enter it in the Groups tab. Anyone can use it until it expires or is revoked.","groupSettings.invite.code.create":"Create new code","groupSettings.invite.code.listTitle":"Codes that still work","groupSettings.invite.code.hint~5":"Code ending 3RXA","groupSettings.invite.code.revoke~6":"Revoke","groupSettings.invite.code.expires~7":"Expires 25 Oct 2026","groupSettings.invite.code.usedCount~8":"Used by 2 people","groupSettings.invite.code.createdBy~9":"Created by ต้นข้าว","groupSettings.invite.code.hint~10":"Code ending W8PN","groupSettings.invite.code.revoke~11":"Revoke","groupSettings.invite.code.usedCount~12":"Not used yet","groupSettings.invite.code.createdBy~13":"Created by ปาล์ม","groupSettings.invite.direct.title":"Invite by username","groupSettings.invite.direct.label":"Friend’s username","groupSettings.invite.direct.hint":"Type their username, not their display name. They’ll see the invite in the Groups tab.","groupSettings.invite.direct.submit":"Send invite","groupSettings.invite.direct.pendingTitle":"Waiting for an answer","groupSettings.invite.direct.waiting~14":"Waiting for nong_fah","groupSettings.invite.direct.cancel~15":"Cancel invite","groups.invites.expires~16":"Expires 25 Oct 2026","groupSettings.transfer.title":"Hand over admin","groupSettings.transfer.body":"Pick the member who will be the new admin. You’ll become a moderator.","groupSettings.transfer.pick":"Choose a member","groupSettings.transfer.cta":"Hand over admin","groupSettings.leave.title":"Leave group","groupSettings.leave.adminBlocked":"You’re the admin of this group. Hand the admin role to someone else before you leave.","groupSettings.leave.cta":"Leave group","groupSettings.delete.title":"Delete group","groupSettings.delete.body":"Once deleted, nobody can open this group.","groupSettings.delete.cta":"Delete group","groupSettings.memberNote":"You’re a member, so group settings are view-only. You can still invite friends or leave.","groupSettings.invite.mineOnly":"You only see the codes you created.","groupSettings.invite.code.createdBy~17":"Created by มายด์","groupSettings.leave.body":"You’ll lose access to this group’s calendar and plans. To come back, someone has to invite you again or you need an invite code.","nav.home":"Home","nav.calendar":"Calendar","nav.groups":"Groups","nav.me":"Me","groupSettings.invite.sheet.title":"New invite code","groupSettings.invite.sheet.onceTitle":"You’ll only see this code once","groupSettings.invite.sheet.onceBody":"Once you close this, the full code is gone for good. Copy or share it now. If you miss it, revoke it and make a new one.","groupSettings.invite.sheet.copy":"Copy code","groupSettings.invite.sheet.share":"Share","groupSettings.invite.sheet.done":"Done","groupSettings.members.removeConfirm.title~18":"Remove โอ๊ต from the group?","groupSettings.members.removeConfirm.body~19":"โอ๊ต will lose access to this group straight away. They can come back if someone invites them again.","groupSettings.members.removeConfirm.confirm":"Remove","common.cancel":"Cancel","groupSettings.delete.confirm.title~20":"Delete “แก๊งมัธยม ห้อง 6/3”?","groupSettings.delete.confirm.body":"Everyone in the group loses access straight away, open invites and codes stop working, and you can’t bring the group back yourself.","groupSettings.delete.confirm.typeLabel":"Type the group name to confirm","groupSettings.delete.confirm.typeHint~21":"Type “แก๊งมัธยม ห้อง 6/3” exactly as it appears","groupSettings.delete.confirm.confirm":"Delete this group","groupSettings.members.manageTitle~22":"Manage ปาล์ม","roles.help.moderator":"Can rename the group, set the free-time window and remove members.","groupSettings.members.makeMember":"Make regular member","groupSettings.members.transfer":"Hand over admin to this person","groupSettings.members.remove":"Remove from group","groupSettings.back":"Back to the group","group.members.actionsAria~23":"Manage ปาล์ม","group.members.actionsAria~24":"Manage มายด์","group.members.actionsAria~25":"Manage โอ๊ต","group.members.actionsAria~26":"Manage ฟ้า","group.members.actionsAria~27":"Manage บีม","groupSettings.invite.code.revokeAria~28":"Revoke the code ending 3RXA","groupSettings.invite.code.revokeAria~29":"Revoke the code ending W8PN","groupSettings.invite.direct.cancelAria~30":"Cancel the invite to nong_fah","nav.label":"Main menu","a11y.close":"Close"});</script>
+</head>
+<body>
+<div class="aurora" data-intensity="soft" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<div class="app">
+  <header class="topbar">
+    <a class="icon-btn" href="group.html" aria-label="กลับไปหน้ากลุ่ม" data-t-aria="groupSettings.back"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 18-6-6 6-6" /></svg></a>
+    <h1 class="title" data-t="groupSettings.title">ตั้งค่ากลุ่ม</h1>
+  </header>
+  <main class="main" style="padding-top: 0">
+    <p class="muted small" style="margin-bottom: var(--space-2)">แก๊งมัธยม ห้อง 6/3 · <span data-t="group.yourRole~1" data-state-ignore>คุณเป็นผู้ดูแล</span></p>
+    <div data-state-show="normal admin invite confirm delete actions">
+    <section class="set-sec" aria-labelledby="s-name">
+      <h2 id="s-name" data-t="groupSettings.name.title">ชื่อกลุ่ม</h2>
+      <div class="field">
+        <label for="gn" data-t="groupSettings.name.label">ชื่อกลุ่ม</label>
+        <div class="input"><input id="gn" class="input-bare" value="แก๊งมัธยม ห้อง 6/3" aria-describedby="gn-h"><span class="counter num">17/40</span></div>
+        <p class="field-hint" id="gn-h" data-t="groupSettings.name.hint~2">ไม่เกิน 40 ตัวอักษร</p>
+      </div>
+      <button class="btn btn-primary" data-t="common.save">บันทึก</button>
+    </section>
+
+    <section class="set-sec" aria-labelledby="s-win">
+      <h2 id="s-win" data-t="groupSettings.window.title">ช่วงเวลาที่นับว่าว่าง</h2>
+      <p class="lead" data-t="groupSettings.window.body">ใช้หาวันที่ทุกคนว่างตรงกัน ค่านี้จะเริ่มมีผลเมื่อปฏิทินกลุ่มเปิดใช้</p>
+      <div class="pair2">
+        <div class="field"><span class="label" id="w1" data-t="groupSettings.window.start">ตั้งแต่</span><div class="input select" role="button" tabindex="0"><span>08:00</span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6" /></svg></div></div>
+        <div class="field"><span class="label" id="w2" data-t="groupSettings.window.end">ถึง</span><div class="input select" role="button" tabindex="0"><span>22:00</span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6" /></svg></div></div>
+      </div>
+      <div class="field"><span class="label" id="w3" data-t="groupSettings.window.min">ต้องว่างต่อเนื่องอย่างน้อย</span><div class="input select" role="button" tabindex="0"><span><span data-t="groupSettings.window.durationHour~3">2 ชม.</span></span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6" /></svg></div></div>
+      <p class="field-hint" data-t="groupSettings.window.stepHint">เลือกได้ทีละ 30 นาที</p>
+      <p class="field-hint" data-t="groupSettings.window.summary~4">ระบบจะนับเฉพาะช่วง 08:00–22:00 และแสดงช่วงที่ทุกคนว่างต่อเนื่องอย่างน้อย 2 ชม.</p>
+      <button class="btn btn-primary" data-t="common.save">บันทึก</button>
+    </section>
+
+    <section class="set-sec" aria-labelledby="s-mem">
+      <h2 id="s-mem" data-t="groupSettings.members.title">สมาชิกและบทบาท</h2>
+      <ul class="rows m-rows">
+          <li><div class="row" role="group" aria-label="ต้นข้าว"><span class="member-avatar lg" data-slot="1" aria-hidden="true"><span class="member-initial">ต</span></span><span class="row-main"><span class="row-title">ต้นข้าว</span><span class="you"><span data-t="group.members.you">คุณ</span></span><span class="tag tag-role is-admin"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z" /> <path d="M5 21h14" /></svg><span data-t="roles.admin">ผู้ดูแล</span></span></span></div></li>
+          <li><div class="row" role="group" aria-label="ปาล์ม"><span class="member-avatar lg" data-slot="3" aria-hidden="true"><span class="member-initial">ป</span></span><span class="row-main"><span class="row-title">ปาล์ม</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></svg><span data-t="roles.moderator">ผู้ช่วยดูแล</span></span></span><button class="icon-btn" aria-label="จัดการ ปาล์ม" data-t-aria="group.members.actionsAria~23"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="1" /> <circle cx="19" cy="12" r="1" /> <circle cx="5" cy="12" r="1" /></svg></button></div></li>
+          <li><div class="row" role="group" aria-label="มายด์"><span class="member-avatar lg" data-slot="5" aria-hidden="true"><span class="member-initial">ม</span></span><span class="row-main"><span class="row-title">มายด์</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span><button class="icon-btn" aria-label="จัดการ มายด์" data-t-aria="group.members.actionsAria~24"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="1" /> <circle cx="19" cy="12" r="1" /> <circle cx="5" cy="12" r="1" /></svg></button></div></li>
+          <li><div class="row" role="group" aria-label="โอ๊ต"><span class="member-avatar lg" data-slot="8" aria-hidden="true"><span class="member-initial">อ</span></span><span class="row-main"><span class="row-title">โอ๊ต</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span><button class="icon-btn" aria-label="จัดการ โอ๊ต" data-t-aria="group.members.actionsAria~25"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="1" /> <circle cx="19" cy="12" r="1" /> <circle cx="5" cy="12" r="1" /></svg></button></div></li>
+          <li><div class="row" role="group" aria-label="ฟ้า"><span class="member-avatar lg" data-slot="10" aria-hidden="true"><span class="member-initial">ฟ</span></span><span class="row-main"><span class="row-title">ฟ้า</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span><button class="icon-btn" aria-label="จัดการ ฟ้า" data-t-aria="group.members.actionsAria~26"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="1" /> <circle cx="19" cy="12" r="1" /> <circle cx="5" cy="12" r="1" /></svg></button></div></li>
+          <li><div class="row" role="group" aria-label="บีม"><span class="member-avatar lg" data-slot="2" aria-hidden="true"><span class="member-initial">บ</span></span><span class="row-main"><span class="row-title">บีม</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span><button class="icon-btn" aria-label="จัดการ บีม" data-t-aria="group.members.actionsAria~27"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="1" /> <circle cx="19" cy="12" r="1" /> <circle cx="5" cy="12" r="1" /></svg></button></div></li>
+      </ul>
+    </section>
+
+    <section class="set-sec" aria-labelledby="s-inv">
+      <h2 id="s-inv" data-t="groupSettings.invite.title">ชวนเพื่อน</h2>
+      <h3 class="sub-h" style="margin-top: var(--space-3)"><span data-t="groupSettings.invite.code.title">โค้ดเชิญ</span></h3>
+      <p class="lead small muted" data-t="groupSettings.invite.code.body">ส่งโค้ดให้เพื่อน แล้วให้เพื่อนใส่ในแท็บกลุ่ม ใช้ได้หลายคนจนกว่าจะหมดอายุหรือถูกเพิกถอน</p>
+      <button class="btn btn-secondary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" /> <path d="m21 2-9.6 9.6" /> <circle cx="7.5" cy="15.5" r="5.5" /></svg><span data-t="groupSettings.invite.code.create">สร้างโค้ดใหม่</span></button>
+      <h3 class="sub-h" style="margin-top: var(--space-4)"><span data-t="groupSettings.invite.code.listTitle">โค้ดที่ยังใช้ได้</span></h3>
+      <ul>
+          <li class="code-line">
+            <div class="top"><span class="hint-code"><span data-t="groupSettings.invite.code.hint~5">โค้ดที่ลงท้าย 3RXA</span></span><button class="btn-sm-text" data-t="groupSettings.invite.code.revoke~6" aria-label="เพิกถอนโค้ดที่ลงท้าย 3RXA" data-t-aria="groupSettings.invite.code.revokeAria~28">เพิกถอน</button></div>
+            <p class="meta"><span data-t="groupSettings.invite.code.expires~7">หมดอายุ 25 ต.ค. 2569</span> · <span data-t="groupSettings.invite.code.usedCount~8">ใช้แล้ว 2 คน</span></p>
+            <p class="meta"><span data-t="groupSettings.invite.code.createdBy~9">สร้างโดย ต้นข้าว</span></p>
+          </li>
+          <li class="code-line">
+            <div class="top"><span class="hint-code"><span data-t="groupSettings.invite.code.hint~10">โค้ดที่ลงท้าย W8PN</span></span><button class="btn-sm-text" data-t="groupSettings.invite.code.revoke~11" aria-label="เพิกถอนโค้ดที่ลงท้าย W8PN" data-t-aria="groupSettings.invite.code.revokeAria~29">เพิกถอน</button></div>
+            <p class="meta"><span data-t="groupSettings.invite.code.expires~7">หมดอายุ 25 ต.ค. 2569</span> · <span data-t="groupSettings.invite.code.usedCount~12">ยังไม่มีคนใช้</span></p>
+            <p class="meta"><span data-t="groupSettings.invite.code.createdBy~13">สร้างโดย ปาล์ม</span></p>
+          </li>
+      </ul>
+        <h3 class="sub-h" style="margin-top: var(--space-4)"><span data-t="groupSettings.invite.direct.title">ชวนด้วยชื่อผู้ใช้</span></h3>
+        <div class="field" style="margin-top: var(--space-2)">
+          <label for="du" data-t="groupSettings.invite.direct.label">ชื่อผู้ใช้ของเพื่อน</label>
+          <div class="input"><input id="du" class="input-bare" value="nong_fah" autocapitalize="none" autocomplete="off" aria-describedby="du-h"></div>
+          <p class="field-hint" id="du-h" data-t="groupSettings.invite.direct.hint">พิมพ์ชื่อผู้ใช้ (ไม่ใช่ชื่อที่แสดง) เพื่อนจะเห็นคำเชิญในแท็บกลุ่ม</p>
+        </div>
+        <button class="btn btn-secondary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" /> <path d="m21.854 2.147-10.94 10.939" /></svg><span data-t="groupSettings.invite.direct.submit">ส่งคำเชิญ</span></button>
+        <h3 class="sub-h" style="margin-top: var(--space-4)"><span data-t="groupSettings.invite.direct.pendingTitle">คำเชิญที่รอคำตอบ</span></h3>
+        <ul>
+          <li class="code-line"><div class="top"><span class="hint-code"><span data-t="groupSettings.invite.direct.waiting~14">รอ nong_fah ตอบ</span></span><button class="btn-sm-text" data-t="groupSettings.invite.direct.cancel~15" aria-label="ยกเลิกคำเชิญที่ส่งถึง nong_fah" data-t-aria="groupSettings.invite.direct.cancelAria~30">ยกเลิกคำเชิญ</button></div><p class="meta"><span data-t="groups.invites.expires~16">หมดอายุ 25 ต.ค. 2569</span></p></li>
+        </ul>
+    </section>
+
+    <section class="set-sec" aria-labelledby="s-tr">
+      <h2 id="s-tr" data-t="groupSettings.transfer.title">โอนความเป็นผู้ดูแล</h2>
+      <p class="lead" data-t="groupSettings.transfer.body">เลือกสมาชิกที่จะเป็นผู้ดูแลคนใหม่ คุณจะกลายเป็นผู้ช่วยดูแล</p>
+      <div class="field"><span class="label" data-t="groupSettings.transfer.pick">เลือกสมาชิก</span><div class="input select" role="button" tabindex="0"><span>ปาล์ม</span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6" /></svg></div></div>
+      <button class="btn btn-secondary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m16 3 4 4-4 4" /> <path d="M20 7H4" /> <path d="m8 21-4-4 4-4" /> <path d="M4 17h16" /></svg><span data-t="groupSettings.transfer.cta">โอนความเป็นผู้ดูแล</span></button>
+    </section>
+
+    <section class="set-sec" aria-labelledby="s-lv">
+      <h2 id="s-lv" data-t="groupSettings.leave.title">ออกจากกลุ่ม</h2>
+      <p class="lead" data-t="groupSettings.leave.adminBlocked">คุณเป็นผู้ดูแลกลุ่มนี้ ต้องโอนความเป็นผู้ดูแลให้คนอื่นก่อนจึงจะออกได้</p>
+      <button class="btn btn-secondary" disabled><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /> <polyline points="16 17 21 12 16 7" /> <line x1="21" x2="9" y1="12" y2="12" /></svg><span data-t="groupSettings.leave.cta">ออกจากกลุ่ม</span></button>
+    </section>
+
+    <section class="set-sec is-danger" aria-labelledby="s-dl">
+      <h2 id="s-dl" data-t="groupSettings.delete.title">ลบกลุ่ม</h2>
+      <p class="lead" data-t="groupSettings.delete.body">ลบแล้วทุกคนจะเข้ากลุ่มนี้ไม่ได้ทันที</p>
+      <button class="btn btn-danger"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6h18" /> <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /> <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /> <line x1="10" x2="10" y1="11" y2="17" /> <line x1="14" x2="14" y1="11" y2="17" /></svg><span data-t="groupSettings.delete.cta">ลบกลุ่ม</span></button>
+    </section>
+    </div>
+    <div data-state-show="member" hidden>
+    <p class="note-box" style="margin-top: 0"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="M12 16v-4" /> <path d="M12 8h.01" /></svg><span data-t="groupSettings.memberNote">คุณเป็นสมาชิก จึงแก้ตั้งค่าของกลุ่มไม่ได้ แต่ยังชวนเพื่อนและออกจากกลุ่มได้</span></p>
+    <section class="set-sec" aria-labelledby="m-name">
+      <h2 id="m-name" data-t="groupSettings.name.title">ชื่อกลุ่ม</h2>
+      <p class="readonly">แก๊งมัธยม ห้อง 6/3</p>
+    </section>
+
+    <section class="set-sec" aria-labelledby="m-win">
+      <h2 id="m-win" data-t="groupSettings.window.title">ช่วงเวลาที่นับว่าว่าง</h2>
+      <p class="readonly" data-t="groupSettings.window.summary~4">ระบบจะนับเฉพาะช่วง 08:00–22:00 และแสดงช่วงที่ทุกคนว่างต่อเนื่องอย่างน้อย 2 ชม.</p>
+    </section>
+
+    <section class="set-sec" aria-labelledby="m-mem">
+      <h2 id="m-mem" data-t="groupSettings.members.title">สมาชิกและบทบาท</h2>
+      <ul class="rows m-rows">
+          <li><div class="row" role="group" aria-label="ต้นข้าว"><span class="member-avatar lg" data-slot="1" aria-hidden="true"><span class="member-initial">ต</span></span><span class="row-main"><span class="row-title">ต้นข้าว</span><span class="tag tag-role is-admin"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z" /> <path d="M5 21h14" /></svg><span data-t="roles.admin">ผู้ดูแล</span></span></span></div></li>
+          <li><div class="row" role="group" aria-label="ปาล์ม"><span class="member-avatar lg" data-slot="3" aria-hidden="true"><span class="member-initial">ป</span></span><span class="row-main"><span class="row-title">ปาล์ม</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></svg><span data-t="roles.moderator">ผู้ช่วยดูแล</span></span></span></div></li>
+          <li><div class="row" role="group" aria-label="มายด์"><span class="member-avatar lg" data-slot="5" aria-hidden="true"><span class="member-initial">ม</span></span><span class="row-main"><span class="row-title">มายด์</span><span class="you"><span data-t="group.members.you">คุณ</span></span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span></div></li>
+          <li><div class="row" role="group" aria-label="โอ๊ต"><span class="member-avatar lg" data-slot="8" aria-hidden="true"><span class="member-initial">อ</span></span><span class="row-main"><span class="row-title">โอ๊ต</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span></div></li>
+          <li><div class="row" role="group" aria-label="ฟ้า"><span class="member-avatar lg" data-slot="10" aria-hidden="true"><span class="member-initial">ฟ</span></span><span class="row-main"><span class="row-title">ฟ้า</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span></div></li>
+          <li><div class="row" role="group" aria-label="บีม"><span class="member-avatar lg" data-slot="2" aria-hidden="true"><span class="member-initial">บ</span></span><span class="row-main"><span class="row-title">บีม</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span></div></li>
+      </ul>
+    </section>
+
+    <section class="set-sec" aria-labelledby="m-inv">
+      <h2 id="m-inv" data-t="groupSettings.invite.title">ชวนเพื่อน</h2>
+      <h3 class="sub-h" style="margin-top: var(--space-3)"><span data-t="groupSettings.invite.code.title">โค้ดเชิญ</span></h3>
+      <p class="lead small muted" data-t="groupSettings.invite.mineOnly">คุณเห็นเฉพาะโค้ดที่คุณสร้างเอง</p>
+      <button class="btn btn-secondary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" /> <path d="m21 2-9.6 9.6" /> <circle cx="7.5" cy="15.5" r="5.5" /></svg><span data-t="groupSettings.invite.code.create">สร้างโค้ดใหม่</span></button>
+      <h3 class="sub-h" style="margin-top: var(--space-4)"><span data-t="groupSettings.invite.code.listTitle">โค้ดที่ยังใช้ได้</span></h3>
+      <ul>
+          <li class="code-line">
+            <div class="top"><span class="hint-code"><span data-t="groupSettings.invite.code.hint~10">โค้ดที่ลงท้าย W8PN</span></span><button class="btn-sm-text" data-t="groupSettings.invite.code.revoke~11" aria-label="เพิกถอนโค้ดที่ลงท้าย W8PN" data-t-aria="groupSettings.invite.code.revokeAria~29">เพิกถอน</button></div>
+            <p class="meta"><span data-t="groupSettings.invite.code.expires~7">หมดอายุ 25 ต.ค. 2569</span> · <span data-t="groupSettings.invite.code.usedCount~12">ยังไม่มีคนใช้</span></p>
+            <p class="meta"><span data-t="groupSettings.invite.code.createdBy~17">สร้างโดย มายด์</span></p>
+          </li>
+      </ul>
+        <h3 class="sub-h" style="margin-top: var(--space-4)"><span data-t="groupSettings.invite.direct.title">ชวนด้วยชื่อผู้ใช้</span></h3>
+        <div class="field" style="margin-top: var(--space-2)">
+          <label for="du" data-t="groupSettings.invite.direct.label">ชื่อผู้ใช้ของเพื่อน</label>
+          <div class="input"><input id="du" class="input-bare" value="nong_fah" autocapitalize="none" autocomplete="off" aria-describedby="du-h"></div>
+          <p class="field-hint" id="du-h" data-t="groupSettings.invite.direct.hint">พิมพ์ชื่อผู้ใช้ (ไม่ใช่ชื่อที่แสดง) เพื่อนจะเห็นคำเชิญในแท็บกลุ่ม</p>
+        </div>
+        <button class="btn btn-secondary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" /> <path d="m21.854 2.147-10.94 10.939" /></svg><span data-t="groupSettings.invite.direct.submit">ส่งคำเชิญ</span></button>
+    </section>
+
+    <section class="set-sec" aria-labelledby="m-lv">
+      <h2 id="m-lv" data-t="groupSettings.leave.title">ออกจากกลุ่ม</h2>
+      <p class="lead" data-t="groupSettings.leave.body">คุณจะเห็นปฏิทินและนัดของกลุ่มนี้ไม่ได้อีก ถ้าอยากกลับมาต้องมีคนชวนใหม่หรือใช้โค้ดเชิญ</p>
+      <button class="btn btn-secondary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /> <polyline points="16 17 21 12 16 7" /> <line x1="21" x2="9" y1="12" y2="12" /></svg><span data-t="groupSettings.leave.cta">ออกจากกลุ่ม</span></button>
+    </section>
+    </div>
+  </main>
+  <nav class="tabbar" aria-label="เมนูหลัก" data-t-aria="nav.label">
+    <a class="tab" href="home.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /> <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg><span data-t="nav.home">หน้าหลัก</span></a>
+    <a class="tab" href="calendar.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 2v3" /> <path d="M16 2v3" /> <rect x="3" y="3" width="18" height="18" rx="2" /> <path d="M3 9h18" /></svg><span data-t="nav.calendar">ปฏิทิน</span></a>
+    <a class="tab" href="groups.html" aria-current="page"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /> <path d="M16 3.128a4 4 0 0 1 0 7.744" /> <path d="M22 21v-2a4 4 0 0 0-3-3.87" /> <circle cx="9" cy="7" r="4" /></svg><span data-t="nav.groups">กลุ่ม</span></a>
+    <a class="tab" href="#"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="nav.me">ฉัน</span></a>
+  </nav>
+
+  <div data-state-show="invite" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="ic-t">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="ic-t"><span data-t="groupSettings.invite.sheet.title">โค้ดเชิญใหม่</span></h2></div><button class="icon-btn" aria-label="ปิด" data-t-aria="a11y.close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 6 6 18" /> <path d="m6 6 12 12" /></svg></button></div>
+      <div class="sheet-body">
+        <div class="alert alert-warn" role="note"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /> <path d="M12 9v4" /> <path d="M12 17h.01" /></svg><div><b><span data-t="groupSettings.invite.sheet.onceTitle">โค้ดนี้แสดงครั้งเดียว</span></b><span data-t="groupSettings.invite.sheet.onceBody">พอปิดหน้านี้ จะดูโค้ดเต็มอีกไม่ได้ ให้คัดลอกหรือแชร์ตอนนี้เลย ถ้าไม่ทันก็เพิกถอนแล้วสร้างใหม่ได้</span></div></div>
+        <div class="code-box" aria-label="K7QM-3RXA">K7QM-3RXA</div>
+        <p class="sheet-hint" style="text-align: center"><span data-t="groupSettings.invite.code.expires~7">หมดอายุ 25 ต.ค. 2569</span></p>
+      </div>
+      <div class="sheet-foot sheet-actions">
+        <button class="btn btn-primary btn-block"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /> <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg><span data-t="groupSettings.invite.sheet.copy">คัดลอกโค้ด</span></button>
+        <button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3" /> <circle cx="6" cy="12" r="3" /> <circle cx="18" cy="19" r="3" /> <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" /> <line x1="15.41" x2="8.59" y1="6.51" y2="10.49" /></svg><span data-t="groupSettings.invite.sheet.share">แชร์</span></button>
+        <button class="btn btn-text btn-block" data-t="groupSettings.invite.sheet.done">เสร็จแล้ว</button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="confirm" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet center alert-sheet" role="alertdialog" aria-modal="true" aria-labelledby="rm-t">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="rm-t"><span data-t="groupSettings.members.removeConfirm.title~18">นำ โอ๊ต ออกจากกลุ่ม?</span></h2></div><button class="icon-btn" aria-label="ปิด" data-t-aria="a11y.close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 6 6 18" /> <path d="m6 6 12 12" /></svg></button></div>
+      <div class="sheet-body">
+        <p><span data-t="groupSettings.members.removeConfirm.body~19">โอ๊ต จะเห็นกลุ่มนี้ไม่ได้อีกทันที แต่ถ้ามีคนชวนใหม่ก็กลับเข้ามาได้</span></p>
+      </div>
+      <div class="sheet-foot sheet-actions">
+        <button class="btn btn-danger btn-block" data-t="groupSettings.members.removeConfirm.confirm">นำออก</button>
+        <button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)" data-t="common.cancel">ยกเลิก</button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="delete" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet center alert-sheet" role="alertdialog" aria-modal="true" aria-labelledby="dl-t">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="dl-t"><span data-t="groupSettings.delete.confirm.title~20">ลบกลุ่ม “แก๊งมัธยม ห้อง 6/3”?</span></h2></div><button class="icon-btn" aria-label="ปิด" data-t-aria="a11y.close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 6 6 18" /> <path d="m6 6 12 12" /></svg></button></div>
+      <div class="sheet-body">
+        <p><span data-t="groupSettings.delete.confirm.body">ทุกคนในกลุ่มจะเข้ากลุ่มนี้ไม่ได้ทันที โค้ดเชิญและคำเชิญที่ค้างอยู่จะใช้ไม่ได้ และคุณกู้กลุ่มคืนเองไม่ได้</span></p>
+        <div class="field type-confirm">
+          <label for="tc" data-t="groupSettings.delete.confirm.typeLabel">พิมพ์ชื่อกลุ่มเพื่อยืนยัน</label>
+          <div class="input"><input id="tc" class="input-bare" value="แก๊งมัธยม" autocomplete="off" aria-describedby="tc-h"></div>
+          <p class="field-hint" id="tc-h" data-t="groupSettings.delete.confirm.typeHint~21">พิมพ์ “แก๊งมัธยม ห้อง 6/3” ให้ตรงกับชื่อกลุ่ม</p>
+        </div>
+      </div>
+      <div class="sheet-foot sheet-actions">
+        <button class="btn btn-danger btn-block" disabled data-t="groupSettings.delete.confirm.confirm">ลบกลุ่มนี้</button>
+        <button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)" data-t="common.cancel">ยกเลิก</button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="actions" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet center" role="dialog" aria-modal="true" aria-labelledby="ac-t">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="ac-t"><span data-t="groupSettings.members.manageTitle~22">จัดการ ปาล์ม</span></h2></div><button class="icon-btn" aria-label="ปิด" data-t-aria="a11y.close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 6 6 18" /> <path d="m6 6 12 12" /></svg></button></div>
+      <div class="sheet-body">
+        <p class="muted small"><span data-t="roles.help.moderator">แก้ชื่อกลุ่ม ตั้งช่วงเวลาที่นับว่าว่าง และนำสมาชิกออกจากกลุ่มได้</span></p>
+        <ul class="rows" style="margin-top: var(--space-3)">
+          <li><button class="row btn-reset" style="width:100%;border:0;background:transparent;text-align:left"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span class="row-main"><span class="row-title"><span data-t="groupSettings.members.makeMember">ปลดเป็นสมาชิก</span></span></span></button></li>
+          <li><button class="row" style="width:100%;border:0;background:transparent;text-align:left"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m16 3 4 4-4 4" /> <path d="M20 7H4" /> <path d="m8 21-4-4 4-4" /> <path d="M4 17h16" /></svg><span class="row-main"><span class="row-title"><span data-t="groupSettings.members.transfer">โอนความเป็นผู้ดูแลให้คนนี้</span></span></span></button></li>
+          <li><button class="row" style="width:100%;border:0;background:transparent;text-align:left;color:var(--danger-ink)"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /> <circle cx="9" cy="7" r="4" /> <line x1="22" x2="16" y1="11" y2="11" /></svg><span class="row-main"><span class="row-title"><span data-t="groupSettings.members.remove">นำออกจากกลุ่ม</span></span></span></button></li>
+        </ul>
+      </div>
+      <div class="sheet-foot sheet-actions">
+        <button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)" data-t="common.cancel">ยกเลิก</button>
+      </div>
+    </section>
+  </div>
+</div>
+</body>
+</html>
