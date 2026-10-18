@@ -1,0 +1,175 @@
+<!-- สร้างจาก docs/design/tools/templates/admin-resets.html ด้วย build-samples.mjs — แก้ที่ template -->
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-t="adminResets.title">คำขอเปลี่ยน PIN</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<script>
+window.MESSAGES_EN = { c_th: 'Thailand', c_sg: 'Thailand', c_x: 'Thailand' };
+</script>
+<script>window.MESSAGES_EN = Object.assign(window.MESSAGES_EN || {}, {"adminResets.title":"PIN reset requests","brand.appName":"maewmeet","adminResets.eyebrow":"Admin","adminResets.warningTitle":"Check with the owner before approving","adminResets.warningBody":"Anyone who knows a username can ask for a reset in their name. Contact the owner outside the app, by chat or a call, and compare the time, device and country with what they tell you. If they don’t match, or they didn’t ask, decline.","adminResets.tabPending~1":"Waiting 2","adminResets.tabAll":"All","adminResets.status.pending":"Waiting","adminResets.requestedAt~2":"Requested today 14:02","adminResets.approve~3":"Approve","adminResets.reject~4":"Decline","adminResets.requestedAt~5":"Requested today 09:40","adminResets.approve~6":"Approve","adminResets.reject~7":"Decline","adminResets.status.approved":"Approved","adminResets.requestedAt~8":"Requested yesterday 21:15","adminResets.status.rejected":"Declined","adminResets.requestedAt~9":"Requested 16 Oct, 18:30","adminResets.status.expired":"Expired","adminResets.requestedAt~10":"Requested 15 Oct, 08:05","adminResets.empty.title":"No requests waiting","adminResets.empty.body":"When someone taps Forgot PIN, their request shows up here.","states.loading":"Loading…","states.error.generic":"Something went wrong on our side. Try again in a moment.","states.error.dataSafe":"Nothing you saved is lost.","states.retry":"Try again","nav.home":"Home","nav.calendar":"Calendar","nav.groups":"Groups","nav.me":"Me","adminResets.approveSheet.title~11":"Approve request from tonkhao","adminResets.approveSheet.body~12":"tonkhao’s PIN will become 123456 for 24 hours, on the device that sent the request only. Their old PIN stops working straight away.","adminResets.approveSheet.check":"I’ve confirmed with the account owner outside the app","adminResets.approveSheet.confirm":"Approve","common.cancel":"Cancel","adminResets.approveFor~13":"Approve request from tonkhao","adminResets.rejectFor~14":"Decline request from tonkhao","adminResets.approveFor~15":"Approve request from mind_s","adminResets.rejectFor~16":"Decline request from mind_s","nav.label":"Main menu","a11y.close":"Close","adminResets.search":"Search usernames"});</script>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><svg class="brand-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 54" role="img" aria-label="แมวเจอกัน"><g transform="translate(-34 -15)" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M40 50 C38 40 39 30 42 19 L54 27 C58 26 62 26 66 27 L78 19 C81 30 82 40 80 50 C78 60 70 65 60 65 C50 65 42 60 40 50 Z" fill="var(--cat-coat)"/><path d="M44.5 25 L45.5 33 L51 28.5 Z" fill="var(--cat-fill)" stroke="none"/><path d="M75.5 25 L74.5 33 L69 28.5 Z" fill="var(--cat-fill)" stroke="none"/><circle cx="52" cy="46" r="2.3" fill="currentColor" stroke="none"/><circle cx="68" cy="46" r="2.3" fill="currentColor" stroke="none"/><path d="M58.3 51.5 L61.7 51.5 L60 53.3 Z" fill="currentColor" stroke="none"/><path d="M60 53.5 Q58 56.5 55.8 55" fill="none"/><path d="M60 53.5 Q62 56.5 64.2 55" fill="none"/></g></svg><span class="brand-name" data-t="brand.appName">แมวเจอกัน</span></div>
+  </header>
+  <div class="admin-head">
+    <p class="eyebrow" data-t="adminResets.eyebrow">ผู้ดูแลระบบ</p>
+    <h1 data-t="adminResets.title">คำขอเปลี่ยน PIN</h1>
+  </div>
+  <main class="main" style="padding-top: var(--space-3)">
+    <div class="alert alert-warn" role="note">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /> <path d="M12 9v4" /> <path d="M12 17h.01" /></svg>
+      <div><b data-t="adminResets.warningTitle">ยืนยันกับเจ้าของบัญชีก่อนอนุมัติ</b><span data-t="adminResets.warningBody">ใครที่รู้ชื่อผู้ใช้ก็กดขอเปลี่ยน PIN แทนได้ ติดต่อเจ้าของนอกแอป เช่น ทางแชตหรือโทรหา แล้วเทียบเวลา อุปกรณ์ และประเทศกับที่เขาบอก ถ้าไม่ตรง หรือเขาไม่ได้เป็นคนขอ ให้ปฏิเสธ</span></div>
+    </div>
+
+    <div class="filter-row" data-state-show="normal sheet all empty">
+      <div class="seg" role="group">
+        <button aria-pressed="true" data-t="adminResets.tabPending~1">รออนุมัติ 2</button>
+        <button aria-pressed="false" data-t="adminResets.tabAll">ทั้งหมด</button>
+      </div>
+      <label class="input search"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m21 21-4.34-4.34" /> <circle cx="11" cy="11" r="8" /></svg><input class="input-bare" placeholder="ค้นหาชื่อผู้ใช้" data-t-ph="adminResets.search"></label>
+    </div>
+
+    <!-- ปกติ + sheet: รออนุมัติ -->
+    <ul class="reqs" data-state-show="normal sheet" aria-label="">
+      <li class="req">
+      <div class="req-top"><span class="req-user">tonkhao</span><span class="tag tag-wait"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" /></svg><span data-t="adminResets.status.pending">รออนุมัติ</span></span></div>
+      <ul class="req-facts">
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" /></svg><span class="v" data-t="adminResets.requestedAt~2">ขอเมื่อ วันนี้ 14:02</span></li>
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span class="v">Chrome · Android</span></li>
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /> <circle cx="12" cy="10" r="3" /></svg><span class="v" data-t="c_th">ไทย</span></li>
+      </ul>
+      <div class="req-actions">
+        <button class="btn btn-primary" data-t="adminResets.approve~3" aria-label="อนุมัติคำขอของ tonkhao" data-t-aria="adminResets.approveFor~13">อนุมัติ</button>
+        <button class="btn btn-secondary" data-t="adminResets.reject~4" aria-label="ปฏิเสธคำขอของ tonkhao" data-t-aria="adminResets.rejectFor~14">ปฏิเสธ</button>
+      </div>
+    </li>
+      <li class="req">
+      <div class="req-top"><span class="req-user">mind_s</span><span class="tag tag-wait"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" /></svg><span data-t="adminResets.status.pending">รออนุมัติ</span></span></div>
+      <ul class="req-facts">
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" /></svg><span class="v" data-t="adminResets.requestedAt~5">ขอเมื่อ วันนี้ 09:40</span></li>
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span class="v">Safari · iPhone</span></li>
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /> <circle cx="12" cy="10" r="3" /></svg><span class="v" data-t="c_sg">ไทย</span></li>
+      </ul>
+      <div class="req-actions">
+        <button class="btn btn-primary" data-t="adminResets.approve~6" aria-label="อนุมัติคำขอของ mind_s" data-t-aria="adminResets.approveFor~15">อนุมัติ</button>
+        <button class="btn btn-secondary" data-t="adminResets.reject~7" aria-label="ปฏิเสธคำขอของ mind_s" data-t-aria="adminResets.rejectFor~16">ปฏิเสธ</button>
+      </div>
+    </li>
+    </ul>
+    <!-- ทั้งหมด -->
+    <ul class="reqs" data-state-show="all" hidden>
+      <li class="req">
+      <div class="req-top"><span class="req-user">tonkhao</span><span class="tag tag-wait"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" /></svg><span data-t="adminResets.status.pending">รออนุมัติ</span></span></div>
+      <ul class="req-facts">
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" /></svg><span class="v" data-t="adminResets.requestedAt~2">ขอเมื่อ วันนี้ 14:02</span></li>
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span class="v">Chrome · Android</span></li>
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /> <circle cx="12" cy="10" r="3" /></svg><span class="v" data-t="c_th">ไทย</span></li>
+      </ul>
+      <div class="req-actions">
+        <button class="btn btn-primary" data-t="adminResets.approve~3" aria-label="อนุมัติคำขอของ tonkhao" data-t-aria="adminResets.approveFor~13">อนุมัติ</button>
+        <button class="btn btn-secondary" data-t="adminResets.reject~4" aria-label="ปฏิเสธคำขอของ tonkhao" data-t-aria="adminResets.rejectFor~14">ปฏิเสธ</button>
+      </div>
+    </li>
+      <li class="req">
+      <div class="req-top"><span class="req-user">mind_s</span><span class="tag tag-wait"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" /></svg><span data-t="adminResets.status.pending">รออนุมัติ</span></span></div>
+      <ul class="req-facts">
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" /></svg><span class="v" data-t="adminResets.requestedAt~5">ขอเมื่อ วันนี้ 09:40</span></li>
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span class="v">Safari · iPhone</span></li>
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /> <circle cx="12" cy="10" r="3" /></svg><span class="v" data-t="c_sg">ไทย</span></li>
+      </ul>
+      <div class="req-actions">
+        <button class="btn btn-primary" data-t="adminResets.approve~6" aria-label="อนุมัติคำขอของ mind_s" data-t-aria="adminResets.approveFor~15">อนุมัติ</button>
+        <button class="btn btn-secondary" data-t="adminResets.reject~7" aria-label="ปฏิเสธคำขอของ mind_s" data-t-aria="adminResets.rejectFor~16">ปฏิเสธ</button>
+      </div>
+    </li>
+      <li class="req">
+      <div class="req-top"><span class="req-user">palm.k</span><span class="tag tag-ok"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="m16 9-5.5 5.5L8 12" /></svg><span data-t="adminResets.status.approved">อนุมัติแล้ว</span></span></div>
+      <ul class="req-facts">
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" /></svg><span class="v" data-t="adminResets.requestedAt~8">ขอเมื่อ เมื่อวาน 21:15</span></li>
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span class="v">Chrome · Windows</span></li>
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /> <circle cx="12" cy="10" r="3" /></svg><span class="v" data-t="c_th">ไทย</span></li>
+      </ul>
+      
+    </li>
+      <li class="req">
+      <div class="req-top"><span class="req-user">beam_88</span><span class="tag tag-no"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="M4.929 4.929 19.07 19.071" /></svg><span data-t="adminResets.status.rejected">ปฏิเสธแล้ว</span></span></div>
+      <ul class="req-facts">
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" /></svg><span class="v" data-t="adminResets.requestedAt~9">ขอเมื่อ 16 ต.ค. 18:30</span></li>
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span class="v">Safari · iPhone</span></li>
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /> <circle cx="12" cy="10" r="3" /></svg><span class="v" data-t="c_th">ไทย</span></li>
+      </ul>
+      
+    </li>
+      <li class="req">
+      <div class="req-top"><span class="req-user">nuengnoi</span><span class="tag tag-muted"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10.1 2.182a10 10 0 0 1 3.8 0" /> <path d="M13.9 21.818a10 10 0 0 1-3.8 0" /> <path d="M17.609 3.721a10 10 0 0 1 2.69 2.7" /> <path d="M2.182 13.9a10 10 0 0 1 0-3.8" /> <path d="M20.279 17.609a10 10 0 0 1-2.7 2.69" /> <path d="M21.818 10.1a10 10 0 0 1 0 3.8" /> <path d="M3.721 6.391a10 10 0 0 1 2.7-2.69" /> <path d="M6.391 20.279a10 10 0 0 1-2.69-2.7" /></svg><span data-t="adminResets.status.expired">หมดอายุ</span></span></div>
+      <ul class="req-facts">
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" /></svg><span class="v" data-t="adminResets.requestedAt~10">ขอเมื่อ 15 ต.ค. 08:05</span></li>
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span class="v">Firefox · Linux</span></li>
+        <li><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /> <circle cx="12" cy="10" r="3" /></svg><span class="v" data-t="c_th">ไทย</span></li>
+      </ul>
+      
+    </li>
+    </ul>
+    <!-- ว่าง -->
+    <div data-state-show="empty" hidden class="empty" style="padding-top: var(--space-6)">
+      <h2 class="h-section" data-t="adminResets.empty.title">ไม่มีคำขอที่รออยู่</h2>
+      <p class="muted" data-t="adminResets.empty.body">เมื่อมีคนกดลืม PIN คำขอจะมาอยู่ที่นี่</p>
+    </div>
+    <!-- โหลด -->
+    <div data-state-show="loading" hidden style="margin-top: var(--space-4)">
+      <div class="skeleton" style="height: calc(var(--space-7) * 3)"></div>
+      <div class="skeleton" style="height: calc(var(--space-7) * 3); margin-top: var(--space-3)"></div>
+      <p class="loading-note" role="status" data-t="states.loading">กำลังโหลด…</p>
+    </div>
+    <!-- ผิดพลาด -->
+    <div data-state-show="error" hidden style="margin-top: var(--space-4)">
+      <div class="alert" role="alert"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <line x1="12" x2="12" y1="8" y2="12" /> <line x1="12" x2="12.01" y1="16" y2="16" /></svg>
+        <div><b data-t="states.error.generic">ระบบขัดข้องชั่วคราว ลองใหม่ในอีกสักครู่</b><span data-t="states.error.dataSafe">ข้อมูลที่บันทึกไว้ไม่หาย</span></div></div>
+      <button class="btn btn-secondary" style="margin-top: var(--space-4)"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /> <path d="M21 3v5h-5" /> <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /> <path d="M8 16H3v5" /></svg><span data-t="states.retry">ลองอีกครั้ง</span></button>
+    </div>
+  </main>
+
+  <nav class="tabbar" aria-label="เมนูหลัก" data-t-aria="nav.label">
+    <a class="tab" href="home.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /> <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg><span data-t="nav.home">หน้าหลัก</span></a>
+    <a class="tab" href="calendar.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 2v3" /> <path d="M16 2v3" /> <rect x="3" y="3" width="18" height="18" rx="2" /> <path d="M3 9h18" /></svg><span data-t="nav.calendar">ปฏิทิน</span></a>
+    <a class="tab" href="#"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /> <path d="M16 3.128a4 4 0 0 1 0 7.744" /> <path d="M22 21v-2a4 4 0 0 0-3-3.87" /> <circle cx="9" cy="7" r="4" /></svg><span data-t="nav.groups">กลุ่ม</span></a>
+    <a class="tab" href="#" aria-current="page"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="nav.me">ฉัน</span></a>
+  </nav>
+
+  <!-- ยืนยันอนุมัติ (sheet) -->
+  <div data-state-show="sheet" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet center" role="dialog" aria-modal="true" aria-labelledby="as-t">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <div class="t"><h2 id="as-t" data-t="adminResets.approveSheet.title~11">อนุมัติคำขอของ tonkhao</h2></div>
+        <button class="icon-btn" aria-label="ปิด" data-t-aria="a11y.close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 6 6 18" /> <path d="m6 6 12 12" /></svg></button>
+      </div>
+      <div class="sheet-body">
+        <p data-t="adminResets.approveSheet.body~12">PIN ของ tonkhao จะเปลี่ยนเป็น 123456 ใช้ได้ 24 ชั่วโมง เฉพาะบนเครื่องที่ส่งคำขอ และ PIN เดิมจะใช้ไม่ได้ทันที</p>
+        <label class="sheet-check"><input type="checkbox" checked><span data-t="adminResets.approveSheet.check">ฉันยืนยันกับเจ้าของบัญชีนอกแอปแล้ว</span></label>
+      </div>
+      <div class="sheet-foot sheet-actions">
+        <button class="btn btn-primary btn-block" data-t="adminResets.approveSheet.confirm">อนุมัติ</button>
+        <button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)" data-t="common.cancel">ยกเลิก</button>
+      </div>
+    </section>
+  </div>
+</div>
+<script>
+  (function () {
+    var s = new URLSearchParams(location.search).get('state');
+    if (s === 'all') { var b = document.querySelectorAll('.seg button'); b[0].setAttribute('aria-pressed', 'false'); b[1].setAttribute('aria-pressed', 'true'); }
+  })();
+</script>
+</body>
+</html>

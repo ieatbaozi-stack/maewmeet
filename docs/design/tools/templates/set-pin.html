@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-m="setPin.title"></title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<!--MESSAGES_EN-->
+</head>
+<body>
+<div class="aurora" data-intensity="hero" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<main class="app login" style="padding-bottom: var(--space-5)">
+  <div class="login-top">
+    <i data-brand="logo-mark" class="brand-mark"></i>
+    <button class="btn btn-text" data-m="setPin.signOut"></button>
+  </div>
+  <div class="login-hero" style="padding-bottom: var(--space-4)">
+    <h1 data-m="setPin.title" id="t"></h1>
+  </div>
+
+  <section class="panel login-card auth-card" aria-labelledby="t">
+    <p class="auth-intro" style="margin-top:0" data-m="setPin.intro"></p>
+    <p class="auth-intro" data-m="setPin.pin" style="font-weight: var(--weight-medium); margin-top: var(--space-4)"></p>
+    <div class="pin-dots" role="img" data-m-aria="login.pinProgress" data-m-v='{"count":3}'><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span><span></span></div>
+    <p class="pin-msg" data-state-show="normal" data-m="login.pinHint"></p>
+    <p class="pin-msg err" data-state-show="error" hidden role="alert" data-m="errors.PIN_TOO_WEAK"></p>
+    <p class="pin-msg" data-state-show="loading" hidden role="status" data-m="setPin.saving"></p>
+    <div class="rules-box" data-state-show="normal loading">
+      <p class="rules-title" data-m="pinRules.title"></p>
+      <ul class="rules">
+        <li><i data-icon="check" class="sm"></i><span data-m="pinRules.digits"></span></li>
+        <li><i data-icon="check" class="sm"></i><span data-m="pinRules.notRepeated"></span></li>
+        <li><i data-icon="check" class="sm"></i><span data-m="pinRules.notSequence"></span></li>
+      </ul>
+      <p class="rules-why" data-m="pinRules.why"></p>
+    </div>
+    <div class="keypad" role="group" data-m-aria="login.keypad.label">
+      <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+      <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+      <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+      <button class="key blank" tabindex="-1" aria-hidden="true"></button>
+      <button class="key">0</button>
+      <button class="key ghost" data-m-aria="login.keypad.delete"><i data-icon="delete" class="lg"></i></button>
+    </div>
+  </section>
+</main>
+<script>
+  (function () {
+    if (new URLSearchParams(location.search).get('state') === 'error') {
+      document.querySelectorAll('.pin-dots span').forEach(function (s) { s.className = 'on'; });
+    }
+  })();
+</script>
+</body>
+</html>

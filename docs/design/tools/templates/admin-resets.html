@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-m="adminResets.title"></title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<script>
+window.MESSAGES_EN = { c_th: 'Thailand', c_sg: 'Thailand', c_x: 'Thailand' };
+</script>
+<!--MESSAGES_EN-->
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><i data-brand="logo-mark" class="brand-mark"></i><span class="brand-name" data-m="brand.appName"></span></div>
+  </header>
+  <div class="admin-head">
+    <p class="eyebrow" data-m="adminResets.eyebrow"></p>
+    <h1 data-m="adminResets.title"></h1>
+  </div>
+  <main class="main" style="padding-top: var(--space-3)">
+    <div class="alert alert-warn" role="note">
+      <i data-icon="triangle-alert"></i>
+      <div><b data-m="adminResets.warningTitle"></b><span data-m="adminResets.warningBody"></span></div>
+    </div>
+
+    <div class="filter-row" data-state-show="normal sheet all empty">
+      <div class="seg" role="group">
+        <button aria-pressed="true" data-m="adminResets.tabPending" data-m-v='{"count":2}'></button>
+        <button aria-pressed="false" data-m="adminResets.tabAll"></button>
+      </div>
+      <label class="input search"><i data-icon="search"></i><input class="input-bare" data-m-ph="adminResets.search"></label>
+    </div>
+
+    <!-- ปกติ + sheet: รออนุมัติ -->
+    <ul class="reqs" data-state-show="normal sheet" aria-label="">
+      <li class="req">
+      <div class="req-top"><span class="req-user">tonkhao</span><span class="tag tag-wait"><i data-icon="clock" class="sm"></i><span data-m="adminResets.status.pending"></span></span></div>
+      <ul class="req-facts">
+        <li><i data-icon="clock" class="sm"></i><span class="v" data-m="adminResets.requestedAt" data-m-v='{"th":{"when":"วันนี้ 14:02"},"en":{"when":"today 14:02"}}'></span></li>
+        <li><i data-icon="user" class="sm"></i><span class="v">Chrome · Android</span></li>
+        <li><i data-icon="map-pin" class="sm"></i><span class="v" data-t="c_th">ไทย</span></li>
+      </ul>
+      <div class="req-actions">
+        <button class="btn btn-primary" data-m="adminResets.approve" data-m-aria="adminResets.approveFor" data-m-v='{"username":"tonkhao"}'></button>
+        <button class="btn btn-secondary" data-m="adminResets.reject" data-m-aria="adminResets.rejectFor" data-m-v='{"username":"tonkhao"}'></button>
+      </div>
+    </li>
+      <li class="req">
+      <div class="req-top"><span class="req-user">mind_s</span><span class="tag tag-wait"><i data-icon="clock" class="sm"></i><span data-m="adminResets.status.pending"></span></span></div>
+      <ul class="req-facts">
+        <li><i data-icon="clock" class="sm"></i><span class="v" data-m="adminResets.requestedAt" data-m-v='{"th":{"when":"วันนี้ 09:40"},"en":{"when":"today 09:40"}}'></span></li>
+        <li><i data-icon="user" class="sm"></i><span class="v">Safari · iPhone</span></li>
+        <li><i data-icon="map-pin" class="sm"></i><span class="v" data-t="c_sg">ไทย</span></li>
+      </ul>
+      <div class="req-actions">
+        <button class="btn btn-primary" data-m="adminResets.approve" data-m-aria="adminResets.approveFor" data-m-v='{"username":"mind_s"}'></button>
+        <button class="btn btn-secondary" data-m="adminResets.reject" data-m-aria="adminResets.rejectFor" data-m-v='{"username":"mind_s"}'></button>
+      </div>
+    </li>
+    </ul>
+    <!-- ทั้งหมด -->
+    <ul class="reqs" data-state-show="all" hidden>
+      <li class="req">
+      <div class="req-top"><span class="req-user">tonkhao</span><span class="tag tag-wait"><i data-icon="clock" class="sm"></i><span data-m="adminResets.status.pending"></span></span></div>
+      <ul class="req-facts">
+        <li><i data-icon="clock" class="sm"></i><span class="v" data-m="adminResets.requestedAt" data-m-v='{"th":{"when":"วันนี้ 14:02"},"en":{"when":"today 14:02"}}'></span></li>
+        <li><i data-icon="user" class="sm"></i><span class="v">Chrome · Android</span></li>
+        <li><i data-icon="map-pin" class="sm"></i><span class="v" data-t="c_th">ไทย</span></li>
+      </ul>
+      <div class="req-actions">
+        <button class="btn btn-primary" data-m="adminResets.approve" data-m-aria="adminResets.approveFor" data-m-v='{"username":"tonkhao"}'></button>
+        <button class="btn btn-secondary" data-m="adminResets.reject" data-m-aria="adminResets.rejectFor" data-m-v='{"username":"tonkhao"}'></button>
+      </div>
+    </li>
+      <li class="req">
+      <div class="req-top"><span class="req-user">mind_s</span><span class="tag tag-wait"><i data-icon="clock" class="sm"></i><span data-m="adminResets.status.pending"></span></span></div>
+      <ul class="req-facts">
+        <li><i data-icon="clock" class="sm"></i><span class="v" data-m="adminResets.requestedAt" data-m-v='{"th":{"when":"วันนี้ 09:40"},"en":{"when":"today 09:40"}}'></span></li>
+        <li><i data-icon="user" class="sm"></i><span class="v">Safari · iPhone</span></li>
+        <li><i data-icon="map-pin" class="sm"></i><span class="v" data-t="c_sg">ไทย</span></li>
+      </ul>
+      <div class="req-actions">
+        <button class="btn btn-primary" data-m="adminResets.approve" data-m-aria="adminResets.approveFor" data-m-v='{"username":"mind_s"}'></button>
+        <button class="btn btn-secondary" data-m="adminResets.reject" data-m-aria="adminResets.rejectFor" data-m-v='{"username":"mind_s"}'></button>
+      </div>
+    </li>
+      <li class="req">
+      <div class="req-top"><span class="req-user">palm.k</span><span class="tag tag-ok"><i data-icon="circle-check" class="sm"></i><span data-m="adminResets.status.approved"></span></span></div>
+      <ul class="req-facts">
+        <li><i data-icon="clock" class="sm"></i><span class="v" data-m="adminResets.requestedAt" data-m-v='{"th":{"when":"เมื่อวาน 21:15"},"en":{"when":"yesterday 21:15"}}'></span></li>
+        <li><i data-icon="user" class="sm"></i><span class="v">Chrome · Windows</span></li>
+        <li><i data-icon="map-pin" class="sm"></i><span class="v" data-t="c_th">ไทย</span></li>
+      </ul>
+      
+    </li>
+      <li class="req">
+      <div class="req-top"><span class="req-user">beam_88</span><span class="tag tag-no"><i data-icon="ban" class="sm"></i><span data-m="adminResets.status.rejected"></span></span></div>
+      <ul class="req-facts">
+        <li><i data-icon="clock" class="sm"></i><span class="v" data-m="adminResets.requestedAt" data-m-v='{"th":{"when":"16 ต.ค. 18:30"},"en":{"when":"16 Oct, 18:30"}}'></span></li>
+        <li><i data-icon="user" class="sm"></i><span class="v">Safari · iPhone</span></li>
+        <li><i data-icon="map-pin" class="sm"></i><span class="v" data-t="c_th">ไทย</span></li>
+      </ul>
+      
+    </li>
+      <li class="req">
+      <div class="req-top"><span class="req-user">nuengnoi</span><span class="tag tag-muted"><i data-icon="circle-dashed" class="sm"></i><span data-m="adminResets.status.expired"></span></span></div>
+      <ul class="req-facts">
+        <li><i data-icon="clock" class="sm"></i><span class="v" data-m="adminResets.requestedAt" data-m-v='{"th":{"when":"15 ต.ค. 08:05"},"en":{"when":"15 Oct, 08:05"}}'></span></li>
+        <li><i data-icon="user" class="sm"></i><span class="v">Firefox · Linux</span></li>
+        <li><i data-icon="map-pin" class="sm"></i><span class="v" data-t="c_th">ไทย</span></li>
+      </ul>
+      
+    </li>
+    </ul>
+    <!-- ว่าง -->
+    <div data-state-show="empty" hidden class="empty" style="padding-top: var(--space-6)">
+      <h2 class="h-section" data-m="adminResets.empty.title"></h2>
+      <p class="muted" data-m="adminResets.empty.body"></p>
+    </div>
+    <!-- โหลด -->
+    <div data-state-show="loading" hidden style="margin-top: var(--space-4)">
+      <div class="skeleton" style="height: calc(var(--space-7) * 3)"></div>
+      <div class="skeleton" style="height: calc(var(--space-7) * 3); margin-top: var(--space-3)"></div>
+      <p class="loading-note" role="status" data-m="states.loading"></p>
+    </div>
+    <!-- ผิดพลาด -->
+    <div data-state-show="error" hidden style="margin-top: var(--space-4)">
+      <div class="alert" role="alert"><i data-icon="circle-alert"></i>
+        <div><b data-m="states.error.generic"></b><span data-m="states.error.dataSafe"></span></div></div>
+      <button class="btn btn-secondary" style="margin-top: var(--space-4)"><i data-icon="refresh-cw"></i><span data-m="states.retry"></span></button>
+    </div>
+  </main>
+
+  <nav class="tabbar" data-m-aria="nav.label">
+    <a class="tab" href="home.html"><i data-icon="house"></i><span data-m="nav.home"></span></a>
+    <a class="tab" href="calendar.html"><i data-icon="calendar"></i><span data-m="nav.calendar"></span></a>
+    <a class="tab" href="#"><i data-icon="users"></i><span data-m="nav.groups"></span></a>
+    <a class="tab" href="#" aria-current="page"><i data-icon="user"></i><span data-m="nav.me"></span></a>
+  </nav>
+
+  <!-- ยืนยันอนุมัติ (sheet) -->
+  <div data-state-show="sheet" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet center" role="dialog" aria-modal="true" aria-labelledby="as-t">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <div class="t"><h2 id="as-t" data-m="adminResets.approveSheet.title" data-m-v='{"username":"tonkhao"}'></h2></div>
+        <button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button>
+      </div>
+      <div class="sheet-body">
+        <p data-m="adminResets.approveSheet.body" data-m-v='{"username":"tonkhao"}'></p>
+        <label class="sheet-check"><input type="checkbox" checked><span data-m="adminResets.approveSheet.check"></span></label>
+      </div>
+      <div class="sheet-foot sheet-actions">
+        <button class="btn btn-primary btn-block" data-m="adminResets.approveSheet.confirm"></button>
+        <button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)" data-m="common.cancel"></button>
+      </div>
+    </section>
+  </div>
+</div>
+<script>
+  (function () {
+    var s = new URLSearchParams(location.search).get('state');
+    if (s === 'all') { var b = document.querySelectorAll('.seg button'); b[0].setAttribute('aria-pressed', 'false'); b[1].setAttribute('aria-pressed', 'true'); }
+  })();
+</script>
+</body>
+</html>

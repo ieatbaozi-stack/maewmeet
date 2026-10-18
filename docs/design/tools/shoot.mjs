@@ -30,6 +30,23 @@ const JOBS = [
   ['calendar', 'normal', 'view', VARIANTS],
   ['create', 'normal', 'view', VARIANTS],
   ['cats', 'normal', 'full', [['th', 'light'], ['th', 'dark']]],
+  // R1 — บัญชี / reset PIN / admin (th/en × light/dark ทุกสถานะหลัก)
+  ['signup', 'normal', 'view', VARIANTS],
+  ['signup', 'pin', 'view', VARIANTS],
+  ['signup', 'error', 'view', VARIANTS],
+  ['forgot', 'normal', 'view', VARIANTS],
+  ['forgot', 'loading', 'view', [['th', 'light'], ['en', 'dark']]],
+  ['forgot', 'pending', 'view', VARIANTS],
+  ['forgot', 'approved', 'view', VARIANTS],
+  ['forgot', 'closed', 'view', VARIANTS],
+  ['set-pin', 'normal', 'view', VARIANTS],
+  ['set-pin', 'error', 'view', VARIANTS],
+  ['set-pin', 'loading', 'view', [['th', 'light'], ['en', 'dark']]],
+  ['admin-resets', 'normal', 'view', VARIANTS],
+  ['admin-resets', 'sheet', 'view', VARIANTS],
+  ['admin-resets', 'all', 'view', VARIANTS],
+  ['admin-resets', 'empty', 'view', VARIANTS],
+  ['admin-resets', 'error', 'view', [['th', 'light'], ['en', 'dark']]],
 ];
 const only = process.argv.slice(2);
 

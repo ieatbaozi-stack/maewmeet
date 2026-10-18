@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-m="signup.title"></title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<!--MESSAGES_EN-->
+</head>
+<body>
+<div class="aurora" data-intensity="hero" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<main class="app login" style="padding-bottom: var(--space-5)">
+  <div class="login-top">
+    <i data-brand="logo-mark" class="brand-mark"></i>
+    <nav class="lang-switch" data-m-aria="prefs.languageLabel">
+      <a href="?lang=th" lang="th" aria-current="true" class="js-th">ไทย</a>
+      <a href="?lang=en" lang="en" class="js-en">EN</a>
+    </nav>
+  </div>
+
+  <div class="login-hero">
+    <i data-brand="logo-th" class="logo js-logo-th"></i>
+    <i data-brand="logo-en" class="logo js-logo-en" hidden></i>
+  </div>
+
+  <section class="panel login-card auth-card" aria-labelledby="t">
+    <p class="step-of" data-state-show="normal"><span data-m="signup.stepOf" data-m-v='{"current":1,"total":2}'></span></p>
+    <p class="step-of" data-state-show="pin error loading" hidden><span data-m="signup.stepOf" data-m-v='{"current":2,"total":2}'></span></p>
+    <h1 class="auth-title" id="t" style="margin-top: var(--space-1)" data-m="signup.title"></h1>
+    <p class="auth-intro" data-state-show="normal" data-m="signup.intro"></p>
+
+    <!-- ขั้น 1: ข้อมูลบัญชี -->
+    <form data-state-show="normal" onsubmit="return false">
+      <div class="field">
+        <label for="u" data-m="signup.username"></label>
+        <input id="u" class="input" value="tonkhao" autocomplete="username" autocapitalize="none" spellcheck="false" aria-describedby="u-h">
+        <p class="field-hint" id="u-h" data-m="signup.usernameHint"></p>
+      </div>
+      <div class="field">
+        <label for="d" data-m="signup.displayName"></label>
+        <input id="d" class="input" value="ต้นข้าว" autocomplete="nickname" aria-describedby="d-h">
+        <p class="field-hint" id="d-h" data-m="signup.displayNameHint"></p>
+      </div>
+      <div class="auth-actions">
+        <button class="btn btn-primary btn-block" data-m="login.next"></button>
+      </div>
+    </form>
+
+    <!-- ขั้น 2: ตั้ง PIN -->
+    <div data-state-show="pin error loading" hidden>
+      <p class="auth-intro" data-m="signup.pin" style="font-weight: var(--weight-medium)"></p>
+      <div class="pin-dots" role="img" data-m-aria="login.pinProgress" data-m-v='{"count":6}'><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div>
+      <p class="pin-msg" data-state-show="pin" data-m="signup.pinRemember" style="text-align:left; margin-top: var(--space-3)"></p>
+      <p class="pin-msg err" data-state-show="error" hidden role="alert" data-m="errors.PIN_TOO_WEAK" style="text-align:left; margin-top: var(--space-3)"></p>
+      <p class="pin-msg" data-state-show="loading" hidden role="status" data-m="signup.submitting"></p>
+      <div class="rules-box" data-state-show="pin loading" hidden>
+      <p class="rules-title" data-m="pinRules.title"></p>
+      <ul class="rules">
+        <li><i data-icon="check" class="sm"></i><span data-m="pinRules.digits"></span></li>
+        <li><i data-icon="check" class="sm"></i><span data-m="pinRules.notRepeated"></span></li>
+        <li><i data-icon="check" class="sm"></i><span data-m="pinRules.notSequence"></span></li>
+      </ul>
+      <p class="rules-why" data-m="pinRules.why"></p>
+    </div>
+      <div class="keypad" role="group" data-m-aria="login.keypad.label">
+      <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+      <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+      <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+      <button class="key blank" tabindex="-1" aria-hidden="true"></button>
+      <button class="key">0</button>
+      <button class="key ghost" data-m-aria="login.keypad.delete"><i data-icon="delete" class="lg"></i></button>
+    </div>
+    </div>
+  </section>
+
+  <p class="link-row"><span data-m="signup.haveAccount"></span> <a href="login.html" data-m="signup.signIn"></a></p>
+</main>
+<script>
+  (function () {
+    var en = new URLSearchParams(location.search).get('lang') === 'en';
+    document.querySelector('.js-logo-th').toggleAttribute('hidden', en);
+    document.querySelector('.js-logo-en').toggleAttribute('hidden', !en);
+  })();
+</script>
+<script>
+  (function () {
+    var q = new URLSearchParams(location.search), en = q.get('lang') === 'en', t = q.get('theme'), s = q.get('state');
+    document.querySelector('.js-th').setAttribute('aria-current', String(!en));
+    document.querySelector('.js-en').setAttribute('aria-current', String(en));
+    var extra = (t ? '&theme=' + t : '') + (s ? '&state=' + s : '');
+    document.querySelectorAll('.lang-switch a').forEach(function (a) { a.href += extra; });
+  })();
+</script>
+</body>
+</html>
