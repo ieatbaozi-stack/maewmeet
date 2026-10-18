@@ -31,6 +31,15 @@ describe('callApi', () => {
     expect(calls[0]!.init.body).toBe(JSON.stringify({ username: 'a', pin: '135790' }));
   });
 
+  it.each(['PATCH', 'DELETE'] as const)('%s: ส่ง Content-Type: application/json + body เสมอ (CSRF ของ route wrapper)', async (method) => {
+    const { impl, calls } = stubFetch(json({ data: { ok: true } }, 200));
+    await callApi('/api/groups/g1', { method, body: method === 'PATCH' ? { name: 'x' } : undefined, fetchImpl: impl });
+    expect(calls[0]!.init.method).toBe(method);
+    expect(calls[0]!.init.headers).toEqual({ 'Content-Type': 'application/json' });
+    expect(calls[0]!.init.body).toBe(method === 'PATCH' ? JSON.stringify({ name: 'x' }) : '{}');
+    expect(calls[0]!.init.credentials).toBe('same-origin');
+  });
+
   it('GET: ไม่ส่ง body/Content-Type', async () => {
     const { impl, calls } = stubFetch(json({ data: { status: 'none' } }, 200));
     await callApi('/api/auth/pin-reset/status', { method: 'GET', fetchImpl: impl });
