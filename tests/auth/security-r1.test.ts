@@ -16,7 +16,7 @@ vi.mock('@/lib/auth/pin', async (orig) => {
 
 import { getDb } from '@/db/client';
 import { RESET_PIN } from '@/lib/auth/pin-rules';
-import { Client, GOOD_PIN, loggedIn, OTHER_PIN, RESET_COOKIE, setupHarness, type Harness } from './harness';
+import { Client, GOOD_PIN, loggedIn, OTHER_PIN, setupHarness, type Harness } from './harness';
 
 let h: Harness;
 beforeEach(async () => {
