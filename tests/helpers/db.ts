@@ -38,10 +38,12 @@ export function testEnv(url: string): Record<string, string> {
     APP_SECRET: randomBytes(32).toString('base64'),
     CRON_SECRET: randomBytes(24).toString('base64url'),
     APP_ORIGIN: 'https://maewmeet.test',
+    PIN_PEPPER_CURRENT_VERSION: '1',
+    PIN_PEPPER_V1: randomBytes(32).toString('base64'),
   };
 }
 
-const TOUCHED_KEYS = ['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'APP_SECRET', 'CRON_SECRET', 'APP_ORIGIN', 'VERCEL_URL', 'VERCEL_ENV'];
+const TOUCHED_KEYS = ['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'APP_SECRET', 'CRON_SECRET', 'APP_ORIGIN', 'VERCEL_URL', 'VERCEL_ENV', 'PIN_PEPPER_CURRENT_VERSION', 'PIN_PEPPER_V1'];
 
 export type InstalledTestDb = TestDb & { env: Record<string, string> };
 
