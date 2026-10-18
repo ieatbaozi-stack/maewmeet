@@ -144,7 +144,7 @@ Get-Clipboard | npx tsx scripts/pepper-fingerprint.ts
 | `PIN_PEPPER_CURRENT_VERSION` | Config | ✔ | ✔ | `1` |
 | `PIN_PEPPER_V1` | **Secret** | ✔ (ค่าจาก C1) | ✔ (ค่าจาก C7 — คนละค่า) | ห้ามใช้ค่าเดียวกัน |
 | `APP_SECRET` | **Secret** | ✔ (C5) | ✔ (C7) | |
-| `CRON_SECRET` | **Secret** | ✔ (C6) | ✔ (C7) | preview ต้องมีด้วย ไม่งั้น `/api/health` บน preview ตอบ 503 |
+| `CRON_SECRET` | **Secret** | ✔ (C6) | ✔ (C7) | preview ต้องมีด้วย ไม่งั้นแอปบน preview ไม่เริ่ม (ทุก URL ตอบ 500 — G1) |
 | `APP_ORIGIN` | Config | ✔ | ✘ (เว้นว่าง — ใช้ URL ของ preview เอง) | `https://maewmeet.vercel.app` (ดู D6) |
 | `NOMINATIM_CONTACT` | Config | ✔ | ✔ | อีเมลติดต่อของ boss (ส่งใน User-Agent ถึง OpenStreetMap) |
 | `PLACE_SEARCH_ENABLED` | Config | ✔ | ✔ | `true` (ตั้ง `false` = ปิดค้นหาสถานที่ทันทีโดยไม่ต้อง deploy โค้ดใหม่ แค่ Redeploy) |
@@ -189,7 +189,7 @@ workflow `keepalive` ยิงแอปทุก 12 ชม. (นาที 17 ข
   - `ok:true` + `db:true` = แอปต่อฐานได้ และ env ครบ
   - `argon2:true` = runtime เป็น Node 24 ที่ hash PIN ได้ (ถ้า `false` → D5)
   - `vercelCron: null` ปกติสำหรับ deploy แรก (cron ยังไม่เคยรัน) — ทำ F2
-  - หน้าแสดง HTTP 503 / `ok:false` → ส่วน G1
+  - หน้าแสดง HTTP 503 / `ok:false` หรือขึ้นแค่ `Internal Server Error` (500) → ส่วน G1
 
 ☐ **F2** (deploy แรก หรือเมื่อ `vercelCron` เป็น `null`) สั่ง cron รายวันรอบแรกด้วยมือ — **วิธี 1**: Settings → Cron Jobs → ปุ่ม **Run** ข้าง `/api/cron/daily` (ถ้ามี) · **วิธี 2** PowerShell:
 ```powershell
@@ -218,11 +218,11 @@ Remove-Variable s
 ## G. Runbook — เมื่อมีอะไรผิดปกติ
 ดูอาการจาก **อีเมลแจ้ง keepalive ล้ม** (เปิด run ใน Actions อ่านบรรทัดสีแดง) หรือจาก `/api/health`
 
-### G1 `/api/health` ตอบ 503 (`ok:false`)
+### G1 `/api/health` ตอบ 503 (`ok:false`) หรือ **ทุกหน้าตอบ 500 `Internal Server Error`**
 health ไม่บอกสาเหตุต่อสาธารณะ (ตั้งใจ) — ดูใน Vercel:
-1. Vercel → Project → **Logs** (เก็บแค่ 1 ชม. บน Hobby — เปิด `/api/health` อีกครั้งแล้วดู log สด) ค้นคำว่า `[health]`
-   - `Invalid environment configuration — missing: X` / `invalid: X (...)` → แก้ env ชื่อ X ตามส่วน D3 → Redeploy (log บอกแค่**ชื่อ**ตัวแปร ไม่มีค่า)
-   - ไม่มีบรรทัด `[health]` แต่ `db:false` → ฐานต่อไม่ได้ → G2
+1. Vercel → Project → **Logs** (เก็บแค่ 1 ชม. บน Hobby — เปิด `/api/health` อีกครั้งแล้วดู log สด) ค้นคำว่า `Invalid environment configuration`
+   - env "ต้องมี" หาย/ผิดรูป → แอป**ไม่ยอมเริ่ม** (R0-5): ทุก URL รวม `/api/health` ตอบ **500** ข้อความ `Internal Server Error` (ไม่ใช่ JSON) และ log มีบรรทัด `An error occurred while loading instrumentation hook: Invalid environment configuration — missing: X` / `invalid: X (...)` → แก้ env ชื่อ X ตามส่วน D3 → Redeploy (log บอกแค่**ชื่อ**ตัวแปร ไม่มีค่า)
+   - ไม่มีบรรทัดนั้น แต่ health ตอบ JSON `db:false` → ฐานต่อไม่ได้ → G2
 2. ตรวจ Turso status ที่ <https://status.turso.tech> และ Vercel ที่ <https://www.vercel-status.com>
 
 ### G2 ฐาน Turso หลับ/ถูก archive (กู้ภายในไม่กี่นาที)
@@ -266,10 +266,10 @@ login ทั้งระบบตอบ "ปิดปรับปรุงชั
 อ้างอิงเต็มใน `.env.example` (ARCHITECTURE §7) · ที่มาของกติกาเข้ม/ผ่อน: `src/lib/shared/env.ts`
 | ตัวแปร | ต้องมีเมื่อ | ถ้าขาด |
 |---|---|---|
-| `TURSO_DATABASE_URL` | ทุกที่ (deploy ต้องเป็น `libsql://`/`https://`) | health 503 |
-| `TURSO_AUTH_TOKEN` | production + preview | health 503 |
-| `APP_SECRET` (base64 ≥ 32 ไบต์) | ทุกที่ | health 503 |
-| `CRON_SECRET` (≥ 16 ตัว) | ทุกที่ | health 503 · cron/keepalive 401 |
-| `APP_ORIGIN` | production (preview ใช้ `VERCEL_URL` แทนได้) | health 503 |
+| `TURSO_DATABASE_URL` | ทุกที่ (deploy ต้องเป็น `libsql://`/`https://`) | แอปไม่เริ่ม: ทุก URL 500 (G1) |
+| `TURSO_AUTH_TOKEN` | production + preview | แอปไม่เริ่ม: ทุก URL 500 (G1) |
+| `APP_SECRET` (base64 ≥ 32 ไบต์) | ทุกที่ | แอปไม่เริ่ม: ทุก URL 500 (G1) |
+| `CRON_SECRET` (≥ 16 ตัว) | ทุกที่ | แอปไม่เริ่ม: ทุก URL 500 (G1) · keepalive ล้ม |
+| `APP_ORIGIN` | production (preview ใช้ `VERCEL_URL` แทนได้) | แอปไม่เริ่ม: ทุก URL 500 (G1) |
 | `PIN_PEPPER_CURRENT_VERSION`, `PIN_PEPPER_V<n>` | ตั้งแต่ R1 บังคับ (R0 ตั้งไว้ล่วงหน้า) | R1: login ปิด (`AUTH_MAINTENANCE`) ไม่มีใครโดนล็อก |
 | `PLACE_SEARCH_ENABLED`, `NOMINATIM_*`, `NEXT_PUBLIC_MAP_*`, `LOG_LEVEL` | ไม่บังคับ (มีค่าเริ่มต้น) | ใช้ค่าเริ่มต้น |
