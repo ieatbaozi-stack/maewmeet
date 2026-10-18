@@ -54,6 +54,10 @@ export const baseEnvSchema = z.object({
   APP_ORIGIN: z.preprocess(blankToUndefined, originString.optional()),
   VERCEL_URL: optionalString,
   VERCEL_ENV: optionalString,
+  // ── proxy: เชื่อ header IP (x-vercel-forwarded-for / x-real-ip / x-forwarded-for) เฉพาะเมื่อ VERCEL ถูกตั้ง (Vercel ใส่ให้เอง) หรือ TRUST_PROXY_HEADERS=1
+  //    ตั้งเมื่ออยู่หลัง reverse proxy ที่เขียนทับ header เหล่านี้เองเท่านั้น — ไม่งั้นผู้เรียกปลอม IP หลบ rate limit ได้ (ADR 0002 §3)
+  VERCEL: optionalString,
+  TRUST_PROXY_HEADERS: optionalString,
   // ── pepper: ไม่ตรวจที่นี่ — ผิด/ขาดต้องไม่ทำให้ getEnv() โยน (ทุก route จะ 500) · ADR 0002 §7.1 fail closed เฉพาะ auth
   //    (AUTH_MAINTENANCE) + /api/health 503 ผ่าน readPepperEnv/requirePepper ใน src/lib/auth/pepper.ts
   PIN_PEPPER_CURRENT_VERSION: optionalString,
@@ -108,6 +112,15 @@ export function isEnvError(e: unknown): e is EnvError {
 
 export function isDeployed(source: EnvSource): boolean {
   return source.VERCEL_ENV === 'production' || source.VERCEL_ENV === 'preview';
+}
+
+/**
+ * เชื่อ header IP จาก proxy ไหม — บน Vercel (env VERCEL ถูกตั้ง) หรือ operator ยืนยันด้วย TRUST_PROXY_HEADERS=1
+ * อ่านจาก source ตรง ๆ (ไม่ผ่าน getEnv) เพื่อให้ฟังก์ชันอ่าน IP ใช้ได้โดยไม่ต้องมี env ครบ
+ */
+export function trustsProxyHeaders(source: EnvSource = process.env): boolean {
+  const vercel = source.VERCEL?.trim();
+  return (vercel !== undefined && vercel !== '' && vercel !== '0') || source.TRUST_PROXY_HEADERS?.trim() === '1';
 }
 
 /** ตรวจ env จาก source ที่ให้ (ค่าเริ่มต้น process.env) — โยน EnvError ถ้าไม่ผ่าน */

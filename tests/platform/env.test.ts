@@ -1,7 +1,7 @@
 // R0-5: env ล้มพร้อมชื่อตัวแปรเมื่อขาด/ผิด และข้อความไม่มีค่าลับ (ARCHITECTURE §7 · ADR 0002 §7.1)
 import { randomBytes } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
-import { EnvError, assertEnv, configuredAppOrigin, getEnv, loadEnv, readPepperEnv, resetEnvCache } from '@/lib/shared/env';
+import { EnvError, assertEnv, configuredAppOrigin, getEnv, loadEnv, readPepperEnv, resetEnvCache, trustsProxyHeaders } from '@/lib/shared/env';
 
 const SECRET_32 = randomBytes(32).toString('base64');
 const CRON = 'cron-' + randomBytes(16).toString('hex');
@@ -159,5 +159,20 @@ describe('assertEnv — จุด "ล้มตอนเริ่ม" (อ่า
     resetEnvCache();
     expect(() => assertEnv()).not.toThrow();
     expect(getEnv()).toBe(getEnv());
+  });
+});
+
+describe('trustsProxyHeaders (S4/S5)', () => {
+  it('เชื่อเฉพาะเมื่อ VERCEL ถูกตั้ง หรือ TRUST_PROXY_HEADERS=1', () => {
+    expect(trustsProxyHeaders({})).toBe(false);
+    expect(trustsProxyHeaders({ VERCEL: '' })).toBe(false);
+    expect(trustsProxyHeaders({ VERCEL: '0' })).toBe(false);
+    expect(trustsProxyHeaders({ TRUST_PROXY_HEADERS: '0' })).toBe(false);
+    expect(trustsProxyHeaders({ TRUST_PROXY_HEADERS: 'true' })).toBe(false); // ต้องเป็น '1' ตรงตัว
+    expect(trustsProxyHeaders({ VERCEL: '1' })).toBe(true);
+    expect(trustsProxyHeaders({ TRUST_PROXY_HEADERS: '1' })).toBe(true);
+  });
+  it('ทั้งสองตัวเป็น optional ใน schema (ไม่ตั้ง = ผ่าน)', () => {
+    expect(() => loadEnv({ TURSO_DATABASE_URL: 'file:./x.db', APP_SECRET: Buffer.alloc(32, 1).toString('base64'), CRON_SECRET: 'x'.repeat(16) })).not.toThrow();
   });
 });

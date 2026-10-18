@@ -4,7 +4,7 @@
 //                                  window_start = excluded.window_start
 //   RETURNING count
 // key ที่รับมา = ผ่านการ HMAC แล้ว (ผู้เรียก) · repo ไม่รู้จัก IP ดิบ
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { rateLimitBucket } from '@/db/schema';
 import type { DbOrTx } from '@/db/client';
 
@@ -49,4 +49,37 @@ export async function peekBucket(db: DbOrTx, key: string, windowMs: number, now:
   const row = rows[0];
   const count = row && row.windowStart === windowStart ? Number(row.count) : 0;
   return { count, windowStart, windowEnd: windowStart + windowMs };
+}
+
+export type BucketReservation = { admitted: boolean; windowEnd: number };
+
+/**
+ * จองช่อง 1 ครั้งแบบมีเพดาน (UPSERT เดียวอะตอมมิก): หน้าต่างใหม่ → เริ่มที่ 1 · หน้าต่างเดิมและ count < limit → +1 · เต็มแล้ว → ไม่แก้ (DO UPDATE … WHERE เท็จ → ไม่มีแถวกลับ)
+ * ผู้ถูกปฏิเสธจึงไม่ทำให้ count เกิน limit · ผู้เรียกคืนช่อง (refundBucket) เมื่อ login สำเร็จ/ถูกปฏิเสธโดยไม่ verify
+ */
+export async function reserveBucket(db: DbOrTx, key: string, windowMs: number, limit: number, now: number): Promise<BucketReservation> {
+  const windowStart = windowStartOf(now, windowMs);
+  const windowEnd = windowStart + windowMs;
+  if (limit < 1) return { admitted: false, windowEnd };
+  const rows = await db
+    .insert(rateLimitBucket)
+    .values({ key, windowStart, count: 1 })
+    .onConflictDoUpdate({
+      target: rateLimitBucket.key,
+      set: {
+        count: sql`CASE WHEN ${rateLimitBucket.windowStart} = excluded.window_start THEN ${rateLimitBucket.count} + 1 ELSE 1 END`,
+        windowStart: sql`excluded.window_start`,
+      },
+      setWhere: sql`${rateLimitBucket.windowStart} <> excluded.window_start OR ${rateLimitBucket.count} < ${limit}`,
+    })
+    .returning({ count: rateLimitBucket.count });
+  return { admitted: rows.length > 0, windowEnd };
+}
+
+/** คืนช่องที่จองไว้ 1 ช่อง (ลด count ในหน้าต่างปัจจุบัน ไม่ต่ำกว่า 0) — หน้าต่างเปลี่ยนไปแล้วไม่ทำอะไร */
+export async function refundBucket(db: DbOrTx, key: string, windowMs: number, now: number): Promise<void> {
+  await db
+    .update(rateLimitBucket)
+    .set({ count: sql`MAX(${rateLimitBucket.count} - 1, 0)` })
+    .where(and(eq(rateLimitBucket.key, key), eq(rateLimitBucket.windowStart, windowStartOf(now, windowMs))));
 }

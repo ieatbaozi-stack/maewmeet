@@ -27,8 +27,8 @@ import {
   SESSION_TTL_MS,
   touchSession,
 } from '@/lib/data/repos/session';
-import { getLoginThrottle, lockRemainingSec, recordLoginFailure, resetLoginThrottle } from '@/lib/data/repos/login-throttle';
-import { hitBucket, peekBucket, windowStartOf } from '@/lib/data/repos/rate-limit-bucket';
+import { getLoginThrottle, lockRemainingSec, reserveLoginAttempt, resetLoginThrottle } from '@/lib/data/repos/login-throttle';
+import { hitBucket, peekBucket, refundBucket, reserveBucket, windowStartOf } from '@/lib/data/repos/rate-limit-bucket';
 import {
   approvePinReset,
   cancelPendingPinResetOfUser,
@@ -205,34 +205,65 @@ describe('session repo', () => {
 
 describe('login_throttle repo', () => {
   const sched = (f: number) => (f >= 5 ? Math.min(2 ** (f - 5) * MINUTE_MS, DAY_MS) : 0);
+  /** จองแล้วคืนแถว (ต้อง admitted) */
+  const reserve = async (key: string, now: number) => {
+    const r = await reserveLoginAttempt(t.db, key, now, sched);
+    if (!r.admitted) throw new Error('expected admitted');
+    return r.row;
+  };
 
-  it('ผิดครั้งที่ 1–4 ไม่ล็อก · ครั้งที่ 5 ล็อก 1 นาที · 6 → 2 นาที · เพดาน 24 ชม.', async () => {
+  it('จองครั้งที่ 1–4 ไม่ล็อก · ครั้งที่ 5 ล็อก 1 นาที · 6 → 2 นาที · เพดาน 24 ชม.', async () => {
     const key = 'u:alice';
     for (let f = 1; f <= 4; f++) {
-      const r = await recordLoginFailure(t.db, key, T0, sched);
+      const r = await reserve(key, T0);
       expect(r.failures).toBe(f);
       expect(r.lockedUntil).toBeNull();
     }
-    let r = await recordLoginFailure(t.db, key, T0, sched);
+    let r = await reserve(key, T0);
     expect(r.failures).toBe(5);
     expect(lockRemainingSec(r, T0)).toBe(60);
     expect(lockRemainingSec(r, T0 + 59_001)).toBe(1);
     expect(lockRemainingSec(r, T0 + 60_000)).toBe(0);
-    r = await recordLoginFailure(t.db, key, T0 + 60_000, sched);
+    r = await reserve(key, T0 + 60_000);
     expect(lockRemainingSec(r, T0 + 60_000)).toBe(120);
-    for (let i = 0; i < 12; i++) r = await recordLoginFailure(t.db, key, T0 + 60_000, sched);
-    expect(lockRemainingSec(r, T0 + 60_000)).toBe(24 * 3600);
+    // ตารางครบทุกขั้นเหมือน lockMsFor (SQL CASE สร้างจากฟังก์ชันเดียวกัน)
+    const seen: number[] = [];
+    for (let i = 0; i < 14; i++) {
+      const now = r.lockedUntil! + i; // พ้นล็อกเดิมเสมอ
+      r = await reserve(key, now);
+      seen.push(lockRemainingSec(r, now));
+    }
+    expect(seen).toEqual([240, 480, 960, 1920, 3840, 7680, 15360, 30720, 61440, 86400, 86400, 86400, 86400, 86400]);
   });
 
-  it('reset ล้างตัวนับและล็อก · ไม่มีแถว = ไม่ล็อก · ความล้มเหลวพร้อมกัน 10 ครั้งนับครบ', async () => {
+  it('ล็อกอยู่ → ปฏิเสธโดยไม่แก้แถว (failures/locked_until คงเดิม) · พ้นล็อกแล้วจองได้อีก', async () => {
+    const key = 'u:locked';
+    for (let i = 0; i < 5; i++) await reserve(key, T0);
+    const before = (await getLoginThrottle(t.db, key))!;
+    for (let i = 0; i < 20; i++) {
+      const r = await reserveLoginAttempt(t.db, key, T0 + 1000 + i, sched);
+      expect(r).toEqual({ admitted: false, lockedUntil: before.lockedUntil });
+    }
+    expect(await getLoginThrottle(t.db, key)).toEqual(before);
+    expect((await reserve(key, before.lockedUntil!)).failures).toBe(6);
+  });
+
+  it('จองพร้อมกัน 60 ครั้ง: admitted ได้ 5 เท่านั้น (failures 1..5) ที่เหลือถูกปฏิเสธ', async () => {
+    const rs = await Promise.all(Array.from({ length: 60 }, () => reserveLoginAttempt(t.db, 'u:burst', T0, sched)));
+    const admitted = rs.filter((r) => r.admitted);
+    expect(admitted).toHaveLength(5);
+    expect(admitted.map((r) => (r.admitted ? r.row.failures : 0)).sort()).toEqual([1, 2, 3, 4, 5]);
+    expect((await getLoginThrottle(t.db, 'u:burst'))!.failures).toBe(5);
+  });
+
+  it('reset ล้างตัวนับและล็อก · ไม่มีแถว = ไม่ล็อก · กุญแจต่างกันไม่ปนกัน', async () => {
     expect(lockRemainingSec(await getLoginThrottle(t.db, 'u:none'), T0)).toBe(0);
-    await Promise.all(Array.from({ length: 10 }, () => recordLoginFailure(t.db, 'u:par', T0, sched)));
-    expect((await getLoginThrottle(t.db, 'u:par'))!.failures).toBe(10);
+    for (let i = 0; i < 3; i++) await reserve('u:par', T0);
+    expect((await getLoginThrottle(t.db, 'u:par'))!.failures).toBe(3);
     await resetLoginThrottle(t.db, 'u:par', T0 + 1);
     const row = (await getLoginThrottle(t.db, 'u:par'))!;
     expect([row.failures, row.lockedUntil]).toEqual([0, null]);
-    // กุญแจต่างกันไม่ปนกัน
-    await recordLoginFailure(t.db, 'u:x', T0, sched);
+    await reserve('u:x', T0);
     expect((await getLoginThrottle(t.db, 'u:y'))).toBeNull();
   });
 });
@@ -264,6 +295,24 @@ describe('rate_limit_bucket repo (UPSERT อะตอมมิก)', () => {
     const counts = hits.map((h) => h.count).sort((a, b) => a - b);
     expect(counts).toEqual(Array.from({ length: 50 }, (_, i) => i + 1));
     expect((await peekBucket(t.db, 'signup:ip:p', W, now)).count).toBe(50);
+  });
+
+  it('reserveBucket: เต็ม limit แล้วปฏิเสธโดยไม่เพิ่ม · พร้อมกัน 60 ได้ admitted = limit · refund คืนช่อง · หน้าต่างใหม่เริ่มใหม่', async () => {
+    const now = windowStartOf(T0, W) + 1;
+    const rs = await Promise.all(Array.from({ length: 60 }, () => reserveBucket(t.db, 'login:ip:r', W, 20, now)));
+    expect(rs.filter((r) => r.admitted)).toHaveLength(20);
+    expect((await peekBucket(t.db, 'login:ip:r', W, now)).count).toBe(20); // ผู้ถูกปฏิเสธไม่ดันเกิน
+    expect(rs[0]!.windowEnd).toBe(windowStartOf(now, W) + W);
+    await refundBucket(t.db, 'login:ip:r', W, now);
+    expect((await peekBucket(t.db, 'login:ip:r', W, now)).count).toBe(19);
+    expect((await reserveBucket(t.db, 'login:ip:r', W, 20, now)).admitted).toBe(true);
+    expect((await reserveBucket(t.db, 'login:ip:r', W, 20, now)).admitted).toBe(false);
+    const later = windowStartOf(now, W) + W;
+    expect((await reserveBucket(t.db, 'login:ip:r', W, 20, later)).admitted).toBe(true);
+    expect((await peekBucket(t.db, 'login:ip:r', W, later)).count).toBe(1);
+    await refundBucket(t.db, 'login:ip:r', W, now); // หน้าต่างเก่า → ไม่แตะค่าของหน้าต่างใหม่
+    expect((await peekBucket(t.db, 'login:ip:r', W, later)).count).toBe(1);
+    await refundBucket(t.db, 'never', W, now); // ไม่มีแถว → ไม่ error
   });
 
   it('windowMs ไม่ถูกต้อง → โยน', () => {
