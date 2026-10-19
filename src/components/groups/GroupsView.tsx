@@ -14,6 +14,7 @@ import { failureMessage } from "./errors";
 import { setFlash } from "./flash";
 import { GROUP_NAME_MAX, formatShortDate, groupNameLength } from "./helpers";
 import { FlashNotice, Notice } from "./Notice";
+import { Name, isolateName } from "@/components/Name";
 
 type Sheets = null | "create" | "join";
 type Status = { kind: "ok" | "error"; text: string } | null;
@@ -82,7 +83,7 @@ export function GroupsView({ groups, invites }: { groups: GroupSummaryDto[]; inv
               {invites.map((inv) => (
                 <article className="panel invite-card" key={inv.id}>
                   <div>
-                    <p className="who-line">{t("groups.invites.item", { inviter: inv.inviterName, group: inv.groupName })}</p>
+                    <p className="who-line">{t("groups.invites.item", { inviter: isolateName(inv.inviterName), group: isolateName(inv.groupName) })}</p>
                     <p className="small muted">{t("groups.invites.expires", { date: formatShortDate(inv.expiresAt, locale) })}</p>
                   </div>
                   <div className="actions">
@@ -120,7 +121,7 @@ export function GroupsView({ groups, invites }: { groups: GroupSummaryDto[]; inv
                   <li key={g.id}>
                     <Link className="row" href={`/groups/${g.id}`} aria-label={t("groups.openAria", { name: g.name, count: g.memberCount })}>
                       <span className="row-main">
-                        <span className="row-title">{g.name}</span>
+                        <span className="row-title"><Name>{g.name}</Name></span>
                         <span className="row-meta">
                           {t("groups.memberCount", { count: g.memberCount })} · {t("group.yourRole", { role: g.role })}
                         </span>

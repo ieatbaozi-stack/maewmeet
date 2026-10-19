@@ -7,6 +7,7 @@ import { FlashNotice } from "@/components/groups/Notice";
 import { MemberList } from "@/components/groups/MemberList";
 import { viewerRole } from "@/components/groups/helpers";
 import { Icon } from "@/components/icons/Icon";
+import { Name } from "@/components/Name";
 import { loadGroup } from "../_lib/load";
 
 export async function generateMetadata({ params }: { params: Promise<{ gid: string }> }): Promise<Metadata> {
@@ -50,7 +51,7 @@ export default async function GroupPage({ params }: { params: Promise<{ gid: str
       </header>
       <main className="main group-main" id="main">
         <div className="group-head">
-          <h1>{group.name}</h1>
+          <h1><Name>{group.name}</Name></h1>
           <p className="meta">
             <span>{t("groups.memberCount", { count: group.memberCount })}</span>
             {group.myRole !== null ? (

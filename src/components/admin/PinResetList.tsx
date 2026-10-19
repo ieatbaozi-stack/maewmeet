@@ -6,6 +6,7 @@ import { callApi, type ApiResult } from "@/components/auth/api";
 import { failureText } from "@/components/auth/errors";
 import { Icon } from "@/components/icons/Icon";
 import { Sheet } from "@/components/shell/Sheet";
+import { Name } from "@/components/Name";
 import { deviceLabel, regionName } from "@/i18n/auth-messages";
 
 interface ResetItem {
@@ -152,7 +153,7 @@ export function PinResetList() {
               return (
                 <li className="req" key={item.id}>
                   <div className="req-top">
-                    <span className="req-user">{item.username}</span>
+                    <span className="req-user"><Name>{item.username}</Name></span>
                     <span className="tag tag-wait">
                       <Icon name="clock" size="sm" />
                       <span>{t("adminResets.status.pending")}</span>

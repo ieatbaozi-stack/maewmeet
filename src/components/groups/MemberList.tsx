@@ -13,6 +13,7 @@ import { memberActions, type GroupRole } from "./helpers";
 import { MemberAvatar } from "./MemberAvatar";
 import { Notice } from "./Notice";
 import { RoleTag } from "./RoleTag";
+import { Name } from "@/components/Name";
 
 type Dialog = null | { kind: "manage" | "remove" | "transfer"; member: MemberDto };
 type Status = { kind: "ok" | "error"; text: string } | null;
@@ -73,7 +74,7 @@ export function MemberList({ groupId, members, viewer, myId }: MemberListProps) 
               <div className="row" role="group" aria-label={t("group.members.rowAria", { name: m.displayName, role: roleLabel })}>
                 <MemberAvatar displayName={m.displayName} colorIndex={m.colorIndex} size="lg" />
                 <span className="row-main">
-                  <span className="row-title">{m.displayName}</span>
+                  <span className="row-title"><Name>{m.displayName}</Name></span>
                   {isSelf ? <span className="you">{t("group.members.you")}</span> : null}
                   <RoleTag role={m.role} label={roleLabel} />
                 </span>
