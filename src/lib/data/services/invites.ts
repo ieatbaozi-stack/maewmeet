@@ -35,10 +35,11 @@ import { DAY_MS, HOUR_MS, MINUTE_MS } from '@/lib/shared/clock';
 import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
 import { GROUP_LIMITS } from '@/lib/shared/limits';
+import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
 import { formatInviteCode, generateInviteCode, hashInviteCode, inviteCodeHint, normalizeInviteCode } from '../invite-code';
 import { loadGroupCtx } from '../policy-context';
-import { toInviteDto, type CreatedCodeInviteDto, type InviteDto, type PendingInviteDto } from '../serializers/groups';
+import { toInviteDto, toPendingInviteDto, type CreatedCodeInviteDto, type InviteDto, type PendingInviteDto } from '../serializers/groups';
 import { inTx, serialized } from '../tx';
 import { asUser, audit, auditRead, NOTIFY_KIND } from './group-common';
 
@@ -147,7 +148,7 @@ export async function createDirectInvite(actor: Actor, groupId: string, input: D
     }
     await insertNotification(
       tx,
-      { id: newId(), userId: invitee.id, kind: NOTIFY_KIND.inviteReceived, params: { groupId, groupName: groupRow.name, inviterName: inviter.displayName, inviteId: id } },
+      { id: newId(), userId: invitee.id, kind: NOTIFY_KIND.inviteReceived, params: { groupId, groupName: sanitizeDisplayText(groupRow.name), inviterName: sanitizeDisplayText(inviter.displayName), inviteId: id } },
       now,
     );
     await audit(tx, me, allow, { action: 'invite.direct.create', targetType: 'invite', targetId: id, groupId, meta: { inviteId: id, inviteeUserId: invitee.id } }, now);
@@ -259,7 +260,7 @@ export async function redeemInviteCode(actor: Actor, input: RedeemInput, ctx: Da
 // ───────── คำเชิญตรงของฉัน ─────────
 export async function listMyInvites(actor: Actor, ctx: DataCtx): Promise<{ invites: PendingInviteDto[] }> {
   authorize(actor, 'invite.direct.list.mine', { type: 'none' });
-  return { invites: await listPendingDirectInvitesFor(ctx.db, asUser(actor).id, ctx.now) };
+  return { invites: (await listPendingDirectInvitesFor(ctx.db, asUser(actor).id, ctx.now)).map(toPendingInviteDto) };
 }
 
 /**
@@ -294,7 +295,7 @@ export async function respondToDirectInvite(
     }
     const groupRow = await findGroupById(tx, closed.groupId);
     const me2 = await findUserById(tx, me.id);
-    const params = { groupId: closed.groupId, groupName: groupRow?.name ?? '', inviteeName: me2?.displayName ?? '', inviteId };
+    const params = { groupId: closed.groupId, groupName: sanitizeDisplayText(groupRow?.name ?? ''), inviteeName: sanitizeDisplayText(me2?.displayName ?? ''), inviteId };
     let alreadyMember = false;
     if (decision === 'accept') {
       const joined = await insertMemberIfRoom(tx, { groupId: closed.groupId, userId: me.id, cap: GROUP_LIMITS.membersPerGroup }, now);

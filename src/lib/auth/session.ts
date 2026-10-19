@@ -16,6 +16,7 @@ import {
 } from '@/lib/data/repos/session';
 import type { Actor, UserActor } from '@/lib/rbac/types';
 import { clock } from '@/lib/shared/clock';
+import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import { readCookie } from './request';
 import { newSessionToken, parseDeviceCookie, sha256Hex, type ParsedDeviceCookie } from './tokens';
 
@@ -147,7 +148,7 @@ export function sessionUserDto(u: SessionWithUser['user']): SessionUserDto {
   return {
     id: u.id,
     username: u.username,
-    displayName: u.displayName,
+    displayName: sanitizeDisplayText(u.displayName),
     isAdmin: u.isAdmin,
     mustChangePin: u.mustChangePin,
     locale: u.locale,

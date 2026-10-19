@@ -4,6 +4,7 @@ import type { GroupOfUser, GroupRow, GroupRole } from '@/lib/data/repos/group';
 import type { InviteListRow, PendingDirectInvite } from '@/lib/data/repos/group-invite';
 import type { MemberWithUser } from '@/lib/data/repos/group-member';
 import { memberColorIndex } from '@/lib/shared/member-color';
+import { sanitizeDisplayText as clean } from '@/lib/shared/name-rules';
 
 export type GroupSummaryDto = {
   id: string;
@@ -16,7 +17,7 @@ export type GroupSummaryDto = {
 
 export const toGroupSummary = (r: GroupOfUser): GroupSummaryDto => ({
   id: r.group.id,
-  name: r.group.name,
+  name: clean(r.group.name),
   role: r.role,
   memberCount: r.memberCount,
   createdAt: r.group.createdAt,
@@ -47,7 +48,7 @@ export type GroupDetailDto = {
 
 export const toGroupDetail = (g: GroupRow, myRole: GroupRole | null, members: MemberWithUser[]): GroupDetailDto => ({
   id: g.id,
-  name: g.name,
+  name: clean(g.name),
   tz: g.tz,
   freeWindowStartMin: g.freeWindowStartMin,
   freeWindowEndMin: g.freeWindowEndMin,
@@ -57,7 +58,7 @@ export const toGroupDetail = (g: GroupRow, myRole: GroupRole | null, members: Me
   memberCount: members.length,
   members: members.map((m) => ({
     userId: m.userId,
-    displayName: m.displayName,
+    displayName: clean(m.displayName),
     role: m.role,
     colorIndex: memberColorIndex(g.id, m.userId),
     joinedAt: m.joinedAt,
@@ -82,9 +83,9 @@ export const toInviteDto = (r: InviteListRow): InviteDto => ({
   id: r.id,
   kind: r.kind,
   codeHint: r.codeHint,
-  inviteeName: r.inviteeName,
+  inviteeName: r.inviteeName === null ? null : clean(r.inviteeName),
   createdBy: r.createdBy,
-  creatorName: r.creatorName,
+  creatorName: clean(r.creatorName),
   createdAt: r.createdAt,
   expiresAt: r.expiresAt,
   usesCount: r.usesCount,
@@ -100,3 +101,9 @@ export type CreatedCodeInviteDto = {
 };
 
 export type PendingInviteDto = PendingDirectInvite;
+
+export const toPendingInviteDto = (r: PendingDirectInvite): PendingInviteDto => ({
+  ...r,
+  groupName: clean(r.groupName),
+  inviterName: clean(r.inviterName),
+});
