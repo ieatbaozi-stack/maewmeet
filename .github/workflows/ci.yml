@@ -134,7 +134,7 @@ jobs:
 
   e2e:
     # แบ่ง 4 shard รันขนาน (repo private = runner 2 vCPU; ทั้งชุดรันเดี่ยว ๆ เกิน 30 นาทีแล้วถูกยกเลิก)
-    name: e2e (Playwright ${{ matrix.shard }}/4)
+    name: e2e (Playwright)
     runs-on: ubuntu-latest
     timeout-minutes: 40
     strategy:
@@ -160,7 +160,9 @@ jobs:
       - name: npm run build
         run: npm run build
       - name: npm run test:e2e
-        run: npm run test:e2e -- --shard=${{ matrix.shard }}/4
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: npm run test:e2e -- --shard="$SHARD/4"
       - name: เก็บรายงาน + ภาพหน้าจอ
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
