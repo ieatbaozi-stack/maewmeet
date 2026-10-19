@@ -29,6 +29,16 @@
     "keypad": {
       "label": "PIN keypad",
       "delete": "Delete last digit"
+    },
+    "locked": {
+      "title": "Temporarily locked",
+      "hint": "While it’s locked, even the right PIN won’t work. If you’ve forgotten it, you can ask for a reset.",
+      "long": "Too many tries. Try again in {hours} h {minutes} min."
+    },
+    "resetBanner": {
+      "pending": "Reset request sent. Waiting for an admin to approve it.",
+      "approved": "Your reset was approved. Use the PIN 123456 on this device until {expires}.",
+      "action": "See status"
     }
   },
   "empty": {
@@ -119,6 +129,156 @@
     "notificationsUnread": "Notifications, new items",
     "opensNewTab": "Opens in a new tab"
   },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close"
+  },
+  "signup": {
+    "title": "Create an account",
+    "intro": "Sign in with a username and a 6-digit PIN. No email needed.",
+    "stepOf": "Step {current} of {total}",
+    "stepAccount": "Your details",
+    "stepPin": "Set a PIN",
+    "stepConfirm": "Confirm PIN",
+    "username": "Username",
+    "usernameHint": "3–20 characters: a–z, numbers, dots or underscores",
+    "displayName": "Display name",
+    "displayNameHint": "Friends in your groups see this name. Up to 40 characters, any language.",
+    "pin": "Choose a 6-digit PIN",
+    "pinConfirm": "Enter the PIN again",
+    "pinRemember": "Keep your PIN somewhere safe. There’s no email to recover it, so if you forget it an admin has to approve a reset.",
+    "submit": "Create account",
+    "submitting": "Creating your account…",
+    "haveAccount": "Already have an account?",
+    "signIn": "Sign in"
+  },
+  "pinChange": {
+    "hintNew": "Choose 6 digits you’ll remember",
+    "hintConfirm": "Enter the same 6 digits once more"
+  },
+  "pinRules": {
+    "title": "What makes a valid PIN",
+    "digits": "6 digits",
+    "notRepeated": "Not all the same digit, like 000000",
+    "notSequence": "Not a straight run, like 123456 or 654321",
+    "why": "That’s all it takes to rule out the easy guesses. Pick numbers you’ll remember but others won’t guess."
+  },
+  "forgot": {
+    "title": "Forgot your PIN?",
+    "intro": "Tell us your username. An admin will check the request and let you set a new PIN.",
+    "username": "Username",
+    "submit": "Send request",
+    "submitting": "Sending…",
+    "backToLogin": "Back to sign in",
+    "deviceNote": "Once it’s approved, sign in from this device. If you switch devices or clear your browser data, this request won’t work and you’ll need to send a new one.",
+    "pending": {
+      "title": "Request sent",
+      "body": "An admin will review it, which can take a little while. If you remember your PIN in the meantime, just sign in as usual and the request is cancelled for you.",
+      "hint": "You can close this page and check back on the sign-in screen.",
+      "expiry": "If nobody answers within 7 days, the request expires and you can send a new one."
+    },
+    "approved": {
+      "title": "Approved",
+      "body": "Sign in with your username and the PIN 123456, then set a new PIN right away.",
+      "expires": "Valid until {expires}",
+      "thisDevice": "Works only on this device, the one you sent the request from.",
+      "cta": "Go to sign in"
+    },
+    "closed": {
+      "title": "This request is closed",
+      "body": "It expired, was declined, or has already been used. You can send a new one.",
+      "cta": "Send a new request"
+    }
+  },
+  "setPin": {
+    "title": "Set a new PIN",
+    "intro": "For your security, choose a new PIN before you carry on. 123456 can’t be used again.",
+    "pin": "New PIN",
+    "pinConfirm": "Enter the new PIN again",
+    "submit": "Save new PIN",
+    "saving": "Saving…",
+    "signOut": "Sign out",
+    "done": "New PIN saved",
+    "doneOthers": "Any other devices you were signed in on have been signed out."
+  },
+  "adminResets": {
+    "eyebrow": "Admin",
+    "title": "PIN reset requests",
+    "tabPending": "Waiting {count}",
+    "tabAll": "All",
+    "search": "Search usernames",
+    "user": "User",
+    "requestedAt": "Requested {when}",
+    "device": "Device",
+    "country": "Country",
+    "deviceUnknown": "Unknown device",
+    "countryUnknown": "Unknown country",
+    "approvedUntil": "Valid until {expires}",
+    "status": {
+      "pending": "Waiting",
+      "approved": "Approved",
+      "rejected": "Declined",
+      "used": "Used",
+      "expired": "Expired",
+      "cancelled": "Cancelled"
+    },
+    "approve": "Approve",
+    "reject": "Decline",
+    "approveFor": "Approve request from {username}",
+    "rejectFor": "Decline request from {username}",
+    "warningTitle": "Check with the owner before approving",
+    "warningBody": "Anyone who knows a username can ask for a reset in their name. Contact the owner outside the app, by chat or a call, and compare the time, device and country with what they tell you. If they don’t match, or they didn’t ask, decline.",
+    "approveSheet": {
+      "title": "Approve request from {username}",
+      "body": "{username}’s PIN will become 123456 for 24 hours, on the device that sent the request only. Their old PIN stops working straight away.",
+      "check": "I’ve confirmed with the account owner outside the app",
+      "confirm": "Approve"
+    },
+    "rejectSheet": {
+      "title": "Decline request from {username}",
+      "body": "The request will be closed. Their current PIN keeps working.",
+      "confirm": "Decline request"
+    },
+    "approvedToast": "Approved {username}’s request",
+    "rejectedToast": "Declined {username}’s request",
+    "empty": {
+      "title": "No requests waiting",
+      "body": "When someone taps Forgot PIN, their request shows up here."
+    }
+  },
+  "me": {
+    "title": "Me",
+    "signedInAs": "Signed in as {username}",
+    "security": "Security",
+    "changePin": "Change PIN",
+    "logout": "Sign out",
+    "logoutAll": "Sign out everywhere",
+    "logoutAllHint": "Signs you out on every device you’ve used, including this one.",
+    "logoutAllConfirm": {
+      "title": "Sign out everywhere?",
+      "body": "You’ll need to sign in again on every device, this one included. Your current PIN still works.",
+      "confirm": "Sign out everywhere"
+    },
+    "admin": "Admin",
+    "adminResets": "PIN reset requests",
+    "adminResetsBadge": "{count} waiting",
+    "pin": {
+      "title": "Change PIN",
+      "current": "Current PIN",
+      "new": "New PIN",
+      "confirm": "Enter the new PIN again",
+      "submit": "Change PIN",
+      "saving": "Saving…",
+      "done": "PIN changed. Your other devices have been signed out."
+    }
+  },
+  "notifications": {
+    "pin_reset": {
+      "approved": "An admin approved your PIN reset request (valid until {expiresAt}).",
+      "cancelled_by_login": "Your PIN reset request was cancelled because you signed in with your current PIN. If you didn’t send it, change your PIN in the Me tab."
+    }
+  },
   "errors": {
     "VALIDATION": "Some fields need a fix. Check the highlighted ones and try again.",
     "NOT_FOUND": "We couldn’t find that. It may have been deleted, or you’re no longer in that group.",
@@ -127,17 +287,17 @@
     "RATE_LIMITED": "That’s a lot at once. Wait a moment and try again.",
     "FEATURE_DISABLED": "This is turned off for now. Try again later.",
     "UNKNOWN": "Something went wrong on our side. Try again in a moment.",
-    "AUTH_MAINTENANCE": "Sign-in is down for maintenance. Your data is safe. Try again later.",
+    "AUTH_MAINTENANCE": "Sign-in and sign-up are paused for maintenance. Your data is safe, and this won’t count as a wrong PIN. Try again later.",
     "AUTH_REQUIRED": "Sign in to continue.",
     "ACCOUNT_SUSPENDED": "This account is suspended. If you think that’s a mistake, contact the app admin.",
     "PIN_CHANGE_REQUIRED": "Set a new PIN to continue.",
-    "INVALID_CREDENTIALS": "Wrong username or PIN. {attemptsRemaining, plural, one {# try left.} other {# tries left.}}",
-    "LOGIN_LOCKED": "Too many tries. Try again in {retryAfterMin} min.",
+    "INVALID_CREDENTIALS": "Wrong username or PIN.{attemptsRemaining, plural, =0 {} =1 { One try left before a short lock.} other { # tries left.}}",
+    "LOGIN_LOCKED": "Too many tries. Try again in {retryAfterMin, plural, one {# minute} other {# minutes}}.",
     "USERNAME_TAKEN": "That username’s taken. Try another one.",
     "USERNAME_FORMAT": "Usernames are 3–20 characters: a–z, 0–9, dots and underscores only.",
-    "PIN_FORMAT": "Your PIN needs to be 6 digits.",
+    "PIN_FORMAT": "Your PIN needs to be exactly 6 digits, with no letters or spaces.",
     "PIN_MISMATCH": "The PINs don’t match. Try again.",
-    "PIN_TOO_WEAK": "That PIN is too easy to guess. Avoid sequences and repeats.",
+    "PIN_TOO_WEAK": "That PIN is easy to guess. All the same digit (like 000000) or a straight run (like 123456 or 654321) isn’t allowed. Try a different mix.",
     "CSRF_REJECTED": "We couldn’t verify that request. Reload the page and try again.",
     "ADMIN_TRANSFER_REQUIRED": "Make someone else the group admin first, then try again.",
     "INVITE_INVALID": "This code doesn’t work. Ask someone in the group for a new one.",

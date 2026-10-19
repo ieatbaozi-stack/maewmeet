@@ -359,3 +359,68 @@ textarea.input { padding: var(--space-3); min-height: calc(var(--tap-lg) * 1.6);
 .key:disabled { opacity: 1; color: var(--ink-muted); }
 .login-foot { margin-top: var(--space-3); text-align: center; font-size: var(--text-sm); color: var(--ink-muted); }
 .login-foot a { display: inline-flex; align-items: center; min-height: var(--tap); font-weight: var(--weight-medium); text-decoration: none; }
+
+/* ---------- R1: สมัคร / ลืม PIN / ตั้ง PIN / คำขอ reset (admin) ---------- */
+.auth-title { font-size: var(--text-xl); font-weight: var(--weight-semibold); line-height: var(--leading-heading); }
+.auth-intro { margin-top: var(--space-2); color: var(--ink); }
+.auth-card .field:first-of-type { margin-top: var(--space-4); }
+.auth-actions { margin-top: var(--space-5); display: grid; gap: var(--space-2); }
+.field-hint { margin-top: var(--space-1); font-size: var(--text-sm); color: var(--ink-muted); }
+.step-of { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--ink-muted); }
+.rules { margin-top: var(--space-3); display: grid; gap: var(--space-1); font-size: var(--text-sm); }
+.rules li { display: flex; gap: var(--space-2); align-items: flex-start; }
+.rules .icon { color: var(--free-ink); margin-top: var(--space-1); }
+.rules-title { font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.rules-why { margin-top: var(--space-2); font-size: var(--text-sm); color: var(--ink-muted); }
+.note-box { margin-top: var(--space-4); display: flex; gap: var(--space-2); align-items: flex-start; font-size: var(--text-sm); color: var(--ink-muted); }
+.note-box .icon { margin-top: var(--space-1); }
+.link-row { display: flex; align-items: center; justify-content: center; gap: var(--space-1); flex-wrap: wrap; margin-top: var(--space-3); font-size: var(--text-sm); color: var(--ink-muted); text-align: center; }
+.link-row a { display: inline-flex; align-items: center; justify-content: center; min-width: var(--tap); min-height: var(--tap); font-weight: var(--weight-medium); text-decoration: none; }
+.status-block { display: grid; gap: var(--space-2); justify-items: start; }
+.status-badge { display: inline-grid; place-items: center; width: var(--space-7); height: var(--space-7); border-radius: var(--radius-full); }
+.status-badge.is-wait { background: var(--event); color: var(--event-ink); }
+.status-badge.is-ok { background: var(--free); color: var(--free-ink); }
+.status-badge.is-closed { background: var(--surface-2); color: var(--ink); }
+.status-badge .icon { width: var(--icon-lg); height: var(--icon-lg); }
+.status-list { margin-top: var(--space-3); display: grid; gap: var(--space-2); font-size: var(--text-sm); color: var(--ink-muted); }
+.status-list li { display: flex; gap: var(--space-2); align-items: flex-start; }
+.status-list .icon { margin-top: var(--space-1); }
+.status-list strong { color: var(--ink); font-weight: var(--weight-semibold); }
+.pin-code { font-variant-numeric: tabular-nums; font-weight: var(--weight-semibold); }
+.keypad .key.blank { visibility: hidden; }
+
+/* admin: ไม่มี aurora/แมว — รายการกะทัดรัด */
+.admin-head { padding: var(--space-2) var(--gutter) 0; max-width: var(--content-max); margin: 0 auto; }
+.eyebrow { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--ink-muted); }
+.admin-head h1 { font-size: var(--text-xl); font-weight: var(--weight-semibold); line-height: var(--leading-heading); }
+.filter-row { display: flex; gap: var(--space-2); margin-top: var(--space-4); flex-wrap: wrap; }
+.filter-row .seg { display: inline-flex; gap: var(--space-1); padding: var(--space-1); background: var(--surface-2); border-radius: var(--radius-sm); }
+.filter-row .seg button { min-height: var(--tap); padding: 0 var(--space-3); border: var(--border) solid transparent; border-radius: calc(var(--radius-sm) - var(--space-1)); background: transparent; font-weight: var(--weight-medium); }
+.filter-row .seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-soft-ink); border-color: var(--line-control); font-weight: var(--weight-semibold); }
+.filter-row .search { flex: 1; min-width: 0; }
+.reqs { margin-top: var(--space-4); display: grid; gap: var(--space-3); }
+.req { background: var(--surface); border: var(--border) solid var(--line); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); }
+.req-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.req-user { font-weight: var(--weight-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.req-facts { margin-top: var(--space-2); display: grid; gap: var(--space-1); font-size: var(--text-sm); color: var(--ink-muted); }
+.req-facts li { display: flex; gap: var(--space-2); align-items: flex-start; }
+.req-facts .icon { margin-top: var(--space-1); }
+.req-facts .v { color: var(--ink); overflow-wrap: anywhere; }
+.req-actions { margin-top: var(--space-3); display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.btn-danger-quiet { background: var(--surface); color: var(--danger-ink); border-color: var(--danger-ink); }
+.tag-wait { background: var(--event); color: var(--event-ink); }
+.tag-muted { background: var(--surface-2); color: var(--ink); }
+.tag-ok { background: var(--free); color: var(--free-ink); }
+.tag-no { background: var(--busy); color: var(--busy-ink); }
+.sheet-check { display: flex; gap: var(--space-3); align-items: flex-start; margin-top: var(--space-4); min-height: var(--tap); }
+.sheet-check input { width: var(--tap); height: var(--tap); margin: 0; flex: none; accent-color: var(--accent); }
+.sheet-actions { display: grid; gap: var(--space-2); }
+@media (min-width: 48em) {
+  .reqs { gap: var(--space-2); }
+  .req { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--space-4); align-items: center; }
+  .req-top { grid-column: 1; }
+  .req-facts { grid-column: 1; grid-template-columns: repeat(3, auto); justify-content: start; column-gap: var(--space-5); }
+  .req-actions { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; min-width: calc(var(--space-7) * 4); }
+  .sheet.center { left: 50%; right: auto; width: var(--content-max); transform: translateX(-50%); }
+}
+.rules-box { margin-top: var(--space-3); }

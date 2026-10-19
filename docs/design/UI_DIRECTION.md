@@ -129,7 +129,8 @@
 2. ~~wireframe ทุกหน้าหลัก ครบ 4 สถานะ~~ → [UX.md](UX.md) (เสร็จ)
 3. ~~หน้าตัวอย่างจริง 3 หน้า + หน้าเข้าสู่ระบบ (รอบ 2)~~ → `docs/design/samples/{home,calendar,create,login}.html` สลับ `?lang=en` `?theme=dark` `?state=loading|empty|error` · ภาพที่ `docs/design/screenshots/` (เสร็จ รอ boss อนุมัติ)
 4. ~~ชุดแมวชุดแรก + กฎการใช้~~ → `public/brand/cats/`, `samples/cats.html` (เสร็จ รอ boss อนุมัติ)
-5. Handoff Certificate พร้อมภาพหน้าจอ
+5. ~~R1: signup / forgot / set-pin / admin-resets~~ → `docs/design/samples/{signup,forgot,set-pin,admin-resets}.html` (aurora hero ยกเว้นหน้า admin ตาม §3.5 · หน้า admin ไม่มีแมว) · ข้อความ: [UX.md §4 R1](UX.md)
+6. Handoff Certificate พร้อมภาพหน้าจอ
 - สร้างใหม่ทั้งหมดได้ด้วย: `node docs/design/tools/cats.mjs && node docs/design/tools/build-samples.mjs && node docs/design/tools/contrast.mjs && node docs/design/tools/shoot.mjs`
 
 ## 8. Anti-slop checklist (QA reviewer ตรวจ แนบภาพหน้าจอ ทุกหน้าที่เปลี่ยน — ครบ 4 ชุด TH/EN × สว่าง/มืด)

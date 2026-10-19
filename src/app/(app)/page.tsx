@@ -1,10 +1,12 @@
 import { getTranslations } from "next-intl/server";
+import { requireUser } from "@/app/_lib/session";
 import { Aurora } from "@/components/brand";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { TopBar } from "@/components/shell/TopBar";
 
 /** หน้าหลัก (UX W4) — R0 ยังไม่มีนัด → หน้าว่าง แมวถือแก้วชา */
 export default async function HomePage() {
+  await requireUser();
   const t = await getTranslations("empty.home");
   return (
     <>

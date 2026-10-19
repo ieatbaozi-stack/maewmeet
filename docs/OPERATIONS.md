@@ -14,6 +14,7 @@
 | [E](#e-github--secrets-ของ-keepalive--แจ้งเตือนทางอีเมล) | GitHub Secrets + เปิดแจ้งเตือนอีเมล | 5 นาที |
 | [F](#f-ตรวจหลัง-deploy-ทำทุกครั้งที่-deploy-production) | ตรวจหลัง deploy | 5 นาที |
 | [G](#g-runbook--เมื่อมีอะไรผิดปกติ) | Runbook เมื่อมีปัญหา (อ่านเมื่อต้องใช้) | — |
+| [H](#h-super-admin-คนแรก--ซ้อมกู้-pepper-ตั้งแต่-r1) | ตั้ง super admin คนแรก + ซ้อมกู้ pepper (หลัง deploy R1) | 20 นาที |
 
 ## กติกาความลับ (อ่านก่อนเริ่ม)
 - ความลับมี 4 ชนิด: `TURSO_AUTH_TOKEN`, `PIN_PEPPER_V1`, `APP_SECRET`, `CRON_SECRET` — **ห้าม**ส่งในแชทใด ๆ (LINE, Discord, รวมถึงแชทกับ AI agent ของทีมเรา), อีเมล, issue/PR, ภาพหน้าจอ, ไฟล์ในโฟลเดอร์ repo
@@ -97,7 +98,7 @@ $b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create
 pepper คือกุญแจที่ผสมตอนแปลง PIN เป็น hash · ถ้าหายทุกที่ ผู้ใช้ทุกคนต้อง reset PIN · ถ้ารั่วพร้อมฐาน คนร้ายเดา PIN ได้ (ADR 0002 §7 สรุปสำหรับ boss)
 
 ☐ **C1** รันคำสั่งข้างบน 1 ครั้ง → ได้ค่า pepper
-☐ **C2** เก็บในตัวจัดการรหัสผ่าน: รายการชื่อ **`maewmeet PIN_PEPPER_V1 (production)`** · ช่องรหัสผ่าน = ค่า pepper · ช่องโน้ต: วันที่สร้าง + "fingerprint: (เติมใน R1)"
+☐ **C2** เก็บในตัวจัดการรหัสผ่าน: รายการชื่อ **`maewmeet PIN_PEPPER_V1 (production)`** · ช่องรหัสผ่าน = ค่า pepper · ช่องโน้ต: วันที่สร้าง + fingerprint 8 ตัวแรก (ได้จากส่วน H2 หลัง deploy R1 — กลับมาเติมทีหลังได้)
 ☐ **C3** สำเนาออฟไลน์ (ต้องไม่ผูกกับบัญชีเดียวกับ C2) — เลือกอย่างใดอย่างหนึ่ง:
   - เขียนลงกระดาษ **ตัวต่อตัว** (ระวัง `0/O`, `1/l/I`, `+`, `/`) เก็บที่ปลอดภัยในบ้าน หรือ
   - ไฟล์ `.txt` ใน **USB ที่เข้ารหัส** (เช่น BitLocker To Go) ที่ไม่ซิงก์ OneDrive/Google Drive
@@ -119,11 +120,11 @@ $v = (Get-Clipboard | Out-String).Trim(); $h = [Security.Cryptography.SHA256]::C
 จดตัวอักษร 8 ตัวที่ได้ → พิมพ์ค่าจาก**สำเนาออฟไลน์**ลงคลิปบอร์ด (เช่น พิมพ์ใน Notepad แล้ว Ctrl+A, Ctrl+C แล้วปิดโดยไม่บันทึก) → รันคำสั่งเดิม → 8 ตัวต้อง**ตรงกัน**
 (ตัวเลข 8 ตัวนี้ใช้เทียบสองสำเนากันเองเท่านั้น — ไม่ใช่ fingerprint ที่หน้า super admin)
 
-**ตั้งแต่ R1**: สคริปต์ `scripts/pepper-fingerprint.ts` จะคำนวณ fingerprint แบบเดียวกับที่แอปเก็บในฐาน (HMAC-SHA256) ให้เทียบกับ 8 ตัวแรกในหน้า super admin:
+**ตั้งแต่ R1**: สคริปต์ `scripts/pepper-fingerprint.ts` คำนวณ fingerprint แบบเดียวกับที่แอปเก็บในฐาน (HMAC-SHA256) ให้เทียบกับ 8 ตัวแรกในหน้า super admin — ขั้นตอนเต็มอยู่ที่ **ส่วน H2**:
 ```powershell
 Get-Clipboard | npx tsx scripts/pepper-fingerprint.ts
 ```
-(ใน R0 สคริปต์ยังตอบ `ยังไม่พร้อมใช้` และ exit 3 — ตั้งใจ) · สคริปต์รับค่าทาง stdin เท่านั้น **ห้าม**พิมพ์ pepper ต่อท้ายคำสั่งเป็น argument
+สคริปต์รับค่าทาง stdin เท่านั้น **ห้าม**พิมพ์ pepper ต่อท้ายคำสั่งเป็น argument · พิมพ์ออกมาแค่ 8 ตัวอักษร ไม่พิมพ์ pepper
 
 ### C9 หมุน pepper (เมื่อสงสัยว่ารั่ว — ทำได้ตั้งแต่ R1) — สรุปจาก ADR 0002 §7.3
 สร้าง `PIN_PEPPER_V2` (C1–C4 ชื่อ `...V2`) → เพิ่มใน Vercel → เปลี่ยน `PIN_PEPPER_CURRENT_VERSION` เป็น `2` → Redeploy → รอหน้า super admin แสดงผู้ใช้ v1 = 0 → **จึง**ลบ `PIN_PEPPER_V1` ใน Vercel (ห้ามลบก่อน) → ซ้อมกู้ C8 กับ V2
@@ -158,6 +159,8 @@ Get-Clipboard | npx tsx scripts/pepper-fingerprint.ts
 ☐ **D6** Project → **Settings → Domains** ดูโดเมน production (ปกติ `https://maewmeet.vercel.app` ถ้าชื่อว่าง) — ถ้า**ไม่ตรง**กับ `APP_ORIGIN` ที่ใส่ใน D3 ให้แก้ `APP_ORIGIN` เป็นค่าจริง (ขึ้นต้น `https://` ไม่มี `/` ท้าย ไม่มี path) แล้ว **Deployments → … → Redeploy**
 ☐ **D7** Project → **Settings → Cron Jobs** ควรเห็น `/api/cron/daily` ตาราง `0 19 * * *` (= ตี 2 เวลาไทย คลาดได้ถึง 59 นาที) · cron ทำงานเฉพาะ production deployment
 
+> **IP ของผู้เรียก (rate limit — ADR 0002 §3):** แอปเชื่อ header `x-vercel-forwarded-for` / `x-real-ip` / `x-forwarded-for` **เฉพาะเมื่อมี env `VERCEL`** (Vercel ใส่ให้เอง — บน Vercel ไม่ต้องทำอะไร) หรือ **`TRUST_PROXY_HEADERS=1`** (ตั้งเองเฉพาะเมื่อ self-host หลัง reverse proxy ที่เขียนทับ header เหล่านี้เอง) · ถ้าไม่เข้าเงื่อนไขใด ๆ (เช่น `next start` ตรง ๆ บนเครื่อง dev) แอป**ไม่เชื่อ header** และทุกคำขอรวมอยู่ใน **ถัง `unknown` ถังเดียว** — เพดานต่อ IP ของถังนี้คูณ **50** (login 1,000 / signup 250 / reset 150 ต่อหน้าต่าง) เพื่อไม่ให้ทุกคนล็อกกันเองเมื่อไม่รู้ IP · ชั้นที่กัน brute-force จริงคือ lockout ต่อ username (ไม่ขึ้นกับ IP) · **อย่าตั้ง `TRUST_PROXY_HEADERS=1` ถ้าแอปเปิดรับคำขอจากอินเทอร์เน็ตโดยตรงโดยไม่มี proxy** (ผู้โจมตีปลอม IP หลบเพดานได้)
+
 > **ทุกครั้งที่แก้ env ใน Vercel ต้อง Redeploy** ค่าใหม่จึงมีผล (Deployments → … → Redeploy)
 > **Function region (แนะนำ)**: Settings → Functions → เลือก region ที่ใกล้ location ของฐาน Turso ใน B1 ที่สุด (ระยะทาง app↔ฐานมีผลกับความเร็วทุก request)
 
@@ -184,9 +187,11 @@ workflow `keepalive` ยิงแอปทุก 12 ชม. (นาที 17 ข
 ## F. ตรวจหลัง deploy (ทำทุกครั้งที่ deploy production)
 ☐ **F1** เปิดในเบราว์เซอร์ `https://<โดเมนจาก D6>/api/health` ควรเห็น (เลขเวอร์ชัน/ชั่วโมงต่างได้):
 ```json
-{"ok":true,"version":"0.1.0","node":"v24.x.x","argon2":true,"db":true,"heartbeatAgeHours":{"vercelCron":null,"githubActions":null}}
+{"ok":true,"version":"0.2.0","node":"v24.x.x","argon2":true,"db":true,"pepper":{"ok":true,"currentVersion":1,"usersByVersion":{}},"heartbeatAgeHours":{"vercelCron":null,"githubActions":null}}
 ```
   - `ok:true` + `db:true` = แอปต่อฐานได้ และ env ครบ
+  - `pepper.ok:true` = pepper ใน Vercel ครบ ถูกรูป และตรงกับ fingerprint ที่แอปจำไว้ในฐาน · `currentVersion` = เวอร์ชันที่ใช้ hash PIN ใหม่ · `usersByVersion` = จำนวนผู้ใช้ที่ PIN ถูก hash ด้วยแต่ละเวอร์ชัน (ว่าง `{}` ได้ตอนยังไม่มีใครสมัคร) — หน้านี้**ไม่แสดงค่า pepper หรือ fingerprint**
+  - `pepper.ok:false` = health ตอบ **503** (`ok:false` ทั้งก้อน) และ login/สมัครถูกปิดชั่วคราว → G7
   - `argon2:true` = runtime เป็น Node 24 ที่ hash PIN ได้ (ถ้า `false` → D5)
   - `vercelCron: null` ปกติสำหรับ deploy แรก (cron ยังไม่เคยรัน) — ทำ F2
   - หน้าแสดง HTTP 503 / `ok:false` หรือขึ้นแค่ `Internal Server Error` (500) → ส่วน G1
@@ -258,7 +263,92 @@ cron รายวันของ Vercel ไม่ทำงาน (Turso ยั�
 `/api/health` ไม่ได้ตอบ JSON ตามสัญญา — มักเป็นเพราะ `APP_ORIGIN` ชี้ผิดที่ (เช่น โดเมนที่ redirect ไปหน้าอื่น หรือหน้า login ของ Vercel Deployment Protection) → ตั้ง `APP_ORIGIN` เป็นโดเมน **production** (D6) ไม่ใช่ลิงก์ preview
 
 ### G7 pepper (ตั้งแต่ R1)
-login ทั้งระบบตอบ "ปิดปรับปรุงชั่วคราว" + health 503 = pepper ใน Vercel หาย/ผิด → **อย่าสร้างใหม่** → เอาค่าจากตัวจัดการรหัสผ่าน (C2) ใส่ `PIN_PEPPER_V1` ใน Vercel → Redeploy → ทำ C8 เทียบ fingerprint · ถ้าหายครบทุกสำเนาจริง ๆ เท่านั้นจึงใช้ทางกู้ฉุกเฉินของ super admin (ADR 0002 §7.4 — สคริปต์จะมาในรอบที่ทำ auth/admin) และแจ้ง Lead
+อาการ: `/api/health` ตอบ **503** และมี `"pepper":{"ok":false,...}` · ผู้ใช้เห็น "ระบบเข้าสู่ระบบปิดปรับปรุงชั่วคราว ข้อมูลของคุณปลอดภัย" · ไม่มีใครถูกนับว่า PIN ผิด ไม่มีใครถูกล็อก (ตั้งใจ) · คนที่ล็อกอินค้างอยู่ใช้งานส่วนอื่นได้ตามปกติ
+
+**ข้อ 1 (ทำก่อนเสมอ) — เอาค่าเดิมคืน ห้ามสร้าง pepper ใหม่ทับ**
+1. เปิดตัวจัดการรหัสผ่าน → รายการ `maewmeet PIN_PEPPER_V1 (production)` (C2)
+2. Vercel → Project → **Settings → Environment Variables** → ตรวจ `PIN_PEPPER_CURRENT_VERSION` และ `PIN_PEPPER_V1` (ตั้งเป็น Secret แล้วอ่านค่ากลับไม่ได้ — ใส่ค่าที่ถูกทับลงไปใหม่ได้เลย) → ใส่ค่าจากข้อ 1 ให้ครบ Production → **Redeploy** (ทุกครั้งที่แก้ env ต้อง Redeploy — ส่วน D)
+3. เปิด `/api/health` (F1) → ต้อง `pepper.ok:true` และ HTTP 200
+4. ทำ H2 เทียบ fingerprint เพื่อให้แน่ใจว่าได้ค่าที่ถูกต้อง
+ถ้าตัวจัดการรหัสผ่านไม่มี → ใช้สำเนาออฟไลน์ (C3) พิมพ์ลงตัวต่อตัว แล้วทำ H2 เทียบก่อนใส่ Vercel
+
+**ข้อ 2 (ทางสุดท้าย — pepper หายครบทุกสำเนาจริง ๆ เท่านั้น)** → ใช้สคริปต์กู้ฉุกเฉิน `scripts/admin-reset-pin.ts` ตาม **ส่วน H4** · แจ้ง Lead ก่อนเริ่มทุกครั้ง · เหตุผลที่ต้องมี: ถ้า pepper หาย super admin เองก็ล็อกอินไม่ได้ จึงอนุมัติ reset ให้ใครไม่ได้
+
+---
+
+## H. super admin คนแรก + ซ้อมกู้ pepper (ตั้งแต่ R1)
+> ข้อความที่ติดป้าย **(ตรวจกับหน้าจอจริง)** = เขียนจากความจำเกี่ยวกับหน้าตาของเว็บ Turso / Chrome / Vercel ซึ่งเปลี่ยนได้ ยังไม่เคยกดตามจริงบนเครื่อง boss — ถ้าหน้าจอไม่ตรง ให้หยุดและถาม Lead อย่าเดา
+> คำสั่ง `turso` ทั้งหมดรันใน WSL (A5) · คำสั่ง `npx tsx ...` รันใน PowerShell ในโฟลเดอร์ `maewmeet` (A2)
+
+### H1 ตั้ง super admin คนแรก (ทำครั้งเดียวหลัง deploy R1 ผ่าน F1)
+หลักการ: **ไม่มีสคริปต์และไม่มีหน้าเว็บใดสร้าง super admin ได้** (ตั้งใจ — กันคนอื่นยกตัวเองเป็นแอดมิน) วิธีเดียวคือ boss แก้ฐานข้อมูลเองด้วยคำสั่ง SQL 1 บรรทัดหลังสมัครบัญชีธรรมดาก่อน
+
+☐ **H1.1** เปิดเว็บ production (โดเมนจาก D6) → **สมัครบัญชีของ boss ตามปกติ** (username + ชื่อที่แสดง + PIN 6 หลัก) แล้วจด username ให้ตรงตัวอักษร (ตัวพิมพ์เล็กใหญ่ตามที่พิมพ์ตอนสมัคร)
+☐ **H1.2** ตั้งสิทธิ์ — **วิธีที่ 1 (แนะนำ ใช้คำสั่ง)** ใน WSL (แทน `boss` ด้วย username จริง):
+```bash
+turso db shell maewmeet-prod "UPDATE user SET is_admin = 1 WHERE username = 'boss';"
+```
+รูปแบบทั่วไปของคำสั่ง SQL: `UPDATE user SET is_admin = 1 WHERE username = '<name>';` (แทน `<name>` ด้วย username จริง) · ถ้า username มีเครื่องหมาย `'` ให้ใช้วิธีที่ 2 · ผลที่ควรเห็น: คำสั่งจบเงียบ ๆ ไม่มี error (ถ้าเห็น `no such table` = ชี้ผิดฐาน/ยังไม่ migrate → B6)
+
+☐ **H1.2 (วิธีที่ 2 — ผ่านเว็บ Turso)** <https://app.turso.tech> → ฐาน `maewmeet-prod` → เมนูที่เป็นช่องพิมพ์ SQL (ชื่อเมนูอาจเป็น **Edit Data / SQL Console / Shell**) → วางคำสั่งเดียวกับด้านบน แล้วกด **Run** **(ตรวจกับหน้าจอจริง)**
+☐ **H1.3** ตรวจผล — ใน WSL:
+```bash
+turso db shell maewmeet-prod "SELECT username,is_admin FROM user WHERE is_admin=1;"
+```
+ควรเห็นตารางที่มี **เฉพาะชื่อของ boss** และ `is_admin` = `1` · ถ้ามีชื่อที่ boss ไม่รู้จัก **หยุดทันที** แจ้ง Lead (อาจมีคนแก้ฐานด้วยสิทธิ์ที่รั่ว → ไปเปลี่ยน TURSO_AUTH_TOKEN ตาม B4)
+☐ **H1.4** ในเว็บ ไม่ต้อง login ใหม่ — โหลดหน้าใหม่ แล้วเปิด `/admin/pin-resets` ต้องเห็นหน้ารายการคำขอ reset (ว่างได้) · ถ้าขึ้น "ไม่มีสิทธิ์" ให้ล็อกเอาต์/ล็อกอินใหม่ แล้วย้อนไป H1.3 **(ตรวจกับหน้าจอจริง — ชื่อเมนู/ลิงก์ไปหน้านี้)**
+
+ถอนสิทธิ์ (ถ้าตั้งผิดคน): `turso db shell maewmeet-prod "UPDATE user SET is_admin = 0 WHERE username = 'ชื่อ';"` แล้วทำ H1.3 ซ้ำ
+
+### H2 ซ้อมกู้ pepper — เทียบ fingerprint กับหน้า super admin (ADR 0002 §7.4)
+ทำ 1 ครั้งหลัง deploy R1 ครั้งแรก, หลังหมุน pepper ทุกครั้ง (C9) และถ้าอยากมั่นใจเมื่อไรก็ได้ — **ไม่กระทบผู้ใช้**
+☐ **H2.1** เปิดหน้า super admin (login ด้วยบัญชี H1) → หาส่วนที่แสดง **pepper / fingerprint** ของแต่ละเวอร์ชัน → จด **8 ตัวอักษร** ของ `V1` **(ตรวจกับหน้าจอจริง — ตำแหน่ง/ชื่อหัวข้อ)** · หน้านี้แสดงจำนวนผู้ใช้ต่อเวอร์ชันด้วย
+☐ **H2.2** สำเนาที่ 1 — ตัวจัดการรหัสผ่าน: คัดลอกค่าในรายการ `maewmeet PIN_PEPPER_V1 (production)` (กดปุ่มคัดลอก อย่าให้ค่าขึ้นจอ) แล้วใน PowerShell:
+```powershell
+cd $HOME\maewmeet
+Get-Clipboard | npx tsx scripts/pepper-fingerprint.ts
+Set-Clipboard -Value ' '
+```
+ควรได้ **8 ตัวอักษร** (ตัวเลข 0-9 และ a-f) บรรทัดเดียว · บรรทัดสุดท้ายล้างคลิปบอร์ด
+☐ **H2.3** สำเนาที่ 2 — ออฟไลน์ (กระดาษ/USB เข้ารหัส): พิมพ์ลง Notepad → Ctrl+A, Ctrl+C → ปิด Notepad โดย**ไม่บันทึก** → รันคำสั่ง H2.2 ซ้ำ
+☐ **H2.4** ผลที่ถูก: H2.1, H2.2, H2.3 เป็น **8 ตัวอักษรเดียวกันทั้งสามที่** → จดลงช่องโน้ตของรายการในตัวจัดการรหัสผ่าน (C2) พร้อมวันที่ซ้อม
+  - ได้ข้อความ `ค่าที่ได้รับผิดรูปแบบ` = คัดลอกไม่ครบ/มีช่องว่างปน/ผิดตัวอักษร (สำเนากระดาษมักผิด `0/O`, `1/l/I`) → แก้สำเนานั้นแล้วทำใหม่ **ก่อนจะเชื่อสำเนานั้น**
+  - ได้ 8 ตัวแต่**ไม่ตรง**กับหน้า super admin = ค่านี้ไม่ใช่ pepper ที่แอปใช้ (หรือสำเนาผิดหนึ่งตัวอักษร) → อย่าเอาไปใส่ Vercel → แจ้ง Lead
+  - สคริปต์ไม่พิมพ์ pepper และรับค่าทาง stdin เท่านั้น — ถ้าเผลอพิมพ์ pepper ต่อท้ายคำสั่ง สคริปต์จะปฏิเสธ (แต่ค่าอาจค้างใน history ของ PowerShell → รัน `Clear-History` แล้วถือว่า pepper นั้นเสี่ยง ปรึกษา Lead เรื่องหมุน C9)
+
+### H3 ซ้อมจริง "เมื่อ Vercel ลบ pepper ไปโดยไม่ได้ตั้งใจ" (ทำบน **preview** เท่านั้น — ไม่ทำบน production)
+☐ **H3.1** Vercel → Settings → Environment Variables → ตัวแปร `PIN_PEPPER_V1` ของ **Preview** → ลบ (หรือแก้ค่าเป็นอย่างอื่น) → Redeploy preview
+☐ **H3.2** เปิด `<url preview>/api/health` → ควรเห็น HTTP 503 และ `"pepper":{"ok":false,...}` · ลอง login บน preview → ข้อความ "ปิดปรับปรุงชั่วคราว" (ไม่ใช่ "PIN ผิด")
+☐ **H3.3** ใส่ค่าเดิมกลับ → Redeploy → `/api/health` กลับเป็น 200 และ `pepper.ok:true` → login ได้ตามปกติ (ไม่มีใครถูกล็อก)
+☐ **H3.4** (ไม่บังคับ) ซ้ำ H3.1 แต่ใส่ pepper **ค่าใหม่ที่ไม่ใช่ของเดิม** → health ต้องยังเป็น 503 (แอปจำ fingerprint ของค่าเดิมไว้ จึงไม่ยอมใช้ค่าผิด) → ใส่ค่าเดิมกลับ
+หมายเหตุ: แอปจำ fingerprint ตอนมีการเรียกที่ต้องใช้ pepper ครั้งแรกหลัง deploy (เปิด `/api/health` ก็นับ) — ก่อนเปิด health บน preview อย่างน้อย 1 ครั้ง H3.4 จะผ่านเป็น 200 ได้ (ไม่ใช่ความผิดปกติ)
+
+### H4 กู้ฉุกเฉิน — pepper หายครบทุกสำเนา (ใช้ `scripts/admin-reset-pin.ts` — ใช้ครั้งสุดท้ายเท่านั้น)
+**ก่อนเริ่ม ต้องครบทุกข้อ:** ☐ ค้นตัวจัดการรหัสผ่านแล้วไม่มี ☐ ค้นสำเนาออฟไลน์แล้วไม่มี ☐ ลองใส่ค่าเดิมใน Vercel ตาม G7 ข้อ 1 ไม่สำเร็จ ☐ แจ้ง Lead แล้ว
+สิ่งที่ต้องยอมรับ: ผู้ใช้ทุกคนที่ PIN ถูก hash ด้วย pepper เดิมจะ**ล็อกอินด้วย PIN เดิมไม่ได้อีก** ต้องใช้ flow "ลืม PIN" ที่ super admin อนุมัติ (ADR 0002 §5) · ข้อมูลอื่น (กลุ่ม ปฏิทิน) ไม่หาย
+
+☐ **H4.1** สร้าง pepper **ค่าใหม่** เป็นเวอร์ชันถัดไป (C1–C4 แต่ตั้งชื่อ `PIN_PEPPER_V2`) · ใน Vercel (Production): เพิ่ม `PIN_PEPPER_V2` = ค่าใหม่, ตั้ง `PIN_PEPPER_CURRENT_VERSION` = `2`, **ลบ** `PIN_PEPPER_V1` (ค่าเดิมใช้ไม่ได้อยู่แล้ว ถ้าปล่อยไว้ผิดค่าแอปจะ fail closed) → Redeploy → `/api/health`: `pepper.currentVersion` = 2 · `pepper.ok` จะยัง **false** จนกว่าผู้ใช้เวอร์ชัน 1 จะ reset ครบ (เห็นได้ที่ `usersByVersion`) — ปกติในสถานการณ์นี้
+☐ **H4.2** รันสคริปต์ใน PowerShell ในโฟลเดอร์ `maewmeet` (ค่าเชื่อมฐานอยู่ใน environment ของ PowerShell เท่านั้น — **ไม่ใส่เป็น argument** และ**ไม่ตั้ง** `PIN_PEPPER_*` ในหน้าต่างนี้):
+```powershell
+$env:TURSO_DATABASE_URL = "libsql://maewmeet-prod-xxxx.turso.io"     # URL จาก B3
+$env:TURSO_AUTH_TOKEN = [System.Net.NetworkCredential]::new('', (Read-Host -AsSecureString 'วาง TURSO_AUTH_TOKEN ของ prod')).Password
+npx tsx scripts/admin-reset-pin.ts --username boss --confirm-username boss --confirm-pepper-lost
+Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL
+```
+(แทน `boss` ทั้งสองที่ด้วย username ของ super admin · ต้องพิมพ์ซ้ำสองที่ให้ตรงกัน และต้องมี `--confirm-pepper-lost` มิฉะนั้นสคริปต์**ไม่ทำอะไร**)
+ผลที่ควรเห็น: บรรทัด `เปิดคำขอ reset แบบอนุมัติแล้วสำหรับบัญชี: ...`, เวลาหมดอายุ (24 ชม.), `ชื่อ cookie : __Host-mm_reset`, `ค่า cookie  : <ตัวอักษร a-z 2-7 ยาว ~52 ตัว>`
+  - `ไม่ทำงาน: ... ไม่พบบัญชี super admin ...` = username ผิด หรือบัญชีนั้นยังไม่ได้ตั้ง `is_admin` (H1)
+  - `ไม่ทำงาน: pepper ใน env ของเครื่องนี้ยังตรง ...` = ในหน้าต่าง PowerShell นี้มี `PIN_PEPPER_*` ค้างอยู่และยังตรงกับฐาน = pepper ไม่ได้หาย → กลับ G7 ข้อ 1
+  - สคริปต์**ไม่พิมพ์ PIN ไม่พิมพ์ pepper ไม่พิมพ์ TURSO_AUTH_TOKEN** · ค่า cookie ใช้ได้ **ครั้งเดียว ภายใน 24 ชม. กับเบราว์เซอร์ที่ใส่ค่านี้เท่านั้น** — อย่าส่งให้ใคร ปิดหน้าต่าง PowerShell เมื่อเสร็จ
+☐ **H4.3** ใส่ cookie ในเบราว์เซอร์ (Chrome) ที่จะใช้ login: เปิดเว็บ production → กด **F12** → แท็บ **Console** → พิมพ์ (ใส่ค่าที่ได้จริงแทน `ค่า_cookie`):
+```js
+document.cookie = "__Host-mm_reset=ค่า_cookie; path=/; Secure"
+```
+(ถ้า Chrome ไม่ยอมให้วางข้อความ ให้พิมพ์ `allow pasting` กด Enter ก่อน) **(ตรวจกับหน้าจอจริง)** · ตรวจ: F12 → **Application → Storage → Cookies →** โดเมนของเรา ต้องเห็นแถวชื่อ `__Host-mm_reset` ที่ Path = `/` และ Secure ติ๊กอยู่ **(ตรวจกับหน้าจอจริง)**
+☐ **H4.4** ในเบราว์เซอร์เดียวกันนี้ ไปหน้า login → username ของ boss + **PIN ชั่วคราวของ flow "ลืม PIN"** (PIN `123456` ตาม ADR 0002 §5 — ใช้ได้เฉพาะเครื่องที่มี cookie จาก H4.3 เท่านั้น) → ระบบพาไปหน้า **ตั้ง PIN ใหม่** → ตั้ง PIN ใหม่ที่ไม่ใช่ `123456` · PIN ใหม่ถูก hash ด้วย pepper V2
+☐ **H4.5** เข้า `/admin/pin-resets` → ผู้ใช้อื่นกด "ลืม PIN" ตามปกติ แล้ว boss อนุมัติทีละคน (ผู้ใช้ที่ยังไม่ขอ จะเห็นข้อความปิดปรับปรุงจนกว่าจะขอ reset) → `usersByVersion` ใน `/api/health` ของเวอร์ชัน 1 ค่อย ๆ เหลือ 0 → `pepper.ok` กลับเป็น `true`
+☐ **H4.6** ทำ C2–C4 กับ `PIN_PEPPER_V2` (ตัวจัดการรหัสผ่าน + สำเนาออฟไลน์) **ก่อนปิดงาน** แล้วทำ H2 ซ้ำกับ V2
+ถ้าผลไม่ตรงข้อใดข้างบน: หยุด อย่าลองซ้ำหลายรอบ (การรันสคริปต์ซ้ำจะออก cookie ใหม่และยกเลิกอันเก่า ไม่เป็นอันตรายแต่สับสน) แจ้ง Lead พร้อมข้อความที่เห็น (ไม่ต้องแนบค่า cookie)
 
 ---
 
@@ -271,5 +361,6 @@ login ทั้งระบบตอบ "ปิดปรับปรุงชั
 | `APP_SECRET` (base64 ≥ 32 ไบต์) | ทุกที่ | แอปไม่เริ่ม: ทุก URL 500 (G1) |
 | `CRON_SECRET` (≥ 16 ตัว) | ทุกที่ | แอปไม่เริ่ม: ทุก URL 500 (G1) · keepalive ล้ม |
 | `APP_ORIGIN` | production (preview ใช้ `VERCEL_URL` แทนได้) | แอปไม่เริ่ม: ทุก URL 500 (G1) |
-| `PIN_PEPPER_CURRENT_VERSION`, `PIN_PEPPER_V<n>` | ตั้งแต่ R1 บังคับ (R0 ตั้งไว้ล่วงหน้า) | R1: login ปิด (`AUTH_MAINTENANCE`) ไม่มีใครโดนล็อก |
+| `PIN_PEPPER_CURRENT_VERSION`, `PIN_PEPPER_V<n>` | ทุกที่ที่ต้อง login/สมัคร (บังคับตั้งแต่ R1) | แอปยังเริ่มได้ แต่ **health 503** (`pepper.ok:false`) และ login/สมัครตอบ `AUTH_MAINTENANCE` — ไม่มีใครถูกล็อก (G7) |
+| `TRUST_PROXY_HEADERS` | ไม่บังคับ — ตั้ง `1` เฉพาะ self-host หลัง proxy ที่เขียนทับ header IP (Vercel ไม่ต้องตั้ง) | ไม่เชื่อ header IP → ถัง `unknown` ร่วม เพดาน ×50 |
 | `PLACE_SEARCH_ENABLED`, `NOMINATIM_*`, `NEXT_PUBLIC_MAP_*`, `LOG_LEVEL` | ไม่บังคับ (มีค่าเริ่มต้น) | ใช้ค่าเริ่มต้น |

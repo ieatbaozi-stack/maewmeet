@@ -8,9 +8,12 @@ import { beforeAll, describe, expect, it } from 'vitest';
 const ROOT = path.resolve(import.meta.dirname, '../..');
 
 let eslint: ESLint;
-beforeAll(() => {
+beforeAll(async () => {
   eslint = new ESLint({ cwd: ROOT });
-});
+  // R1 TEST: lint ครั้งแรกโหลด eslint.config.mjs + plugin ทั้งหมด (~1.4s ปกติ, เกิน 5s ตอน CPU ถูกแย่งหนัก — วัดได้จริงใน stress run)
+  // warm-up ใน beforeAll (hookTimeout 30s) แทนให้เทสต์แรกแบกต้นทุน cold start
+  await eslint.lintText('export {};\n', { filePath: path.join(ROOT, 'src/app/warmup.ts') });
+}, 30_000);
 
 type Msg = { ruleId: string | null; message: string; severity: number };
 

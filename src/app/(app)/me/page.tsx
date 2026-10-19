@@ -1,35 +1,66 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { getLocale, getTranslations } from "next-intl/server";
+import { pageRequest, requireUser } from "@/app/_lib/session";
+import { AccountActions } from "@/components/auth/AccountActions";
 import { Aurora } from "@/components/brand";
+import { Icon } from "@/components/icons/Icon";
 import { PrefsSettings } from "@/components/prefs/PrefsSettings";
-import { EmptyState } from "@/components/shell/EmptyState";
 import { TopBar } from "@/components/shell/TopBar";
 import { THEME_COOKIE, parseLocale, parseTheme } from "@/i18n/config";
+import { authCtx } from "@/lib/auth/context";
+import { listPinResets } from "@/lib/auth/services/admin-resets";
+import { getActor } from "@/lib/auth/session";
+import { clock } from "@/lib/shared/clock";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("nav");
-  return { title: t("me") };
+  const t = await getTranslations("me");
+  return { title: t("title") };
 }
 
-/** ฉัน (UX W10 / F8) — การแสดงผลใช้ได้จริง · ส่วนบัญชียังไม่เปิด (R1) */
+/** จำนวนคำขอ reset ที่รออนุมัติ (เฉพาะ super admin) — ล้มเหลวเงียบ ๆ แล้วไม่แสดงตัวเลข (ลิงก์ยังใช้ได้) */
+async function pendingResetCount(): Promise<number | null> {
+  try {
+    const req = await pageRequest();
+    const actor = await getActor(req);
+    const { items } = await listPinResets(actor, authCtx(req, clock.now()));
+    return items.length;
+  } catch {
+    return null;
+  }
+}
+
+/** ฉัน (UX W10 / F8) — บัญชี · การแสดงผล · ความปลอดภัย (เปลี่ยน PIN, ออกจากระบบ) · ผู้ดูแลระบบ (เฉพาะ super admin) */
 export default async function MePage() {
+  const user = await requireUser();
   const locale = parseLocale(await getLocale());
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
-  const t = await getTranslations();
+  const t = await getTranslations("me");
+  const pending = user.isAdmin ? await pendingResetCount() : null;
   return (
     <>
       <Aurora intensity="hero" />
-      <TopBar title={t("nav.me")} />
+      <TopBar title={t("title")} />
       <main className="main stack-lg" id="main">
+        <section className="settings account-card" aria-label={user.displayName}>
+          <p className="account-name">{user.displayName}</p>
+          <p className="muted">{t("signedInAs", { username: user.username })}</p>
+        </section>
         <PrefsSettings current={{ locale, theme }} />
-        <EmptyState
-          pose="sit"
-          catSize="md"
-          title={t("empty.me.title")}
-          body={t("empty.me.body")}
-          cta={{ label: t("empty.me.cta"), href: "/login" }}
-        />
+        <AccountActions />
+        {user.isAdmin ? (
+          <section className="settings" aria-labelledby="me-admin">
+            <h2 className="h-section" id="me-admin">
+              {t("admin")}
+            </h2>
+            <Link className="menu-row" href="/admin/pin-resets">
+              <span>{t("adminResets")}</span>
+              {pending ? <span className="tag tag-wait">{t("adminResetsBadge", { count: pending })}</span> : null}
+              <Icon name="chevron-right" />
+            </Link>
+          </section>
+        ) : null}
       </main>
     </>
   );

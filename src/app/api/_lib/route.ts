@@ -14,10 +14,14 @@ import type { Actor } from '@/lib/rbac/types';
 import { clock } from '@/lib/shared/clock';
 import { configuredAppOrigin, getEnv, isEnvError, type Env } from '@/lib/shared/env';
 import { AppError, errorBody, httpStatusOf, isErrorCode, type ErrorCode, type ErrorParams } from '@/lib/shared/errors';
-import { resolveActor } from './actor';
+import { resolveActor, setActorResolver } from './actor';
+import { getActor, takeRenewedSessionCookie } from '@/lib/auth/session';
 import { serializeCookie, type CookieSpec } from './cookies';
 import { isAuthorizedCron } from './cron-auth';
 import { findRoute, type HttpMethod, type ManifestEntry } from './manifest';
+
+// R1: เสียบตัวหา actor จริง (Lead อนุมัติข้อยกเว้น 1 บรรทัด) — ก่อนหน้านี้ = anonymous
+setActorResolver(getActor);
 
 export const CACHE_CONTROL = 'private, no-store';
 export const MAX_BODY_BYTES = 64 * 1024;
@@ -257,7 +261,13 @@ export function route<S extends AnySchema | undefined = undefined, PS extends An
       // 5. response
       const r = isReply(result) ? result : reply(result);
       const headers = new Headers(r.init.headers);
-      for (const c of r.init.cookies ?? []) headers.append('Set-Cookie', serializeCookie(c));
+      const cookies = r.init.cookies ?? [];
+      for (const c of cookies) headers.append('Set-Cookie', serializeCookie(c));
+      // sliding session: getActor ต่ออายุแถวใน DB แล้ว → แนบคุกกี้ใหม่ (handler ตั้งคุกกี้ชื่อเดียวกันเองแล้ว = ใช้ของ handler เช่น logout)
+      if (entry.auth === 'actor') {
+        const renewed = takeRenewedSessionCookie(req);
+        if (renewed && !cookies.some((c) => c.name === renewed.name)) headers.append('Set-Cookie', serializeCookie(renewed));
+      }
       return json(r.init.raw ? r.data : { data: r.data }, r.init.status ?? 200, headers);
     } catch (e) {
       const coded = asCodedError(e);

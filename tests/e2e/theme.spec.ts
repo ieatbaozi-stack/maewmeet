@@ -1,5 +1,6 @@
 // R0-10 — ธีมจากเซิร์ฟเวอร์ (ไม่มีกระพริบ) · system ตาม prefers-color-scheme · สลับแล้วคงอยู่หลังรีโหลด
-import { expect, setPrefs, test, watchConsole, type Theme } from './support/fixtures';
+import { expect, signupViaApi, test, uniqueUsername } from './support/auth';
+import { setPrefs, watchConsole, type Theme } from './support/fixtures';
 import { msg } from './support/messages';
 
 test.describe('HTML แรกจากเซิร์ฟเวอร์ (ไม่ต้องรอ JS)', () => {
@@ -24,7 +25,7 @@ test.describe('HTML แรกจากเซิร์ฟเวอร์ (ไม�
       const ctx = await browser.newContext({ javaScriptEnabled: false, colorScheme: opts.scheme });
       if (opts.theme) await setPrefs(ctx, baseURL!, { theme: opts.theme });
       const page = await ctx.newPage();
-      await page.goto('/');
+      await page.goto('/login');
       const r = await page.evaluate(() => ({
         theme: document.documentElement.dataset.theme,
         bg: getComputedStyle(document.body).backgroundColor,
@@ -49,7 +50,7 @@ test.describe('system ตาม colorScheme ที่ emulate', () => {
         const ctx = await browser.newContext({ colorScheme: scheme });
         if (theme) await setPrefs(ctx, baseURL!, { theme });
         const page = await ctx.newPage();
-        await page.goto('/');
+        await page.goto('/login');
         const v = await page.evaluate(() => [document.documentElement.dataset.theme, getComputedStyle(document.body).backgroundColor]);
         await ctx.close();
         return v;
@@ -67,6 +68,7 @@ test.describe('system ตาม colorScheme ที่ emulate', () => {
 test.describe('สลับธีม/ภาษาแล้วคงอยู่หลังรีโหลด', () => {
   test('หน้า "ฉัน": มืด + English → รีโหลดแล้วยังเป็น en/dark → กลับเป็น ตามเครื่อง + ไทย', async ({ page, context }) => {
     const problems = watchConsole(page);
+    await signupViaApi(context.request, { username: uniqueUsername() }); // R1: /me ต้องล็อกอิน
     await page.goto('/me', { waitUntil: 'networkidle' });
     const html = page.locator('html');
     await expect(html).toHaveAttribute('lang', 'th');

@@ -47,7 +47,29 @@ PIN 6 หลัก = 1,000,000 แบบ (ลบ PIN ต้องห้าม 20
 
 ผลด้านความปลอดภัย (คำนวณ): ผู้โจมตีที่รู้ username เดา PIN ได้ ~15 ครั้งในวันแรก (5 + ช่วงล็อกสะสม 1+2+…+512 = 1023 นาที ≈ 17 ชม.) จากนั้นวันละ 1 ครั้ง → ~380 ครั้ง/ปี ≈ **0.04%** ของ 999,980 PIN ที่ตั้งได้ · ราคาที่จ่าย: ใครรู้ username ก็ทำให้เจ้าของถูกล็อกได้ (DoS) — ยอมรับได้ในกลุ่มเพื่อน + มีปุ่มปลดล็อกของ super admin
 
-ลำดับตรวจตอน login: IP bucket → `login_throttle` → verify (เสมอ แม้ไม่มีผู้ใช้) → บันทึกผล · ข้อความผิดเป็นรหัสเดียว `INVALID_CREDENTIALS` + `attemptsRemaining` ไม่ว่า username ไม่มีหรือ PIN ผิด (U1 AC) · บัญชี `suspended` ตอบ `ACCOUNT_SUSPENDED` **เฉพาะเมื่อ PIN ถูก** (ไม่เปิดช่องไล่ชื่อ)
+**จองก่อน verify แบบอะตอมมิก (แก้ช่อง check-then-act หลังตรวจอิสระ R1 — S1):** การตรวจแล้วค่อยนับทีหลังเปิดช่องให้ผู้โจมตียิงขนาน N คำขอผ่านด่านล็อกพร้อมกันแล้ว verify ทุกตัว ดังนั้นทั้ง IP และ username **"จอง" ก่อน verify** ด้วยคำสั่งเดียวที่ตัดสินและนับในประโยคเดียวกัน:
+```sql
+-- username: ล็อกอยู่ → WHERE เป็นเท็จ → ไม่แก้แถว ไม่มีแถวกลับ (= ปฏิเสธ ไม่นับ ไม่ verify · การตัดสินใจเดิมคงอยู่)
+INSERT INTO login_throttle(key, failures, locked_until, updated_at) VALUES (?, 1, NULL, ?now)
+ON CONFLICT(key) DO UPDATE SET failures = failures + 1,
+  locked_until = <CASE จากตาราง lockMsFor(failures+1): NULL ถ้า < 5, ไม่งั้น now + min(2^(f−5) นาที, 24 ชม.)>, updated_at = ?now
+WHERE locked_until IS NULL OR locked_until <= ?now
+RETURNING *;
+-- IP: เต็ม limit → WHERE เป็นเท็จ → ปฏิเสธ (count ไม่เกิน limit)
+INSERT INTO rate_limit_bucket(key, window_start, count) VALUES (?, ?ws, 1)
+ON CONFLICT(key) DO UPDATE SET count = CASE WHEN window_start = excluded.window_start THEN count + 1 ELSE 1 END, window_start = excluded.window_start
+WHERE window_start <> excluded.window_start OR count < ?limit
+RETURNING count;
+```
+- ลำดับ: จองช่อง IP → (เส้นทาง `123456` + คุกกี้ตรง ข้ามขั้นถัดไป — ดู §5) → จอง username · username ล็อกอยู่ = **คืนช่อง IP** แล้วตอบ `LOGIN_LOCKED` โดยไม่ verify (ระหว่างล็อกไม่นับทั้งสองถัง)
+- ผลคือ **verify ได้ไม่เกิน 5 ครั้งต่อ username ต่อช่วงที่ไม่ล็อก และไม่เกิน 20 ครั้งต่อ IP ต่อหน้าต่าง ไม่ว่ามีคำขอขนานกี่ตัว** · ครั้งที่ถึงเกณฑ์ (ครั้งที่ 5) ยัง verify ได้ 1 ครั้งแต่ทุกคำขอที่ตามมาถูกปฏิเสธ
+- ผิด: ตอบจากแถวที่ได้ตอนจอง (`attemptsRemaining` = 5 − failures: 4,3,2,1 · ถึงเกณฑ์ = `LOGIN_LOCKED`) ไม่เขียนซ้ำ · สำเร็จ: **คืนช่อง IP ที่จอง (decrement) และรีเซ็ต `login_throttle` ของ username** (จึง "นับเฉพาะที่ผิด" เหมือนเดิม) · `suspended` + PIN ถูกนับเป็นสำเร็จ
+- ใช้ชุดเดียวกันกับ `POST /api/auth/pin` เมื่อต้องใส่ `currentPin` (ตัวนับ username เดียวกับ login)
+- ข้อแลก: ผู้ใช้จริงที่เปิดล็อกอินพร้อมกัน ≥ 5 คำขอในเสี้ยววินาทีอาจชนล็อกเอง (เทียบกับการยิงขนานของผู้โจมตี — ยอมรับได้)
+
+**IP ของผู้เรียก (S4/S5):** เชื่อ `x-vercel-forwarded-for` → `x-real-ip` → `x-forwarded-for` (ตัวแรก) **เฉพาะเมื่อมี env `VERCEL` หรือ `TRUST_PROXY_HEADERS=1`** (แพลตฟอร์ม/proxy เขียนทับ header เหล่านี้เอง) · ไม่งั้นไม่เชื่อ header ใด ๆ และทุกคำขอใช้ **ถัง `unknown` ร่วมกัน** ที่เพดาน **×50** ของปกติ (login 1,000 · signup 250 · reset 150 ต่อหน้าต่าง) — เพดานสูงเพราะถังนี้แชร์กันทั้งระบบ (dev/self-host ตรง ๆ) การกันเดา PIN จริงอยู่ที่ lockout ต่อ username ซึ่งไม่ขึ้นกับ IP · ปลอม header ไม่ได้ผลเมื่อไม่เชื่อ (ไม่เปลี่ยนถัง/ไม่ทับถังคนอื่น) · ตั้งค่าใน `docs/OPERATIONS.md`
+
+ลำดับตรวจตอน login: จอง IP bucket → จอง `login_throttle` → verify (เสมอ แม้ไม่มีผู้ใช้) → ตอบจากผลที่จอง (ผิด) / คืนช่อง + รีเซ็ต (ถูก) · ข้อความผิดเป็นรหัสเดียว `INVALID_CREDENTIALS` + `attemptsRemaining` ไม่ว่า username ไม่มีหรือ PIN ผิด (U1 AC) · บัญชี `suspended` ตอบ `ACCOUNT_SUSPENDED` **เฉพาะเมื่อ PIN ถูก** (ไม่เปิดช่องไล่ชื่อ)
 
 ### 4. Session: เขียนเอง (ตามแนว Lucia ที่ถูก deprecate แล้ว)
 - token สุ่ม 20 ไบต์ (base32) ใน cookie `__Host-mm_session` (`HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=60 วัน`; dev ใช้ชื่อ `mm_session`) · DB เก็บเฉพาะ **SHA-256(token)** เป็น `session.id` — ฐานรั่วก็เอา token ไปใช้ไม่ได้
@@ -62,7 +84,9 @@ PIN 6 หลัก = 1,000,000 แบบ (ลบ PIN ต้องห้าม 20
 ```
 REQUEST (ไม่ต้องล็อกอิน)  POST /api/auth/pin-reset {username}
   ตรวจ rate limit (เกิน → ตอบเหมือนปกติ ไม่สร้างแถว)
-  สร้าง deviceToken สุ่ม 32 ไบต์ → set cookie __Host-mm_reset (HttpOnly, Max-Age 8 วัน)  ← ตั้งเสมอ แม้ไม่มี username นี้
+  สร้าง deviceToken สุ่ม 32 ไบต์ → set cookie __Host-mm_reset = `<token>.<issuedAtSec>.<mac>` (HttpOnly, Max-Age 8 วัน)  ← ตั้งเสมอ แม้ไม่มี username นี้
+       mac = HMAC-SHA256(subkey HKDF(APP_SECRET,'maewmeet/reset-device/v1'), "<token>.<issuedAtSec>") · ขอซ้ำ = token เดิม + เวลาออกใหม่ (now)
+       DB เก็บเฉพาะ sha256(token) — ไม่รวมเวลา/mac
   ถ้ามีผู้ใช้ status=active และไม่มีคำขอเปิด (pending/approved):
        insert {status:pending, device_token_hash: sha256(deviceToken), requester_ua (ย่อ), requester_country (x-vercel-ip-country), pending_expires_at: now+7d}
   ตอบ 202 ข้อความเดียวกันทุกกรณี
@@ -70,7 +94,8 @@ REQUEST (ไม่ต้องล็อกอิน)  POST /api/auth/pin-reset {
 DECIDE (super admin)  POST /api/auth/admin/pin-resets/:id/approve | reject
   can(actor,'pinReset.decide') · ต้อง status=pending และยังไม่เลย pending_expires_at
   approve: status=approved, decided_by/at, expires_at=now+24h, user.pin_hash=NULL (PIN เดิมใช้ไม่ได้อีก — "PIN กลายเป็น 123456")
-           + notification 'pin_reset.approved'
+           + ล้าง login_throttle ของ user นั้น (failures=0, ไม่ล็อก — S3) + notification 'pin_reset.approved'
+           **target == actor → 403 FORBIDDEN** (SA อนุมัติคำขอของตัวเองไม่ได้ — S2 · SA ที่ลืม PIN ใช้ scripts/admin-reset-pin.ts) · ไม่เขียน audit
   reject : status=rejected
   ทั้งสองกรณี → audit_log (ใคร, เมื่อไร, ของใคร) (U2 AC)
 
@@ -79,7 +104,9 @@ LOGIN  POST /api/auth/login {username, pin}
   if pin == '123456':
      r = คำขอ status=approved ของ user นี้ ที่ now < expires_at
      ok = r มีจริง AND sha256(cookie __Host-mm_reset) == r.device_token_hash
-     if ok: r.status=used, used_at=now · user.must_change_pin=1 · สร้าง session · ลบ cookie mm_reset
+     if ok: **ข้ามล็อก username** (คุกกี้เครื่องคือปัจจัยยืนยัน — S3) แต่ **ยังจองโควตา IP** ตามข้อ 3 ·
+            ธุรกรรมเดียว: r.status=used, used_at=now + user.must_change_pin=1 + สร้าง session + รีเซ็ต login_throttle (S7) · ลบ cookie mm_reset
+            (SQLITE_BUSY → rollback ทั้งก้อน ตอบ 409 CONFLICT ให้ลองใหม่ ไม่มีสถานะครึ่งทาง)
      else : นับเป็นล็อกอินผิด → INVALID_CREDENTIALS   (รวมกรณี pending: "123456 ยังใช้ไม่ได้")
   else:
      verify argon2 กับ user.pin_hash (NULL → ผิดเสมอ)
@@ -94,8 +121,12 @@ SET NEW PIN  POST /api/auth/pin {newPin, currentPin?}
   สำเร็จ: hash ใหม่, must_change_pin=0, ลบ session อื่นทั้งหมด, ยกเลิกคำขอ pending ที่ค้าง
 ```
 - คำขอเปิดได้ 1 รายการต่อผู้ใช้ — บังคับด้วย partial unique index `WHERE status IN ('pending','approved')` (U2 AC)
-- `GET /api/auth/pin-reset/status` อ่าน cookie `mm_reset` แล้วตอบได้แค่ `pending | approved | closed` ของคำขอที่ผูกกับเครื่องนี้ (username ไม่มีจริง → `pending` ตลอด ไม่รั่วข้อมูล) ใช้ให้หน้าเข้าสู่ระบบบอกว่า "ได้รับอนุมัติแล้ว ใช้ 123456 บนเครื่องนี้ได้ภายใน …"
-
+- **`GET /api/auth/pin-reset/status` (กฎ D2/S6 — ต้องไม่รั่วว่า username มีจริงหรือไม่):** อ่านคุกกี้ `mm_reset` (ตรวจ MAC; ผิด/ไม่มี → `none`) แล้วตอบได้เพียง `none | pending | approved(expiresAt) | closed`:
+  - `approved` — **เฉพาะเครื่องที่ผูกกับคำขอ approved ที่ยังไม่หมดอายุ** (นี่คือข้อมูลที่เจ้าของบัญชีต้องได้ ผู้ถามไล่ชื่อไม่เคยเห็น เพราะไม่มีคุกกี้ผูก)
+  - นอกนั้น **`pending` จนครบ 7 วันนับจากเวลาออกคุกกี้ แล้ว `closed`** — คำนวณจากเวลาในคุกกี้อย่างเดียว ไม่ดูสถานะอื่นของแถว: reject / cancel / expire / ไม่มีแถว (username ไม่มีจริง, โดนจำกัด, บัญชี suspended) อ่านเหมือนกันทุกไบต์ตามตารางเวลาเดียวกัน → เครื่องจริงกับ ghost แยกกันไม่ได้
+  - ผลข้างเคียงที่ยอมรับ: คำขอที่ถูกปฏิเสธ/หมดอายุจะยังแสดง "ส่งคำขอแล้ว" (pending) จนครบ 7 วัน แล้วจึง "คำขอนี้ปิดแล้ว" · ข้อความ `forgot.pending.expiry` ("ไม่มีใครตอบภายใน 7 วัน คำขอจะหมดอายุ และส่งใหม่ได้") และ `forgot.closed` ("หมดอายุ ถูกปฏิเสธ หรือใช้ไปแล้ว") ตรงกับกฎนี้อยู่แล้วจึงไม่แก้ข้อความ · เจ้าของที่อยากขอใหม่ก่อนครบ 7 วันกด "ส่งคำขอ" ซ้ำได้ (ไม่สร้างแถวซ้ำถ้ายังเปิดอยู่)
+  - คุกกี้ที่เป็น token ล้วน (สคริปต์ break-glass ออกให้ — OPERATIONS H4) ไม่มีเวลาออก: ปิดเมื่อแถวของเครื่องนั้นไม่ใช่ pending/approved
+  - **ปรับงานฝั่ง DB ให้ใกล้กัน**: ghost ทำ expire-UPDATE + SELECT แบบเดียวกับเครื่องจริงทั้งในสถานะ `/status`, `POST /pin-reset` และเส้นทาง `123456` ของ login (ใช้ user สมมติ) · **ไม่เลียนแบบ** INSERT แถวคำขอสำหรับบัญชีที่ไม่มี (ห้ามสร้างแถว) → เวลาตอบของ `POST /pin-reset` ของบัญชีจริงยังมากกว่าเล็กน้อย (1 คำสั่งเขียน) — บันทึกเป็นข้อจำกัดที่รู้ ถ้าต้องปิดจริงต้องหน่วงเวลาให้เท่ากัน (ไม่ทำใน R1)
 ### 6. ตัดสิน: **ผูก `123456` กับอุปกรณ์ที่กดขอ reset — ใช่** (boss ยืนยัน 2026-10-16)
 เหตุผล
 1. ปิดความเสี่ยงหลักที่ PRD §10 ระบุ ("24 ชม. หลัง reset ใครรู้ username ก็เข้าได้ก่อนเจ้าตัว") — ผู้โจมตีต้องมี cookie จากเครื่องที่กดขอด้วย

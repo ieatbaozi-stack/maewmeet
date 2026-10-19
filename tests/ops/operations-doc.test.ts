@@ -29,3 +29,32 @@ describe('OPERATIONS.md ตรงกับพฤติกรรม fail-fast ข
     }
   });
 });
+
+// R1-8 / OPS: ส่วน H ต้องตรงกับสคริปต์และ ADR จริง
+const h = doc.slice(doc.indexOf('## H.'), doc.indexOf('## ภาคผนวก'));
+
+describe('OPERATIONS.md ส่วน H (super admin คนแรก + ซ้อมกู้ pepper)', () => {
+  it('H1: SQL ตั้ง/ตรวจ super admin ตรงตามที่ตัดสินใจ และบอกชัดว่าไม่มีสคริปต์/endpoint สร้างให้', () => {
+    expect(h).toContain("UPDATE user SET is_admin = 1 WHERE username = '<name>';");
+    expect(h).toContain('SELECT username,is_admin FROM user WHERE is_admin=1;');
+    expect(h).toMatch(/ไม่มีสคริปต์และไม่มีหน้าเว็บใดสร้าง super admin/);
+  });
+
+  it('H2/H4: คำสั่งในเอกสารตรงกับแฟลก/ไฟล์ของสคริปต์จริง และไม่ส่ง pepper/PIN เป็น argument', () => {
+    expect(h).toContain('Get-Clipboard | npx tsx scripts/pepper-fingerprint.ts');
+    expect(h).toContain('npx tsx scripts/admin-reset-pin.ts --username boss --confirm-username boss --confirm-pepper-lost');
+    for (const f of ['scripts/pepper-fingerprint.ts', 'scripts/admin-reset-pin.ts']) {
+      expect(readFileSync(path.join(process.cwd(), f), 'utf8').length).toBeGreaterThan(500);
+    }
+    expect(h).not.toMatch(/PIN_PEPPER_V\d\s*=\s*"?[A-Za-z0-9+/]{40,}/);
+  });
+
+  it('ส่วนที่เขียนจากความจำเกี่ยวกับหน้าจอภายนอกต้องติดป้าย "ตรวจกับหน้าจอจริง"', () => {
+    expect((h.match(/ตรวจกับหน้าจอจริง/g) ?? []).length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('G7 ชี้ H และ health ตัวอย่างมี pepper', () => {
+    expect(doc).toContain('"pepper":{"ok":true,"currentVersion":1,"usersByVersion":{}}');
+    expect(doc.slice(doc.indexOf('### G7'), doc.indexOf('## H.'))).toContain('H4');
+  });
+});

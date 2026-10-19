@@ -3,7 +3,7 @@
 // - 2 โปรไฟล์: deployed (VERCEL_ENV = production|preview) เข้มกว่า dev/test (file: ได้, ไม่ต้องมี token)
 // - โหลดแบบ lazy (getEnv) เพื่อให้ `next build` ไม่ต้องมีความลับ — จุด "ล้มตอนเริ่ม" ให้เรียก assertEnv()
 //   จาก instrumentation.ts (นอกขอบเขต Platform — ดู Handoff) และ /api/health (OPS) รายงาน 503 เมื่อ assertEnv ล้ม
-// - PIN_PEPPER_*: R0 ประกาศชนิดไว้แต่ยังไม่บังคับ (R1 Auth บังคับผ่าน readPepperEnv — fail closed เฉพาะ login ตาม ADR 0002 §7.1)
+// - PIN_PEPPER_*: ไม่อยู่ใน schema บังคับ (ผิด/ขาด ≠ EnvError) — Auth ตรวจผ่าน readPepperEnv แล้ว fail closed เป็น AUTH_MAINTENANCE · health = 503 (ADR 0002 §7.1)
 import { z } from 'zod';
 
 const BASE64_RE = /^[A-Za-z0-9+/\-_]+={0,2}$/;
@@ -54,8 +54,13 @@ export const baseEnvSchema = z.object({
   APP_ORIGIN: z.preprocess(blankToUndefined, originString.optional()),
   VERCEL_URL: optionalString,
   VERCEL_ENV: optionalString,
-  // ── pepper (ประกาศชนิดไว้ — R1 บังคับ) ──
-  PIN_PEPPER_CURRENT_VERSION: z.preprocess(blankToUndefined, z.coerce.number().int().min(1).optional()),
+  // ── proxy: เชื่อ header IP (x-vercel-forwarded-for / x-real-ip / x-forwarded-for) เฉพาะเมื่อ VERCEL ถูกตั้ง (Vercel ใส่ให้เอง) หรือ TRUST_PROXY_HEADERS=1
+  //    ตั้งเมื่ออยู่หลัง reverse proxy ที่เขียนทับ header เหล่านี้เองเท่านั้น — ไม่งั้นผู้เรียกปลอม IP หลบ rate limit ได้ (ADR 0002 §3)
+  VERCEL: optionalString,
+  TRUST_PROXY_HEADERS: optionalString,
+  // ── pepper: ไม่ตรวจที่นี่ — ผิด/ขาดต้องไม่ทำให้ getEnv() โยน (ทุก route จะ 500) · ADR 0002 §7.1 fail closed เฉพาะ auth
+  //    (AUTH_MAINTENANCE) + /api/health 503 ผ่าน readPepperEnv/requirePepper ใน src/lib/auth/pepper.ts
+  PIN_PEPPER_CURRENT_VERSION: optionalString,
   // ── ค้นหาสถานที่ / แผนที่ ──
   PLACE_SEARCH_ENABLED: z.preprocess(
     blankToUndefined,
@@ -107,6 +112,15 @@ export function isEnvError(e: unknown): e is EnvError {
 
 export function isDeployed(source: EnvSource): boolean {
   return source.VERCEL_ENV === 'production' || source.VERCEL_ENV === 'preview';
+}
+
+/**
+ * เชื่อ header IP จาก proxy ไหม — บน Vercel (env VERCEL ถูกตั้ง) หรือ operator ยืนยันด้วย TRUST_PROXY_HEADERS=1
+ * อ่านจาก source ตรง ๆ (ไม่ผ่าน getEnv) เพื่อให้ฟังก์ชันอ่าน IP ใช้ได้โดยไม่ต้องมี env ครบ
+ */
+export function trustsProxyHeaders(source: EnvSource = process.env): boolean {
+  const vercel = source.VERCEL?.trim();
+  return (vercel !== undefined && vercel !== '' && vercel !== '0') || source.TRUST_PROXY_HEADERS?.trim() === '1';
 }
 
 /** ตรวจ env จาก source ที่ให้ (ค่าเริ่มต้น process.env) — โยน EnvError ถ้าไม่ผ่าน */

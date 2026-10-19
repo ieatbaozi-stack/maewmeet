@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-m="forgot.title"></title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<!--MESSAGES_EN-->
+</head>
+<body>
+<div class="aurora" data-intensity="hero" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<main class="app login" style="padding-bottom: var(--space-5)">
+  <div class="login-top">
+    <i data-brand="logo-mark" class="brand-mark"></i>
+    <nav class="lang-switch" data-m-aria="prefs.languageLabel">
+      <a href="?lang=th" lang="th" aria-current="true" class="js-th">ไทย</a>
+      <a href="?lang=en" lang="en" class="js-en">EN</a>
+    </nav>
+  </div>
+
+  <div class="login-hero">
+    <i data-brand="logo-th" class="logo js-logo-th"></i>
+    <i data-brand="logo-en" class="logo js-logo-en" hidden></i>
+  </div>
+
+  <section class="panel login-card auth-card" aria-labelledby="t">
+    <!-- ปกติ: กรอกชื่อผู้ใช้ -->
+    <div data-state-show="normal loading">
+      <h1 class="auth-title" id="t" data-m="forgot.title"></h1>
+      <p class="auth-intro" data-m="forgot.intro"></p>
+      <form onsubmit="return false">
+        <div class="field">
+          <label for="u" data-m="forgot.username"></label>
+          <input id="u" class="input" value="tonkhao" autocomplete="username" autocapitalize="none" spellcheck="false">
+        </div>
+        <p class="note-box"><i data-icon="info" class="sm"></i><span data-m="forgot.deviceNote"></span></p>
+        <div class="auth-actions">
+          <button class="btn btn-primary btn-block" data-state-show="normal" data-m="forgot.submit"></button>
+          <button class="btn btn-primary btn-block" data-state-show="loading" hidden disabled aria-busy="true" data-m="forgot.submitting"></button>
+        </div>
+      </form>
+    </div>
+
+    <!-- รออนุมัติ -->
+    <div data-state-show="pending" hidden>
+      <div class="status-block">
+      <span class="status-badge is-wait"><i data-icon="clock"></i></span>
+      <h1 class="auth-title" id="t" data-m="forgot.pending.title"></h1>
+    </div>
+    <p class="auth-intro" data-m="forgot.pending.body"></p>
+      <ul class="status-list">
+        <li><i data-icon="circle-check" class="sm"></i><span data-m="forgot.pending.hint"></span></li>
+        <li><i data-icon="clock" class="sm"></i><span data-m="forgot.pending.expiry"></span></li>
+        <li><i data-icon="info" class="sm"></i><span data-m="forgot.deviceNote"></span></li>
+      </ul>
+      <div class="auth-actions"><a class="btn btn-secondary btn-block" href="login.html" data-m="forgot.backToLogin"></a></div>
+
+    </div>
+
+    <!-- อนุมัติแล้ว (เครื่องนี้) -->
+    <div data-state-show="approved" hidden>
+      <div class="status-block">
+      <span class="status-badge is-ok"><i data-icon="circle-check"></i></span>
+      <h1 class="auth-title" id="t" data-m="forgot.approved.title"></h1>
+    </div>
+    <p class="auth-intro" data-m="forgot.approved.body"></p>
+      <ul class="status-list">
+        <li><i data-icon="clock" class="sm"></i><strong data-m="forgot.approved.expires" data-m-v='{"th":{"expires":"19 ต.ค. 14:30"},"en":{"expires":"19 Oct, 14:30"}}'></strong></li>
+        <li><i data-icon="lock" class="sm"></i><span data-m="forgot.approved.thisDevice"></span></li>
+      </ul>
+      <div class="auth-actions"><a class="btn btn-primary btn-block" href="login.html" data-m="forgot.approved.cta"></a></div>
+
+    </div>
+
+    <!-- ปิดแล้ว (หมดอายุ/ปฏิเสธ/ใช้แล้ว) -->
+    <div data-state-show="closed" hidden>
+      <div class="status-block">
+      <span class="status-badge is-closed"><i data-icon="circle-dashed"></i></span>
+      <h1 class="auth-title" id="t" data-m="forgot.closed.title"></h1>
+    </div>
+    <p class="auth-intro" data-m="forgot.closed.body"></p>
+      <div class="auth-actions"><a class="btn btn-primary btn-block" href="forgot.html" data-m="forgot.closed.cta"></a>
+      <a class="btn btn-text btn-block" href="login.html" style="min-height: var(--tap)" data-m="forgot.backToLogin"></a></div>
+
+    </div>
+  </section>
+  <p class="link-row" data-state-show="normal loading"><a href="login.html" data-m="forgot.backToLogin"></a></p>
+</main>
+<script>
+  (function () {
+    var en = new URLSearchParams(location.search).get('lang') === 'en';
+    document.querySelector('.js-logo-th').toggleAttribute('hidden', en);
+    document.querySelector('.js-logo-en').toggleAttribute('hidden', !en);
+  })();
+</script>
+<script>
+  (function () {
+    var q = new URLSearchParams(location.search), en = q.get('lang') === 'en', t = q.get('theme'), s = q.get('state');
+    document.querySelector('.js-th').setAttribute('aria-current', String(!en));
+    document.querySelector('.js-en').setAttribute('aria-current', String(en));
+    var extra = (t ? '&theme=' + t : '') + (s ? '&state=' + s : '');
+    document.querySelectorAll('.lang-switch a').forEach(function (a) { a.href += extra; });
+  })();
+</script>
+</body>
+</html>
