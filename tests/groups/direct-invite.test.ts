@@ -1,4 +1,5 @@
 // R2-4 · U5 (ก) ชวนตรง: USER_NOT_FOUND (Q4) · 30/ชม. · ซ้ำ → ปฏิเสธ · รับ → เป็นสมาชิก · ปฏิเสธ → ไม่เป็น · หมดอายุ 7 วัน · notification
+import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { GROUP_LIMITS } from '@/lib/shared/limits';
 import { DAY, del, get, join, makeCode, makeGroup, person, post, roleOf, setupHarness, type Harness, type Person } from './harness';
@@ -146,11 +147,19 @@ describe('รับ/ปฏิเสธ', () => {
       expect((await invite(a, 'bob')).status).toBe(201);
     });
 
-    it('คูลดาวน์ผูกกับ (ผู้ชวน, กลุ่ม, ผู้รับ): ผู้ชวนคนอื่น / กลุ่มอื่น / ผู้รับคนอื่นไม่ถูกบล็อก', async () => {
+    it('คูลดาวน์ผูกกับ (กลุ่ม, ผู้รับ) ไม่ว่าใครเป็นผู้ชวน: ผู้ชวนคนอื่นในกลุ่มเดิมก็ชวนไม่ได้ · กลุ่มอื่น / ผู้รับคนอื่นไม่ถูกบล็อก', async () => {
       await declineFirst();
       const c = await person(h, 'carol');
-      await join(a, c, gid); // carol เป็นสมาชิก ชวน bob ได้ (คนละผู้ชวน)
-      expect((await invite(c, 'bob')).status).toBe(201);
+      await join(a, c, gid); // carol เป็นสมาชิก แต่ชวน bob ในกลุ่มเดิมไม่ได้ (bob เพิ่งปฏิเสธกลุ่มนี้)
+      const other = await invite(c, 'bob');
+      expect([other.status, other.code]).toEqual([409, 'CONFLICT']);
+      expect(await h.count("group_invite WHERE kind = 'direct' AND status = 'active'")).toBe(0);
+      h.clock.advance(DAY);
+      expect((await invite(c, 'bob')).status).toBe(201); // ครบ 24 ชม. ชวนได้
+    });
+
+    it('คนละกลุ่ม / คนละผู้รับ ไม่ถูกบล็อก', async () => {
+      await declineFirst();
       const g2 = await makeGroup(a, 'อีกกลุ่ม');
       expect((await invite(a, 'bob', g2)).status).toBe(201); // คนละกลุ่ม
       const d = await person(h, 'dave');
@@ -237,5 +246,72 @@ describe('รับ/ปฏิเสธ', () => {
     expect(r.status).toBe(200);
     expect(r.data.alreadyMember).toBe(true);
     expect(await h.count('group_member WHERE group_id = ? AND user_id = ?', [gid, c.id])).toBe(1);
+  });
+});
+
+// R2 review (Low): เพดานคำเชิญตรงที่ค้างต่อผู้รับ 20 + รายการ /api/me/invites จำกัด 50
+/** ใส่กลุ่ม + คำเชิญตรงที่ค้างถึง `to` ด้วย SQL ตรง (ข้ามเพดานของ API) — createdAt = t0 + i */
+async function seedPending(h: Harness, from: Person, to: Person, n: number, tag = 'p'): Promise<string[]> {
+  void tag;
+  const t0 = h.clock.now();
+  const ids: string[] = [];
+  const groupIds: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const g = randomUUID();
+    const inv = randomUUID();
+    await h.rows('INSERT INTO groups (id, name, tz, free_window_start_min, free_window_end_min, min_free_minutes, created_by, created_at, updated_at) VALUES (?, ?, ?, 540, 1260, 60, ?, ?, ?)', [g, `G${tag}${i}`, 'Asia/Bangkok', to.id, t0, t0]);
+    await h.rows("INSERT INTO group_member (group_id, user_id, role, joined_at) VALUES (?, ?, 'admin', ?)", [g, from.id, t0]);
+    await h.rows("INSERT INTO group_invite (id, group_id, kind, invitee_user_id, status, uses_count, created_by, created_at, expires_at) VALUES (?, ?, 'direct', ?, 'active', 0, ?, ?, ?)", [inv, g, to.id, from.id, t0 + i, t0 + 7 * DAY]);
+    ids.push(inv);
+    groupIds.push(g);
+  }
+  seeded.groups = groupIds;
+  return ids;
+}
+const seeded: { groups: string[] } = { groups: [] };
+const activeDirect = (h: Harness) => h.count("group_invite WHERE kind = 'direct' AND status = 'active'");
+
+describe('เพดานคำเชิญตรงที่ค้างต่อผู้รับ', () => {
+  it('ค้างครบ 20 แล้วคำเชิญที่ 21 → 409 LIMIT_REACHED pendingInvites (ไม่สร้างแถว/notification) · ที่ 20 ยังได้', async () => {
+    await seedPending(h, a, b, 19);
+    expect((await invite(a, 'bob')).status).toBe(201); // ที่ 20
+    expect(await activeDirect(h)).toBe(20);
+    const g2 = await makeGroup(a, 'กลุ่มที่ยี่สิบเอ็ด');
+    const notif = await h.count("notification WHERE kind = 'group.invite.received'");
+    const over = await invite(a, 'bob', g2);
+    expect([over.status, over.code]).toEqual([409, 'LIMIT_REACHED']);
+    expect(over.json.error?.params).toEqual({ limit: 'pendingInvites', max: 20 });
+    expect(await activeDirect(h)).toBe(20);
+    expect(await h.count("notification WHERE kind = 'group.invite.received'")).toBe(notif);
+  });
+
+  it('นับข้ามผู้ชวน/กลุ่ม · ปฏิเสธ/หมดอายุคืนช่อง · เพดานเป็นของผู้รับแต่ละคน', async () => {
+    const c = await person(h, 'carol');
+    const ids = await seedPending(h, c, b, 20); // จากผู้ชวนอื่นทั้งหมด
+    expect((await invite(a, 'bob')).code).toBe('LIMIT_REACHED');
+    expect((await post(b.c, `/api/me/invites/${ids[0]}/decline`)).status).toBe(200);
+    expect((await invite(a, 'bob')).status).toBe(201);
+    expect((await invite(a, 'carol')).status).toBe(201); // ผู้รับคนอื่นไม่ถูกนับ
+    h.clock.advance(7 * DAY); // ทั้งหมดหมดอายุ → ไม่นับ
+    const g2 = await makeGroup(a, 'กลุ่มใหม่');
+    expect((await invite(a, 'bob', g2)).status).toBe(201);
+  });
+
+  it('คำเชิญของกลุ่มที่ถูกลบแล้วไม่นับ', async () => {
+    await seedPending(h, a, b, 20);
+    expect((await invite(a, 'bob')).code).toBe('LIMIT_REACHED');
+    await h.rows('UPDATE groups SET deleted_at = ? WHERE id = ?', [h.clock.now(), seeded.groups[0]!]);
+    expect((await invite(a, 'bob')).status).toBe(201);
+  });
+});
+
+describe('GET /api/me/invites จำกัดจำนวน', () => {
+  it('มีค้างเกิน 50 (แถวเก่าก่อนมีเพดาน) → คืนใหม่สุด 50 รายการ', async () => {
+    const ids = await seedPending(h, a, b, 60);
+    const r = await mine(b);
+    expect(r.status).toBe(200);
+    expect(r.data.invites).toHaveLength(50);
+    expect(r.data.invites[0]!.id).toBe(ids[59]); // ใหม่สุดก่อน
+    expect(r.data.invites[49]!.id).toBe(ids[10]);
   });
 });

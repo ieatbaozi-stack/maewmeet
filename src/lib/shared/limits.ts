@@ -10,9 +10,13 @@ export const GROUP_LIMITS = {
   activeCodesPerGroup: 20,
   /** อายุโค้ดเชิญ/คำเชิญตรง (D6, R2 §3 ข้อ 5) */
   inviteTtlMs: 7 * DAY_MS,
+  /** คำเชิญตรงที่ค้าง (active, ยังไม่หมดอายุ, กลุ่มยังอยู่) ต่อผู้รับหนึ่งคน — กันสแปมผู้รับจากหลายผู้ชวน/หลายกลุ่ม */
+  pendingDirectInvitesPerInvitee: 20,
+  /** GET /api/me/invites คืนสูงสุดกี่รายการ (ใหม่สุดก่อน) */
+  myInvitesListMax: 50,
   nameMin: 1,
   nameMax: 40,
 } as const;
 
 /** ชนิดเพดานที่ใส่ใน params ของ LIMIT_REACHED (UX แปลตามนี้) */
-export type LimitKind = 'groups' | 'members' | 'codes';
+export type LimitKind = 'groups' | 'members' | 'codes' | 'pendingInvites';

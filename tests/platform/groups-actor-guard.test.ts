@@ -85,7 +85,7 @@ describe('SEC#1 — ผู้สร้างคำเชิญต้องยั
     const x = await user();
     const g = await group(a);
     await addMember(g, k);
-    const d = (to: string, by: string) => ({ id: newId(), groupId: g, inviteeUserId: to, createdBy: by, expiresAt: NOW + 1000 });
+    const d = (to: string, by: string) => ({ id: newId(), groupId: g, inviteeUserId: to, createdBy: by, expiresAt: NOW + 1000, inviteeCap: 20 });
     expect(await insertDirectInvite(db, d(x, k), NOW, mine(k, 'member'))).toMatchObject({ kind: 'direct', createdBy: k, inviteeUserId: x, status: 'active' });
     await removeMember(g, k);
     const y = await user();

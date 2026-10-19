@@ -126,8 +126,8 @@ export async function createDirectInvite(actor: Actor, groupId: string, input: D
   const invitee = await findUserByUsernameNormalized(db, normalizeUsername(input.username));
   if (!invitee || invitee.status !== 'active') throw new AppError('USER_NOT_FOUND');
   if (await findMember(db, groupId, invitee.id)) throw new AppError('ALREADY_MEMBER');
-  // คูลดาวน์: ผู้รับเพิ่งปฏิเสธคำเชิญของผู้ชวนคนนี้ในกลุ่มนี้ภายใน 24 ชม. → ชวนซ้ำไม่ได้ (409 CONFLICT — UI map เป็น alreadyInvited)
-  if (await hasDeclinedSince(db, { groupId, inviterId: me.id, inviteeUserId: invitee.id }, now - DIRECT_INVITE_COOLDOWN_MS)) throw new AppError('CONFLICT');
+  // คูลดาวน์: ผู้รับเพิ่งปฏิเสธคำเชิญของกลุ่มนี้ (จากผู้ชวนคนใดก็ได้) ภายใน 24 ชม. → ใครก็ชวนซ้ำไม่ได้ (409 CONFLICT — UI map เป็น alreadyInvited)
+  if (await hasDeclinedSince(db, { groupId, inviteeUserId: invitee.id }, now - DIRECT_INVITE_COOLDOWN_MS)) throw new AppError('CONFLICT');
 
   const groupRow = await findGroupById(db, groupId);
   const inviter = await findUserById(db, me.id);
@@ -137,10 +137,11 @@ export async function createDirectInvite(actor: Actor, groupId: string, input: D
   const expiresAt = now + GROUP_LIMITS.inviteTtlMs;
   const row = await inTx(db, async (tx) => {
     await expireDueDirectInvites(tx, groupId, invitee.id, now);
-    const created = await insertDirectInvite(tx, { id, groupId, inviteeUserId: invitee.id, createdBy: me.id, expiresAt }, now, { actorId: me.id, actorRole: group.actorRole }).catch((e: unknown) => {
+    const created = await insertDirectInvite(tx, { id, groupId, inviteeUserId: invitee.id, createdBy: me.id, expiresAt, inviteeCap: GROUP_LIMITS.pendingDirectInvitesPerInvitee }, now, { actorId: me.id, actorRole: group.actorRole }).catch((e: unknown) => {
       // มีคำเชิญ active ถึงคนเดียวกันในกลุ่มนี้อยู่แล้ว (group_invite_direct_active_uq)
       throw constraintKind(e) === 'unique' ? new AppError('CONFLICT') : e;
     });
+    if (created === 'invitee_full') throw new AppError('LIMIT_REACHED', { limit: 'pendingInvites', max: GROUP_LIMITS.pendingDirectInvitesPerInvitee });
     if (!created) {
       // ผู้ชวนไม่ถือ role เดิมแล้ว (ถูกลบ/เปลี่ยน role กลางทาง) หรือกลุ่มถูกลบ
       const again = await findGroupById(tx, groupId);
@@ -260,7 +261,7 @@ export async function redeemInviteCode(actor: Actor, input: RedeemInput, ctx: Da
 // ───────── คำเชิญตรงของฉัน ─────────
 export async function listMyInvites(actor: Actor, ctx: DataCtx): Promise<{ invites: PendingInviteDto[] }> {
   authorize(actor, 'invite.direct.list.mine', { type: 'none' });
-  return { invites: (await listPendingDirectInvitesFor(ctx.db, asUser(actor).id, ctx.now)).map(toPendingInviteDto) };
+  return { invites: (await listPendingDirectInvitesFor(ctx.db, asUser(actor).id, ctx.now, GROUP_LIMITS.myInvitesListMax)).map(toPendingInviteDto) };
 }
 
 /**

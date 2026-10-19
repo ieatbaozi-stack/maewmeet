@@ -308,7 +308,7 @@ describe('คำเชิญ / โค้ด', () => {
     const g = await group(a);
     const mk = async (invitee: string, by = a) => {
       const id = newId();
-      await insertDirectInvite(db, { id, groupId: g, inviteeUserId: invitee, createdBy: by, expiresAt: NOW + 1000 }, NOW, OUT);
+      await insertDirectInvite(db, { id, groupId: g, inviteeUserId: invitee, createdBy: by, expiresAt: NOW + 1000, inviteeCap: 20 }, NOW, OUT);
       return id;
     };
     const i1 = await mk(b);

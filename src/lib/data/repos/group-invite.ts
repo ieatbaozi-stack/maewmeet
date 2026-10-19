@@ -57,27 +57,29 @@ export async function expireDueDirectInvites(db: DbOrTx, groupId: string, invite
  */
 export async function insertDirectInvite(
   db: DbOrTx,
-  input: { id: string; groupId: string; inviteeUserId: string; createdBy: string; expiresAt: number },
+  input: { id: string; groupId: string; inviteeUserId: string; createdBy: string; expiresAt: number; inviteeCap: number },
   now: number,
   guard: ActorGuard,
-): Promise<InviteRow | null> {
+): Promise<InviteRow | 'invitee_full' | null> {
   const rows = await db.all<{ id: string }>(sql`
     INSERT INTO group_invite (id, group_id, kind, invitee_user_id, status, uses_count, created_by, created_at, expires_at)
     SELECT ${input.id}, ${input.groupId}, 'direct', ${input.inviteeUserId}, 'active', 0, ${input.createdBy}, ${now}, ${input.expiresAt}
     WHERE EXISTS (SELECT 1 FROM groups WHERE id = ${input.groupId} AND deleted_at IS NULL)
       AND ${actorGuardClause(input.groupId, guard)}
+      AND (SELECT count(*) FROM group_invite i JOIN groups g ON g.id = i.group_id AND g.deleted_at IS NULL
+            WHERE i.invitee_user_id = ${input.inviteeUserId} AND i.kind = 'direct' AND i.status = 'active' AND i.expires_at > ${now}) < ${input.inviteeCap}
     RETURNING id`);
-  if (rows.length !== 1) return null;
+  if (rows.length !== 1) return (await countPendingDirectFor(db, input.inviteeUserId, now)) >= input.inviteeCap && (await actorHolds(db, input.groupId, guard)) ? 'invitee_full' : null;
   return (await findInviteById(db, input.id)) ?? null;
 }
 
 /**
- * ผู้ชวนคนนี้เคยถูกผู้รับ "ปฏิเสธ" คำเชิญตรงของกลุ่มนี้ตั้งแต่ `since` ไหม (คูลดาวน์กันชวนซ้ำ) · เวลาที่ปฏิเสธอ่านจาก audit_log
+ * ผู้รับเคย "ปฏิเสธ" คำเชิญตรงของกลุ่มนี้ (จากผู้ชวนคนใดก็ได้) ตั้งแต่ `since` ไหม (คูลดาวน์กันชวนซ้ำ — คีย์ (กลุ่ม, ผู้รับ)) · เวลาที่ปฏิเสธอ่านจาก audit_log
  * (invite.direct.respond decision=declined — เขียนใน transaction เดียวกับการปฏิเสธ จึงไม่ต้องเพิ่มคอลัมน์)
  */
 export async function hasDeclinedSince(
   db: DbOrTx,
-  input: { groupId: string; inviterId: string; inviteeUserId: string },
+  input: { groupId: string; inviteeUserId: string },
   since: number,
 ): Promise<boolean> {
   const rows = await db.all<{ n: number }>(sql`
@@ -85,7 +87,7 @@ export async function hasDeclinedSince(
       FROM audit_log a JOIN group_invite i ON i.id = a.target_id
      WHERE a.action = 'invite.direct.respond' AND a.target_type = 'invite' AND a.created_at > ${since}
        AND json_extract(a.meta, '$.decision') = 'declined'
-       AND i.group_id = ${input.groupId} AND i.created_by = ${input.inviterId} AND i.invitee_user_id = ${input.inviteeUserId}
+       AND i.group_id = ${input.groupId} AND i.invitee_user_id = ${input.inviteeUserId}
        AND i.kind = 'direct' AND i.status = 'declined'`);
   return Number(rows[0]?.n ?? 0) > 0;
 }
@@ -160,8 +162,16 @@ export type PendingDirectInvite = {
   expiresAt: number;
 };
 
+/** จำนวนคำเชิญตรงที่ค้างของผู้รับ (นิยามเดียวกับรายการ/เพดาน) */
+export async function countPendingDirectFor(db: DbOrTx, userId: string, now: number): Promise<number> {
+  const rows = await db.all<{ n: number }>(sql`
+    SELECT count(*) AS n FROM group_invite i JOIN groups g ON g.id = i.group_id AND g.deleted_at IS NULL
+     WHERE i.invitee_user_id = ${userId} AND i.kind = 'direct' AND i.status = 'active' AND i.expires_at > ${now}`);
+  return Number(rows[0]?.n ?? 0);
+}
+
 /** คำเชิญตรงที่ค้างของผู้ใช้ (active + ยังไม่หมดอายุ + กลุ่มยังอยู่) */
-export async function listPendingDirectInvitesFor(db: DbOrTx, userId: string, now: number): Promise<PendingDirectInvite[]> {
+export async function listPendingDirectInvitesFor(db: DbOrTx, userId: string, now: number, limit: number): Promise<PendingDirectInvite[]> {
   return db
     .select({
       id: groupInvite.id,
@@ -183,7 +193,8 @@ export async function listPendingDirectInvitesFor(db: DbOrTx, userId: string, no
         isNull(groups.deletedAt),
       ),
     )
-    .orderBy(desc(groupInvite.createdAt), asc(groupInvite.id));
+    .orderBy(desc(groupInvite.createdAt), asc(groupInvite.id))
+    .limit(limit);
 }
 
 /** โค้ดที่ยังใช้ได้ตาม hash (active + ไม่หมดอายุ + กลุ่มยังอยู่) — ใช้วินิจฉัยหลัง join ไม่สำเร็จ */
