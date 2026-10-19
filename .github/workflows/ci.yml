@@ -133,9 +133,14 @@ jobs:
         run: npm run contrast
 
   e2e:
-    name: e2e (Playwright)
+    # แบ่ง 4 shard รันขนาน (repo private = runner 2 vCPU; ทั้งชุดรันเดี่ยว ๆ เกิน 30 นาทีแล้วถูกยกเลิก)
+    name: e2e (Playwright ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -155,12 +160,12 @@ jobs:
       - name: npm run build
         run: npm run build
       - name: npm run test:e2e
-        run: npm run test:e2e
+        run: npm run test:e2e -- --shard=${{ matrix.shard }}/4
       - name: เก็บรายงาน + ภาพหน้าจอ
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-${{ github.run_id }}-${{ github.run_attempt }}
+          name: playwright-${{ github.run_id }}-${{ github.run_attempt }}-shard${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/
