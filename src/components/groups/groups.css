@@ -44,11 +44,15 @@
 .tag-role.is-admin { background: var(--accent-soft); color: var(--accent-soft-ink); }
 
 /* แท็บกลุ่ม */
+/* .main.stack-lg เป็น grid: ลูกของ grid มี min-width:auto = ความกว้างเนื้อหา → ชื่อกลุ่มยาวไม่มีช่องว่าง (W×40) ดันทั้งหน้าจนเลื่อนแนวนอน · ให้หดได้ แล้วให้ชื่อตัดด้วย … (แถว) หรือขึ้นบรรทัดใหม่ (การ์ดคำเชิญ) */
+.main.stack-lg > * { min-width: 0; }
 .mstack { display: flex; gap: var(--space-1); flex: none; }
 .group-rows .row { min-height: calc(var(--tap) + var(--space-6)); }
 .groups-list { margin-top: var(--space-5); }
 .groups-list .rows { margin-top: var(--space-3); }
-.invite-card { display: grid; gap: var(--space-3); padding: var(--space-4); margin-top: var(--space-3); }
+.invite-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); padding: var(--space-4); margin-top: var(--space-3); }
+.invite-card > * { min-width: 0; }
+.invite-card p { overflow-wrap: anywhere; }
 .invite-card .who-line { font-weight: var(--weight-medium); overflow-wrap: anywhere; }
 .invite-card .actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
 .toast { margin-bottom: var(--space-3); }

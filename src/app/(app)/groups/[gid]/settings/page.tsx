@@ -29,7 +29,8 @@ export default async function GroupSettingsPage({ params }: { params: Promise<{ 
       </header>
       <main className="main settings-main" id="main">
         <p className="muted small settings-sub">
-          {group.name} · {t("group.yourRole", { role: group.myRole ?? "admin" })}
+          {group.name}
+          {group.myRole !== null ? ` · ${t("group.yourRole", { role: group.myRole })}` : null /* super admin ที่ไม่ใช่สมาชิก: ไม่แสดงป้ายบทบาท */}
         </p>
         <SettingsView group={group} invites={invites} myId={user.id} />
       </main>
