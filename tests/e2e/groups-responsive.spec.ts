@@ -6,7 +6,7 @@
 // คอนทราสต์สี: ชุดสีสมาชิก/token ตรวจโดยเครื่องมือของ UX (ไม่ซ้ำที่นี่) · ข้อความ hard-code: tests/i18n/no-hardcoded-text.test.ts
 import { randomInt } from 'node:crypto';
 import type { APIRequestContext, Locator, Page, PlaywrightWorkerArgs, TestInfo } from '@playwright/test';
-import { expect, randomIp, signupViaApi, test as authTest, type Jar } from './support/auth';
+import { expect, promoteToSuperAdmin, randomIp, signupViaApi, test as authTest, type Jar } from './support/auth';
 import { E2E_BASE_URL } from './support/env';
 import { setPrefs, watchConsole } from './support/fixtures';
 import { api, checkLayout, createGroupApi, go, joinViaApiCode, membersApi, person, setRoleApi, userIdOf, type Person, type Theme } from './support/groups';
@@ -26,7 +26,7 @@ type GroupsWorld = {
   hostGroupName: string;
 };
 
-const test = authTest.extend<{}, { gworld: GroupsWorld }>({
+const test = authTest.extend<Record<never, never>, { gworld: GroupsWorld }>({
   gworld: [
     async ({ playwright }, provide) => {
       let last: unknown;
@@ -252,7 +252,7 @@ for (const locale of LOCALES) {
         } finally {
           // กันโค้ดค้างถ้าเทสต์ล้มกลางทาง
           const list = await api(context.request, 'GET', `/api/groups/${gworld.gid}/invites`);
-          for (const inv of (list.json?.data?.invites ?? []) as { id: string; codeHint: string | null; createdBy: string }[]) {
+          for (const inv of list.json?.data?.invites ?? []) {
             if (inv.codeHint === hint) await api(context.request, 'DELETE', `/api/groups/${gworld.gid}/invites/${inv.id}`);
           }
         }
@@ -290,6 +290,61 @@ for (const locale of LOCALES) {
         await check(page, testInfo, 'confirm-leave-group');
         await button(leave, msg(locale, 'common.cancel')).click();
         expect(problems).toEqual([]);
+      });
+
+      // SEC#5: ชื่อกลุ่มยาวสุด 40 ตัวที่ไม่มีช่องว่างให้ตัดบรรทัด (กว้างสุด: W, M · ตัวเลข · ไทยติดกัน) ต้องไม่ดันหน้าจนเลื่อนแนวนอน
+      test('ชื่อกลุ่มยาวไม่มีช่องว่าง (W×40 · M×40 · 8×40 · ไทยติดกัน) → ไม่เลื่อนแนวนอนที่ /groups (รายการ+การ์ดคำเชิญ), หน้ากลุ่ม, ตั้งค่า', async ({ context, baseURL, page, user, playwright }, testInfo) => {
+        await setPrefs(context, baseURL!, prefs);
+        const longNames = ['W'.repeat(40), 'M'.repeat(40), '8'.repeat(40), 'สวัสดีชาวโลกสวัสดีชาวโลกสวัสดีชาวโลก'];
+        const gids: string[] = [];
+        for (const name of longNames) gids.push(await createGroupApi(context.request, name));
+        // การ์ดคำเชิญตรง: อีกคนสร้างกลุ่มชื่อยาวแล้วชวนผู้ใช้นี้
+        const inviter = await playwright.request.newContext({ baseURL: E2E_BASE_URL, extraHTTPHeaders: { 'x-real-ip': randomIp() } });
+        try {
+          const host = person('Hostel');
+          await signupViaApi(inviter, { username: host.username, displayName: host.displayName });
+          await createGroupApi(inviter, 'W'.repeat(40));
+          const g = await createGroupApi(inviter, 'M'.repeat(40));
+          expect((await api(inviter, 'POST', `/api/groups/${g}/invites/direct`, { username: user.username })).status).toBe(201);
+        } finally {
+          await inviter.dispose();
+        }
+        const problems = watchConsole(page);
+        await go(page, '/groups');
+        await expect(page.getByRole('heading', { level: 2, name: msg(locale, 'groups.invites.title') })).toBeVisible();
+        await check(page, testInfo, 'long-names-groups');
+        for (const [i, gid] of gids.entries()) {
+          await go(page, `/groups/${gid}`);
+          await expect(h1(page)).toHaveText(longNames[i]!);
+          await check(page, testInfo, `long-names-group-${i}`);
+          await go(page, `/groups/${gid}/settings`);
+          await check(page, testInfo, `long-names-settings-${i}`);
+        }
+        expect(problems).toEqual([]);
+      });
+
+      // QA D6: super admin ที่ไม่ได้เป็นสมาชิกต้องไม่ถูกบอกว่า "เป็นผู้ดูแล" ของกลุ่ม (เดิม myRole ?? 'admin') · ไม่ล็อกอินเปิดหน้ากลุ่ม → /login
+      test('super admin นอกกลุ่ม: ไม่มีป้ายบทบาท (ไม่ใช่ admin ของกลุ่ม) ทั้งหน้ากลุ่มและตั้งค่า · ไม่ล็อกอิน → /login', async ({ gworld, context, baseURL, page, user, browser }, testInfo) => {
+        await setPrefs(context, baseURL!, prefs);
+        await promoteToSuperAdmin(user.username);
+        const problems = watchConsole(page);
+        const roleLabels = (['admin', 'moderator', 'member'] as const).map((role) => msg(locale, 'group.yourRole', { role }));
+        for (const path of [`/groups/${gworld.gid}`, `/groups/${gworld.gid}/settings`]) {
+          await go(page, path);
+          await expect(page.getByRole('main')).toBeVisible();
+          for (const label of roleLabels) await expect(page.getByText(label)).toHaveCount(0);
+        }
+        await check(page, testInfo, 'group-home-superadmin-outside');
+        expect(problems).toEqual([]);
+
+        const anon = await browser.newContext({ baseURL: baseURL! });
+        try {
+          const p = await anon.newPage();
+          await p.goto(`/groups/${gworld.gid}`);
+          await expect(p).toHaveURL(/\/login$/);
+        } finally {
+          await anon.close();
+        }
       });
 
       test('not-found ของกลุ่ม (คนนอก: ผู้ใช้ใหม่ที่ไม่ได้อยู่ในกลุ่ม)', async ({ gworld, context, baseURL, page, user }, testInfo) => {

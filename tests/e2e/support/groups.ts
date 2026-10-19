@@ -21,6 +21,14 @@ export async function signup(context: BrowserContext, p: Person): Promise<void> 
   await signupViaApi(context.request, { username: p.username, displayName: p.displayName });
 }
 
+/** รูป data ของ endpoint กลุ่ม/คำเชิญที่เทสต์ E2E อ่าน (เฉพาะฟิลด์ที่ใช้) — แต่ละ endpoint คืนเพียงบางส่วน */
+export type ApiData = {
+  group: { id: string; members: MemberRow[] };
+  invite: { id: string; code: string };
+  invites: { id: string; codeHint: string | null; createdBy: string }[];
+};
+export type ApiJson = { data?: ApiData; error?: { code: string } };
+
 /** เรียก API ด้วย method ใดก็ได้ (Origin ถูกต้องตาม CSRF ของ route wrapper) — คืน status + json */
 export async function api(request: APIRequestContext, method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, data?: unknown) {
   // 500 จาก SQLITE_BUSY ของ DB ไฟล์ (Handoff D1) → ลองใหม่เฉพาะ GET (ซ้ำได้ไม่เปลี่ยนผล) · การเขียนที่ 500 ต้องล้มให้เห็น
@@ -36,27 +44,27 @@ export async function api(request: APIRequestContext, method: 'GET' | 'POST' | '
   } catch {
     json = undefined;
   }
-  return { status: res.status(), json: json as { data?: any; error?: { code: string } } | undefined, text };
+  return { status: res.status(), json: json as ApiJson | undefined, text };
 }
 
 export async function createGroupApi(request: APIRequestContext, name: string): Promise<string> {
   const r = await api(request, 'POST', '/api/groups', { name });
   expect(r.status, `create group: ${r.text}`).toBe(201);
-  return r.json!.data.group.id as string;
+  return r.json!.data!.group.id;
 }
 
 export type MemberRow = { userId: string; displayName: string; role: Role };
 export async function membersApi(request: APIRequestContext, gid: string): Promise<MemberRow[]> {
   const r = await api(request, 'GET', `/api/groups/${gid}`);
   expect(r.status, `get group: ${r.text}`).toBe(200);
-  return r.json!.data.group.members as MemberRow[];
+  return r.json!.data!.group.members;
 }
 
 /** admin สร้างโค้ด → สมาชิกใหม่ใช้โค้ด (ผ่าน API) */
 export async function joinViaApiCode(admin: APIRequestContext, gid: string, joiner: APIRequestContext): Promise<void> {
   const c = await api(admin, 'POST', `/api/groups/${gid}/invites/code`);
   expect(c.status, `create code: ${c.text}`).toBe(201);
-  const r = await api(joiner, 'POST', '/api/invites/redeem', { code: c.json!.data.invite.code });
+  const r = await api(joiner, 'POST', '/api/invites/redeem', { code: c.json!.data!.invite.code });
   expect(r.status, `redeem: ${r.text}`).toBe(200);
 }
 

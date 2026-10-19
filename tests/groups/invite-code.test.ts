@@ -5,6 +5,10 @@ import { sameResponse } from '../auth/harness';
 import { GROUP_LIMITS } from '@/lib/shared/limits';
 import { DAY, del, dumpAllTables, get, join, makeCode, makeGroup, person, post, setupHarness, type Harness, type Person } from './harness';
 
+// เทสต์เพดาน/แข่งกันสร้างสมาชิก 50 คนจริงผ่าน HTTP handler: ปกติ 0.4–3.5 วินาที แต่ช้าลง 5–10 เท่าเมื่อเครื่องมีงานอื่นรัน (ทั้งชุด vitest ขนานกัน)
+// → ให้เวลาเผื่อเยอะ (ไม่ใช้ retry เพราะ retry จะบังความผิดพลาดจริงของการแข่งกัน)
+const SLOW_MS = 60_000;
+
 let h: Harness;
 let a: Person;
 let b: Person;
@@ -70,7 +74,7 @@ describe('สร้างโค้ด', () => {
     const rs = await Promise.all(Array.from({ length: 30 }, () => post(a.c, `/api/groups/${g2}/invites/code`)));
     expect(rs.filter((r) => r.status === 201)).toHaveLength(20);
     expect(await h.count("group_invite WHERE group_id = ? AND kind = 'code' AND status = 'active'", [g2])).toBe(20);
-  });
+  }, SLOW_MS);
 });
 
 describe('ใช้โค้ด', () => {
@@ -164,7 +168,7 @@ describe('ใช้โค้ด', () => {
     // LIMIT_REACHED ของโค้ดที่ถูกต้องไม่กินช่อง rate limit
     const dave = await person(h, 'dave');
     for (let i = 0; i < 12; i++) expect((await redeem(dave, code)).code).toBe('LIMIT_REACHED');
-  });
+  }, SLOW_MS);
 
   it('ยิงใช้โค้ดพร้อมกัน 20 คน ตอนเหลือที่ว่าง 5 → เข้าได้พอดี 5 (สมาชิก = 50 ไม่เกิน)', async () => {
     const code = await makeCode(a, gid);
@@ -174,7 +178,7 @@ describe('ใช้โค้ด', () => {
     expect(rs.filter((r) => r.status === 200)).toHaveLength(5);
     for (const r of rs.filter((x) => x.status !== 200)) expect(['LIMIT_REACHED', 'CONFLICT']).toContain(r.code);
     expect(await h.count('group_member WHERE group_id = ?', [gid])).toBe(50);
-  });
+  }, SLOW_MS);
 });
 
 describe('rate limit การเดา (reserve-before-check)', () => {
