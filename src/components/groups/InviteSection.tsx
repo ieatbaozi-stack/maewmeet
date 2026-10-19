@@ -11,7 +11,7 @@ import { failureMessage, isGone } from "./errors";
 import { formatShortDate } from "./helpers";
 import { InviteCodeSheet, type CreatedCode } from "./InviteCodeSheet";
 import type { SectionProps } from "./NameSection";
-import { isolateName } from "@/components/Name";
+import { withNames } from "@/components/Name";
 
 type Revoking = { invite: InviteDto } | null;
 
@@ -145,7 +145,7 @@ export function InviteSection({ groupId, groupName, invites, seesOthers, notify 
               <p className="meta">
                 {t("code.expires", { date: formatShortDate(c.expiresAt, locale) })} · {t("code.usedCount", { count: c.usesCount })}
               </p>
-              <p className="meta">{t("code.createdBy", { name: isolateName(c.creatorName) })}</p>
+              <p className="meta">{withNames((n) => t("code.createdBy", { name: n.name }), { name: c.creatorName })}</p>
             </li>
           ))}
         </ul>
@@ -192,11 +192,11 @@ export function InviteSection({ groupId, groupName, invites, seesOthers, notify 
             {directs.map((d) => (
               <li className="code-line" key={d.id}>
                 <div className="top">
-                  <span className="hint-code">{t("direct.waiting", { username: isolateName(d.inviteeName ?? "") })}</span>
+                  <span className="hint-code">{withNames((n) => t("direct.waiting", { username: n.username }), { username: d.inviteeName ?? "" })}</span>
                   <button
                     type="button"
                     className="btn-sm-text"
-                    aria-label={t("direct.cancelAria", { username: isolateName(d.inviteeName ?? "") })}
+                    aria-label={t("direct.cancelAria", { username: d.inviteeName ?? "" })}
                     onClick={() => void cancelDirect(d)}
                   >
                     {t("direct.cancel")}

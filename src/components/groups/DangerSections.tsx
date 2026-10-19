@@ -12,7 +12,6 @@ import { setFlash } from "./flash";
 import { deleteTypeMatches } from "./helpers";
 import type { SectionProps } from "./NameSection";
 import { SelectField } from "./SelectField";
-import { isolateName } from "@/components/Name";
 
 /** โอนความเป็นผู้ดูแล (admin เท่านั้น) — เลือกสมาชิก → dialog ยืนยัน → admin เดิมกลายเป็นผู้ช่วยดูแล */
 export function TransferSection({ groupId, candidates, notify }: Omit<SectionProps, "editable"> & { candidates: MemberDto[] }) {
@@ -50,7 +49,7 @@ export function TransferSection({ groupId, candidates, notify }: Omit<SectionPro
         id={`${id}-p`}
         label={t("pick")}
         value={target?.userId ?? ""}
-        options={candidates.map((m) => ({ value: m.userId, label: isolateName(m.displayName) }))}
+        options={candidates.map((m) => ({ value: m.userId, label: m.displayName }))}
         onChange={setPicked}
         disabled={candidates.length === 0}
       />
