@@ -31,7 +31,7 @@ type Day = {
   allFree: boolean;
   notFreeUserIds: string[];
   segments: { startAt: number; endAt: number; start: string; end: string }[];
-  blockers: { userId: string; items: View[] }[];
+  blockers: { userId: string; itemIdx: number[] }[];
 };
 type Avail = {
   group: { id: string; tz: string; windowStartMin: number; windowEndMin: number; minFreeMinutes: number };
@@ -39,6 +39,7 @@ type Avail = {
   to: string;
   members: { userId: string; displayName: string; colorIndex: number }[];
   days: Day[];
+  busy: View[];
   truncated: boolean;
 };
 
@@ -49,6 +50,11 @@ const timed = (p: Person, date: string, s: string, e: string, extra: Record<stri
 const allDay = (p: Person, from: string, to = from, extra: Record<string, unknown> = {}) =>
   post<{ busy: { id: string } }>(p.c, '/api/me/busy', { kind: 'all_day', startDate: from, endDate: to, ...extra });
 const day = (r: { data: Avail }, date: string): Day => r.data.days.find((d) => d.date === date)!;
+/** busy items ของวันหนึ่ง (join ด้วยดัชนีเข้า busy[] ระดับบน) — ทุกดัชนีต้องมีใน array */
+const itemsOf = (r: { data: Avail }, d: Day, userId?: string): View[] =>
+  d.blockers
+    .filter((b) => userId === undefined || b.userId === userId)
+    .flatMap((b) => b.itemIdx.map((i) => r.data.busy[i] ?? expect.fail(`missing busy[${i}]`)));
 const segs = (d: Day) => d.segments.map((s) => `${s.start}-${s.end}`);
 const ids = (...ps: Person[]) => ps.map((p) => p.id);
 
@@ -79,7 +85,7 @@ describe('ADR 0005 — ข้อมูล T1/T2/T24 ผ่าน API ตรง�
     expect([d.freeMembers, d.totalMembers, d.allFree, d.segments]).toEqual([2, 3, false, []]);
     expect(d.notFreeUserIds).toEqual([bob.id]);
     expect(d.blockers.map((b) => b.userId).sort()).toEqual(ids(alice, bob).sort());
-    expect(d.blockers.find((b) => b.userId === bob.id)!.items[0]).toMatchObject({ allDay: true, localStartDate: '2026-11-02', localEndDate: '2026-11-02' });
+    expect(itemsOf(r, d, bob.id)[0]).toMatchObject({ allDay: true, localStartDate: '2026-11-02', localEndDate: '2026-11-02' });
   });
 
   it('T2: A 10–12 · B 14–16 → 3/3 ว่างร่วม 08–10 · 12–14 · 16–22 (instant + HH:MM)', async () => {
@@ -137,6 +143,7 @@ describe('ADR 0005 — ข้อมูล T1/T2/T24 ผ่าน API ตรง�
         from: z.string(),
         to: z.string(),
         members: z.array(z.object({ userId: z.uuid(), displayName: z.string(), colorIndex: z.number().int().min(0).max(9) }).strict()),
+        busy: z.array(item),
         days: z.array(
           z
             .object({
@@ -146,7 +153,7 @@ describe('ADR 0005 — ข้อมูล T1/T2/T24 ผ่าน API ตรง�
               allFree: z.boolean(),
               notFreeUserIds: z.array(z.uuid()),
               segments: z.array(z.object({ startAt: z.number(), endAt: z.number(), start: z.string(), end: z.string() }).strict()),
-              blockers: z.array(z.object({ userId: z.uuid(), items: z.array(item).min(1) }).strict()),
+              blockers: z.array(z.object({ userId: z.uuid(), itemIdx: z.array(z.number().int().min(0)).min(1) }).strict()),
             })
             .strict(),
         ),
@@ -156,6 +163,22 @@ describe('ADR 0005 — ข้อมูล T1/T2/T24 ผ่าน API ตรง�
     const r = await avail(carol, '2026-11-01', '2026-11-07');
     const body = schema.parse(r.json.data);
     expect(body.days).toHaveLength(7);
+    // busy ครั้งเดียว: ทุกดัชนีที่อ้างอยู่ใน array และไม่มีรายการที่ไม่ถูกอ้าง · busy เรียง startAt,id ไม่ซ้ำ id · itemIdx เรียงน้อย→มาก · blockers เรียงตาม members
+    const referenced = new Set(body.days.flatMap((d) => d.blockers.flatMap((b) => b.itemIdx)));
+    expect([...referenced].sort((a, b) => a - b)).toEqual(body.busy.map((_, i) => i));
+    expect(referenced.size).toBeGreaterThan(0);
+    expect(new Set(body.busy.map((b) => b.id)).size).toBe(body.busy.length);
+    const keyOf = (v: { startAt: number; id: string }) => `${String(v.startAt).padStart(16, '0')}|${v.id}`;
+    expect(body.busy.map(keyOf)).toEqual(body.busy.map(keyOf).sort());
+    const order = body.members.map((m) => m.userId);
+    for (const d of body.days) {
+      const idx = d.blockers.map((b) => order.indexOf(b.userId));
+      expect(idx).toEqual([...idx].sort((a, b) => a - b));
+      for (const b of d.blockers) {
+        expect(b.itemIdx).toEqual([...b.itemIdx].sort((x, y) => x - y));
+        for (const i of b.itemIdx) expect(body.busy[i]!.userId).toBe(b.userId);
+      }
+    }
     expect(r.data.group).toEqual({ id: gid, tz: 'Asia/Bangkok', windowStartMin: 480, windowEndMin: 1320, minFreeMinutes: 120 });
     expect(r.data.members[0]!.userId).toBe(carol.id);
     expect(r.data.members.map((m) => m.userId).sort()).toEqual(ids(alice, bob, carol).sort());
@@ -299,7 +322,7 @@ describe('ADR 0006 canary — availability ไม่รั่ว note / title �
       expect(r.text, label).toContain(CT);
       for (const needle of [CN, 'CANARY-N', CH, 'CANARY-H', CX]) expect(r.text, `${label} ${needle}`).not.toContain(needle);
       expect(JSON.stringify([...r.headers.entries()])).not.toContain('CANARY');
-      const items = day(r, '2026-11-12').blockers.flatMap((b) => b.items);
+      const items = itemsOf(r, day(r, '2026-11-12'));
       expect(items).toHaveLength(3);
       for (const it of items) {
         expect('note' in it).toBe(false);
@@ -312,7 +335,8 @@ describe('ADR 0006 canary — availability ไม่รั่ว note / title �
   it('รายการที่ไม่กรอก title หน้าตาเหมือนรายการซ่อน (X28)', async () => {
     await timed(alice, '2026-11-14', '10:00', '11:00');
     await timed(alice, '2026-11-14', '12:00', '13:00', { title: CH, hideDetail: true });
-    const items = day(await avail(bob, '2026-11-14'), '2026-11-14').blockers[0]!.items;
+    const r14 = await avail(bob, '2026-11-14');
+    const items = itemsOf(r14, day(r14, '2026-11-14'));
     expect(items).toHaveLength(2);
     expect(Object.keys(items[0]!).sort()).toEqual(Object.keys(items[1]!).sort());
   });
@@ -354,6 +378,15 @@ describe('ADR 0006 canary — availability ไม่รั่ว note / title �
     expect(detail).not.toMatch(/SCAN busy_block/);
   });
 
+  it('M1/M3: busy หลายวันถูกส่งครั้งเดียว — all-day 5 วัน → 1 รายการใน busy, 5 วันอ้าง id เดียวกัน', async () => {
+    const id = (await allDay(bob, '2026-11-02', '2026-11-06')).data.busy.id;
+    const r = await avail(alice, '2026-11-01', '2026-11-10');
+    expect(r.data.busy.map((b) => b.id)).toEqual([id]);
+    const refs = r.data.days.filter((d) => d.blockers.length > 0);
+    expect(refs.map((d) => d.date)).toEqual(['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06']);
+    for (const d of refs) expect(d.blockers).toEqual([{ userId: bob.id, itemIdx: [0] }]);
+  });
+
   it('เกินเพดานแถว → truncated=true และยังตอบ 200 (ใช้เพดานเดียวกับปฏิทิน)', async () => {
     const t0 = Date.UTC(2026, 10, 20, 2);
     const stmts: string[] = [];
@@ -370,5 +403,30 @@ describe('ADR 0006 canary — availability ไม่รั่ว note / title �
     const r = await avail(bob, '2026-11-20');
     expect([r.status, r.data.truncated]).toEqual([200, true]);
     expect((await avail(bob, '2026-11-25')).data.truncated).toBe(false);
+  });
+});
+
+describe('M1/M3 — ขนาด response ไม่พองตามจำนวนวัน', () => {
+  it('M1: สมาชิกคนเดียว 300 แถว all-day ยาว 366 วัน ช่วง 62 วัน → JSON < 300 KiB (เดิม 4–9 MB)', async () => {
+    const start = Date.UTC(2026, 10, 1) - 7 * 3600_000; // 2026-11-01 00:00 BKK
+    const end = start + 366 * 86_400_000;
+    for (let i = 0; i < 300; i += 100) {
+      const stmts: string[] = [];
+      const args: (string | number)[] = [];
+      for (let j = i; j < i + 100; j++) {
+        stmts.push("(?, ?, ?, ?, 1, ?, ?, '2026-11-01', '2027-10-31', 'Asia/Bangkok', 0, 1, 1)");
+        args.push(`7b0f6b5e-8f55-4a3e-9c1d-${String(j).padStart(12, '0')}`, bob.id, `t${j}`, `NOTE-CANARY-${j}`, start, end);
+      }
+      await h.rows(`INSERT INTO busy_block (id, user_id, title, note, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at) VALUES ${stmts.join(',')}`, args);
+    }
+    const r = await avail(alice, '2026-11-01', '2027-01-01');
+    expect(r.status).toBe(200);
+    expect(r.data.days).toHaveLength(62);
+    expect(r.data.busy).toHaveLength(300);
+    expect(r.data.days.every((d) => d.blockers.length === 1 && d.blockers[0]!.itemIdx.length === 300)).toBe(true);
+    const bytes = Buffer.byteLength(r.text);
+    console.log(`availability size (1 member x 300 all-day x 366d, 62-day range): ${(bytes / 1024).toFixed(1)} KiB`);
+    expect(bytes).toBeLessThan(300 * 1024);
+    expect(r.text).not.toContain('NOTE-CANARY');
   });
 });

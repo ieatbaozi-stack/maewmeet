@@ -2,7 +2,8 @@
 //  - โหลด GroupCtx (1 query) → authorize บรรทัดแรก · ไม่ใช่สมาชิก/กลุ่มไม่มี/ลบแล้ว (รวม super admin) → NOT_FOUND เหมือนกันหมด
 //  - ตรวจช่วงวันที่หลังผ่านด่านกลุ่ม (parseDateRange ตัวเดียวกับปฏิทิน: ≤ 62 วัน · VALIDATION fields.from/to)
 //  - สมาชิกที่นับ = สมาชิกปัจจุบันของกลุ่ม ณ ตอนเรียก (ไม่ cache) · super admin ที่ไม่ใช่สมาชิกไม่ถูกนับ แต่ audit การอ่าน
-//  - busy: คิวรีฝั่งแชร์ตัวเดียวกับปฏิทิน (ไม่ SELECT note · title ซ่อนตัดใน SQL) · blockers ผ่าน serializer เดียว (toBlockerView → toBusyForViewers)
+//  - busy: คิวรีฝั่งแชร์ตัวเดียวกับปฏิทิน (ไม่ SELECT note · title ซ่อนตัดใน SQL) · busy ส่งครั้งเดียวที่ระดับบนผ่าน serializer เดียว (toBusyForViewers) · days[].blockers อ้างด้วย id (M1/M3 R4A)
+//  - รูปร่าง: busy[] ครั้งเดียว (เรียง startAt,id) · days[].blockers = [{userId, itemIdx}] ดัชนีเข้า busy[]
 import { z } from 'zod';
 import {
   commonFreeTime,
@@ -23,7 +24,7 @@ import { memberColorIndex } from '@/lib/shared/member-color';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
 import { loadGroupCtx } from '../policy-context';
-import { toBlockerView, type BlockerView } from '../serializers/busy';
+import { compareBusyRows, toBusyForViewers, type AvailabilityBusyView, type BlockerRef } from '../serializers/busy';
 import { asUser, auditRead } from './group-common';
 import { parseDateRange } from './calendar';
 
@@ -51,8 +52,11 @@ export type AvailabilityDayDto = {
   /** สมาชิกที่ไม่ว่างตามกฎ ADR 0005 §1 (ติดทั้งวัน หรือเหลือว่างไม่ถึงขั้นต่ำ) — ลำดับเดียวกับ members */
   notFreeUserIds: string[];
   segments: FreeSegment[];
-  /** ทุกสมาชิกที่มี busy ตัดกับหน้าต่างของวันนั้น (ไม่เฉพาะคนที่นับว่าไม่ว่าง) · รายการเต็ม ไม่ clip (UI คำนวณ "ต่อจากเมื่อวาน") */
-  blockers: BlockerView[];
+  /**
+   * ทุกสมาชิกที่มี busy ตัดกับหน้าต่างของวันนั้น (ไม่เฉพาะคนที่นับว่าไม่ว่าง) · เรียงตาม members · itemIdx = ดัชนีใน `busy[]` ระดับบน เรียงน้อย→มาก (= startAt,id)
+   * (รายการเต็ม ไม่ clip — UI คำนวณ "ต่อจากเมื่อวาน")
+   */
+  blockers: BlockerRef[];
 };
 
 export type GroupAvailabilityDto = {
@@ -62,6 +66,8 @@ export type GroupAvailabilityDto = {
   /** ผู้ดู (ถ้าเป็นสมาชิก) ก่อน แล้วตามช่องสี — ตรงกับ /calendar */
   members: AvailabilityMemberDto[];
   days: AvailabilityDayDto[];
+  /** busy ที่ถูกอ้างโดย days[].blockers อย่างน้อยหนึ่งวัน — ส่งครั้งเดียว ผ่าน toBusyForViewers (ซ่อน → ไม่มี title · ไม่มี note) · เรียง startAt,id */
+  busy: AvailabilityBusyView[];
   /** true = busy เกิน CALENDAR_MAX_ITEMS ในช่วงนี้ → คำนวณจากส่วนแรก (ผลอาจดู "ว่าง" เกินจริง) */
   truncated: boolean;
 };
@@ -107,28 +113,38 @@ export async function getGroupAvailability(actor: Actor, groupId: string, query:
   const free = commonFreeTime(win, memberIds, inputs, range.from, range.to);
 
   // blockers = ทุกสมาชิกที่มี busy ตัดกับหน้าต่างของวัน (all-day ครอบวันนั้น หรือ timed ทับหน้าต่าง) — lib ให้เฉพาะคนที่นับว่าไม่ว่าง
-  const timedBy = new Map<string, SharedBusyRow[]>();
-  const allDayBy = new Map<string, SharedBusyRow[]>();
-  for (const id of memberIds) {
-    timedBy.set(id, []);
-    allDayBy.set(id, []);
-  }
-  for (const r of rows) {
-    if (r.allDay) allDayBy.get(r.userId)?.push(r);
-    else if (r.endAt > r.startAt) timedBy.get(r.userId)?.push(r);
-  }
+  const sortedRows = rows.filter((r) => r.allDay || r.endAt > r.startAt).sort(compareBusyRows);
+  const indexOf = new Map<string, number>(sortedRows.map((r, i) => [r.id, i])); // ดัชนีชั่วคราวในแถวที่เรียงแล้ว (ก่อนบีบเหลือเฉพาะที่ถูกอ้าง)
+  const byMember = new Map<string, SharedBusyRow[]>(memberIds.map((id) => [id, []]));
+  for (const r of sortedRows) byMember.get(r.userId)?.push(r);
+  const referenced = new Set<number>();
 
-  const days: AvailabilityDayDto[] = free.map((d) => {
+  const raw = free.map((d) => {
     const [w0, w1] = dayWindow(d.date, row.freeWindowStartMin, row.freeWindowEndMin, row.tz);
-    const freeSet = new Set(d.freeMemberIds);
-    const blockers: BlockerView[] = [];
+    const blockers: { userId: string; idx: number[] }[] = [];
     for (const id of memberIds) {
-      const touching = [
-        ...allDayBy.get(id)!.filter((b) => b.localStartDate <= d.date && d.date <= b.localEndDate),
-        ...timedBy.get(id)!.filter((b) => overlapsRange(b.startAt, b.endAt, w0, w1)),
-      ];
-      if (touching.length > 0) blockers.push(toBlockerView(id, touching));
+      const idx = byMember
+        .get(id)!
+        .filter((b) => (b.allDay ? b.localStartDate <= d.date && d.date <= b.localEndDate : overlapsRange(b.startAt, b.endAt, w0, w1)))
+        .map((b) => indexOf.get(b.id)!);
+      if (idx.length === 0) continue;
+      for (const i of idx) referenced.add(i);
+      blockers.push({ userId: id, idx });
     }
+    return { d, blockers };
+  });
+
+  // บีบดัชนี: เก็บเฉพาะแถวที่ถูกอ้าง (คงลำดับ startAt,id) แล้วแปลงดัชนี
+  const busy: AvailabilityBusyView[] = [];
+  const remap = new Map<number, number>();
+  sortedRows.forEach((r, i) => {
+    if (!referenced.has(i)) return;
+    remap.set(i, busy.length);
+    busy.push(toBusyForViewers(r));
+  });
+
+  const days: AvailabilityDayDto[] = raw.map(({ d, blockers }) => {
+    const freeSet = new Set(d.freeMemberIds);
     return {
       date: d.date,
       freeMembers: d.freeMembers,
@@ -136,7 +152,7 @@ export async function getGroupAvailability(actor: Actor, groupId: string, query:
       allFree: d.allFree,
       notFreeUserIds: memberIds.filter((id) => !freeSet.has(id)),
       segments: d.segments,
-      blockers,
+      blockers: blockers.map((b) => ({ userId: b.userId, itemIdx: b.idx.map((i) => remap.get(i)!) })),
     };
   });
 
@@ -146,6 +162,7 @@ export async function getGroupAvailability(actor: Actor, groupId: string, query:
     to: range.to,
     members,
     days,
+    busy,
     truncated,
   };
 }

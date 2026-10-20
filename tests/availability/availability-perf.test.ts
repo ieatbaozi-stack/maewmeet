@@ -76,7 +76,8 @@ describe('R4A-6 — ประสิทธิภาพ availability', () => {
     }
     times.sort((a, b) => a - b);
     const median = times[2]!;
-    const bytes = JSON.stringify(first).length;
+    const bytes = Buffer.byteLength(JSON.stringify(first));
+    expect(first.busy.length).toBeLessThanOrEqual(stored);
     console.log(`availability perf: ${MEMBERS} members x ${DAYS} days, ${stored} busy rows, median ${median.toFixed(1)} ms (min ${times[0]!.toFixed(1)}, max ${times[4]!.toFixed(1)}), response ${(bytes / 1024).toFixed(0)} KiB`);
     expect(median).toBeLessThan(200);
     expect(times[4]!).toBeLessThan(400); // กันรอบเดียวช้าผิดปกติ (CI ช้ากว่า) แต่ไม่ flaky
