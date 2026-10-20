@@ -183,6 +183,7 @@
       "busyPlain": "Busy",
       "noBusy": "Nothing marked",
       "othersFree": "Nothing marked: {names}",
+      "listAnd": "and",
       "empty": {
         "title": "{when, select, today {No one’s marked busy today} other {No one’s marked busy on this day}}",
         "body": "Tied up that day? Add it so your friends know."
