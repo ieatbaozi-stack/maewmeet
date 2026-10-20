@@ -58,3 +58,14 @@ export function toBusyForViewers(r: SharedBusyRow): BusySharedView | BusyHiddenV
   const title = sanitizeDisplayText(r.title);
   return title === '' ? view : { ...view, title };
 }
+
+/**
+ * วันว่างร่วม (U9.1, ADR 0006 §3): รายการที่ทำให้สมาชิกคนหนึ่งติดในวันหนึ่ง — ผ่าน toBusyForViewers ตัวเดียวกัน
+ * (รายการซ่อน/ไม่ได้กรอก title → ไม่มีฟิลด์ title · ไม่มี note ในแถวที่ฝั่งแชร์ SELECT มาแต่ต้น) · เรียง startAt, id ให้ผลคงที่
+ */
+export type BlockerView = { userId: string; items: (BusySharedView | BusyHiddenView)[] };
+
+export function toBlockerView(userId: string, rows: readonly SharedBusyRow[]): BlockerView {
+  const sorted = [...rows].sort((a, b) => a.startAt - b.startAt || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  return { userId, items: sorted.map(toBusyForViewers) };
+}
