@@ -37,9 +37,9 @@ export const daysInMonth = (ym: string): number => {
 };
 /** จำนวนสัปดาห์ (แถว) ของตารางเดือนที่เริ่มจันทร์ — 4, 5 หรือ 6 */
 export const weeksInMonthGrid = (ym: string): number => Math.ceil((isoWeekday(`${ym}-01`) + daysInMonth(ym)) / 7);
-/** เดือนแรกที่ ≥ from ซึ่งตารางมี `weeks` แถว (ค้นภายใน 24 เดือน) */
+/** เดือนแรกที่ ≥ from ซึ่งตารางมี `weeks` แถว (ค้นภายใน 12 ปี (4 สัปดาห์ = กุมภาพันธ์ไม่อธิกสุรทินที่เริ่มวันจันทร์ ห่างสูงสุด 11 ปี → ถ้าไม่พบ ให้ throw ให้เห็น)) */
 export function nextMonthWithWeeks(from: string, weeks: 4 | 5 | 6): string {
-  for (let i = 0; i < 24; i++) if (weeksInMonthGrid(addMonths(from, i)) === weeks) return addMonths(from, i);
+  for (let i = 0; i < 144; i++) if (weeksInMonthGrid(addMonths(from, i)) === weeks) return addMonths(from, i);
   throw new Error(`ไม่พบเดือนที่มี ${weeks} สัปดาห์`);
 }
 
@@ -105,16 +105,25 @@ export async function calendarApi(request: APIRequestContext, gid: string, from:
 }
 
 // ───────── canary: ไม่พบ note ของ A ในหน้า/ response ใด ๆ ของ B ─────────
-/** เก็บ body ของทุก response ที่เป็นข้อความ (HTML/JSON/RSC/JS) ระหว่างที่ B เปิดหน้า */
-export function recordResponses(page: Page): { texts: string[]; urls: string[] } {
-  const rec = { texts: [] as string[], urls: [] as string[] };
+/** เก็บ body ของทุก response ที่เป็นข้อความ (HTML/JSON/RSC/JS) ระหว่างที่ผู้ดูเปิดหน้า — `settled()` รอให้อ่านครบก่อนตรวจ */
+export function recordResponses(page: Page): { texts: string[]; urls: string[]; settled: () => Promise<void> } {
+  const pending: Promise<unknown>[] = [];
+  const rec = {
+    texts: [] as string[],
+    urls: [] as string[],
+    settled: async () => {
+      await Promise.allSettled(pending);
+    },
+  };
   page.on('response', (res: Response) => {
     const ct = res.headers()['content-type'] ?? '';
     if (!/json|text|javascript|x-component/i.test(ct)) return;
     rec.urls.push(res.url());
-    res.text().then(
-      (t) => rec.texts.push(t),
-      () => undefined, // body หมดอายุเพราะ navigate — ไม่ใช่ปัญหา
+    pending.push(
+      res.text().then(
+        (t) => void rec.texts.push(t),
+        () => undefined, // body หมดอายุเพราะ navigate — ไม่ใช่ปัญหา
+      ),
     );
   });
   return rec;
