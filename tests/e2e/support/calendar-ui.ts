@@ -6,7 +6,7 @@ import { go } from './groups';
 import { msg, type Locale } from './messages';
 import type { DateISO } from './busy';
 
-export type CalView = 'month' | 'day' | 'mine';
+export type CalView = 'month' | 'day' | 'mine' | 'free';
 
 /** เปิดแท็บปฏิทินที่กลุ่ม/มุมมอง/วันที่ตาม search param (?g ?v ?d) — เส้นทางที่ Front-end จำไว้ให้แชร์ลิงก์ได้ */
 export async function openCalendar(page: Page, o: { gid?: string; view?: CalView; date?: DateISO } = {}): Promise<void> {
