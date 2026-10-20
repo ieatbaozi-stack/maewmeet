@@ -4,14 +4,14 @@
 //  - busy ของสมาชิกปัจจุบันของกลุ่มนี้เท่านั้น (JOIN group_member ของ gid นี้) ผ่าน serializer เดียว (toBusyForViewers) — ไม่มีมุมมองเจ้าของ แม้เป็นรายการของผู้ดูเอง
 //  - super admin ที่ไม่ใช่สมาชิก → audit `group.calendar.view` (ตามกติกาอ่านของ R2: auditRead)
 import { z } from 'zod';
-import { compareDates, isValidDate, spanDays } from '@/lib/calendar';
+import { addDays, compareDates, isValidDate, spanDays, startOfDay } from '@/lib/calendar';
 import { findGroupById } from '@/lib/data/repos/group';
 import { listMembers } from '@/lib/data/repos/group-member';
 import { listSharedBusyInGroup } from '@/lib/data/repos/busy';
 import { authorize } from '@/lib/rbac/can';
 import type { Actor } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
-import { CALENDAR_MAX_RANGE_DAYS } from '@/lib/shared/limits';
+import { CALENDAR_MAX_ITEMS, CALENDAR_MAX_RANGE_DAYS } from '@/lib/shared/limits';
 import { memberColorIndex } from '@/lib/shared/member-color';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
@@ -55,6 +55,8 @@ export type GroupCalendarDto = {
   members: CalendarMemberDto[];
   /** เรียงตามเวลาเริ่ม · ทุกชิ้นผ่าน toBusyForViewers */
   busy: (BusySharedView | BusyHiddenView)[];
+  /** true = มีแถวเกิน CALENDAR_MAX_ITEMS ในช่วงนี้ → ส่งมาเฉพาะส่วนแรก (เรียงตามเวลาเริ่ม) · UI ควรแจ้งผู้ใช้ */
+  truncated: boolean;
 };
 
 export async function getGroupCalendar(actor: Actor, groupId: string, query: CalendarQuery, ctx: DataCtx): Promise<GroupCalendarDto> {
@@ -67,7 +69,10 @@ export async function getGroupCalendar(actor: Actor, groupId: string, query: Cal
   if (!row || row.deletedAt !== null) throw new AppError('NOT_FOUND');
 
   const members = await listMembers(ctx.db, groupId);
-  const busy = await listSharedBusyInGroup(ctx.db, groupId, range.from, range.to);
+  // ช่วง [from, to] รวมปลาย ตามวันท้องถิ่นของ *กลุ่ม* → epoch [เที่ยงคืนต้น from, เที่ยงคืนต้นวันหลัง to) — ตรงกับที่ UI วางรายการตาม tz กลุ่ม (L3)
+  const fromMs = startOfDay(range.from, row.tz);
+  const toMs = startOfDay(addDays(range.to, 1), row.tz);
+  const { rows: busy, truncated } = await listSharedBusyInGroup(ctx.db, groupId, fromMs, toMs, CALENDAR_MAX_ITEMS);
   await auditRead(ctx.db, me, allow, { action: 'group.calendar.view', targetType: 'group', targetId: groupId, groupId, meta: { from: range.from, to: range.to } }, ctx.now);
 
   const dtos: CalendarMemberDto[] = members.map((m) => ({
@@ -81,5 +86,5 @@ export async function getGroupCalendar(actor: Actor, groupId: string, query: Cal
       a.colorIndex - b.colorIndex ||
       (a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0),
   );
-  return { group: { id: row.id, tz: row.tz }, from: range.from, to: range.to, members: dtos, busy: busy.map(toBusyForViewers) };
+  return { group: { id: row.id, tz: row.tz }, from: range.from, to: range.to, members: dtos, busy: busy.map(toBusyForViewers), truncated };
 }

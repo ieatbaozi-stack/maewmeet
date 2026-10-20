@@ -17,6 +17,13 @@ const MARK = /^\p{M}$/u;
 const VISIBLE = /^[\p{L}\p{N}\p{S}\p{P}]$/u;
 export const MAX_MARKS_PER_BASE = 3;
 
+/** มีตัวที่ห้ามใน "ข้อความที่แสดงผล" (ควบคุม/จัดรูป-bidi/zero-width/private-use ฯลฯ) หรือไม่ — ZWJ ระหว่าง emoji อนุญาต · ไม่ตรวจช่องว่าง/เครื่องหมายผสม (ใช้กับ note) */
+export function hasForbiddenChars(raw: string): boolean {
+  const cps = [...raw.normalize('NFC')];
+  const joiners = joinerPositionsInEmoji(cps);
+  return cps.some((c, i) => !joiners.has(i) && FORBIDDEN.test(c));
+}
+
 export type NameProblem = 'TOO_SHORT' | 'TOO_LONG' | 'INVALID';
 
 const isPicto = (cp: string | undefined) => cp !== undefined && PICTO.test(cp);

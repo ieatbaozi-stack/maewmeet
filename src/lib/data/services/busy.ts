@@ -27,8 +27,9 @@ import {
   BUSY_MAX_TIMED_DAYS,
   BUSY_NOTE_MAX,
   BUSY_TITLE_MAX,
+  ME_BUSY_RANGE_MAX_ITEMS,
 } from '@/lib/shared/limits';
-import { checkVisibleName } from '@/lib/shared/name-rules';
+import { checkVisibleName, hasForbiddenChars } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
 import { toBusyOwnView, type BusyOwnView } from '../serializers/busy';
 import { inTx } from '../tx';
@@ -120,15 +121,13 @@ export function parseBusyTitle(raw: string | null | undefined): string | null {
   return r.name;
 }
 
-/** ตัวควบคุม (Cc) / ตัวคั่นบรรทัด-ย่อหน้า (Zl/Zp) — ตรวจหลังตัด \n และ \t ที่อนุญาตออกแล้ว */
-const NOTE_FORBIDDEN = /[\p{Cc}\p{Zl}\p{Zp}]/u;
 
-/** บันทึกส่วนตัว (เจ้าของเห็นคนเดียว) — NFC, \r\n→\n, ตัดหัวท้าย, ≤ 500 code point, ห้ามตัวควบคุมอื่นนอกจากขึ้นบรรทัด/แท็บ · ว่าง → null */
+/** บันทึกส่วนตัว (เจ้าของเห็นคนเดียว) — NFC, \r\n→\n, ตัดหัวท้าย, ≤ 500 code point, ห้ามตัวควบคุม/จัดรูป (bidi, zero-width ฯลฯ — กติกาเดียวกับ title) นอกจากขึ้นบรรทัด/แท็บ · ว่าง → null */
 export function parseBusyNote(raw: string | null | undefined): string | null {
   if (raw === null || raw === undefined) return null;
   const text = raw.normalize('NFC').replace(/\r\n?/g, '\n').trim();
   if (text === '') return null;
-  if (NOTE_FORBIDDEN.test(text.replace(/[\n\t]/g, ''))) throw new AppError('VALIDATION', { fields: { note: 'INVALID' } });
+  if (hasForbiddenChars(text.replace(/[\n\t]/g, ''))) throw new AppError('VALIDATION', { fields: { note: 'INVALID' } });
   if ([...text].length > BUSY_NOTE_MAX) throw new AppError('VALIDATION', { fields: { note: 'TOO_LONG' } });
   return text;
 }
@@ -203,10 +202,11 @@ export async function createBusy(actor: Actor, input: CreateBusyInput, ctx: Data
   return { busy: toBusyOwnView(row) };
 }
 
-export async function listMyBusy(actor: Actor, query: ListBusyQuery, ctx: DataCtx): Promise<{ busy: BusyOwnView[] }> {
+export async function listMyBusy(actor: Actor, query: ListBusyQuery, ctx: DataCtx): Promise<{ busy: BusyOwnView[]; truncated: boolean }> {
   authorize(actor, 'busy.list.own', { type: 'none' });
   const me = asUser(actor);
   let rows: OwnBusyRow[];
+  let truncated = false;
   if (query.from === undefined && query.to === undefined) {
     rows = await listOwnActiveBusy(ctx.db, me.id, ctx.now, BUSY_MAX_PER_USER + 100);
   } else {
@@ -214,9 +214,13 @@ export async function listMyBusy(actor: Actor, query: ListBusyQuery, ctx: DataCt
       throw new AppError('VALIDATION', { fields: { [query.from === undefined ? 'from' : 'to']: 'REQUIRED' } });
     }
     const range = parseDateRange(query.from, query.to);
-    rows = await listOwnBusyInRange(ctx.db, me.id, range.from, range.to, 1000);
+    rows = await listOwnBusyInRange(ctx.db, me.id, range.from, range.to, ME_BUSY_RANGE_MAX_ITEMS + 1);
+    if (rows.length > ME_BUSY_RANGE_MAX_ITEMS) {
+      truncated = true;
+      rows = rows.slice(0, ME_BUSY_RANGE_MAX_ITEMS);
+    }
   }
-  return { busy: rows.map(toBusyOwnView) };
+  return { busy: rows.map(toBusyOwnView), truncated };
 }
 
 export async function updateBusy(actor: Actor, id: string, input: UpdateBusyInput, ctx: DataCtx): Promise<{ busy: BusyOwnView }> {

@@ -364,3 +364,6 @@ document.cookie = "__Host-mm_reset=ค่า_cookie; path=/; Secure"
 | `PIN_PEPPER_CURRENT_VERSION`, `PIN_PEPPER_V<n>` | ทุกที่ที่ต้อง login/สมัคร (บังคับตั้งแต่ R1) | แอปยังเริ่มได้ แต่ **health 503** (`pepper.ok:false`) และ login/สมัครตอบ `AUTH_MAINTENANCE` — ไม่มีใครถูกล็อก (G7) |
 | `TRUST_PROXY_HEADERS` | ไม่บังคับ — ตั้ง `1` เฉพาะ self-host หลัง proxy ที่เขียนทับ header IP (Vercel ไม่ต้องตั้ง) | ไม่เชื่อ header IP → ถัง `unknown` ร่วม เพดาน ×50 |
 | `PLACE_SEARCH_ENABLED`, `NOMINATIM_*`, `NEXT_PUBLIC_MAP_*`, `LOG_LEVEL` | ไม่บังคับ (มีค่าเริ่มต้น) | ใช้ค่าเริ่มต้น |
+
+## ภาคผนวก — การเก็บกวาด busy (R3)
+cron รายวัน (`/api/cron/daily`) ลบ `busy_block` ที่ `end_at` เก่ากว่า 90 วัน (`BUSY_RETENTION_DAYS`) ผลอยู่ใน `cleaned.oldBusyBlocks` · เพดาน 300 รายการ/คน นับแถวที่ `end_at > now − 8 วัน` (หน้าต่างที่ยังแก้/ย้อนลงได้) จึงไม่ต้องรอ cron เพื่อคุมจำนวน

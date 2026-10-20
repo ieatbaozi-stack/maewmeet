@@ -324,6 +324,115 @@ describe('เพดาน 300 (R3-2) — คำสั่งเดียวมี
   });
 });
 
+describe('เพดาน 300 นับทุกแถวในหน้าต่างแก้ได้ (R3 H1/M1) — end_at > now − (7+1) วัน', () => {
+  const NOW = Date.UTC(2026, 9, 18, 3, 0); // 2026-10-18 10:00 Asia/Bangkok (ตรงกับ harness)
+  const WINDOW_START = NOW - 8 * DAY;
+  const pastAllDay = (over: Record<string, unknown> = {}) => allDay({ startDate: '2026-10-15', endDate: '2026-10-15', ...over });
+
+  /** แทรก n แถวที่ end_at = endAt ตรง ๆ (ไม่ผ่าน API) */
+  async function seedEnded(userId: string, n: number, endAt: number, tag = 'old'): Promise<void> {
+    for (let i = 0; i < n; i += 50) {
+      const vals: string[] = [];
+      const args: (string | number)[] = [];
+      for (let j = i; j < Math.min(n, i + 50); j++) {
+        vals.push("(?, ?, 'seed', NULL, 0, ?, ?, '2026-10-12', '2026-10-12', 'Asia/Bangkok', 0, 1, 1)");
+        args.push(`${tag}-${userId}-${j}`, userId, endAt - 1000, endAt);
+      }
+      await h.rows(
+        `INSERT INTO busy_block (id, user_id, title, note, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at) VALUES ${vals.join(',')}`,
+        args,
+      );
+    }
+  }
+  const FULL = { limit: 'busyCount', max: 300 };
+
+  it('300 แถวที่จบไปแล้วแต่ยังอยู่ในหน้าต่าง → ลงรายการย้อนหลังเพิ่มไม่ได้ (เดิมลงได้ไม่จำกัด)', async () => {
+    await seedEnded(a.id, 300, NOW - 3 * DAY);
+    const r = await create(a, pastAllDay());
+    expect([r.status, r.code, r.json.error?.params]).toEqual([409, 'LIMIT_REACHED', FULL]);
+    expect((await create(a, timed())).status).toBe(409); // อนาคตก็ถูกนับรวม
+    expect(await h.count('busy_block WHERE user_id = ?', [a.id])).toBe(300);
+    expect((await create(b, pastAllDay())).status).toBe(201); // คนอื่นไม่โดน
+  });
+
+  it('ขอบหน้าต่าง: end_at = ขอบ ไม่นับ (ลงได้) · end_at = ขอบ+1ms นับ (เต็ม)', async () => {
+    await seedEnded(a.id, 300, WINDOW_START, 'edge-out');
+    expect((await create(a, pastAllDay())).status).toBe(201);
+    await seedEnded(b.id, 300, WINDOW_START + 1, 'edge-in');
+    expect((await create(b, pastAllDay())).status).toBe(409);
+  });
+
+  it('PATCH ย้ายรายการอนาคตเข้าอดีต (ในหน้าต่าง) ไม่ทำให้ลงเพิ่มได้ (เดิมเปิดช่องเพิ่ม)', async () => {
+    await seedActive(a.id, 299);
+    const live = (await create(a, timed())).data.busy.id; // 300
+    const mv = await patch(a.c, `/api/me/busy/${live}`, pastAllDay());
+    expect(mv.status).toBe(200); // แก้แถวที่อยู่ในหน้าต่างอยู่แล้วได้ตอนเต็ม
+    expect((await create(a, timed())).status).toBe(409); // ยังเต็ม — ไม่ได้ที่ว่างคืน
+    expect(await h.count('busy_block WHERE user_id = ?', [a.id])).toBe(300);
+  });
+
+  it('PATCH ฟื้นแถวนอกหน้าต่างเข้าหน้าต่างตอนเต็ม → 409 (ทั้งอนาคตและอดีตในหน้าต่าง) · ย้ายไปนอกหน้าต่างไม่ได้ (ถูกกฎย้อนหลัง 7 วัน)', async () => {
+    await seedEnded(a.id, 299, NOW - 3 * DAY);
+    const live = (await create(a, timed())).data.busy.id; // 300 ในหน้าต่าง
+    const outId = '5b0f6b5e-8f55-4a3e-9c1d-0000000000a1';
+    await h.rows("INSERT INTO busy_block (id, user_id, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at) VALUES (?, ?, 0, 1, 2, '2026-01-01', '2026-01-01', 'Asia/Bangkok', 0, 1, 1)", [outId, a.id]);
+    for (const body of [timed(), pastAllDay()]) {
+      const r = await patch(a.c, `/api/me/busy/${outId}`, body);
+      expect([r.status, r.code, r.json.error?.params]).toEqual([409, 'LIMIT_REACHED', FULL]);
+    }
+    // แก้ title ของแถวนอกหน้าต่างได้ (ไม่เข้าหน้าต่าง) · ลบหนึ่งแถวในหน้าต่างแล้วฟื้นได้
+    expect((await patch(a.c, `/api/me/busy/${outId}`, { title: 'x' })).status).toBe(200);
+    await del(a.c, `/api/me/busy/${live}`);
+    expect((await patch(a.c, `/api/me/busy/${outId}`, pastAllDay())).status).toBe(200);
+    expect(await h.count('busy_block WHERE user_id = ? AND end_at > ?', [a.id, WINDOW_START])).toBe(300);
+  });
+
+  it('แข่งกันที่ขอบใหม่: มี 299 แถวที่จบแล้วในหน้าต่าง + POST ย้อนหลังพร้อมกัน 8 ครั้ง → สำเร็จพอดี 1', async () => {
+    await seedEnded(a.id, 299, NOW - 3 * DAY);
+    const results = await Promise.all(Array.from({ length: 8 }, (_, i) => create(a, pastAllDay({ title: `race${i}` }))));
+    expect(results.filter((r) => r.status === 201)).toHaveLength(1);
+    for (const r of results.filter((x) => x.status !== 201)) expect(['LIMIT_REACHED', 'CONFLICT']).toContain(r.code);
+    expect(await h.count('busy_block WHERE user_id = ? AND end_at > ?', [a.id, WINDOW_START])).toBe(300);
+  });
+
+  it('แข่งกัน PATCH ฟื้นแถวนอกหน้าต่างพร้อมกัน ตอนมี 299 → สำเร็จพอดี 1', async () => {
+    await seedEnded(a.id, 299, NOW - 3 * DAY);
+    const ids = Array.from({ length: 6 }, (_, i) => `5b0f6b5e-8f55-4a3e-9c1d-0000000001${i}0`);
+    for (const id of ids) await h.rows("INSERT INTO busy_block (id, user_id, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at) VALUES (?, ?, 0, 1, 2, '2026-01-01', '2026-01-01', 'Asia/Bangkok', 0, 1, 1)", [id, a.id]);
+    const results = await Promise.all(ids.map((id) => patch(a.c, `/api/me/busy/${id}`, pastAllDay())));
+    expect(results.filter((r) => r.status === 200)).toHaveLength(1);
+    expect(await h.count('busy_block WHERE user_id = ? AND end_at > ?', [a.id, WINDOW_START])).toBe(300);
+  });
+});
+
+describe('note: ปฏิเสธตัวจัดรูป/bidi (L1)', () => {
+  it('Cf (RLO, ZWSP, BOM) ใน note → VALIDATION note INVALID · ขึ้นบรรทัด/แท็บ/emoji ZWJ ผ่าน', async () => {
+    for (const bad of ['CANARY\u202E', 'a\u200Bb', 'x\uFEFFy', 'a\u2066b']) {
+      const r = await create(a, allDay({ note: bad }));
+      expect([r.status, r.code, r.json.error?.params?.fields]).toEqual([400, 'VALIDATION', { note: 'INVALID' }]);
+    }
+    const ok = await create(a, allDay({ note: 'บรรทัด 1\n\tบรรทัด 2 👨\u200D👩\u200D👧' }));
+    expect(ok.status).toBe(201);
+    expect(ok.data.busy.note).toBe('บรรทัด 1\n\tบรรทัด 2 👨\u200D👩\u200D👧');
+  });
+});
+
+describe('GET /api/me/busy?from&to — truncated (L4)', () => {
+  it('ไม่เกินเพดาน → truncated false · เกิน → ตัดที่ 1000 และ truncated true', async () => {
+    await seedActive(a.id, 5);
+    const small = await get<{ busy: Busy[]; truncated: boolean }>(a.c, '/api/me/busy?from=2026-12-01&to=2027-01-31');
+    expect([small.data.busy.length, small.data.truncated]).toEqual([5, false]);
+    await h.rows(
+      "WITH RECURSIVE c(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM c WHERE n < 1001) INSERT INTO busy_block (id, user_id, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at) SELECT 'bulk-' || n, ?, 0, 1800000000000 + n, 1800000000000 + n + 1000, '2027-01-15', '2027-01-15', 'Asia/Bangkok', 0, 1, 1 FROM c",
+      [a.id],
+    );
+    const big = await get<{ busy: Busy[]; truncated: boolean }>(a.c, '/api/me/busy?from=2027-01-01&to=2027-01-31');
+    expect([big.data.busy.length, big.data.truncated]).toEqual([1000, true]);
+    const active = await get<{ busy: Busy[]; truncated: boolean }>(a.c, '/api/me/busy');
+    expect(active.data.truncated).toBe(false);
+  });
+});
+
 describe('สถานะบัญชี (R3-6)', () => {
   const calls = (gidOrId: string): [string, string, unknown][] => [
     ['GET', '/api/me/busy', undefined],

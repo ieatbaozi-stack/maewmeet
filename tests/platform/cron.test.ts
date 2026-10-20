@@ -151,6 +151,14 @@ describe('GET /api/cron/daily', () => {
       exec("insert into notification(id, user_id, kind, params, created_at) values (?,?,'x','{}',?)", [id, 'u1', created]);
     await notif('n-old', NOW - 90 * DAY_MS - 1);
     await notif('n-new', NOW - 90 * DAY_MS);
+    const busy = (id: string, end: number) =>
+      exec(
+        "insert into busy_block(id, user_id, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at) values (?,?,0,?,?,'2026-01-01','2026-01-01','Asia/Bangkok',0,?,?)",
+        [id, 'u1', end - 1000, end, old, old],
+      );
+    await busy('bz-old', NOW - 90 * DAY_MS - 1);
+    await busy('bz-edge', NOW - 90 * DAY_MS);
+    await busy('bz-future', NOW + DAY_MS);
     const cache = (q: string, fetched: number) => exec("insert into place_search_cache values (?, '[]', ?)", [q, fetched]);
     await cache('q-old', NOW - 30 * DAY_MS - 1);
     await cache('q-new', NOW - 30 * DAY_MS);
@@ -188,6 +196,7 @@ describe('GET /api/cron/daily', () => {
       expiredApprovedPinResets: 1,
       expiredInvites: 1,
       oldNotifications: 1,
+      oldBusyBlocks: 1,
       stalePlaceSearchCache: 1,
     });
     expect(await heartbeats()).toEqual([{ source: 'vercel-cron', lastAt: NOW }]);
@@ -198,6 +207,7 @@ describe('GET /api/cron/daily', () => {
     expect(await ids('rate_limit_bucket', 'key')).toEqual(['b-new']);
     expect(await ids('login_throttle', 'key')).toEqual(['t-locked', 't-recent']);
     expect(await ids('notification', 'id')).toEqual(['n-new']);
+    expect(await ids('busy_block', 'id')).toEqual(['bz-edge', 'bz-future']);
     expect(await ids('place_search_cache', 'query_normalized')).toEqual(['q-new']);
     expect(await count('pin_reset_request', "status = 'expired'")).toBe(2);
     expect(await count('group_invite', "status = 'expired'")).toBe(1);

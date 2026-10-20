@@ -5,9 +5,11 @@
 //   - ฝั่งแชร์   (SharedBusyRow)  : **ไม่ SELECT `note` เลย** และ `title` ถูกตัดใน SQL เมื่อ hide_detail = 1 (CASE) — ตัวอักษรของรายการซ่อนไม่ออกจาก DB
 // การเขียนที่แข่งกันได้ (เพดาน 300) = คำสั่ง SQL เดียวที่มีเงื่อนไขในตัว (INSERT … SELECT … WHERE count < cap) เหมือน R2 — ไม่มี check-then-act
 // ทุกคำสั่งเขียนผูก user_id ของผู้กระทำ (เจ้าของเท่านั้น) — busy ไม่ผูกกลุ่ม จึงไม่มี role ให้ ActorGuard ตรวจ; ตัวป้องกันคือ user_id + สถานะบัญชียัง active
-import { and, asc, eq, gt, gte, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, gte, lt, lte, sql } from 'drizzle-orm';
 import { busyBlock, groupMember } from '@/db/schema';
 import type { DbOrTx } from '@/db/client';
+import { DAY_MS } from '@/lib/shared/clock';
+import { BUSY_MAX_BACKDATE_DAYS } from '@/lib/shared/limits';
 
 export type OwnBusyRow = typeof busyBlock.$inferSelect;
 
@@ -38,9 +40,17 @@ export type BusyWrite = {
   hideDetail: boolean;
 };
 
-/** busy ที่ "ยังไม่สิ้นสุด" = end_at > now (end_at เป็น exclusive) */
-const activeCount = (userId: string, now: number) =>
-  sql`(SELECT count(*) FROM busy_block WHERE user_id = ${userId} AND end_at > ${now})`;
+/**
+ * ขอบหน้าต่างที่ผู้ใช้ยังสร้าง/แก้ได้: แถวที่ end_at > ขอบนี้ถูกนับเข้าเพดาน (H1/M1)
+ * ย้อนหลัง BUSY_MAX_BACKDATE_DAYS ตามวันท้องถิ่นของ tz ใดก็ได้ ⇒ เผื่ออีก 1 วัน (ความต่าง tz ≤ 26 ชม.) ไม่ให้แถวที่ยังย้อนลงได้หลุดการนับ
+ */
+export const busyWindowStart = (now: number): number => now - (BUSY_MAX_BACKDATE_DAYS + 1) * DAY_MS;
+
+/** จำนวนแถวในหน้าต่าง (ไม่นับ excludeId ถ้ามี) */
+const windowCount = (userId: string, now: number, excludeId?: string) =>
+  excludeId === undefined
+    ? sql`(SELECT count(*) FROM busy_block WHERE user_id = ${userId} AND end_at > ${busyWindowStart(now)})`
+    : sql`(SELECT count(*) FROM busy_block WHERE user_id = ${userId} AND end_at > ${busyWindowStart(now)} AND id <> ${excludeId})`;
 
 /**
  * เพิ่ม busy ถ้าผู้ใช้ยัง active และมีรายการที่ยังไม่สิ้นสุด < cap — คำสั่งเดียวอะตอมมิก (INSERT … SELECT … WHERE)
@@ -56,14 +66,14 @@ export async function insertBusyIfUnderCap(
     SELECT ${input.id}, ${input.userId}, ${input.title}, ${input.note}, ${input.allDay ? 1 : 0}, ${input.startAt}, ${input.endAt},
            ${input.localStartDate}, ${input.localEndDate}, ${input.tz}, ${input.hideDetail ? 1 : 0}, ${now}, ${now}
     WHERE EXISTS (SELECT 1 FROM user WHERE id = ${input.userId} AND status = 'active')
-      AND ${activeCount(input.userId, now)} < ${input.cap}
+      AND ${windowCount(input.userId, now)} < ${input.cap}
     RETURNING id`);
   if (rows.length !== 1) return null;
   return findOwnBusy(db, input.id, input.userId);
 }
 
 export async function activeBusyCount(db: DbOrTx, userId: string, now: number): Promise<number> {
-  const rows = await db.all<{ n: number }>(sql`SELECT ${activeCount(userId, now)} AS n`);
+  const rows = await db.all<{ n: number }>(sql`SELECT ${windowCount(userId, now)} AS n`);
   return Number(rows[0]?.n ?? 0);
 }
 
@@ -78,8 +88,8 @@ export async function findOwnBusy(db: DbOrTx, id: string, userId: string): Promi
 }
 
 /**
- * แก้ busy ของเจ้าของ — คำสั่งเดียว · เพดาน: ถ้ารายการเดิมสิ้นสุดแล้วแต่ค่าใหม่ยังไม่สิ้นสุด (ฟื้นเข้าเขต "ยังไม่สิ้นสุด") ต้องมีที่ว่าง < cap
- * (รายการที่ยังไม่สิ้นสุดอยู่แล้ว หรือค่าใหม่สิ้นสุดแล้ว ไม่เพิ่มจำนวน → ไม่ตรวจ) · คืน null = ไม่มี/ไม่ใช่ของผู้กระทำ/เต็มเพดาน
+ * แก้ busy ของเจ้าของ — คำสั่งเดียว · เพดาน: ถ้ารายการเดิมอยู่นอกหน้าต่าง (end_at <= ขอบ) แต่ค่าใหม่อยู่ในหน้าต่าง (ฟื้น/ย้ายเข้าเขตที่นับ)
+ * ต้องมีที่ว่าง: จำนวนแถวอื่นในหน้าต่าง (ไม่นับแถวนี้) < cap · อยู่ในหน้าต่างอยู่แล้ว หรือค่าใหม่อยู่นอกหน้าต่าง ไม่เพิ่มจำนวน → ไม่ตรวจ · คืน null = ไม่มี/ไม่ใช่ของผู้กระทำ/เต็มเพดาน
  */
 export async function updateOwnBusyIfUnderCap(
   db: DbOrTx,
@@ -96,7 +106,7 @@ export async function updateOwnBusyIfUnderCap(
       and(
         eq(busyBlock.id, id),
         eq(busyBlock.userId, userId),
-        sql`(${busyBlock.endAt} > ${now} OR ${next.endAt} <= ${now} OR ${activeCount(userId, now)} < ${cap})`,
+        sql`(${busyBlock.endAt} > ${busyWindowStart(now)} OR ${next.endAt} <= ${busyWindowStart(now)} OR ${windowCount(userId, now, id)} < ${cap})`,
       ),
     )
     .returning();
@@ -122,7 +132,7 @@ export async function listOwnActiveBusy(db: DbOrTx, userId: string, now: number,
     .limit(limit);
 }
 
-/** รายการของฉันที่ครอบวันท้องถิ่นใดวันหนึ่งใน [from, to] (YYYY-MM-DD รวมปลาย) */
+/** รายการของฉันที่ครอบวันท้องถิ่นใดวันหนึ่งใน [from, to] (YYYY-MM-DD รวมปลาย) — ผู้เรียกขอ limit+1 เพื่อรู้ว่าถูกตัด */
 export async function listOwnBusyInRange(db: DbOrTx, userId: string, from: string, to: string, limit: number): Promise<OwnBusyRow[]> {
   return db
     .select()
@@ -133,11 +143,13 @@ export async function listOwnBusyInRange(db: DbOrTx, userId: string, from: strin
 }
 
 /**
- * คิวรีฝั่งแชร์ — busy ของ "สมาชิกปัจจุบัน" ของกลุ่มที่ครอบวันท้องถิ่นใดวันหนึ่งใน [from, to]
+ * คิวรีฝั่งแชร์ — busy ของ "สมาชิกปัจจุบัน" ของกลุ่มที่ทับช่วงเวลา [fromMs, toMs) (epoch ms · ผู้เรียกแปลงวัน from/to ด้วย tz ของกลุ่ม)
+ * ทับ = start_at < toMs AND end_at > fromMs — ตัดสินด้วย "ช่วงเวลาจริง" ไม่ใช่วันท้องถิ่นของเจ้าของ (L3: tz เจ้าของต่างจากกลุ่มได้) และใช้ดัชนี busy_user_*_idx
+ * เรียง start_at, id (กำหนดแน่นอน) + LIMIT — ผู้เรียกส่ง limit = เพดาน+1 เพื่อรู้ว่าถูกตัด
  * ส่งคืน query builder (ไม่ execute) เพื่อให้เทสต์ตรวจ `.toSQL()` ว่าไม่มีคอลัมน์ `note` (ADR 0006 test 9)
  * ผู้เรียกต้องผ่านด่านกลุ่มมาแล้ว (service: authorize group.calendar.view) — repo นี้ไม่รู้จักผู้ดู
  */
-export function sharedBusyInGroupQuery(db: DbOrTx, groupId: string, from: string, to: string) {
+export function sharedBusyInGroupQuery(db: DbOrTx, groupId: string, fromMs: number, toMs: number, limit: number) {
   return db
     .select({
       id: busyBlock.id,
@@ -154,10 +166,19 @@ export function sharedBusyInGroupQuery(db: DbOrTx, groupId: string, from: string
     })
     .from(busyBlock)
     .innerJoin(groupMember, eq(groupMember.userId, busyBlock.userId))
-    .where(and(eq(groupMember.groupId, groupId), lte(busyBlock.localStartDate, to), gte(busyBlock.localEndDate, from)))
-    .orderBy(asc(busyBlock.startAt), asc(busyBlock.id));
+    .where(and(eq(groupMember.groupId, groupId), lt(busyBlock.startAt, toMs), gt(busyBlock.endAt, fromMs)))
+    .orderBy(asc(busyBlock.startAt), asc(busyBlock.id))
+    .limit(limit);
 }
 
-export async function listSharedBusyInGroup(db: DbOrTx, groupId: string, from: string, to: string): Promise<SharedBusyRow[]> {
-  return sharedBusyInGroupQuery(db, groupId, from, to);
+/** คืนไม่เกิน `max` แถว + truncated เมื่อมีเกิน */
+export async function listSharedBusyInGroup(
+  db: DbOrTx,
+  groupId: string,
+  fromMs: number,
+  toMs: number,
+  max: number,
+): Promise<{ rows: SharedBusyRow[]; truncated: boolean }> {
+  const rows = await sharedBusyInGroupQuery(db, groupId, fromMs, toMs, max + 1);
+  return rows.length > max ? { rows: rows.slice(0, max), truncated: true } : { rows, truncated: false };
 }

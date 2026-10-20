@@ -28,7 +28,7 @@ let visibleId: string;
 let hiddenId: string;
 
 type Busy = Record<string, unknown> & { id: string; userId: string };
-type Cal = { group: { id: string; tz: string }; from: string; to: string; members: { userId: string; displayName: string; colorIndex: number }[]; busy: Busy[] };
+type Cal = { group: { id: string; tz: string }; from: string; to: string; members: { userId: string; displayName: string; colorIndex: number }[]; busy: Busy[]; truncated: boolean };
 
 const RANGE = 'from=2026-10-01&to=2026-10-31';
 const calUrl = (g: string, q = RANGE) => `/api/groups/${g}/calendar?${q}`;
@@ -87,6 +87,7 @@ const calendarSchema = z
     to: z.string(),
     members: z.array(z.object({ userId: z.uuid(), displayName: z.string(), colorIndex: z.number().int().min(0).max(9) }).strict()),
     busy: z.array(z.union([sharedViewSchema, hiddenViewSchema])),
+    truncated: z.boolean(),
   })
   .strict();
 
@@ -360,7 +361,7 @@ describe('ปฏิทินกลุ่ม — ช่วงวันที่ +
   });
 
   it('หลายรายการในวันเดียว: เรียงตามเวลาเริ่ม (ไม่ขึ้นกับลำดับที่ลง) และไม่มี note', async () => {
-    const t0 = Date.UTC(2026, 9, 1);
+    const t0 = Date.UTC(2026, 9, 5);
     for (let i = 0; i < 12; i++) {
       await h.rows(
         "INSERT INTO busy_block (id, user_id, title, note, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?, '2026-10-05', '2026-10-05', 'Asia/Bangkok', 0, 1, 1)",
@@ -406,15 +407,21 @@ describe('ADR 0006 test 8–9 — ระดับชนิดข้อมูล 
   });
 
   it('SQL ที่ Drizzle สร้างสำหรับฝั่งแชร์ไม่มีคอลัมน์ note และตัด title ของรายการซ่อนใน SQL', () => {
-    const q = sharedBusyInGroupQuery(h.db, g1, '2026-10-01', '2026-10-31').toSQL();
+    const q = sharedBusyInGroupQuery(h.db, g1, Date.UTC(2026, 8, 30, 17), Date.UTC(2026, 9, 31, 17), 5001).toSQL();
     expect(q.sql).not.toMatch(/note/i);
     expect(q.sql).toMatch(/CASE WHEN "busy_block"\."hide_detail" = 0 THEN "busy_block"\."title" ELSE NULL END/);
     expect(q.sql).toMatch(/inner join "group_member"/i);
     expect(q.params).toContain(g1);
+    // M1/L3: กรองด้วยช่วงเวลาจริง + เรียงแน่นอน + LIMIT (ไม่กรองด้วย local_*_date อีก)
+    expect(q.sql).toMatch(/"busy_block"\."start_at" < \?/);
+    expect(q.sql).toMatch(/"busy_block"\."end_at" > \?/);
+    expect(q.sql).not.toMatch(/local_(start|end)_date" [<>]=? \?/);
+    expect(q.sql).toMatch(/order by "busy_block"\."start_at" asc, "busy_block"\."id" asc limit \?/i);
+    expect(q.params).toContain(5001);
   });
 
   it('ผลจริงจาก DB ของคิวรีแชร์ไม่มีคีย์ note และ title ของรายการซ่อนเป็น null ตั้งแต่ชั้น SQL', async () => {
-    const rows = await sharedBusyInGroupQuery(h.db, g1, '2026-10-01', '2026-10-31');
+    const rows = await sharedBusyInGroupQuery(h.db, g1, Date.UTC(2026, 8, 30, 17), Date.UTC(2026, 9, 31, 17), 5001);
     expect(rows).toHaveLength(2);
     for (const r of rows) expect('note' in r).toBe(false);
     expect(rows.find((r) => r.id === hiddenId)!.title).toBeNull();
@@ -423,16 +430,66 @@ describe('ADR 0006 test 8–9 — ระดับชนิดข้อมูล 
   });
 
   it('EXPLAIN QUERY PLAN: คิวรีปฏิทินใช้ดัชนี busy_user_*_idx (ไม่สแกนทั้งตาราง busy_block)', async () => {
-    const q = sharedBusyInGroupQuery(h.db, g1, '2026-10-01', '2026-10-31').toSQL();
+    const q = sharedBusyInGroupQuery(h.db, g1, Date.UTC(2026, 8, 30, 17), Date.UTC(2026, 9, 31, 17), 5001).toSQL();
     const plan = await h.db.$client.execute({ sql: `EXPLAIN QUERY PLAN ${q.sql}`, args: q.params as never[] });
     const detail = plan.rows.map((r) => String((r as unknown as { detail: string }).detail)).join('\n');
-    expect(detail).toMatch(/SEARCH busy_block USING (COVERING )?INDEX busy_user_(start|end)_idx \(user_id=\?/);
+    expect(detail).toMatch(/SEARCH busy_block USING (COVERING )?INDEX busy_user_(start|end)_idx \(user_id=\? AND (start_at|end_at)[<>]\?/);
     expect(detail).not.toMatch(/SCAN busy_block/);
   });
 
   it('ไม่มี endpoint รับ user id ของคนอื่นแล้วคืน busy: manifest ไม่มี path /users/:id/busy และ busy ออกได้เฉพาะ /me/busy กับ /groups/:gid/calendar', () => {
     const busyish = ROUTE_MANIFEST.filter((e) => /busy|calendar/.test(e.path)).map((e) => e.path);
     expect([...new Set(busyish)].sort()).toEqual(['/api/groups/:gid/calendar', '/api/me/busy', '/api/me/busy/:id']);
+  });
+});
+
+describe('ปฏิทินกลุ่ม: ช่วงเวลาตาม tz ของกลุ่ม + เพดานแถว (R3 M1/L3)', () => {
+  const on = (day: string) => calUrl(g1, `from=${day}&to=${day}`);
+  const ids = async (day: string) => (await get<Cal>(viewer.c, on(day))).data.busy.map((b) => b.id);
+
+  it('รายการ tz อื่นที่ขอบตาราง: Honolulu 20:00-23:00 วัน 22 = 13:00-16:00 กรุงเทพวัน 23 · Tokyo 00:30-01:30 วัน 23 = 22:30-23:30 กรุงเทพวัน 22', async () => {
+    const hnl = (await mk(owner, { kind: 'timed', startDate: '2026-10-22', startTime: '20:00', endDate: '2026-10-22', endTime: '23:00', tz: 'Pacific/Honolulu' })).data.busy.id;
+    const tyo = (await mk(owner, { kind: 'timed', startDate: '2026-10-23', startTime: '00:30', endDate: '2026-10-23', endTime: '01:30', tz: 'Asia/Tokyo' })).data.busy.id;
+    expect(await ids('2026-10-22')).toContain(tyo);
+    expect(await ids('2026-10-22')).not.toContain(hnl);
+    expect(await ids('2026-10-23')).toContain(hnl);
+    expect(await ids('2026-10-23')).not.toContain(tyo);
+    // ช่วงติดกันครบทั้งสองรายการ ไม่ซ้ำ
+    const both = (await get<Cal>(viewer.c, calUrl(g1, 'from=2026-10-22&to=2026-10-23'))).data.busy.map((b) => b.id);
+    expect(both).toEqual(expect.arrayContaining([hnl, tyo]));
+  });
+
+  it('ขอบเที่ยงคืนกรุงเทพ: จบ 00:00 ไม่ทับวันถัดไป · เริ่ม 00:00 ของวันหลังช่วง ไม่ทับ', async () => {
+    const e = (await mk(owner, { kind: 'timed', startDate: '2026-10-27', startTime: '22:00', endDate: '2026-10-28', endTime: '00:00' })).data.busy.id;
+    expect(await ids('2026-10-27')).toContain(e);
+    expect(await ids('2026-10-28')).not.toContain(e);
+    expect(await ids('2026-10-26')).not.toContain(e);
+  });
+
+  async function bulk(n: number): Promise<void> {
+    // n แถวของ owner ในช่วง 2026-11-10 (เวลาเริ่มไม่ซ้ำ → ลำดับแน่นอน)
+    const base = Date.UTC(2026, 10, 10, 1);
+    await h.rows(
+      `WITH RECURSIVE c(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM c WHERE n < ${n}) INSERT INTO busy_block (id, user_id, title, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at) SELECT 'bk-' || printf('%05d', n), ?, 't', 0, ? + n * 1000, ? + n * 1000 + 500, '2026-11-10', '2026-11-10', 'Asia/Bangkok', 0, 1, 1 FROM c`,
+      [owner.id, base, base],
+    );
+  }
+
+  it('เกิน CALENDAR_MAX_ITEMS → ตัดที่ 5000 เรียงตามเวลาเริ่ม + truncated true · พอดี 5000 → false', async () => {
+    await bulk(5001);
+    const r = await get<Cal>(viewer.c, on('2026-11-10'));
+    expect(r.data.busy).toHaveLength(5000);
+    expect(r.data.truncated).toBe(true);
+    expect(r.data.busy[0]!.id).toBe('bk-00001');
+    expect(r.data.busy[4999]!.id).toBe('bk-05000');
+    await h.rows("DELETE FROM busy_block WHERE id = 'bk-05001'");
+    const exact = await get<Cal>(viewer.c, on('2026-11-10'));
+    expect([exact.data.busy.length, exact.data.truncated]).toEqual([5000, false]);
+  });
+
+  it('ปกติ truncated false', async () => {
+    const r = await get<Cal>(viewer.c, calUrl(g1));
+    expect(r.data.truncated).toBe(false);
   });
 });
 

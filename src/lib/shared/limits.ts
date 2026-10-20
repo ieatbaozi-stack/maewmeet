@@ -19,7 +19,7 @@ export const GROUP_LIMITS = {
 } as const;
 
 // เพดาน busy / ปฏิทิน — R3_CONTRACT §2 (ค่าเริ่มต้นของ Lead) · lib เวลารับค่าเหล่านี้เป็นพารามิเตอร์ ไม่ฮาร์ดโค้ด
-/** busy ที่ยังไม่สิ้นสุด (end_at > now) ต่อผู้ใช้ */
+/** busy ต่อผู้ใช้ที่ end_at > now − (BUSY_MAX_BACKDATE_DAYS + 1) วัน = ทุกแถวที่ยังสร้าง/แก้ได้ (รวมที่จบแล้วแต่ยังย้อนลงได้) — R3 H1 */
 export const BUSY_MAX_PER_USER = 300;
 /** ช่วงเดียวครอบได้ไม่เกินกี่วันปฏิทิน (ทั้งสองแบบ) */
 export const BUSY_MAX_SPAN_DAYS = 366;
@@ -29,6 +29,12 @@ export const BUSY_MAX_TIMED_DAYS = 62;
 export const BUSY_MAX_BACKDATE_DAYS = 7;
 /** ช่วงวันที่ที่ขอดูได้ต่อคำขอ (ปฏิทินกลุ่ม · รายการของฉันแบบช่วง) — monthGrid() ≤ 42 วัน */
 export const CALENDAR_MAX_RANGE_DAYS = 62;
+/** ปฏิทินกลุ่ม: แถว busy สูงสุดต่อคำตอบ (เกิน → truncated: true) */
+export const CALENDAR_MAX_ITEMS = 5000;
+/** GET /api/me/busy?from&to: แถวสูงสุดต่อคำตอบ (เกิน → truncated: true) */
+export const ME_BUSY_RANGE_MAX_ITEMS = 1000;
+/** แถว busy ที่จบนานกว่านี้ถูก cron รายวันลบถาวร (วัน) — ต้องมากกว่า BUSY_MAX_BACKDATE_DAYS มาก */
+export const BUSY_RETENTION_DAYS = 90;
 /** ความยาวสูงสุดของ title / note (อักขระ = code point) */
 export const BUSY_TITLE_MAX = 80;
 export const BUSY_NOTE_MAX = 500;
