@@ -46,3 +46,17 @@ export {
 } from './busy';
 export { earliestAllowedDate, exceedsMaxSpan, isTooFarBack, spanDays } from './limits';
 export { format, weekdayLabels, type CalendarLocale, type FormatOptions, type FormatStyle } from './format';
+export {
+  commonFreeTime,
+  FREE_TIME_MAX_RANGE_DAYS,
+  membersBlockedDuring,
+  overlapsRange,
+  subtract,
+  type AppointmentBlockedMember,
+  type BusyInput as FreeTimeBusyInput,
+  type FreeDay,
+  type FreeSegment,
+  type FreeTimeBlocker,
+  type GroupWindow,
+  type Interval,
+} from './free-time';
