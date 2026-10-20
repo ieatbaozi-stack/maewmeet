@@ -129,6 +129,7 @@
     "view": {
       "label": "Calendar view",
       "month": "Month",
+      "free": "Free days",
       "day": "Day",
       "mine": "Mine"
     },
@@ -200,6 +201,87 @@
       "title": "You’re not in this group any more",
       "body": "The group may have been deleted, or you were removed. Pick another group, or head back to Groups.",
       "cta": "Go to groups"
+    }
+  },
+  "availability": {
+    "region": "Days everyone’s free",
+    "summary": {
+      "title": "First day everyone’s free",
+      "relative": "{days, plural, =0 {Today} =1 {Tomorrow} other {In # days}}",
+      "best": "Longest stretch {start}–{end} · {duration}",
+      "count": "{count} days when everyone’s free in this view",
+      "openAria": "See details for {date}",
+      "none": {
+        "title": "No day in this range when everyone’s free",
+        "closest": "Closest is {date}, with {free} of {total} free",
+        "closestNoOverlap": "On {date} everyone has free time, just not at the same time",
+        "blockers": "Busy: {names}",
+        "next": "Check next month"
+      }
+    },
+    "cell": {
+      "aria": "{date}{today, select, yes {, today} other {}}{outside, select, yes {, outside this month} other {}}, {state, select, all {everyone’s free together} nocommon {{free} of {total} free, but not at the same time} none {nobody’s free, busy all day} past {already passed} other {{free} of {total} free}}",
+      "fraction": "{free}/{total}"
+    },
+    "legend": {
+      "title": "What the days mean",
+      "all": "Everyone’s free at the same time",
+      "partial": "4/6 means 4 of 6 people are free",
+      "few": "Stripes mean fewer than half the group is free",
+      "nocommon": "Everyone’s free, but not together",
+      "none": "Nobody’s free that day",
+      "fractionNote": "The number only counts who’s free. It doesn’t mean they’re free together. Only days with a tick are."
+    },
+    "day": {
+      "status": {
+        "all": "Everyone’s free",
+        "allBody": "{total, plural, =2 {Both are free at the same time} other {All # are free at the same time}}",
+        "partial": "{free} of {total} free",
+        "partialBody": "Not free: {names}",
+        "nocommon": "Everyone’s free, just not together",
+        "nocommonBody": "Each person has enough free time, but there’s no stretch of {duration} or more when all of you are free. See who’s busy when below.",
+        "none": "Nobody’s free",
+        "noneBody": "No one has {duration} free in a row"
+      },
+      "segments": {
+        "title": "When everyone’s free",
+        "row": "{start}–{end}",
+        "longest": "Longest"
+      },
+      "blockers": {
+        "title": "Who’s busy when",
+        "flag": "Counts as busy",
+        "flagHint": "“Counts as busy” means less than {duration} free in the hours that count.",
+        "noBusy": "Nothing marked: {names}",
+        "empty": "No one has marked this day busy"
+      },
+      "names": {
+        "more": "{names} and {count} more"
+      }
+    },
+    "cta": {
+      "create": "Create plan",
+      "soon": "Coming soon",
+      "soonHint": "Creating a plan from a day is coming soon. For now, make a note of the date."
+    },
+    "explain": "Based on the busy time members have added. Anyone who hasn’t added any counts as free.",
+    "window": {
+      "title": "Hours that count as free",
+      "line": "{start}–{end} · at least {duration}",
+      "edit": "Change hours",
+      "editAria": "Change the hours that count as free in group settings",
+      "adminOnly": "Group admins can change this in group settings"
+    },
+    "nobody": {
+      "title": "Nobody’s added busy time yet",
+      "body": "Every day looks free right now. Once everyone adds the days they’re tied up, the results will mean something.",
+      "cta": "Add busy time"
+    },
+    "truncated": "There’s so much busy time in this range that we couldn’t count all of it. Some days may look freer than they are. Try one month at a time.",
+    "loading": "Working out when everyone’s free…",
+    "error": {
+      "title": "Couldn’t load free days",
+      "body": "Check your connection and try again. The busy time you’ve added is safe."
     }
   },
   "a11y": {
@@ -438,7 +520,7 @@
     },
     "window": {
       "title": "Free-time window",
-      "body": "Used to find days when everyone’s free. It takes effect once the group calendar is live.",
+      "body": "Used to find days when everyone’s free, in the Calendar tab (Free days). Only these hours count.",
       "start": "From",
       "end": "To",
       "min": "Free for at least",

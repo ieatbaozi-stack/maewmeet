@@ -1,0 +1,165 @@
+/*
+ * วันที่ว่างตรงกัน (R4A) — เจ้าของ: UX & Brand · ต้นแบบ docs/design/samples/availability.html (UX.md §8)
+ * กติกา: ห้าม hex/px — ทุกค่ามาจาก var(--*) ใน tokens.css / members.css (CI: check-style-literals.sh) · ไม่เพิ่ม token สีใหม่
+ * ใช้ต่อจาก calendar.css (ใช้ซ้ำ .cal-nav .cal-month .cal-dow .cal-cell .cal-people .cal-person .cal-item .cal-split .cal-side ฯลฯ)
+ *
+ * สัญญาณที่ไม่ใช่สี (WCAG 1.4.1) — แต่ละสถานะของช่องวันมี "รูปทรง" และ "ตัวอักษร" ของตัวเอง ไม่พึ่งเขียว/แดงอย่างเดียว:
+ *   ว่างร่วม (is-all)        = กรอบเส้นทึบ --free-ink + เครื่องหมายถูกในวงกลมทึบ (ไม่มีตัวเลข) · aria "ว่างร่วม"
+ *   ว่างครบแต่ไม่ตรง (is-nocommon) = กรอบเส้นประ --free-ink + ตัวเลข "3/3" (ห้ามหน้าตาเหมือน is-all — ADR 0005 Consequences)
+ *   ว่าง X/Y (is-partial)    = ตัวเลข "X/Y" · ว่างไม่ถึงครึ่ง = + ลายเฉียง
+ *   ทั้งวันไม่ว่าง (is-none)  = ตัวเลข "0/Y" + ลายเฉียง + พื้น --busy
+ *   ผ่านไปแล้ว (is-past)     = พื้นยุบ ตัวเลขวันจาง ไม่มีเครื่องหมาย กดไม่ได้ (aria-disabled)
+ */
+:root {
+  --av-badge: var(--icon);                        /* วงกลมเครื่องหมายถูก "ว่างร่วม" */
+  --av-badge-icon: calc(var(--icon-sm) - var(--space-1) / 2);
+  --av-sw: var(--space-6);                        /* ตัวอย่างช่องในคำอธิบาย */
+  --av-hatch: repeating-linear-gradient(135deg, var(--hatch) 0 var(--border), transparent var(--border) var(--space-2));
+}
+
+/* ---------- ตัวเลือกมุมมอง 4 ช่อง (เดือน | ว่างตรงกัน | วัน | ของฉัน) ---------- */
+.segmented.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.segmented.cols-4 button { padding: 0 var(--space-1); min-width: 0; white-space: nowrap; }
+
+/* ---------- การ์ดสรุปบนสุด ---------- */
+.av-summary {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-3);
+  width: 100%; margin-top: var(--space-3); padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border: var(--border) solid transparent; border-radius: var(--radius-lg);
+  background: var(--free); color: var(--free-ink); text-align: left; font: inherit;
+}
+.av-summary .chev { color: var(--free-ink); }
+.av-summary .st { display: block; font-size: var(--text-sm); font-weight: var(--weight-medium); line-height: var(--leading-heading); }
+.av-summary .when { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-2); margin-top: var(--space-1); }
+.av-summary .when b { font-size: var(--text-xl); font-weight: var(--weight-semibold); line-height: var(--leading-heading); overflow-wrap: anywhere; }
+.av-summary .when .rel { font-size: var(--text-md); font-weight: var(--weight-medium); }
+.av-summary .best, .av-summary .more { display: block; margin-top: var(--space-1); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.av-summary .more { font-size: var(--text-xs); }
+/* ยังไม่มีวันว่างร่วม: การ์ดกลาง ไม่ใช้เขียว (ไม่ให้ดูเหมือน "เจอแล้ว") */
+.av-summary.is-none { display: block; background: var(--surface); color: var(--ink); border-color: var(--line); padding: var(--space-4); }
+.av-summary.is-none .st { font-size: var(--text-md); font-weight: var(--weight-semibold); }
+.av-summary.is-none p { margin-top: var(--space-2); font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
+.av-summary.is-none p.hl { color: var(--ink); }
+.av-summary.is-none .actions { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; margin-top: var(--space-2); }
+.av-summary.is-loading { background: var(--surface-2); min-height: calc(var(--tap-lg) + var(--space-4)); }
+
+/* ---------- ช่องวัน ---------- */
+.av-cell { position: relative; }
+.av-cell .av-mark { display: flex; align-items: center; min-height: var(--av-badge); padding: 0 var(--space-1) var(--border-strong); }
+.av-frac { font-size: var(--text-xs); font-weight: var(--weight-semibold); line-height: var(--leading-tight); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); }
+.av-badge {
+  display: inline-grid; place-items: center; width: var(--av-badge); height: var(--av-badge);
+  border-radius: var(--radius-full); background: var(--free-ink); color: var(--avail-full);
+}
+.av-badge .icon { width: var(--av-badge-icon); height: var(--av-badge-icon); stroke-width: calc(var(--icon-stroke) + 0.5); }
+
+/* partial: ระดับตามสัดส่วน (ตัวเลขเป็นตัวบอกหลัก สีเป็นตัวช่วย) */
+.av-cell.is-partial.l-low, .av-sw.is-partial.l-low { background-color: var(--avail-low); }
+.av-cell.is-partial.l-mid, .av-sw.is-partial.l-mid { background-color: var(--avail-mid); }
+.av-cell.is-partial.l-few, .av-sw.is-partial.l-few { background-color: var(--avail-none); background-image: var(--av-hatch); }
+
+/* ว่างร่วม: พื้นเขียวเข้มสุด + กรอบทึบ --free-ink (วาดด้วย ::after ซ้อนใน ไม่ชนกรอบ "วันนี้" ที่เป็น border) */
+.av-cell.is-all, .av-sw.is-all { background-color: var(--avail-full); }
+.av-cell.is-all::after, .av-sw.is-all::after {
+  content: ""; position: absolute; inset: 0; border: var(--border-strong) solid var(--free-ink);
+  border-radius: calc(var(--radius-sm) - var(--border)); pointer-events: none;
+}
+/* ว่างครบทุกคนแต่ไม่มีช่วงตรงกัน: กรอบ "เส้นประ" + ตัวเลข n/n (ไม่มีเครื่องหมายถูก) */
+.av-cell.is-nocommon, .av-sw.is-nocommon { background-color: var(--avail-mid); }
+.av-cell.is-nocommon::after, .av-sw.is-nocommon::after {
+  content: ""; position: absolute; inset: 0; border: var(--border-strong) dashed var(--free-ink);
+  border-radius: calc(var(--radius-sm) - var(--border)); pointer-events: none;
+}
+/* ทั้งวันไม่ว่าง */
+.av-cell.is-none, .av-sw.is-none { background-color: var(--busy); background-image: var(--av-hatch); color: var(--busy-ink); }
+.av-cell.is-none .av-frac, .av-sw.is-none .av-frac { color: var(--busy-ink); }
+/* ผ่านไปแล้ว */
+.av-cell.is-past { background: var(--surface-2); color: var(--ink-muted); }
+.av-cell.is-past .dn { font-weight: var(--weight-regular); }
+/* นอกเดือน: ช่อง "ว่างบางส่วน" พื้นโปร่ง (เหมือน R3) ตัวเลขจาง · ช่องว่างร่วม/ว่างครบไม่ตรง/ทั้งวันไม่ว่าง คงพื้นและกรอบไว้ครบ — ต้องเห็นแม้อยู่นอกเดือน */
+.av-cell.is-outside.is-partial { background-color: transparent; background-image: none; }
+.av-cell.is-outside.is-partial .av-frac { color: var(--ink-muted); }
+/* วันที่เลือก (ทุกความกว้าง: มือถือ = วันที่เปิด sheet อยู่): วงนอก --accent ไม่ทับพื้น/กรอบสถานะ */
+.av-cell.is-selected { box-shadow: 0 0 0 var(--border-strong) var(--accent); z-index: 1; }
+@media (min-width: 48em) {
+  .av-cell .av-mark { padding-left: var(--space-1); }
+}
+
+/* ---------- คำอธิบายช่อง ---------- */
+.av-legend { margin-top: var(--space-4); }
+.av-legend h3 { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-muted); }
+.av-legend ul { margin-top: var(--space-2); display: grid; gap: var(--space-2); }
+.av-legend li { display: grid; grid-template-columns: var(--av-sw) minmax(0, 1fr); gap: var(--space-3); align-items: center; font-size: var(--text-sm); }
+.av-sw {
+  position: relative; display: flex; align-items: center; justify-content: center; width: var(--av-sw); height: var(--av-sw);
+  border-radius: var(--radius-sm); background: var(--surface); border: var(--border) solid var(--line);
+}
+.av-sw .av-badge { width: var(--space-4); height: var(--space-4); }
+.av-sw .av-badge .icon { width: var(--space-3); height: var(--space-3); }
+.av-sw .av-frac { font-size: var(--text-xs); }
+.av-note-fraction { margin-top: var(--space-2); font-size: var(--text-sm); color: var(--ink); font-weight: var(--weight-medium); }
+
+/* ---------- บรรทัดอธิบายผล + ช่วงเวลาที่นับ ---------- */
+.av-info { display: flex; gap: var(--space-2); align-items: flex-start; margin-top: var(--space-3); font-size: var(--text-sm); color: var(--ink-muted); }
+.av-info .icon { flex: none; width: var(--icon-sm); height: var(--icon-sm); margin-top: var(--space-1); }
+.av-info b { color: var(--ink); font-weight: var(--weight-medium); font-variant-numeric: tabular-nums; }
+.av-window { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-3); margin-top: var(--space-1); font-size: var(--text-sm); }
+.av-window .lbl { color: var(--ink-muted); }
+.av-window .val { color: var(--ink); font-weight: var(--weight-medium); font-variant-numeric: tabular-nums; }
+.av-link {
+  display: inline-flex; align-items: center; min-height: var(--tap); padding: 0; border: 0; background: transparent;
+  color: var(--accent-ink); font: inherit; font-size: var(--text-sm); font-weight: var(--weight-medium); text-decoration: underline; text-underline-offset: var(--space-1);
+}
+.av-admin-only { flex-basis: 100%; font-size: var(--text-xs); color: var(--ink-muted); }
+
+/* ---------- รายละเอียดวัน (sheet บนมือถือ / แผงขวาบน iPad) ---------- */
+.av-detail > h2 { font-size: var(--text-lg); font-weight: var(--weight-semibold); line-height: var(--leading-heading); }
+.av-status {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-3); align-items: start;
+  margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius-sm);
+  background: var(--surface-2); color: var(--ink);
+}
+.av-status b { display: block; font-size: var(--text-md); font-weight: var(--weight-semibold); line-height: var(--leading-heading); }
+.av-status span { display: block; margin-top: var(--space-1); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.av-status .av-badge { margin-top: var(--border-strong); }
+.av-status.is-all { background: var(--free); color: var(--free-ink); }
+.av-status.is-nocommon { background: var(--surface); border: var(--border-strong) dashed var(--free-ink); padding: calc(var(--space-3) - var(--border-strong)); }
+.av-status.is-none { background: var(--busy); color: var(--busy-ink); }
+.av-status .ico { display: inline-grid; place-items: center; width: var(--av-badge); height: var(--av-badge); margin-top: var(--border-strong); }
+.av-status .ico .icon { width: var(--icon); height: var(--icon); }
+.av-status.is-nocommon .ico { color: var(--free-ink); }
+
+.av-detail .sub { margin-top: var(--space-4); font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-muted); }
+.av-segs { margin-top: var(--space-2); display: grid; gap: var(--space-2); }
+.av-seg {
+  display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); padding: var(--space-2) var(--space-3);
+  background: var(--free); color: var(--free-ink); border-radius: var(--radius-sm); font-variant-numeric: tabular-nums;
+}
+.av-seg .icon { flex: none; width: var(--icon-sm); height: var(--icon-sm); }
+.av-seg .tm { font-weight: var(--weight-semibold); }
+.av-seg .du { flex: 1; min-width: 0; text-align: right; font-size: var(--text-sm); }
+.av-seg .tag { background: var(--surface); color: var(--free-ink); }
+.av-detail .cal-people { margin-top: var(--space-1); }
+.av-flag { margin-top: var(--space-1); display: inline-flex; }
+.av-detail .cal-person .items { flex-basis: 52%; }
+.av-detail .cal-person .pn { display: flex; flex-direction: column; align-items: flex-start; }
+.av-hint { margin-top: var(--space-2); font-size: var(--text-xs); color: var(--ink-muted); }
+
+/* ปุ่ม "สร้างนัด" ที่ยังไม่เปิดใช้ (R4B): aria-disabled (โฟกัสได้ อ่านคำอธิบายได้) ไม่ใช่ disabled */
+.av-cta { display: grid; gap: var(--space-2); margin-top: var(--space-4); }
+.av-cta .btn { width: 100%; min-height: var(--tap-lg); }
+.av-cta .btn[aria-disabled="true"] { background: var(--surface-2); color: var(--ink-muted); border-color: var(--line-control); cursor: not-allowed; }
+.av-cta .btn .soon { margin-left: var(--space-1); min-height: 0; padding: var(--space-1) var(--space-2); background: var(--surface); color: var(--ink); font-size: var(--text-xs); line-height: var(--leading-tight); align-self: center; }
+.av-cta p { font-size: var(--text-sm); color: var(--ink-muted); }
+.av-sheet { max-height: 86dvh; }
+.av-sheet .av-hint { margin-top: var(--space-3); font-size: var(--text-sm); }
+.sheet-foot .av-cta { margin-top: 0; }
+.sheet-foot .av-cta .btn { min-height: var(--tap); }
+
+/* sheet รายละเอียดวัน: ปิดบน iPad (ใช้แผงขวา .cal-side แทน) */
+@media (min-width: 48em) {
+  .av-sheet-layer { display: none; }
+}
+@media (max-width: 47.99em) {
+  .av-side-only { display: none; }
+}

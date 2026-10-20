@@ -91,6 +91,21 @@ const pairs = [
   ['--on-accent', '--accent', 'สวิตช์เปิด: ปุ่มกลมบนราง', UI],
   ['--ink-muted', '--surface-2', 'สวิตช์ปิด: ปุ่มกลมบนราง', UI],
   ['--line-control', '--surface-2', 'ขอบราง/ขอบสวิตช์ปิดบนพื้นยุบ', UI],
+  // R4A วันที่ว่างตรงกัน: กรอบ/วงกลม "ว่างร่วม" (--free-ink) ต้องแยกจากพื้นข้างเคียงและพื้นช่อง (WCAG 1.4.11) · วงเลือกวัน --accent บนพื้นช่อง
+  ['--free-ink', '--bg', 'กรอบทึบ "ว่างร่วม" / กรอบเส้นประ "ว่างครบไม่ตรง" เทียบพื้นหน้า (ช่องวันนอกเดือนบนพื้นโปร่ง)', UI],
+  ['--free-ink', '--avail-full', 'กรอบทึบ "ว่างร่วม" เทียบพื้นช่อง (วงกลมเครื่องหมายถูกใช้คู่เดียวกันเป็นข้อความ 4.5 ด้านบน)', UI],
+  ['--free-ink', '--avail-mid', 'กรอบเส้นประ "ว่างครบแต่ไม่ตรงช่วง" เทียบพื้นช่อง', UI],
+  ['--free-ink', '--surface', 'กรอบเส้นประของกล่องสถานะ + ตัวอย่างช่องในคำอธิบาย', UI],
+  ['--free-ink', '--avail-full', 'เครื่องหมายถูกในวงกลมทึบ "ว่างร่วม" (ตัวเลขไม่ต้องใช้ — ใช้ไอคอน)', T],
+  ['--accent', '--avail-full', 'วงเลือกวันรอบช่อง "ว่างร่วม"', UI],
+  ['--accent', '--avail-mid', 'วงเลือกวันรอบช่อง n/n', UI],
+  ['--accent', '--busy', 'วงเลือกวันรอบช่อง "ทั้งวันไม่ว่าง"', UI],
+  ['--free-ink', '--free', 'การ์ดสรุป "วันที่ว่างตรงกันเร็วที่สุด" + แถวช่วงว่างร่วม + กล่องสถานะ "ว่างร่วม"', T],
+  ['--ink', '--surface', 'ชื่อ/ข้อความในการ์ดสรุปกรณีไม่มีวันว่างร่วม + ปุ่ม "สร้างนัด" ป้าย "เร็วๆ นี้"', T],
+  ['--ink', '--busy', 'ข้อความกล่องสถานะ (สำรอง)', T],
+  ['--busy-ink', '--busy', 'กล่องสถานะ "ทั้งวันไม่ว่าง" + ตัวเลข 0/Y', T],
+  ['--ink-muted', '--surface-2', 'ปุ่ม "สร้างนัด" ที่ยังไม่เปิด (aria-disabled) + ช่องวันที่ผ่านไปแล้ว', T],
+  ['--ink-muted', '--surface', 'ข้อความอธิบายผล/ช่วงเวลาที่นับ/คำใบ้ใต้ปุ่ม', T],
   // ส่วนที่ไม่ใช่ข้อความ (WCAG 1.4.11)
   ['--line-control', '--surface', 'ขอบช่องกรอก/สวิตช์บน sheet', UI],
   ['--line-control', '--bg', 'ขอบช่องกรอกบนพื้นหน้า', UI],
@@ -193,6 +208,18 @@ try {
   }
 } catch { metaFail.push('ไม่พบ src/styles/tokens.meta.ts'); }
 console.log(`theme-color ใน tokens.meta.ts ตรงกับ --bg: ${metaFail.length ? 'ไม่ตรง → ' + metaFail.join(', ') : 'ตรง'}`);
+// R4A: ข้อความบนพื้นช่องที่มี "ลายเฉียง" (--hatch ทับพื้น) — ผสมจริงแล้วค่อยวัด (ลายเส้นบางจึงวัดกรณีแย่สุดที่เส้นเต็มความทึบ)
+for (const [themeName, theme] of [['light', light], ['dark', dark]]) {
+  const h = rgba(resolveVar(theme, '--hatch'));
+  for (const [fg, base, use] of [
+    ['--ink', '--avail-none', 'ตัวเลข "2/6" ในช่องว่างไม่ถึงครึ่ง (พื้น + ลายเฉียง)'],
+    ['--busy-ink', '--busy', 'ตัวเลข "0/6" ในช่องทั้งวันไม่ว่าง (พื้น + ลายเฉียง)'],
+  ]) {
+    const bg = toHex(over(h, h[3], rgba(resolveVar(theme, base))));
+    const a = resolveVar(theme, fg); const r = ratio(a, bg); const ok = r >= T; if (!ok) fails++;
+    rows.push({ themeName, fg, a, bg: base + '+hatch', b: bg, r, min: T, ok, use });
+  }
+}
 const md = process.argv.includes('--md');
 for (const [themeName, theme] of [['light', light], ['dark', dark]]) {
   for (const [fg, bg, use, min] of pairs) {

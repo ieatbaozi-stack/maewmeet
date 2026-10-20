@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
 import { createRequire } from 'node:module';
 import { expandCalendar, setIntl, takeEn } from './build-calendar.mjs';
+import { expandAvailability } from './build-availability.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '../../..');
@@ -74,6 +75,7 @@ const attr = (s, n) => (s.match(new RegExp(`${n}="([^"]*)"`)) || [])[1] || '';
 const tdir = resolve(here, 'templates');
 for (const f of readdirSync(tdir).filter((x) => x.endsWith('.html'))) {
   let html = readFileSync(resolve(tdir, f), 'utf8');
+  html = expandAvailability(html); // R4A: <gen-avpage> → หน้าจอวันที่ว่างตรงกัน (ก่อน expandCalendar ไม่จำเป็น แต่ก่อน applyMessages)
   html = expandCalendar(html); // R3: <gen-month|day|picker|mine|sum|d> → markup (ก่อน applyMessages เพราะมี data-m)
   html = applyMessages(html);
   const genEn = takeEn();
