@@ -118,6 +118,85 @@
       "few": "Under half free",
       "plan": "Has a plan",
       "countNote": "Numbers show how many of the {total} members are free that day."
+    },
+    "groupSwitch": {
+      "label": "Switch group — viewing “{group}”",
+      "title": "Which group’s calendar?",
+      "hint": "Your busy time is the same in every group, so you only add it once."
+    },
+    "view": {
+      "label": "Calendar view",
+      "month": "Month",
+      "day": "Day",
+      "mine": "Mine"
+    },
+    "nav": {
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "prevDay": "Previous day",
+      "nextDay": "Next day",
+      "today": "Today",
+      "todayAria": "Back to today"
+    },
+    "dow": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "dowLong": {
+      "mon": "Monday",
+      "tue": "Tuesday",
+      "wed": "Wednesday",
+      "thu": "Thursday",
+      "fri": "Friday",
+      "sat": "Saturday",
+      "sun": "Sunday"
+    },
+    "month": {
+      "gridAria": "Calendar for {month}"
+    },
+    "cell": {
+      "aria": "{date}{today, select, yes {, today} other {}}{outside, select, yes {, outside this month} other {}}, {count, plural, =0 {nobody busy} one {1 person busy} other {# people busy}}",
+      "more": "+{count}"
+    },
+    "busyLegend": {
+      "whoTitle": "Who’s who",
+      "hint": "Each dot is one member who’s busy that day. Tap a day for the times.",
+      "more": "“+3” means 3 more people are busy that day.",
+      "sameColour": "Groups over 10 people reuse colours. Each day’s list has the names."
+    },
+    "day": {
+      "summary": "{count, plural, =0 {Nobody’s busy} one {1 of {total} is busy} other {# of {total} are busy}}",
+      "timeline": "Everyone’s day",
+      "timelineHint": "Coloured bars are busy time.",
+      "now": "Now",
+      "listTitle": "Who’s busy when",
+      "allDay": "All day",
+      "range": "{start}–{end}",
+      "fromPrev": "From yesterday until {end}",
+      "toNext": "From {start}, into tomorrow",
+      "dayOf": "Day {n} of {total}",
+      "busyPlain": "Busy",
+      "noBusy": "Nothing marked",
+      "othersFree": "Nothing marked: {names}",
+      "empty": {
+        "title": "{when, select, today {No one’s marked busy today} other {No one’s marked busy on this day}}",
+        "body": "Tied up that day? Add it so your friends know."
+      }
+    },
+    "loading": "Loading the group calendar…",
+    "error": {
+      "title": "Couldn’t load the calendar",
+      "body": "Check your connection and try again. The busy time you added is safe."
+    },
+    "gone": {
+      "title": "You’re not in this group any more",
+      "body": "The group may have been deleted, or you were removed. Pick another group, or head back to Groups.",
+      "cta": "Go to groups"
     }
   },
   "a11y": {
@@ -505,10 +584,10 @@
     "INVITE_INVALID": "This code doesn’t work. Ask someone in the group for a new one.",
     "ALREADY_MEMBER": "That person’s already in this group.",
     "USER_NOT_FOUND": "No one has that username. Check the spelling, or send them an invite code instead.",
-    "LIMIT_REACHED": "{limit, select, groups {You can create up to {max} groups. Delete one you no longer use to make a new one.} members {This group is full ({max} members at most). An admin can remove members who aren’t active.} codes {This group already has {max} active invite codes. Revoke one you don’t need to make a new one.} other {You’ve hit a limit. Free something up and try again.}}",
-    "INVALID_RANGE": "The end has to be after the start.",
-    "INVALID_DATE": "That date doesn’t exist. Pick one from the calendar.",
-    "INVALID_LOCAL_TIME": "That time doesn’t exist in this time zone because the clocks change. Pick another time.",
+    "LIMIT_REACHED": "{limit, select, groups {You can create up to {max} groups. Delete one you no longer use to make a new one.} members {This group is full ({max} members at most). An admin can remove members who aren’t active.} codes {This group already has {max} active invite codes. Revoke one you don’t need to make a new one.} busyCount {You already have {max} upcoming busy entries, the most we allow. Delete ones you don’t need, then add this one.} busySpan {One entry can cover {max} days at most. Try splitting it into a few.} busyBackdate {You can add busy time up to {max} days back. Pick a more recent date.} other {You’ve hit a limit. Free something up and try again.}}",
+    "INVALID_RANGE": "{kind, select, dates {The last day can’t come before the first day.} other {The end has to be after the start.}}",
+    "INVALID_DATE": "That date doesn’t exist (like 30 February). Pick one from the calendar.",
+    "INVALID_LOCAL_TIME": "That time doesn’t exist here because the clocks skip ahead. Pick another time.",
     "TIME_NOT_ON_STEP": "Times go in half-hour steps, like 18:00 or 18:30.",
     "DATE_OUT_OF_RANGE": "That date is outside the range we support. Pick one from the calendar.",
     "RANGE_TOO_LARGE": "That date range is too long. Try a shorter one.",
@@ -517,5 +596,112 @@
     "INVALID_MAP_URL": "We can’t read a location from that link. Try copying it from the Share button in your maps app.",
     "INVALID_COORDINATES": "Those coordinates don’t look right. Check the latitude and longitude.",
     "APPOINTMENT_CANCELLED": "This plan was cancelled, so it can’t be changed."
+  },
+  "busy": {
+    "add": "Add busy time",
+    "mine": {
+      "title": "My busy time",
+      "lead": "Add it once and friends in all your groups see the same thing.",
+      "count": "{count, plural, =0 {Nothing yet} one {1 upcoming entry} other {# upcoming entries}}",
+      "ongoing": "Happening now",
+      "hiddenTag": "Details hidden",
+      "hasNote": "Private note",
+      "noTitle": "No description",
+      "openAria": "Edit {title}, {when}",
+      "limitNear": "You’re using {count} of {max} entries. Delete old ones you don’t need to free up space.",
+      "loading": "Loading your busy time…",
+      "empty": {
+        "title": "No busy time coming up",
+        "body": "Add it ahead of time so friends don’t plan over it."
+      },
+      "error": {
+        "title": "Couldn’t load your list",
+        "body": "Check your connection and try again. Nothing you added is lost."
+      }
+    },
+    "when": {
+      "allDay": "{date} · All day",
+      "days": "{start} – {end} · {count, plural, one {# day} other {# days}}",
+      "timed": "{date} · {start}–{end}",
+      "timedSpan": "{startDate} {start} – {endDate} {end}"
+    },
+    "duration": {
+      "min": "{minutes} min",
+      "hour": "{hours} hr",
+      "hourMin": "{hours} hr {minutes} min"
+    },
+    "form": {
+      "title": "Add busy time",
+      "editTitle": "Edit busy time",
+      "type": {
+        "label": "Type",
+        "allDay": "All day",
+        "timed": "Time range",
+        "multi": "Several days",
+        "help": {
+          "allDay": "One whole day",
+          "timed": "Pick a start and end time. It can run past midnight.",
+          "multi": "Back-to-back days, like a trip"
+        }
+      },
+      "date": {
+        "label": "Date",
+        "pick": "Tap the day",
+        "pickRange": "Tap the first day, then the last",
+        "pickTimed": "Tap the day. For several days, tap the last day too.",
+        "none": "No date picked yet",
+        "toggleAria": "Choose dates, currently {summary}"
+      },
+      "time": {
+        "start": "Starts",
+        "end": "Ends",
+        "startAria": "Start time",
+        "endAria": "End time"
+      },
+      "total": "{total} in total",
+      "totalDays": "{count, plural, one {# day} other {# days}} in total",
+      "overnight": "Runs past midnight",
+      "what": {
+        "label": "What are you doing?",
+        "optional": "optional",
+        "placeholder": "e.g. Trip upcountry, night shift",
+        "hint": "Up to {max} characters"
+      },
+      "hide": {
+        "label": "Hide what I’m doing",
+        "help": "Friends will only see “Busy”, not what you’re up to."
+      },
+      "note": {
+        "label": "Private note",
+        "badge": "Only you can see this",
+        "placeholder": "e.g. Buy mum’s present first",
+        "help": "Only you can see this. Friends never do, even if you leave your description visible.",
+        "hint": "Up to {max} characters"
+      },
+      "visibility": "Friends in every group you’re in will see this time",
+      "visibilityGroups": "{count, plural, one {That’s 1 group right now} other {That’s # groups right now}}",
+      "submit": "Save",
+      "saving": "Saving…",
+      "delete": "Delete this",
+      "notice": {
+        "title": "Add it once — every group sees it",
+        "body": "Busy time you add shows to friends in all your groups, so there’s no need to repeat it for each one. To show only “Busy”, turn on Hide what I’m doing. The private note is for you alone.",
+        "cta": "Got it"
+      },
+      "error": {
+        "save": "Couldn’t save. What you typed is still here — try again.",
+        "gone": "This entry no longer exists. It may have been deleted on another device."
+      }
+    },
+    "delete": {
+      "title": "Delete this busy time?",
+      "body": "It disappears from every friend’s calendar right away, and you can’t undo it.",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "saved": "Busy time saved",
+      "updated": "Changes saved",
+      "deleted": "Busy time deleted"
+    }
   }
 }
