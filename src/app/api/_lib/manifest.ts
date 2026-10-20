@@ -61,6 +61,12 @@ export const ROUTE_MANIFEST = [
   { method: 'GET', path: '/api/me/invites', action: 'invite.direct.list.mine', auth: 'actor', owner: 'platform' },
   { method: 'POST', path: '/api/me/invites/:iid/accept', action: 'invite.direct.respond', auth: 'actor', owner: 'platform' },
   { method: 'POST', path: '/api/me/invites/:iid/decline', action: 'invite.direct.respond', auth: 'actor', owner: 'platform' },
+  // ── U7–U8 (R3 · Platform) ──
+  { method: 'GET', path: '/api/me/busy', action: 'busy.list.own', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/me/busy', action: 'busy.create', auth: 'actor', owner: 'platform' },
+  { method: 'PATCH', path: '/api/me/busy/:id', action: 'busy.update', auth: 'actor', owner: 'platform' },
+  { method: 'DELETE', path: '/api/me/busy/:id', action: 'busy.delete', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/groups/:gid/calendar', action: 'group.calendar.view', auth: 'actor', owner: 'platform' },
 ] as const satisfies readonly ManifestEntry[];
 
 export function findRoute(method: string, path: string): ManifestEntry | undefined {

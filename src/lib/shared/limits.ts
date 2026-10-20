@@ -18,5 +18,20 @@ export const GROUP_LIMITS = {
   nameMax: 40,
 } as const;
 
+// เพดาน busy / ปฏิทิน — R3_CONTRACT §2 (ค่าเริ่มต้นของ Lead) · lib เวลารับค่าเหล่านี้เป็นพารามิเตอร์ ไม่ฮาร์ดโค้ด
+/** busy ที่ยังไม่สิ้นสุด (end_at > now) ต่อผู้ใช้ */
+export const BUSY_MAX_PER_USER = 300;
+/** ช่วงเดียวครอบได้ไม่เกินกี่วันปฏิทิน (ทั้งสองแบบ) */
+export const BUSY_MAX_SPAN_DAYS = 366;
+/** busy แบบมีเวลา ยาวสุดกี่วัน (ความยาวจริง — ADR 0004 §2) */
+export const BUSY_MAX_TIMED_DAYS = 62;
+/** ลงย้อนหลังได้ไม่เกินกี่วัน */
+export const BUSY_MAX_BACKDATE_DAYS = 7;
+/** ช่วงวันที่ที่ขอดูได้ต่อคำขอ (ปฏิทินกลุ่ม · รายการของฉันแบบช่วง) — monthGrid() ≤ 42 วัน */
+export const CALENDAR_MAX_RANGE_DAYS = 62;
+/** ความยาวสูงสุดของ title / note (อักขระ = code point) */
+export const BUSY_TITLE_MAX = 80;
+export const BUSY_NOTE_MAX = 500;
+
 /** ชนิดเพดานที่ใส่ใน params ของ LIMIT_REACHED (UX แปลตามนี้) */
-export type LimitKind = 'groups' | 'members' | 'codes' | 'pendingInvites';
+export type LimitKind = 'groups' | 'members' | 'codes' | 'pendingInvites' | 'busyCount' | 'busySpan' | 'busyBackdate';
