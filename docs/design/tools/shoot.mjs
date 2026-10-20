@@ -47,6 +47,23 @@ const JOBS = [
   ['admin-resets', 'all', 'view', VARIANTS],
   ['admin-resets', 'empty', 'view', VARIANTS],
   ['admin-resets', 'error', 'view', [['th', 'light'], ['en', 'dark']]],
+  // R2 — กลุ่ม / หน้ากลุ่ม / ตั้งค่า / sheet / dialog (th/en × light/dark)
+  ['groups', 'invites', 'view', VARIANTS],
+  ['groups', 'list', 'view', VARIANTS],
+  ['groups', 'empty', 'view', VARIANTS],
+  ['groups', 'create', 'view', VARIANTS],
+  ['groups', 'join', 'view', VARIANTS],
+  ['groups', 'loading', 'view', [['th', 'light']]],
+  ['group', 'normal', 'view', VARIANTS],
+  ['group', 'member', 'view', VARIANTS],
+  ['group', 'solo', 'view', VARIANTS],
+  ['group-settings', 'admin', 'full', VARIANTS],
+  ['group-settings', 'member', 'full', VARIANTS],
+  ['group-settings', 'invite', 'view', VARIANTS],
+  ['group-settings', 'confirm', 'view', VARIANTS],
+  ['group-settings', 'delete', 'view', VARIANTS],
+  ['group-settings', 'actions', 'view', VARIANTS],
+  ['members', 'normal', 'view', [['th', 'light'], ['th', 'dark']]],
 ];
 const only = process.argv.slice(2);
 

@@ -1,5 +1,6 @@
 // fixture ร่วม: ตั้ง cookie ภาษา/ธีม · เก็บ console error / CSP violation · วัดเลย์เอาต์
 import { test as base, expect, type BrowserContext, type ConsoleMessage, type Page } from '@playwright/test';
+import { isFaviconNotFound, type ConsoleProblem } from './console-filter';
 import type { Locale } from './messages';
 
 export type Theme = 'system' | 'light' | 'dark';
@@ -12,10 +13,11 @@ export async function setPrefs(context: BrowserContext, baseURL: string, prefs: 
   await context.addCookies(cookies);
 }
 
-export type ConsoleProblem = { type: string; text: string; url?: string };
+export type { ConsoleProblem };
 
 /**
  * console error (warning ไม่นับ) + pageerror + ทุกข้อความที่พูดถึง Content Security Policy (ทุกระดับ)
+ * 404 ของ /favicon.ico ถูกข้ามเสมอ (isFaviconNotFound) · CSP/error อื่นยังนับ
  * ignore(msg) — กรองกรณีที่คาดไว้ เช่น 404 ของตัวเอกสารเองในหน้า not-found
  */
 export function watchConsole(page: Page, ignore: (m: ConsoleProblem) => boolean = () => false): ConsoleProblem[] {
@@ -23,7 +25,7 @@ export function watchConsole(page: Page, ignore: (m: ConsoleProblem) => boolean 
   page.on('console', (m: ConsoleMessage) => {
     const p = { type: m.type(), text: m.text(), url: m.location().url };
     const isCsp = /Content Security Policy/i.test(p.text);
-    if ((p.type === 'error' || isCsp) && !ignore(p)) problems.push(p);
+    if ((p.type === 'error' || isCsp) && !isFaviconNotFound(p) && !ignore(p)) problems.push(p);
   });
   page.on('pageerror', (e) => problems.push({ type: 'pageerror', text: e.message }));
   return problems;

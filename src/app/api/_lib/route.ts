@@ -163,13 +163,33 @@ function valueAt(raw: unknown, path: readonly PropertyKey[]): unknown {
   return cur;
 }
 
+const tooLarge = () => new AppError('VALIDATION', { fields: { _body: 'TOO_LARGE' } });
+
+/**
+ * อ่าน body แบบ stream พร้อมตัวนับไบต์ — ครบ 64KB เมื่อไหร่ยกเลิก stream ทันที (ไม่ buffer ทั้งก้อนก่อนค่อยวัด)
+ * ครอบคลุม chunked / ไม่มี content-length / content-length โกหก
+ */
 async function readJsonBody(req: Request): Promise<unknown> {
   const declared = Number(req.headers.get('content-length') ?? '0');
-  if (declared > MAX_BODY_BYTES) throw new AppError('VALIDATION', { fields: { _body: 'TOO_LARGE' } });
-  const text = await req.text();
-  if (Buffer.byteLength(text, 'utf8') > MAX_BODY_BYTES) {
-    throw new AppError('VALIDATION', { fields: { _body: 'TOO_LARGE' } });
+  if (declared > MAX_BODY_BYTES) {
+    await req.body?.cancel().catch(() => undefined);
+    throw tooLarge();
   }
+  if (!req.body) return undefined;
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_BODY_BYTES) {
+      await reader.cancel().catch(() => undefined);
+      throw tooLarge();
+    }
+    chunks.push(value);
+  }
+  const text = new TextDecoder().decode(Buffer.concat(chunks));
   if (text.trim() === '') return undefined;
   try {
     return JSON.parse(text) as unknown;

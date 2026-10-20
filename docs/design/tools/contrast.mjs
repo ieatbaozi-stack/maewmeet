@@ -70,7 +70,10 @@ const pairs = [
   ['--ink', '--avail-full', 'เลขวัน + "x/y" ในช่องว่างครบ', T],
   ['--free-ink', '--avail-full', 'ไอคอนถูกในช่องว่างครบ', T],
   ['--ink-muted', '--avail-none', 'ตัวเลขรองในช่องว่างน้อย', T],
-  ...Array.from({ length: 8 }, (_, i) => ['--member-ink', `--member-${i + 1}`, `ตัวอักษรย่อบนสีสมาชิก ${i + 1}`, T]),
+  ...Array.from({ length: 10 }, (_, i) => ['--member-ink', `--member-${i + 1}`, `ตัวอักษรย่อบนสีสมาชิก ${i + 1}`, T]),
+  // เส้น/จุด/แถบสีประจำสมาชิก (--member-mark-N) บนพื้นทึบ — WCAG 1.4.11 (พื้นอวาตาร์ --member-N ล้อมด้วยเส้น --line-control ซึ่งตรวจแล้วข้างล่าง)
+  ...Array.from({ length: 10 }, (_, i) => ['--member-mark-' + (i + 1), '--surface', `จุด/เส้นสมาชิก ${i + 1} บนการ์ด/sheet`, UI]),
+  ...Array.from({ length: 10 }, (_, i) => ['--member-mark-' + (i + 1), '--bg', `จุด/เส้นสมาชิก ${i + 1} บนพื้นหน้า`, UI]),
   // ส่วนที่ไม่ใช่ข้อความ (WCAG 1.4.11)
   ['--line-control', '--surface', 'ขอบช่องกรอก/สวิตช์บน sheet', UI],
   ['--line-control', '--bg', 'ขอบช่องกรอกบนพื้นหน้า', UI],
@@ -128,6 +131,9 @@ const auroraPairs = [
   ['--line-control', 'veil', UI, 'ขอบช่องกรอก/ปุ่มแป้น PIN บน veil'],
   ['--focus', 'veil', UI, 'วงโฟกัสบน veil'],
   ['--accent', 'veil', UI, 'ขอบเขตปุ่มหลักบน veil (ปุ่มหลักไม่วางบน aurora ตรงๆ)'],
+  // สีประจำสมาชิกแบบเส้น/จุด บน veil และ aurora จาง (ไม่ใช่ข้อความ → 3:1)
+  ...Array.from({ length: 10 }, (_, i) => ['--member-mark-' + (i + 1), 'veil', UI, `จุด/เส้นสมาชิก ${i + 1} บน sheet/แถบล่าง (veil)`]),
+  ...Array.from({ length: 10 }, (_, i) => ['--member-mark-' + (i + 1), 'soft', UI, `จุด/เส้นสมาชิก ${i + 1} บน aurora จาง (ปฏิทิน)`]),
   ['--ink-muted', 'nav', T, 'ป้ายแท็บที่ไม่ได้เลือกบนแถบล่าง (--surface-nav เหนือ aurora เข้ม/การ์ดที่เลื่อนผ่าน)'],
   ['--accent-ink', 'nav', T, 'แท็บที่เลือกบนแถบล่าง'],
 ];

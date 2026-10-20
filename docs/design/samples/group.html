@@ -1,0 +1,128 @@
+<!-- สร้างจาก docs/design/tools/templates/group.html ด้วย build-samples.mjs — แก้ที่ template -->
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-t="group.settings">ตั้งค่ากลุ่ม</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/members.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<script>window.MESSAGES_EN = Object.assign(window.MESSAGES_EN || {}, {"group.settings":"Group settings","groups.memberCount~1":"6 members","group.yourRole~2":"You’re an admin","group.yourRole~3":"You’re a member","groups.memberCount~4":"1 member","group.invite":"Invite friends","group.members.title":"Members","group.members.you":"You","roles.admin":"Admin","roles.moderator":"Moderator","roles.member":"Member","group.solo.title":"It’s just you in this group","group.solo.body":"Invite your friends first, then you can see which days work for everyone.","group.calendarSoon.title":"The group calendar is on its way","group.calendarSoon.body":"Soon you’ll see the days everyone’s free, right here. In the meantime, you can bring your friends in.","nav.home":"Home","nav.calendar":"Calendar","nav.groups":"Groups","nav.me":"Me","group.back":"Back to groups","group.members.actionsAria~5":"Manage ปาล์ม","group.members.actionsAria~6":"Manage มายด์","group.members.actionsAria~7":"Manage โอ๊ต","group.members.actionsAria~8":"Manage ฟ้า","group.members.actionsAria~9":"Manage บีม","nav.label":"Main menu"});</script>
+</head>
+<body>
+<div class="aurora" data-intensity="soft" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<div class="app">
+  <header class="topbar">
+    <a class="icon-btn" href="groups.html" aria-label="กลับไปรายการกลุ่ม" data-t-aria="group.back"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 18-6-6 6-6" /></svg></a>
+    <span class="title" style="font-size: var(--text-lg)"></span>
+    <a class="icon-btn" href="group-settings.html" aria-label="ตั้งค่ากลุ่ม" data-t-aria="group.settings"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /> <circle cx="12" cy="12" r="3" /></svg></a>
+  </header>
+  <main class="main" style="padding: 0">
+    <div class="group-head">
+      <h1>แก๊งมัธยม ห้อง 6/3</h1>
+      <p class="meta" data-state-show="normal"><span data-t="groups.memberCount~1">6 คน</span><span>·</span><span data-t="group.yourRole~2">คุณเป็นผู้ดูแล</span></p>
+      <p class="meta" data-state-show="member" hidden><span data-t="groups.memberCount~1">6 คน</span><span>·</span><span data-t="group.yourRole~3">คุณเป็นสมาชิก</span></p>
+      <p class="meta" data-state-show="solo" hidden><span data-t="groups.memberCount~4">1 คน</span><span>·</span><span data-t="group.yourRole~2">คุณเป็นผู้ดูแล</span></p>
+    </div>
+    <div style="padding: 0 var(--gutter); max-width: var(--content-max); margin: 0 auto">
+      <div data-state-show="normal member" class="btn-row" style="margin-top: 0">
+        <button class="btn btn-primary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /> <circle cx="9" cy="7" r="4" /> <line x1="19" x2="19" y1="8" y2="14" /> <line x1="22" x2="16" y1="11" y2="11" /></svg><span data-t="group.invite">ชวนเพื่อน</span></button>
+      </div>
+
+      <section data-state-show="normal member" aria-labelledby="mem-h">
+        <h2 class="h-section" id="mem-h" style="margin-bottom: var(--space-3)" data-t="group.members.title">สมาชิก</h2>
+        <ul class="rows m-rows" data-state-show="normal">
+        <li><div class="row" role="group" aria-label="ต้นข้าว">
+          <span class="member-avatar lg" data-slot="1" aria-hidden="true"><span class="member-initial">ต</span></span>
+          <span class="row-main"><span class="row-title">ต้นข้าว</span><span class="you"><span data-t="group.members.you">คุณ</span></span><span class="tag tag-role is-admin"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z" /> <path d="M5 21h14" /></svg><span data-t="roles.admin">ผู้ดูแล</span></span></span>
+          </div></li>
+        <li><div class="row" role="group" aria-label="ปาล์ม">
+          <span class="member-avatar lg" data-slot="3" aria-hidden="true"><span class="member-initial">ป</span></span>
+          <span class="row-main"><span class="row-title">ปาล์ม</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></svg><span data-t="roles.moderator">ผู้ช่วยดูแล</span></span></span>
+          <button class="icon-btn" aria-label="จัดการ ปาล์ม" data-t-aria="group.members.actionsAria~5"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="1" /> <circle cx="19" cy="12" r="1" /> <circle cx="5" cy="12" r="1" /></svg></button></div></li>
+        <li><div class="row" role="group" aria-label="มายด์">
+          <span class="member-avatar lg" data-slot="5" aria-hidden="true"><span class="member-initial">ม</span></span>
+          <span class="row-main"><span class="row-title">มายด์</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span>
+          <button class="icon-btn" aria-label="จัดการ มายด์" data-t-aria="group.members.actionsAria~6"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="1" /> <circle cx="19" cy="12" r="1" /> <circle cx="5" cy="12" r="1" /></svg></button></div></li>
+        <li><div class="row" role="group" aria-label="โอ๊ต">
+          <span class="member-avatar lg" data-slot="8" aria-hidden="true"><span class="member-initial">อ</span></span>
+          <span class="row-main"><span class="row-title">โอ๊ต</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span>
+          <button class="icon-btn" aria-label="จัดการ โอ๊ต" data-t-aria="group.members.actionsAria~7"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="1" /> <circle cx="19" cy="12" r="1" /> <circle cx="5" cy="12" r="1" /></svg></button></div></li>
+        <li><div class="row" role="group" aria-label="ฟ้า">
+          <span class="member-avatar lg" data-slot="10" aria-hidden="true"><span class="member-initial">ฟ</span></span>
+          <span class="row-main"><span class="row-title">ฟ้า</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span>
+          <button class="icon-btn" aria-label="จัดการ ฟ้า" data-t-aria="group.members.actionsAria~8"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="1" /> <circle cx="19" cy="12" r="1" /> <circle cx="5" cy="12" r="1" /></svg></button></div></li>
+        <li><div class="row" role="group" aria-label="บีม">
+          <span class="member-avatar lg" data-slot="2" aria-hidden="true"><span class="member-initial">บ</span></span>
+          <span class="row-main"><span class="row-title">บีม</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span>
+          <button class="icon-btn" aria-label="จัดการ บีม" data-t-aria="group.members.actionsAria~9"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="1" /> <circle cx="19" cy="12" r="1" /> <circle cx="5" cy="12" r="1" /></svg></button></div></li>
+        </ul>
+        <ul class="rows m-rows" data-state-show="member" hidden>
+        <li><div class="row" role="group" aria-label="ต้นข้าว">
+          <span class="member-avatar lg" data-slot="1" aria-hidden="true"><span class="member-initial">ต</span></span>
+          <span class="row-main"><span class="row-title">ต้นข้าว</span><span class="tag tag-role is-admin"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z" /> <path d="M5 21h14" /></svg><span data-t="roles.admin">ผู้ดูแล</span></span></span>
+          </div></li>
+        <li><div class="row" role="group" aria-label="ปาล์ม">
+          <span class="member-avatar lg" data-slot="3" aria-hidden="true"><span class="member-initial">ป</span></span>
+          <span class="row-main"><span class="row-title">ปาล์ม</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></svg><span data-t="roles.moderator">ผู้ช่วยดูแล</span></span></span>
+          </div></li>
+        <li><div class="row" role="group" aria-label="มายด์">
+          <span class="member-avatar lg" data-slot="5" aria-hidden="true"><span class="member-initial">ม</span></span>
+          <span class="row-main"><span class="row-title">มายด์</span><span class="you"><span data-t="group.members.you">คุณ</span></span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span>
+          </div></li>
+        <li><div class="row" role="group" aria-label="โอ๊ต">
+          <span class="member-avatar lg" data-slot="8" aria-hidden="true"><span class="member-initial">อ</span></span>
+          <span class="row-main"><span class="row-title">โอ๊ต</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span>
+          </div></li>
+        <li><div class="row" role="group" aria-label="ฟ้า">
+          <span class="member-avatar lg" data-slot="10" aria-hidden="true"><span class="member-initial">ฟ</span></span>
+          <span class="row-main"><span class="row-title">ฟ้า</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span>
+          </div></li>
+        <li><div class="row" role="group" aria-label="บีม">
+          <span class="member-avatar lg" data-slot="2" aria-hidden="true"><span class="member-initial">บ</span></span>
+          <span class="row-main"><span class="row-title">บีม</span><span class="tag tag-role"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="roles.member">สมาชิก</span></span></span>
+          </div></li>
+        </ul>
+      </section>
+
+      <!-- เหลือคนเดียว -->
+      <section data-state-show="solo" hidden class="empty panel" style="margin-top: var(--space-2)">
+        <svg class="cat" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M81 100 C95 102 102 92 98 81 C96 75 91 75 91 79" fill="none"/><path d="M47 60 C40 70 36 86 38 100 C39 104 42 106 46 106 L74 106 C78 106 81 104 82 100 C84 86 80 70 73 60 Z" fill="var(--cat-coat)"/><path d="M53.5 88 C53.5 96 53.5 102 54.5 106" fill="none"/><path d="M66.5 88 C66.5 96 66.5 102 65.5 106" fill="none"/><g><path d="M40 50 C38 40 39 30 42 19 L54 27 C58 26 62 26 66 27 L78 19 C81 30 82 40 80 50 C78 60 70 65 60 65 C50 65 42 60 40 50 Z" fill="var(--cat-coat)"/><path d="M44.5 25 L45.5 33 L51 28.5 Z" fill="var(--cat-fill)" stroke="none"/><path d="M75.5 25 L74.5 33 L69 28.5 Z" fill="var(--cat-fill)" stroke="none"/><circle cx="46.5" cy="53.5" r="3.2" fill="var(--cat-fill)" stroke="none"/><circle cx="73.5" cy="53.5" r="3.2" fill="var(--cat-fill)" stroke="none"/><circle cx="52" cy="46" r="2.3" fill="currentColor" stroke="none"/><circle cx="68" cy="46" r="2.3" fill="currentColor" stroke="none"/><path d="M58.3 51.5 L61.7 51.5 L60 53.3 Z" fill="currentColor" stroke="none"/><path d="M60 53.5 Q58 56.5 55.8 55" fill="none"/><path d="M60 53.5 Q62 56.5 64.2 55" fill="none"/></g>
+</svg>
+        <h2 class="h-section" data-t="group.solo.title">ยังมีแค่คุณในกลุ่มนี้</h2>
+        <p class="muted" data-t="group.solo.body">ชวนเพื่อนเข้ากลุ่มก่อน แล้วค่อยดูว่าวันไหนว่างตรงกัน</p>
+        <button class="btn btn-primary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /> <circle cx="9" cy="7" r="4" /> <line x1="19" x2="19" y1="8" y2="14" /> <line x1="22" x2="16" y1="11" y2="11" /></svg><span data-t="group.invite">ชวนเพื่อน</span></button>
+      </section>
+      <section data-state-show="solo" hidden aria-labelledby="mem2-h" style="margin-top: var(--space-5)">
+        <h2 class="h-section" id="mem2-h" style="margin-bottom: var(--space-3)" data-t="group.members.title">สมาชิก</h2>
+        <ul class="rows m-rows">
+        <li><div class="row" role="group" aria-label="ต้นข้าว">
+          <span class="member-avatar lg" data-slot="1" aria-hidden="true"><span class="member-initial">ต</span></span>
+          <span class="row-main"><span class="row-title">ต้นข้าว</span><span class="you"><span data-t="group.members.you">คุณ</span></span><span class="tag tag-role is-admin"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z" /> <path d="M5 21h14" /></svg><span data-t="roles.admin">ผู้ดูแล</span></span></span>
+          </div></li>
+        </ul>
+      </section>
+
+      <!-- ที่ว่างของปฏิทิน (R3–R4) -->
+      <section data-state-show="normal member" class="panel soon" aria-labelledby="soon-h">
+        <svg class="cat" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M81 100 C95 102 102 92 98 81 C96 75 91 75 91 79" fill="none"/><path d="M47 60 C40 70 36 86 38 100 C39 104 42 106 46 106 L74 106 C78 106 81 104 82 100 C84 86 80 70 73 60 Z" fill="var(--cat-coat)"/><path d="M53.5 88 C53.5 96 53.5 102 54.5 106" fill="none"/><path d="M66.5 88 C66.5 96 66.5 102 65.5 106" fill="none"/><g><path d="M40 50 C38 40 39 30 42 19 L54 27 C58 26 62 26 66 27 L78 19 C81 30 82 40 80 50 C78 60 70 65 60 65 C50 65 42 60 40 50 Z" fill="var(--cat-coat)"/><path d="M44.5 25 L45.5 33 L51 28.5 Z" fill="var(--cat-fill)" stroke="none"/><path d="M75.5 25 L74.5 33 L69 28.5 Z" fill="var(--cat-fill)" stroke="none"/><circle cx="46.5" cy="53.5" r="3.2" fill="var(--cat-fill)" stroke="none"/><circle cx="73.5" cy="53.5" r="3.2" fill="var(--cat-fill)" stroke="none"/><circle cx="52" cy="46" r="2.3" fill="currentColor" stroke="none"/><circle cx="68" cy="46" r="2.3" fill="currentColor" stroke="none"/><path d="M58.3 51.5 L61.7 51.5 L60 53.3 Z" fill="currentColor" stroke="none"/><path d="M60 53.5 Q58 56.5 55.8 55" fill="none"/><path d="M60 53.5 Q62 56.5 64.2 55" fill="none"/></g><rect x="42" y="72" width="36" height="29" rx="3" fill="var(--cat-fill-2)"/><path d="M42 80 L78 80" fill="none"/><path d="M51 68.5 L51 75" fill="none"/><path d="M69 68.5 L69 75" fill="none"/><circle cx="51" cy="87" r="1.6" fill="currentColor" stroke="none"/><circle cx="60" cy="87" r="1.6" fill="currentColor" stroke="none"/><circle cx="69" cy="87" r="1.6" fill="currentColor" stroke="none"/><circle cx="51" cy="94" r="1.6" fill="currentColor" stroke="none"/><path d="M57.5 94 L59.5 96 L63 92" fill="none"/><ellipse cx="41" cy="89" rx="4.2" ry="3.6" fill="var(--cat-coat)"/><ellipse cx="79" cy="89" rx="4.2" ry="3.6" fill="var(--cat-coat)"/>
+</svg>
+        <div><h2 class="h-section" id="soon-h" data-t="group.calendarSoon.title">ปฏิทินกลุ่มกำลังมา</h2><p data-t="group.calendarSoon.body">อีกไม่นานคุณจะเห็นวันที่ทุกคนว่างตรงกันที่นี่ ระหว่างนี้ชวนเพื่อนเข้ากลุ่มรอไว้ก่อนได้เลย</p></div>
+      </section>
+    </div>
+  </main>
+  <nav class="tabbar" aria-label="เมนูหลัก" data-t-aria="nav.label">
+    <a class="tab" href="home.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /> <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg><span data-t="nav.home">หน้าหลัก</span></a>
+    <a class="tab" href="calendar.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 2v3" /> <path d="M16 2v3" /> <rect x="3" y="3" width="18" height="18" rx="2" /> <path d="M3 9h18" /></svg><span data-t="nav.calendar">ปฏิทิน</span></a>
+    <a class="tab" href="groups.html" aria-current="page"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /> <path d="M16 3.128a4 4 0 0 1 0 7.744" /> <path d="M22 21v-2a4 4 0 0 0-3-3.87" /> <circle cx="9" cy="7" r="4" /></svg><span data-t="nav.groups">กลุ่ม</span></a>
+    <a class="tab" href="#"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" /></svg><span data-t="nav.me">ฉัน</span></a>
+  </nav>
+</div>
+</body>
+</html>

@@ -1,0 +1,1 @@
+CREATE INDEX `groups_created_by_idx` ON `groups` (`created_by`);

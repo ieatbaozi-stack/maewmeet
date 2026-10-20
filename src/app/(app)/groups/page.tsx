@@ -2,29 +2,26 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/app/_lib/session";
 import { Aurora } from "@/components/brand";
-import { EmptyState } from "@/components/shell/EmptyState";
+import { GroupsView } from "@/components/groups/GroupsView";
 import { TopBar } from "@/components/shell/TopBar";
+import { loadGroupsTab } from "./_lib/load";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("nav");
   return { title: t("groups") };
 }
 
-/** กลุ่ม (UX W9) — R0 ยังไม่มีกลุ่ม · สร้างกลุ่มมาใน R2 → ปุ่มปิดไว้ */
+/** กลุ่ม (UX W9): รายการกลุ่ม · สร้างกลุ่ม · ใส่โค้ดเชิญ · คำเชิญตรงที่ค้าง */
 export default async function GroupsPage() {
   await requireUser();
-  const t = await getTranslations();
+  const t = await getTranslations("nav");
+  const { groups, invites } = await loadGroupsTab();
   return (
     <>
-      <Aurora intensity="hero" />
-      <TopBar title={t("nav.groups")} />
-      <main className="main" id="main">
-        <EmptyState
-          pose="peek"
-          title={t("empty.groups.title")}
-          body={t("empty.groups.body")}
-          cta={{ label: t("empty.groups.cta") }}
-        />
+      <Aurora intensity="soft" />
+      <TopBar title={t("groups")} />
+      <main className="main stack-lg" id="main">
+        <GroupsView groups={groups} invites={invites} />
       </main>
     </>
   );

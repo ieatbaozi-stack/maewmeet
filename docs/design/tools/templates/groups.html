@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-m="groups.title"></title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/members.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<!--MESSAGES_EN-->
+</head>
+<body>
+<div class="aurora" data-intensity="soft" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<div class="app">
+  <header class="topbar">
+    <h1 class="title" data-m="groups.title"></h1>
+  </header>
+  <main class="main">
+    <div class="btn-row" data-state-show="normal list invites loading">
+      <button class="btn btn-primary"><i data-icon="plus"></i><span data-m="groups.create"></span></button>
+      <button class="btn btn-secondary"><i data-icon="key"></i><span data-m="groups.join.cta"></span></button>
+    </div>
+
+    <!-- คำเชิญตรงที่ค้าง -->
+    <section data-state-show="normal invites" aria-labelledby="inv-h">
+      <h2 class="h-section" id="inv-h" data-m="groups.invites.title"></h2>
+      <article class="panel invite-card">
+        <div><p class="who-line"><span data-m="groups.invites.item" data-m-v='{"inviter": "ปาล์ม", "group": "ก๊วนแบดสวนลุม"}'></span></p><p class="small muted"><span data-m="groups.invites.expires" data-m-v='{"th": {"date": "25 ต.ค. 2569"}, "en": {"date": "25 Oct 2026"}}'></span></p></div>
+        <div class="actions">
+          <button class="btn btn-primary" data-m="groups.invites.accept" data-m-aria="groups.invites.acceptAria" data-m-v='{"group": "ก๊วนแบดสวนลุม"}'></button>
+          <button class="btn btn-secondary" data-m="groups.invites.decline" data-m-aria="groups.invites.declineAria" data-m-v='{"group": "ก๊วนแบดสวนลุม"}'></button>
+        </div>
+      </article>
+      <article class="panel invite-card">
+        <div><p class="who-line"><span data-m="groups.invites.item" data-m-v='{"inviter": "beam_88", "group": "ทีมงานแต่งงานน้องมายด์และคุณโอ๊ต ฝั่งเจ้าสาว"}'></span></p><p class="small muted"><span data-m="groups.invites.expires" data-m-v='{"th": {"date": "25 ต.ค. 2569"}, "en": {"date": "25 Oct 2026"}}'></span></p></div>
+        <div class="actions">
+          <button class="btn btn-primary" data-m="groups.invites.accept" data-m-aria="groups.invites.acceptAria" data-m-v='{"group": "ทีมงานแต่งงานน้องมายด์และคุณโอ๊ต ฝั่งเจ้าสาว"}'></button>
+          <button class="btn btn-secondary" data-m="groups.invites.decline" data-m-aria="groups.invites.declineAria" data-m-v='{"group": "ทีมงานแต่งงานน้องมายด์และคุณโอ๊ต ฝั่งเจ้าสาว"}'></button>
+        </div>
+      </article>
+    </section>
+
+    <!-- รายการกลุ่ม -->
+    <section data-state-show="normal list invites" aria-labelledby="gl-h" style="margin-top: var(--space-5)">
+      <h2 class="h-section" id="gl-h" data-m="groups.listLabel"></h2>
+      <ul class="rows group-rows" style="margin-top: var(--space-3)">
+        <li><a class="row" href="group.html" aria-label="แก๊งมัธยม ห้อง 6/3">
+          <span class="mstack"><span class="member-avatar sm" data-slot="1" aria-hidden="true"><span class="member-initial">ต</span></span><span class="member-avatar sm" data-slot="3" aria-hidden="true"><span class="member-initial">ป</span></span><span class="member-avatar sm" data-slot="5" aria-hidden="true"><span class="member-initial">ม</span></span></span>
+          <span class="row-main"><span class="row-title">แก๊งมัธยม ห้อง 6/3</span><span class="row-meta"><span data-m="groups.memberCount" data-m-v='{"count": 6}'></span> · <span data-m="group.yourRole" data-m-v='{"role": "admin"}'></span></span></span>
+          <i data-icon="chevron-right" class="chev"></i></a></li>
+        <li><a class="row" href="group.html" aria-label="ก๊วนแบดสวนลุม">
+          <span class="mstack"><span class="member-avatar sm" data-slot="2" aria-hidden="true"><span class="member-initial">บ</span></span><span class="member-avatar sm" data-slot="10" aria-hidden="true"><span class="member-initial">ฟ</span></span><span class="member-avatar sm" data-slot="8" aria-hidden="true"><span class="member-initial">อ</span></span></span>
+          <span class="row-main"><span class="row-title">ก๊วนแบดสวนลุม</span><span class="row-meta"><span data-m="groups.memberCount" data-m-v='{"count": 12}'></span> · <span data-m="group.yourRole" data-m-v='{"role": "member"}'></span></span></span>
+          <i data-icon="chevron-right" class="chev"></i></a></li>
+        <li><a class="row" href="group.html" aria-label="บ้านเรา">
+          <span class="mstack"><span class="member-avatar sm" data-slot="4" aria-hidden="true"><span class="member-initial">ย</span></span><span class="member-avatar sm" data-slot="6" aria-hidden="true"><span class="member-initial">ม</span></span><span class="member-avatar sm" data-slot="9" aria-hidden="true"><span class="member-initial">ต</span></span></span>
+          <span class="row-main"><span class="row-title">บ้านเรา</span><span class="row-meta"><span data-m="groups.memberCount" data-m-v='{"count": 3}'></span> · <span data-m="group.yourRole" data-m-v='{"role": "moderator"}'></span></span></span>
+          <i data-icon="chevron-right" class="chev"></i></a></li>
+        <li><a class="row" href="group.html" aria-label="ทีมงานแต่งงานน้องมายด์และคุณโอ๊ต ฝั่งเจ้าสาว">
+          <span class="mstack"><span class="member-avatar sm" data-slot="7" aria-hidden="true"><span class="member-initial">ก</span></span><span class="member-avatar sm" data-slot="3" aria-hidden="true"><span class="member-initial">ข</span></span><span class="member-avatar sm" data-slot="1" aria-hidden="true"><span class="member-initial">ส</span></span></span>
+          <span class="row-main"><span class="row-title">ทีมงานแต่งงานน้องมายด์และคุณโอ๊ต ฝั่งเจ้าสาว</span><span class="row-meta"><span data-m="groups.memberCount" data-m-v='{"count": 48}'></span> · <span data-m="group.yourRole" data-m-v='{"role": "member"}'></span></span></span>
+          <i data-icon="chevron-right" class="chev"></i></a></li>
+      </ul>
+    </section>
+
+    <!-- ว่าง -->
+    <div data-state-show="empty" hidden class="empty panel" style="margin-top: var(--space-5)">
+      <i data-cat="peek"></i>
+      <h2 class="h-section" data-m="empty.groups.title"></h2>
+      <p class="muted" data-m="empty.groups.body"></p>
+      <button class="btn btn-primary"><i data-icon="plus"></i><span data-m="empty.groups.cta"></span></button>
+      <button class="btn btn-text" style="min-height: var(--tap)" data-m="empty.groups.joinCode"></button>
+    </div>
+
+    <!-- โหลด -->
+    <div data-state-show="loading" hidden aria-busy="true">
+      <div class="skeleton" style="height: calc(var(--space-7) * 1.5); margin-top: var(--space-3)"></div>
+      <div class="skeleton" style="height: calc(var(--space-7) * 1.5); margin-top: var(--space-3)"></div>
+      <div class="skeleton" style="height: calc(var(--space-7) * 1.5); margin-top: var(--space-3)"></div>
+      <p class="loading-note" role="status" data-m="states.loading"></p>
+    </div>
+  </main>
+
+  <nav class="tabbar" data-m-aria="nav.label">
+    <a class="tab" href="home.html"><i data-icon="house"></i><span data-m="nav.home"></span></a>
+    <a class="tab" href="calendar.html"><i data-icon="calendar"></i><span data-m="nav.calendar"></span></a>
+    <a class="tab" href="groups.html" aria-current="page"><i data-icon="users"></i><span data-m="nav.groups"></span></a>
+    <a class="tab" href="#"><i data-icon="user"></i><span data-m="nav.me"></span></a>
+  </nav>
+
+  <!-- สร้างกลุ่ม (sheet) -->
+  <div data-state-show="create" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="cg-t">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="cg-t" data-m="groups.createSheet.title"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+        <div class="field" style="margin-top: 0">
+          <label for="cg-name" data-m="groups.createSheet.name"></label>
+          <div class="input"><input id="cg-name" class="input-bare" value="ก๊วนแบดวันเสาร์" data-m-ph="groups.createSheet.placeholder" aria-describedby="cg-hint"><span class="counter num">14/40</span></div>
+          <p class="field-hint" id="cg-hint" data-m="groups.createSheet.hint" data-m-v='{"max":40}'></p>
+        </div>
+        <p class="note-box"><i data-icon="crown" class="sm"></i><span data-m="groups.createSheet.role"></span></p>
+      </div>
+      <div class="sheet-foot sheet-actions">
+        <button class="btn btn-primary btn-block" data-m="groups.createSheet.submit"></button>
+        <button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)" data-m="common.cancel"></button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ใส่โค้ดเชิญ (sheet) + ข้อผิดพลาด INVITE_INVALID -->
+  <div data-state-show="join" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="jn-t">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="jn-t" data-m="groups.join.title"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+        <div class="field" style="margin-top: 0">
+          <label for="jn-code" data-m="groups.join.label"></label>
+          <div class="input" aria-invalid="true"><input id="jn-code" class="input-bare" value="K7QM-3RXB" data-m-ph="groups.join.placeholder" aria-invalid="true" aria-describedby="jn-err jn-hint" autocapitalize="characters" autocomplete="off"></div>
+          <p class="field-error" id="jn-err" role="alert"><i data-icon="circle-alert" class="sm"></i><span data-m="errors.INVITE_INVALID"></span></p>
+          <p class="field-hint" id="jn-hint" data-m="groups.join.hint"></p>
+        </div>
+      </div>
+      <div class="sheet-foot sheet-actions">
+        <button class="btn btn-primary btn-block" data-m="groups.join.submit"></button>
+        <button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)" data-m="common.cancel"></button>
+      </div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

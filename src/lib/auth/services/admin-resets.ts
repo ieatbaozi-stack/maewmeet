@@ -20,6 +20,7 @@ import { authorize } from '@/lib/rbac/can';
 import type { Actor } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
+import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { AuthCtx } from '../context';
 import { usernameThrottleKey } from '../throttle';
 import { isSqliteBusy, userIdOf } from './shared';
@@ -46,7 +47,7 @@ export async function listPinResets(actor: Actor, ctx: AuthCtx): Promise<{ items
     items: rows.map((r) => ({
       id: r.id,
       username: r.username,
-      displayName: r.displayName,
+      displayName: sanitizeDisplayText(r.displayName),
       requestedAt: r.requestedAt,
       pendingExpiresAt: r.pendingExpiresAt,
       device: r.requesterUa,

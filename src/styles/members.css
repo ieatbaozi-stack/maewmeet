@@ -1,0 +1,54 @@
+/*
+ * สีประจำสมาชิก — คลาสสำเร็จรูป (R2) · เจ้าของ: UX & Brand
+ * ค่าสีอยู่ใน tokens.css (--member-N พื้นอวาตาร์, --member-mark-N เส้น/จุด, --member-ink ตัวอักษรย่อ)
+ * ไฟล์นี้เพิ่ม "รูปทรงประจำสี" 10 แบบ = สัญญาณที่ไม่ใช่สี (WCAG 1.4.1) — ตาบอดสีหรือพิมพ์ขาวดำก็แยกสมาชิกได้จากรูปทรง + ตัวอักษรย่อ
+ *
+ * ใช้ (Front-end นำเข้าใน globals.css ต่อจาก tokens.css):
+ *   <span class="member-avatar" data-slot="3"><span class="member-initial">ป</span></span>
+ *   <span class="member-dot" data-slot="3"></span>            จุดเล็กรูปทรงเดียวกัน (legend, แถบข้างแถว)
+ * data-slot = ช่องสี 1–10 ที่เซิร์ฟเวอร์กำหนดให้สมาชิกคนนั้นในกลุ่มนั้น (คงที่ตลอดอายุการเป็นสมาชิก — ดู UX.md §4 R2)
+ * ตัวอักษรย่อ = ตัวอักษรตัวแรกของชื่อที่แสดง (ไทย: พยัญชนะต้น ข้ามสระนำ เ แ โ ใ ไ) · ชื่ออ่านออกเสียงให้ผู้ใช้ screen reader อยู่ที่แถว ไม่ใช่ที่อวาตาร์ (aria-hidden)
+ * ขอบ = --line-control (≥ 3:1 บน --surface/--bg) เพราะพื้นอวาตาร์สีพาสเทลเทียบพื้นการ์ดไม่ถึง 3:1 โดยตั้งใจ (ต้องถือตัวอักษรย่อ ≥ 4.5:1)
+ */
+:root {
+  --member-shape-1: circle(50%);
+  --member-shape-2: inset(0 round 28%);
+  --member-shape-3: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);                              /* หกเหลี่ยม */
+  --member-shape-4: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);            /* แปดเหลี่ยม */
+  --member-shape-5: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);                                              /* ข้าวหลามตัด */
+  --member-shape-6: polygon(50% 0, 100% 38%, 82% 100%, 18% 100%, 0 38%);                                    /* ห้าเหลี่ยม */
+  --member-shape-7: inset(0 round 50% 50% 50% 8%);                                                         /* หยดน้ำ */
+  --member-shape-8: inset(0 round 50% 50% 12% 12%);                                                        /* โล่ */
+  --member-shape-9: polygon(16% 0, 100% 0, 84% 100%, 0 100%);                                               /* สี่เหลี่ยมด้านขนาน */
+  --member-shape-10: polygon(20% 0, 100% 0, 100% 80%, 80% 100%, 0 100%, 0 20%);                             /* สี่เหลี่ยมตัดมุม */
+}
+
+[data-slot="1"] { --member-fill: var(--member-1); --member-line: var(--member-mark-1); --member-clip: var(--member-shape-1); }
+[data-slot="2"] { --member-fill: var(--member-2); --member-line: var(--member-mark-2); --member-clip: var(--member-shape-2); }
+[data-slot="3"] { --member-fill: var(--member-3); --member-line: var(--member-mark-3); --member-clip: var(--member-shape-3); }
+[data-slot="4"] { --member-fill: var(--member-4); --member-line: var(--member-mark-4); --member-clip: var(--member-shape-4); }
+[data-slot="5"] { --member-fill: var(--member-5); --member-line: var(--member-mark-5); --member-clip: var(--member-shape-5); }
+[data-slot="6"] { --member-fill: var(--member-6); --member-line: var(--member-mark-6); --member-clip: var(--member-shape-6); }
+[data-slot="7"] { --member-fill: var(--member-7); --member-line: var(--member-mark-7); --member-clip: var(--member-shape-7); }
+[data-slot="8"] { --member-fill: var(--member-8); --member-line: var(--member-mark-8); --member-clip: var(--member-shape-8); }
+[data-slot="9"] { --member-fill: var(--member-9); --member-line: var(--member-mark-9); --member-clip: var(--member-shape-9); }
+[data-slot="10"] { --member-fill: var(--member-10); --member-line: var(--member-mark-10); --member-clip: var(--member-shape-10); }
+
+.member-avatar {
+  position: relative; display: inline-grid; place-items: center; flex: none;
+  width: var(--member-size, var(--avatar)); aspect-ratio: 1;
+  background: var(--line-control); clip-path: var(--member-clip, var(--member-shape-1));
+  color: var(--member-ink); font-size: var(--text-sm); font-weight: var(--weight-semibold); line-height: 1;
+}
+.member-avatar::before {
+  content: ""; position: absolute; inset: var(--border-strong);
+  background: var(--member-fill, var(--surface-2)); clip-path: var(--member-clip, var(--member-shape-1));
+}
+.member-initial { position: relative; }
+.member-avatar.lg { --member-size: var(--tap); font-size: var(--text-lg); }
+.member-avatar.sm { --member-size: var(--avatar-sm); font-size: var(--text-xs); }
+
+.member-dot {
+  display: inline-block; flex: none; width: var(--space-3); aspect-ratio: 1;
+  background: var(--member-line, var(--line-control)); clip-path: var(--member-clip, var(--member-shape-1));
+}

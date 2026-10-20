@@ -43,6 +43,24 @@ export const ROUTE_MANIFEST = [
   { method: 'POST', path: '/api/auth/admin/pin-resets/:id/approve', action: 'pinReset.decide', auth: 'actor', owner: 'auth' },
   { method: 'POST', path: '/api/auth/admin/pin-resets/:id/reject', action: 'pinReset.decide', auth: 'actor', owner: 'auth' },
   { method: 'POST', path: '/api/auth/pin', action: 'self.pin.change', auth: 'actor', owner: 'auth' },
+  // ── U4–U6 (R2 · Platform) ──
+  { method: 'POST', path: '/api/groups', action: 'group.create', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/groups', action: 'group.list.mine', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/groups/:gid', action: 'group.view', auth: 'actor', owner: 'platform' },
+  { method: 'PATCH', path: '/api/groups/:gid', action: 'group.update', auth: 'actor', owner: 'platform' },
+  { method: 'DELETE', path: '/api/groups/:gid', action: 'group.delete', auth: 'actor', owner: 'platform' },
+  { method: 'DELETE', path: '/api/groups/:gid/members/:uid', action: 'member.remove', auth: 'actor', owner: 'platform' },
+  { method: 'PATCH', path: '/api/groups/:gid/members/:uid', action: 'member.setRole', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/groups/:gid/transfer-admin', action: 'group.transferAdmin', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/groups/:gid/leave', action: 'group.leave', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/groups/:gid/invites/direct', action: 'invite.direct.create', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/groups/:gid/invites/code', action: 'invite.code.create', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/groups/:gid/invites', action: 'invite.list', auth: 'actor', owner: 'platform' },
+  { method: 'DELETE', path: '/api/groups/:gid/invites/:iid', action: 'invite.revoke', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/invites/redeem', action: 'invite.code.redeem', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/me/invites', action: 'invite.direct.list.mine', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/me/invites/:iid/accept', action: 'invite.direct.respond', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/me/invites/:iid/decline', action: 'invite.direct.respond', auth: 'actor', owner: 'platform' },
 ] as const satisfies readonly ManifestEntry[];
 
 export function findRoute(method: string, path: string): ManifestEntry | undefined {

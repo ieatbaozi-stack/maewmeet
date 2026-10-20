@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-m="groupSettings.title"></title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/members.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<!--MESSAGES_EN-->
+</head>
+<body>
+<div class="aurora" data-intensity="soft" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<div class="app">
+  <header class="topbar">
+    <a class="icon-btn" href="group.html" data-m-aria="groupSettings.back"><i data-icon="chevron-left"></i></a>
+    <h1 class="title" data-m="groupSettings.title"></h1>
+  </header>
+  <main class="main" style="padding-top: 0">
+    <p class="muted small" style="margin-bottom: var(--space-2)">แก๊งมัธยม ห้อง 6/3 · <span data-m="group.yourRole" data-m-v='{"role": "admin"}' data-state-ignore></span></p>
+    <div data-state-show="normal admin invite confirm delete actions">
+    <section class="set-sec" aria-labelledby="s-name">
+      <h2 id="s-name" data-m="groupSettings.name.title"></h2>
+      <div class="field">
+        <label for="gn" data-m="groupSettings.name.label"></label>
+        <div class="input"><input id="gn" class="input-bare" value="แก๊งมัธยม ห้อง 6/3" aria-describedby="gn-h"><span class="counter num">17/40</span></div>
+        <p class="field-hint" id="gn-h" data-m="groupSettings.name.hint" data-m-v='{"max":40}'></p>
+      </div>
+      <button class="btn btn-primary" data-m="common.save"></button>
+    </section>
+
+    <section class="set-sec" aria-labelledby="s-win">
+      <h2 id="s-win" data-m="groupSettings.window.title"></h2>
+      <p class="lead" data-m="groupSettings.window.body"></p>
+      <div class="pair2">
+        <div class="field"><span class="label" id="w1" data-m="groupSettings.window.start"></span><div class="input select" role="button" tabindex="0"><span>08:00</span><i data-icon="chevron-down"></i></div></div>
+        <div class="field"><span class="label" id="w2" data-m="groupSettings.window.end"></span><div class="input select" role="button" tabindex="0"><span>22:00</span><i data-icon="chevron-down"></i></div></div>
+      </div>
+      <div class="field"><span class="label" id="w3" data-m="groupSettings.window.min"></span><div class="input select" role="button" tabindex="0"><span><span data-m="groupSettings.window.durationHour" data-m-v='{"hours": 2}'></span></span><i data-icon="chevron-down"></i></div></div>
+      <p class="field-hint" data-m="groupSettings.window.stepHint"></p>
+      <p class="field-hint" data-m="groupSettings.window.summary" data-m-v='{"th": {"start": "08:00", "end": "22:00", "duration": "2 ชม."}, "en": {"start": "08:00", "end": "22:00", "duration": "2 hr"}}'></p>
+      <button class="btn btn-primary" data-m="common.save"></button>
+    </section>
+
+    <section class="set-sec" aria-labelledby="s-mem">
+      <h2 id="s-mem" data-m="groupSettings.members.title"></h2>
+      <ul class="rows m-rows">
+          <li><div class="row" role="group" aria-label="ต้นข้าว"><span class="member-avatar lg" data-slot="1" aria-hidden="true"><span class="member-initial">ต</span></span><span class="row-main"><span class="row-title">ต้นข้าว</span><span class="you"><span data-m="group.members.you"></span></span><span class="tag tag-role is-admin"><i data-icon="crown" class="sm"></i><span data-m="roles.admin"></span></span></span></div></li>
+          <li><div class="row" role="group" aria-label="ปาล์ม"><span class="member-avatar lg" data-slot="3" aria-hidden="true"><span class="member-initial">ป</span></span><span class="row-main"><span class="row-title">ปาล์ม</span><span class="tag tag-role"><i data-icon="shield" class="sm"></i><span data-m="roles.moderator"></span></span></span><button class="icon-btn" data-m-aria="group.members.actionsAria" data-m-v='{"name": "ปาล์ม"}'><i data-icon="ellipsis"></i></button></div></li>
+          <li><div class="row" role="group" aria-label="มายด์"><span class="member-avatar lg" data-slot="5" aria-hidden="true"><span class="member-initial">ม</span></span><span class="row-main"><span class="row-title">มายด์</span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span><button class="icon-btn" data-m-aria="group.members.actionsAria" data-m-v='{"name": "มายด์"}'><i data-icon="ellipsis"></i></button></div></li>
+          <li><div class="row" role="group" aria-label="โอ๊ต"><span class="member-avatar lg" data-slot="8" aria-hidden="true"><span class="member-initial">อ</span></span><span class="row-main"><span class="row-title">โอ๊ต</span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span><button class="icon-btn" data-m-aria="group.members.actionsAria" data-m-v='{"name": "โอ๊ต"}'><i data-icon="ellipsis"></i></button></div></li>
+          <li><div class="row" role="group" aria-label="ฟ้า"><span class="member-avatar lg" data-slot="10" aria-hidden="true"><span class="member-initial">ฟ</span></span><span class="row-main"><span class="row-title">ฟ้า</span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span><button class="icon-btn" data-m-aria="group.members.actionsAria" data-m-v='{"name": "ฟ้า"}'><i data-icon="ellipsis"></i></button></div></li>
+          <li><div class="row" role="group" aria-label="บีม"><span class="member-avatar lg" data-slot="2" aria-hidden="true"><span class="member-initial">บ</span></span><span class="row-main"><span class="row-title">บีม</span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span><button class="icon-btn" data-m-aria="group.members.actionsAria" data-m-v='{"name": "บีม"}'><i data-icon="ellipsis"></i></button></div></li>
+      </ul>
+    </section>
+
+    <section class="set-sec" aria-labelledby="s-inv">
+      <h2 id="s-inv" data-m="groupSettings.invite.title"></h2>
+      <h3 class="sub-h" style="margin-top: var(--space-3)"><span data-m="groupSettings.invite.code.title"></span></h3>
+      <p class="lead small muted" data-m="groupSettings.invite.code.body"></p>
+      <button class="btn btn-secondary"><i data-icon="key"></i><span data-m="groupSettings.invite.code.create"></span></button>
+      <h3 class="sub-h" style="margin-top: var(--space-4)"><span data-m="groupSettings.invite.code.listTitle"></span></h3>
+      <ul>
+          <li class="code-line">
+            <div class="top"><span class="hint-code"><span data-m="groupSettings.invite.code.hint" data-m-v='{"hint": "3RXA"}'></span></span><button class="btn-sm-text" data-m="groupSettings.invite.code.revoke" data-m-aria="groupSettings.invite.code.revokeAria" data-m-v='{"hint": "3RXA"}'></button></div>
+            <p class="meta"><span data-m="groupSettings.invite.code.expires" data-m-v='{"th": {"date": "25 ต.ค. 2569"}, "en": {"date": "25 Oct 2026"}}'></span> · <span data-m="groupSettings.invite.code.usedCount" data-m-v='{"count": 2}'></span></p>
+            <p class="meta"><span data-m="groupSettings.invite.code.createdBy" data-m-v='{"name": "ต้นข้าว"}'></span></p>
+          </li>
+          <li class="code-line">
+            <div class="top"><span class="hint-code"><span data-m="groupSettings.invite.code.hint" data-m-v='{"hint": "W8PN"}'></span></span><button class="btn-sm-text" data-m="groupSettings.invite.code.revoke" data-m-aria="groupSettings.invite.code.revokeAria" data-m-v='{"hint": "W8PN"}'></button></div>
+            <p class="meta"><span data-m="groupSettings.invite.code.expires" data-m-v='{"th": {"date": "25 ต.ค. 2569"}, "en": {"date": "25 Oct 2026"}}'></span> · <span data-m="groupSettings.invite.code.usedCount" data-m-v='{"count": 0}'></span></p>
+            <p class="meta"><span data-m="groupSettings.invite.code.createdBy" data-m-v='{"name": "ปาล์ม"}'></span></p>
+          </li>
+      </ul>
+        <h3 class="sub-h" style="margin-top: var(--space-4)"><span data-m="groupSettings.invite.direct.title"></span></h3>
+        <div class="field" style="margin-top: var(--space-2)">
+          <label for="du" data-m="groupSettings.invite.direct.label"></label>
+          <div class="input"><input id="du" class="input-bare" value="nong_fah" autocapitalize="none" autocomplete="off" aria-describedby="du-h"></div>
+          <p class="field-hint" id="du-h" data-m="groupSettings.invite.direct.hint"></p>
+        </div>
+        <button class="btn btn-secondary"><i data-icon="send"></i><span data-m="groupSettings.invite.direct.submit"></span></button>
+        <h3 class="sub-h" style="margin-top: var(--space-4)"><span data-m="groupSettings.invite.direct.pendingTitle"></span></h3>
+        <ul>
+          <li class="code-line"><div class="top"><span class="hint-code"><span data-m="groupSettings.invite.direct.waiting" data-m-v='{"username": "nong_fah"}'></span></span><button class="btn-sm-text" data-m="groupSettings.invite.direct.cancel" data-m-aria="groupSettings.invite.direct.cancelAria" data-m-v='{"username":"nong_fah"}'></button></div><p class="meta"><span data-m="groups.invites.expires" data-m-v='{"th": {"date": "25 ต.ค. 2569"}, "en": {"date": "25 Oct 2026"}}'></span></p></li>
+        </ul>
+    </section>
+
+    <section class="set-sec" aria-labelledby="s-tr">
+      <h2 id="s-tr" data-m="groupSettings.transfer.title"></h2>
+      <p class="lead" data-m="groupSettings.transfer.body"></p>
+      <div class="field"><span class="label" data-m="groupSettings.transfer.pick"></span><div class="input select" role="button" tabindex="0"><span>ปาล์ม</span><i data-icon="chevron-down"></i></div></div>
+      <button class="btn btn-secondary"><i data-icon="arrow-right-left"></i><span data-m="groupSettings.transfer.cta"></span></button>
+    </section>
+
+    <section class="set-sec" aria-labelledby="s-lv">
+      <h2 id="s-lv" data-m="groupSettings.leave.title"></h2>
+      <p class="lead" data-m="groupSettings.leave.adminBlocked"></p>
+      <button class="btn btn-secondary" disabled><i data-icon="log-out"></i><span data-m="groupSettings.leave.cta"></span></button>
+    </section>
+
+    <section class="set-sec is-danger" aria-labelledby="s-dl">
+      <h2 id="s-dl" data-m="groupSettings.delete.title"></h2>
+      <p class="lead" data-m="groupSettings.delete.body"></p>
+      <button class="btn btn-danger"><i data-icon="trash-2"></i><span data-m="groupSettings.delete.cta"></span></button>
+    </section>
+    </div>
+    <div data-state-show="member" hidden>
+    <p class="note-box" style="margin-top: 0"><i data-icon="info" class="sm"></i><span data-m="groupSettings.memberNote"></span></p>
+    <section class="set-sec" aria-labelledby="m-name">
+      <h2 id="m-name" data-m="groupSettings.name.title"></h2>
+      <p class="readonly">แก๊งมัธยม ห้อง 6/3</p>
+    </section>
+
+    <section class="set-sec" aria-labelledby="m-win">
+      <h2 id="m-win" data-m="groupSettings.window.title"></h2>
+      <p class="readonly" data-m="groupSettings.window.summary" data-m-v='{"th": {"start": "08:00", "end": "22:00", "duration": "2 ชม."}, "en": {"start": "08:00", "end": "22:00", "duration": "2 hr"}}'></p>
+    </section>
+
+    <section class="set-sec" aria-labelledby="m-mem">
+      <h2 id="m-mem" data-m="groupSettings.members.title"></h2>
+      <ul class="rows m-rows">
+          <li><div class="row" role="group" aria-label="ต้นข้าว"><span class="member-avatar lg" data-slot="1" aria-hidden="true"><span class="member-initial">ต</span></span><span class="row-main"><span class="row-title">ต้นข้าว</span><span class="tag tag-role is-admin"><i data-icon="crown" class="sm"></i><span data-m="roles.admin"></span></span></span></div></li>
+          <li><div class="row" role="group" aria-label="ปาล์ม"><span class="member-avatar lg" data-slot="3" aria-hidden="true"><span class="member-initial">ป</span></span><span class="row-main"><span class="row-title">ปาล์ม</span><span class="tag tag-role"><i data-icon="shield" class="sm"></i><span data-m="roles.moderator"></span></span></span></div></li>
+          <li><div class="row" role="group" aria-label="มายด์"><span class="member-avatar lg" data-slot="5" aria-hidden="true"><span class="member-initial">ม</span></span><span class="row-main"><span class="row-title">มายด์</span><span class="you"><span data-m="group.members.you"></span></span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span></div></li>
+          <li><div class="row" role="group" aria-label="โอ๊ต"><span class="member-avatar lg" data-slot="8" aria-hidden="true"><span class="member-initial">อ</span></span><span class="row-main"><span class="row-title">โอ๊ต</span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span></div></li>
+          <li><div class="row" role="group" aria-label="ฟ้า"><span class="member-avatar lg" data-slot="10" aria-hidden="true"><span class="member-initial">ฟ</span></span><span class="row-main"><span class="row-title">ฟ้า</span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span></div></li>
+          <li><div class="row" role="group" aria-label="บีม"><span class="member-avatar lg" data-slot="2" aria-hidden="true"><span class="member-initial">บ</span></span><span class="row-main"><span class="row-title">บีม</span><span class="tag tag-role"><i data-icon="user" class="sm"></i><span data-m="roles.member"></span></span></span></div></li>
+      </ul>
+    </section>
+
+    <section class="set-sec" aria-labelledby="m-inv">
+      <h2 id="m-inv" data-m="groupSettings.invite.title"></h2>
+      <h3 class="sub-h" style="margin-top: var(--space-3)"><span data-m="groupSettings.invite.code.title"></span></h3>
+      <p class="lead small muted" data-m="groupSettings.invite.mineOnly"></p>
+      <button class="btn btn-secondary"><i data-icon="key"></i><span data-m="groupSettings.invite.code.create"></span></button>
+      <h3 class="sub-h" style="margin-top: var(--space-4)"><span data-m="groupSettings.invite.code.listTitle"></span></h3>
+      <ul>
+          <li class="code-line">
+            <div class="top"><span class="hint-code"><span data-m="groupSettings.invite.code.hint" data-m-v='{"hint": "W8PN"}'></span></span><button class="btn-sm-text" data-m="groupSettings.invite.code.revoke" data-m-aria="groupSettings.invite.code.revokeAria" data-m-v='{"hint": "W8PN"}'></button></div>
+            <p class="meta"><span data-m="groupSettings.invite.code.expires" data-m-v='{"th": {"date": "25 ต.ค. 2569"}, "en": {"date": "25 Oct 2026"}}'></span> · <span data-m="groupSettings.invite.code.usedCount" data-m-v='{"count": 0}'></span></p>
+            <p class="meta"><span data-m="groupSettings.invite.code.createdBy" data-m-v='{"name": "มายด์"}'></span></p>
+          </li>
+      </ul>
+        <h3 class="sub-h" style="margin-top: var(--space-4)"><span data-m="groupSettings.invite.direct.title"></span></h3>
+        <div class="field" style="margin-top: var(--space-2)">
+          <label for="du" data-m="groupSettings.invite.direct.label"></label>
+          <div class="input"><input id="du" class="input-bare" value="nong_fah" autocapitalize="none" autocomplete="off" aria-describedby="du-h"></div>
+          <p class="field-hint" id="du-h" data-m="groupSettings.invite.direct.hint"></p>
+        </div>
+        <button class="btn btn-secondary"><i data-icon="send"></i><span data-m="groupSettings.invite.direct.submit"></span></button>
+    </section>
+
+    <section class="set-sec" aria-labelledby="m-lv">
+      <h2 id="m-lv" data-m="groupSettings.leave.title"></h2>
+      <p class="lead" data-m="groupSettings.leave.body"></p>
+      <button class="btn btn-secondary"><i data-icon="log-out"></i><span data-m="groupSettings.leave.cta"></span></button>
+    </section>
+    </div>
+  </main>
+  <nav class="tabbar" data-m-aria="nav.label">
+    <a class="tab" href="home.html"><i data-icon="house"></i><span data-m="nav.home"></span></a>
+    <a class="tab" href="calendar.html"><i data-icon="calendar"></i><span data-m="nav.calendar"></span></a>
+    <a class="tab" href="groups.html" aria-current="page"><i data-icon="users"></i><span data-m="nav.groups"></span></a>
+    <a class="tab" href="#"><i data-icon="user"></i><span data-m="nav.me"></span></a>
+  </nav>
+
+  <div data-state-show="invite" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="ic-t">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="ic-t"><span data-m="groupSettings.invite.sheet.title"></span></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+        <div class="alert alert-warn" role="note"><i data-icon="triangle-alert"></i><div><b><span data-m="groupSettings.invite.sheet.onceTitle"></span></b><span data-m="groupSettings.invite.sheet.onceBody"></span></div></div>
+        <div class="code-box" aria-label="K7QM-3RXA">K7QM-3RXA</div>
+        <p class="sheet-hint" style="text-align: center"><span data-m="groupSettings.invite.code.expires" data-m-v='{"th": {"date": "25 ต.ค. 2569"}, "en": {"date": "25 Oct 2026"}}'></span></p>
+      </div>
+      <div class="sheet-foot sheet-actions">
+        <button class="btn btn-primary btn-block"><i data-icon="copy"></i><span data-m="groupSettings.invite.sheet.copy"></span></button>
+        <button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)"><i data-icon="share-2"></i><span data-m="groupSettings.invite.sheet.share"></span></button>
+        <button class="btn btn-text btn-block" data-m="groupSettings.invite.sheet.done"></button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="confirm" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet center alert-sheet" role="alertdialog" aria-modal="true" aria-labelledby="rm-t">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="rm-t"><span data-m="groupSettings.members.removeConfirm.title" data-m-v='{"name": "โอ๊ต"}'></span></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+        <p><span data-m="groupSettings.members.removeConfirm.body" data-m-v='{"name": "โอ๊ต"}'></span></p>
+      </div>
+      <div class="sheet-foot sheet-actions">
+        <button class="btn btn-danger btn-block" data-m="groupSettings.members.removeConfirm.confirm"></button>
+        <button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)" data-m="common.cancel"></button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="delete" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet center alert-sheet" role="alertdialog" aria-modal="true" aria-labelledby="dl-t">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="dl-t"><span data-m="groupSettings.delete.confirm.title" data-m-v='{"group": "แก๊งมัธยม ห้อง 6/3"}'></span></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+        <p><span data-m="groupSettings.delete.confirm.body"></span></p>
+        <div class="field type-confirm">
+          <label for="tc" data-m="groupSettings.delete.confirm.typeLabel"></label>
+          <div class="input"><input id="tc" class="input-bare" value="แก๊งมัธยม" autocomplete="off" aria-describedby="tc-h"></div>
+          <p class="field-hint" id="tc-h" data-m="groupSettings.delete.confirm.typeHint" data-m-v='{"group":"แก๊งมัธยม ห้อง 6/3"}'></p>
+        </div>
+      </div>
+      <div class="sheet-foot sheet-actions">
+        <button class="btn btn-danger btn-block" disabled data-m="groupSettings.delete.confirm.confirm"></button>
+        <button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)" data-m="common.cancel"></button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="actions" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet center" role="dialog" aria-modal="true" aria-labelledby="ac-t">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="ac-t"><span data-m="groupSettings.members.manageTitle" data-m-v='{"name": "ปาล์ม"}'></span></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+        <p class="muted small"><span data-m="roles.help.moderator"></span></p>
+        <ul class="rows" style="margin-top: var(--space-3)">
+          <li><button class="row btn-reset" style="width:100%;border:0;background:transparent;text-align:left"><i data-icon="user"></i><span class="row-main"><span class="row-title"><span data-m="groupSettings.members.makeMember"></span></span></span></button></li>
+          <li><button class="row" style="width:100%;border:0;background:transparent;text-align:left"><i data-icon="arrow-right-left"></i><span class="row-main"><span class="row-title"><span data-m="groupSettings.members.transfer"></span></span></span></button></li>
+          <li><button class="row" style="width:100%;border:0;background:transparent;text-align:left;color:var(--danger-ink)"><i data-icon="user-minus"></i><span class="row-main"><span class="row-title"><span data-m="groupSettings.members.remove"></span></span></span></button></li>
+        </ul>
+      </div>
+      <div class="sheet-foot sheet-actions">
+        <button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)" data-m="common.cancel"></button>
+      </div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

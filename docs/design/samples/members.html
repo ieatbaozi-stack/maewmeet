@@ -1,0 +1,30 @@
+<!-- สร้างจาก docs/design/tools/templates/members.html ด้วย build-samples.mjs — แก้ที่ template -->
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-t="roles.admin">ผู้ดูแล</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/members.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<script src="sample.js"></script>
+<script>window.MESSAGES_EN = Object.assign(window.MESSAGES_EN || {}, {"roles.admin":"Admin"});</script>
+</head>
+<body>
+<div class="aurora" data-intensity="soft" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<div class="app">
+  <header class="topbar"><h1 class="title">Member palette</h1></header>
+  <main class="main">
+    <p class="muted small">--member-N + รูปทรง + ตัวอักษรย่อ</p>
+    <div class="member-grid"><figure><span class="member-avatar" data-slot="1" aria-hidden="true"><span class="member-initial">ต</span></span><figcaption>1</figcaption></figure><figure><span class="member-avatar" data-slot="2" aria-hidden="true"><span class="member-initial">ป</span></span><figcaption>2</figcaption></figure><figure><span class="member-avatar" data-slot="3" aria-hidden="true"><span class="member-initial">ม</span></span><figcaption>3</figcaption></figure><figure><span class="member-avatar" data-slot="4" aria-hidden="true"><span class="member-initial">อ</span></span><figcaption>4</figcaption></figure><figure><span class="member-avatar" data-slot="5" aria-hidden="true"><span class="member-initial">ฟ</span></span><figcaption>5</figcaption></figure><figure><span class="member-avatar" data-slot="6" aria-hidden="true"><span class="member-initial">บ</span></span><figcaption>6</figcaption></figure><figure><span class="member-avatar" data-slot="7" aria-hidden="true"><span class="member-initial">ก</span></span><figcaption>7</figcaption></figure><figure><span class="member-avatar" data-slot="8" aria-hidden="true"><span class="member-initial">ข</span></span><figcaption>8</figcaption></figure><figure><span class="member-avatar" data-slot="9" aria-hidden="true"><span class="member-initial">ส</span></span><figcaption>9</figcaption></figure><figure><span class="member-avatar" data-slot="10" aria-hidden="true"><span class="member-initial">ย</span></span><figcaption>10</figcaption></figure></div>
+    <p class="muted small" style="margin-top: var(--space-5)">--member-mark-N</p>
+    <div class="sim" style="gap: var(--space-4)"><span class="member-dot" data-slot="1"></span><span class="member-dot" data-slot="2"></span><span class="member-dot" data-slot="3"></span><span class="member-dot" data-slot="4"></span><span class="member-dot" data-slot="5"></span><span class="member-dot" data-slot="6"></span><span class="member-dot" data-slot="7"></span><span class="member-dot" data-slot="8"></span><span class="member-dot" data-slot="9"></span><span class="member-dot" data-slot="10"></span></div>
+    <p class="muted small" style="margin-top: var(--space-5)">sm / lg</p>
+    <div class="sim"><span class="member-avatar sm" data-slot="4"><span class="member-initial">ต</span></span><span class="member-avatar" data-slot="4"><span class="member-initial">ต</span></span><span class="member-avatar lg" data-slot="4"><span class="member-initial">ต</span></span></div>
+  </main>
+</div>
+</body>
+</html>

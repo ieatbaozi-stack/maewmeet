@@ -1,5 +1,6 @@
-// เรียก /api/auth/* จากเบราว์เซอร์ — JSON + same-origin (route wrapper ตรวจ Origin + content-type: CSRF)
-// ไม่ log และไม่เก็บ body (มี PIN) ไว้ที่ใด · ผลลัพธ์เป็นข้อมูล ไม่ throw
+// เรียก /api/* จากเบราว์เซอร์ — JSON + same-origin (route wrapper ตรวจ Origin + content-type: CSRF)
+// non-GET (รวม DELETE) ส่ง Content-Type: application/json + body เสมอ (route wrapper ตรวจ CSRF ที่ทุก non-GET)
+// ไม่ log และไม่เก็บ body (มี PIN / โค้ดเชิญ) ไว้ที่ใด · ผลลัพธ์เป็นข้อมูล ไม่ throw
 import { apiErrorMessage, type ApiErrorMessage } from "@/i18n/errors";
 
 export type ApiResult<T> =
@@ -8,7 +9,7 @@ export type ApiResult<T> =
   | { ok: false; kind: "network" };
 
 export interface CallOptions {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
   fetchImpl?: typeof fetch;
   signal?: AbortSignal;

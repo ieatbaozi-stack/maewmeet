@@ -11,6 +11,7 @@ import { getDb } from "@/db/client";
 import { findUserById, type UserRow } from "@/lib/data/repos/user";
 import type { UserActor } from "@/lib/rbac/types";
 import { clock } from "@/lib/shared/clock";
+import { sanitizeDisplayText } from "@/lib/shared/name-rules";
 
 /** Request เทียมที่มีแต่ cookie ของ request ปัจจุบัน — ให้ getActor/service อ่าน cookie ชุดเดียวกับ route handler */
 export async function pageRequest(): Promise<Request> {
@@ -45,7 +46,7 @@ export const getPageUser = cache(async (): Promise<PageUser | null> => {
     return {
       id: row.id,
       username: row.username,
-      displayName: row.displayName,
+      displayName: sanitizeDisplayText(row.displayName),
       isAdmin: row.isAdmin,
       mustChangePin: row.mustChangePin,
     };

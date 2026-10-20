@@ -1,6 +1,6 @@
 # ADR 0007 — การแจ้งเตือน: ชั้นส่งแบบเสียบช่องทาง + `notification_outbox`
 
-- **Status**: Proposed (Architect, 2026-10-15)
+- **Status**: Proposed (Architect, 2026-10-15) · แก้ R2 (2026-10-19): ชนิดคำเชิญเป็น `group.invite.received|accepted|declined` (เดิม `invite.direct.*`)
 - **เกี่ยวข้อง**: [PRD D13, U2, U5, U10, §6](../prd/PRD.md) · [RESEARCH §2](../research/RESEARCH_REPORT.md) · [ADR 0008](0008-i18n-and-theme.md) · [ARCHITECTURE §3](../design/ARCHITECTURE.md)
 - **เจ้าของการ implement**: Platform (แกน `src/lib/data/notifications/**`) · Integrations (ช่องทาง LINE `src/lib/integrations/**`, v1.x)
 
@@ -13,7 +13,9 @@ v1 มีแค่ "ในแอป" (คำเชิญตรง, นัดใ�
 ```ts
 // pseudo-code
 type NotificationKind =
-  | 'invite.direct.received'        // params: { groupId, groupName, inviterName }
+  | 'group.invite.received'         // → ผู้ถูกเชิญ  params: { groupId, groupName, inviterName, inviteId }
+  | 'group.invite.accepted'         // → ผู้เชิญ     params: { groupId, groupName, inviteeName, inviteId }
+  | 'group.invite.declined'         // → ผู้เชิญ     params: { groupId, groupName, inviteeName, inviteId }
   | 'appointment.created'           // params: { groupId, groupName, appointmentId, title, startAt, tz }
   | 'pin_reset.approved'            // params: { expiresAt }
   | 'pin_reset.cancelled_by_login'; // params: {}
@@ -58,7 +60,7 @@ interface NotificationChannel {
 - − บน Hobby retry ที่ล้มหลัง `after()` จะรอจน cron วันถัดไป (ยอมรับสำหรับ v1.x)
 
 ## Test requirements
-1. U5 (ก): ชวนตรง → ผู้ถูกชวนมี notification `invite.direct.received` 1 แถว · ผู้ชวนไม่มี
+1. U5 (ก): ชวนตรง → ผู้ถูกชวนมี notification `group.invite.received` 1 แถว · ผู้ชวนไม่มี · ผู้รับ "รับ" → ผู้ชวนได้ `group.invite.accepted` · "ปฏิเสธ" → `group.invite.declined` (อย่างละ 1 แถว, params ไม่มีโค้ดเชิญ)
 2. U10: สร้างนัด → สมาชิกทุกคนยกเว้นผู้สร้างได้ `appointment.created` คนละ 1 แถว · super admin ที่ไม่ใช่สมาชิกไม่ได้
 3. U2: approve → `pin_reset.approved` · login ด้วย PIN เดิมระหว่าง pending → `pin_reset.cancelled_by_login`
 4. Atomic: ทำให้การเขียน notification ล้ม (inject error) → เหตุการณ์หลัก (นัด/คำเชิญ) rollback ด้วย

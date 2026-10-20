@@ -60,16 +60,28 @@
   --accent-soft-ink: #2F3A94;
   --focus: #3F4CB3;         /* วงโฟกัส */
 
-  /* ---------- สีประจำสมาชิก (8 สี คัดมือ) — ตัวอักษรย่อใช้ --member-ink ---------- */
+  /* ---------- สีประจำสมาชิก (10 สี) — พื้นอวาตาร์ --member-N + ตัวอักษรย่อ --member-ink (≥ 4.5:1) · เส้น/จุด/แถบสี --member-mark-N (≥ 3:1 บน --bg/--surface/veil) · รูปทรงประจำสี = สัญญาณที่ไม่ใช่สี ดู src/styles/members.css ---------- */
   --member-ink: #2A2833;
-  --member-1: #F2C6BD;      /* กุหลาบ */
-  --member-2: #F4D9A8;      /* แอปริคอต */
-  --member-3: #E2DFA2;      /* มะนาวหม่น */
-  --member-4: #C3E2C6;      /* มินต์ */
-  --member-5: #BCDDE2;      /* ฟ้าน้ำ */
-  --member-6: #C8D2F1;      /* ลาเวนเดอร์ฟ้า */
-  --member-7: #DCCBEF;      /* ไลแลค */
-  --member-8: #EBCADD;      /* ชมพูหม่น */
+  --member-1: #F58779;  /* กุหลาบ */
+  --member-2: #E4A974;  /* ส้มพีช */
+  --member-3: #FBE471;  /* ทองหม่น */
+  --member-4: #B2E18B;  /* ใบไม้ */
+  --member-5: #53D59E;  /* มินต์ */
+  --member-6: #73BDBE;  /* เขียวน้ำทะเล */
+  --member-7: #A7DAFC;  /* ฟ้าใส */
+  --member-8: #A3B7E9;  /* น้ำเงินลาเวนเดอร์ */
+  --member-9: #CF8DE4;  /* ไลแลค */
+  --member-10: #FF94C5;  /* ชมพูบานเย็น */
+  --member-mark-1: #9C080C;
+  --member-mark-2: #925305;
+  --member-mark-3: #867405;
+  --member-mark-4: #305303;
+  --member-mark-5: #0E6B49;
+  --member-mark-6: #04807F;
+  --member-mark-7: #066B9A;
+  --member-mark-8: #2C4398;
+  --member-mark-9: #60306E;
+  --member-mark-10: #A2316D;
 
   /* ---------- แมว ---------- */
   --cat-line: var(--ink);
@@ -219,14 +231,26 @@
   --accent-soft-ink: #CAD0F7;
   --focus: #B4BDF4;
   --member-ink: #F1EEF5;
-  --member-1: #5C3B37;
-  --member-2: #5A4628;
-  --member-3: #4C4A27;
-  --member-4: #2F4A35;
-  --member-5: #2A4A50;
-  --member-6: #34405F;
-  --member-7: #47395E;
-  --member-8: #573648;
+  --member-1: #693F39;
+  --member-2: #502C03;
+  --member-3: #625405;
+  --member-4: #2C4B05;
+  --member-5: #036946;
+  --member-6: #2B5252;
+  --member-7: #003E5B;
+  --member-8: #465681;
+  --member-9: #42194D;
+  --member-10: #622242;
+  --member-mark-1: #EC9084;
+  --member-mark-2: #DB8011;
+  --member-mark-3: #CBBA66;
+  --member-mark-4: #78A94C;
+  --member-mark-5: #59EAAD;
+  --member-mark-6: #529B9B;
+  --member-mark-7: #70BDEE;
+  --member-mark-8: #BACDFD;
+  --member-mark-9: #B47AC6;
+  --member-mark-10: #E062A0;
   --cat-line: var(--ink);
   --cat-coat: var(--surface);
   --cat-fill: #7D6446;
@@ -279,14 +303,26 @@
     --accent-soft-ink: #CAD0F7;
     --focus: #B4BDF4;
     --member-ink: #F1EEF5;
-    --member-1: #5C3B37;
-    --member-2: #5A4628;
-    --member-3: #4C4A27;
-    --member-4: #2F4A35;
-    --member-5: #2A4A50;
-    --member-6: #34405F;
-    --member-7: #47395E;
-    --member-8: #573648;
+    --member-1: #693F39;
+    --member-2: #502C03;
+    --member-3: #625405;
+    --member-4: #2C4B05;
+    --member-5: #036946;
+    --member-6: #2B5252;
+    --member-7: #003E5B;
+    --member-8: #465681;
+    --member-9: #42194D;
+    --member-10: #622242;
+    --member-mark-1: #EC9084;
+    --member-mark-2: #DB8011;
+    --member-mark-3: #CBBA66;
+    --member-mark-4: #78A94C;
+    --member-mark-5: #59EAAD;
+    --member-mark-6: #529B9B;
+    --member-mark-7: #70BDEE;
+    --member-mark-8: #BACDFD;
+    --member-mark-9: #B47AC6;
+    --member-mark-10: #E062A0;
     --cat-line: var(--ink);
     --cat-coat: var(--surface);
     --cat-fill: #7D6446;

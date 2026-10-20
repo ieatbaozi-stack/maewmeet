@@ -273,10 +273,212 @@
       "done": "PIN changed. Your other devices have been signed out."
     }
   },
+  "roles": {
+    "admin": "Admin",
+    "moderator": "Moderator",
+    "member": "Member",
+    "help": {
+      "admin": "Can do everything in the group, including making moderators, handing over the admin role and deleting the group.",
+      "moderator": "Can rename the group, set the free-time window and remove members.",
+      "member": "Can add busy time, make plans and invite friends."
+    }
+  },
+  "groups": {
+    "title": "Groups",
+    "listLabel": "Your groups",
+    "memberCount": "{count, plural, one {# member} other {# members}}",
+    "openAria": "Open {name}, {count, plural, one {# member} other {# members}}",
+    "create": "New group",
+    "join": {
+      "cta": "Enter invite code",
+      "title": "Join with an invite code",
+      "label": "Invite code",
+      "placeholder": "e.g. K7QM-3RXA",
+      "hint": "Ask someone in the group for it. Capitals and the dash are optional. Codes never use 0, O, 1, I or L, so nothing gets mixed up.",
+      "submit": "Join group",
+      "submitting": "Joining…",
+      "joined": "You’ve joined “{name}”",
+      "already": "You’re already in “{name}”"
+    },
+    "invites": {
+      "title": "Invites for you",
+      "item": "{inviter} invited you to “{group}”",
+      "expires": "Expires {date}",
+      "accept": "Join",
+      "decline": "Decline",
+      "acceptAria": "Join “{group}”",
+      "declineAria": "Decline the invite to “{group}”",
+      "accepted": "You’ve joined “{group}”",
+      "declined": "Invite declined",
+      "unavailable": "This invite isn’t available any more. It may have expired or been withdrawn."
+    },
+    "createSheet": {
+      "title": "New group",
+      "name": "Group name",
+      "placeholder": "e.g. Saturday badminton crew",
+      "hint": "Up to {max} characters. Everyone in the group sees this name.",
+      "nameInvalid": "A group name needs 1–{max} characters, with no invisible characters.",
+      "role": "You’ll be the admin of this group, and you can rename it later.",
+      "submit": "Create group",
+      "submitting": "Creating…",
+      "created": "“{name}” is ready"
+    }
+  },
+  "group": {
+    "back": "Back to groups",
+    "settings": "Group settings",
+    "invite": "Invite friends",
+    "yourRole": "{role, select, admin {You’re an admin} moderator {You’re a moderator} other {You’re a member}}",
+    "members": {
+      "title": "Members",
+      "you": "You",
+      "rowAria": "{name}, {role}",
+      "actionsAria": "Manage {name}"
+    },
+    "solo": {
+      "title": "It’s just you in this group",
+      "body": "Invite your friends first, then you can see which days work for everyone."
+    },
+    "calendarSoon": {
+      "title": "The group calendar is on its way",
+      "body": "Soon you’ll see the days everyone’s free, right here. In the meantime, you can bring your friends in."
+    }
+  },
+  "groupSettings": {
+    "title": "Group settings",
+    "back": "Back to the group",
+    "memberNote": "You’re a member, so group settings are view-only. You can still invite friends or leave.",
+    "name": {
+      "title": "Group name",
+      "label": "Group name",
+      "hint": "Up to {max} characters",
+      "saved": "Group renamed"
+    },
+    "window": {
+      "title": "Free-time window",
+      "body": "Used to find days when everyone’s free. It takes effect once the group calendar is live.",
+      "start": "From",
+      "end": "To",
+      "min": "Free for at least",
+      "stepHint": "Pick in 30-minute steps",
+      "durationMin": "{minutes} min",
+      "durationHour": "{hours} hr",
+      "durationHourMin": "{hours} hr {minutes} min",
+      "summary": "Only {start}–{end} counts, and we’ll show stretches when everyone’s free for at least {duration}.",
+      "saved": "Free-time window saved"
+    },
+    "members": {
+      "title": "Members and roles",
+      "manageTitle": "Manage {name}",
+      "makeModerator": "Make moderator",
+      "makeMember": "Make regular member",
+      "transfer": "Hand over admin to this person",
+      "remove": "Remove from group",
+      "roleChanged": "{role, select, moderator {{name} is now a moderator} other {{name} is now a member}}",
+      "removed": "Removed {name} from the group",
+      "removeConfirm": {
+        "title": "Remove {name} from the group?",
+        "body": "{name} will lose access to this group straight away. They can come back if someone invites them again.",
+        "confirm": "Remove"
+      }
+    },
+    "invite": {
+      "title": "Invite friends",
+      "mineOnly": "You only see the codes you created.",
+      "code": {
+        "title": "Invite codes",
+        "body": "Send a code to a friend and ask them to enter it in the Groups tab. Anyone can use it until it expires or is revoked.",
+        "create": "Create new code",
+        "creating": "Creating code…",
+        "listTitle": "Codes that still work",
+        "listEmpty": "No active codes yet",
+        "hint": "Code ending {hint}",
+        "expires": "Expires {date}",
+        "usedCount": "{count, plural, =0 {Not used yet} one {Used by # person} other {Used by # people}}",
+        "createdBy": "Created by {name}",
+        "revoke": "Revoke",
+        "revokeAria": "Revoke the code ending {hint}",
+        "revoked": "Code revoked",
+        "revokeConfirm": {
+          "title": "Revoke the code ending {hint}?",
+          "body": "Anyone who hasn’t used this code yet won’t be able to join with it. People who already joined aren’t affected.",
+          "confirm": "Revoke code"
+        }
+      },
+      "sheet": {
+        "title": "New invite code",
+        "onceTitle": "You’ll only see this code once",
+        "onceBody": "Once you close this, the full code is gone for good. Copy or share it now. If you miss it, revoke it and make a new one.",
+        "copy": "Copy code",
+        "copied": "Copied",
+        "share": "Share",
+        "shareText": "Join “{group}” on maewmeet. Enter the code {code} in the Groups tab. It works until {expires}.",
+        "done": "Done"
+      },
+      "direct": {
+        "title": "Invite by username",
+        "label": "Friend’s username",
+        "hint": "Type their username, not their display name. They’ll see the invite in the Groups tab.",
+        "submit": "Send invite",
+        "sending": "Sending…",
+        "sent": "Invite sent to {username}",
+        "alreadyInvited": "You’ve already invited {username}. Waiting for their answer.",
+        "pendingTitle": "Waiting for an answer",
+        "waiting": "Waiting for {username}",
+        "cancel": "Cancel invite",
+        "cancelAria": "Cancel the invite to {username}",
+        "cancelled": "Invite cancelled"
+      }
+    },
+    "transfer": {
+      "title": "Hand over admin",
+      "body": "Pick the member who will be the new admin. You’ll become a moderator.",
+      "pick": "Choose a member",
+      "cta": "Hand over admin",
+      "done": "{name} is now the admin",
+      "confirm": {
+        "title": "Make {name} the admin?",
+        "body": "{name} becomes the group’s admin and you become a moderator. You can’t undo this yourself. {name} would have to hand it back.",
+        "confirm": "Make {name} admin"
+      }
+    },
+    "leave": {
+      "title": "Leave group",
+      "body": "You’ll lose access to this group’s calendar and plans. To come back, someone has to invite you again or you need an invite code.",
+      "cta": "Leave group",
+      "adminBlocked": "You’re the admin of this group. Hand the admin role to someone else before you leave.",
+      "done": "You’ve left “{group}”",
+      "confirm": {
+        "title": "Leave “{group}”?",
+        "body": "You’ll lose access to this group’s calendar and plans. To come back, someone has to invite you again or you need an invite code.",
+        "confirm": "Leave group"
+      }
+    },
+    "delete": {
+      "title": "Delete group",
+      "body": "Once deleted, nobody can open this group.",
+      "cta": "Delete group",
+      "done": "“{group}” was deleted",
+      "confirm": {
+        "title": "Delete “{group}”?",
+        "body": "Everyone in the group loses access straight away, open invites and codes stop working, and you can’t bring the group back yourself.",
+        "typeLabel": "Type the group name to confirm",
+        "typeHint": "Type “{group}” exactly as it appears",
+        "confirm": "Delete this group"
+      }
+    }
+  },
   "notifications": {
     "pin_reset": {
       "approved": "An admin approved your PIN reset request (valid until {expiresAt}).",
       "cancelled_by_login": "Your PIN reset request was cancelled because you signed in with your current PIN. If you didn’t send it, change your PIN in the Me tab."
+    },
+    "group": {
+      "invite": {
+        "received": "{inviterName} invited you to “{groupName}”",
+        "accepted": "{inviteeName} accepted your invite and joined “{groupName}”",
+        "declined": "{inviteeName} declined your invite to “{groupName}”"
+      }
     }
   },
   "errors": {
@@ -301,8 +503,9 @@
     "CSRF_REJECTED": "We couldn’t verify that request. Reload the page and try again.",
     "ADMIN_TRANSFER_REQUIRED": "Make someone else the group admin first, then try again.",
     "INVITE_INVALID": "This code doesn’t work. Ask someone in the group for a new one.",
-    "ALREADY_MEMBER": "You’re already in this group.",
+    "ALREADY_MEMBER": "That person’s already in this group.",
     "USER_NOT_FOUND": "No one has that username. Check the spelling, or send them an invite code instead.",
+    "LIMIT_REACHED": "{limit, select, groups {You can create up to {max} groups. Delete one you no longer use to make a new one.} members {This group is full ({max} members at most). An admin can remove members who aren’t active.} codes {This group already has {max} active invite codes. Revoke one you don’t need to make a new one.} other {You’ve hit a limit. Free something up and try again.}}",
     "INVALID_RANGE": "The end has to be after the start.",
     "INVALID_DATE": "That date doesn’t exist. Pick one from the calendar.",
     "INVALID_LOCAL_TIME": "That time doesn’t exist in this time zone because the clocks change. Pick another time.",
@@ -310,7 +513,7 @@
     "DATE_OUT_OF_RANGE": "That date is outside the range we support. Pick one from the calendar.",
     "RANGE_TOO_LARGE": "That date range is too long. Try a shorter one.",
     "INVALID_TIMEZONE": "We don’t recognise that time zone. Pick one from the list.",
-    "INVALID_WINDOW": "The group’s free-time hours don’t work. The end has to be after the start.",
+    "INVALID_WINDOW": "The group’s free-time hours don’t work. The end has to be after the start, and the window can’t be shorter than the minimum free stretch.",
     "INVALID_MAP_URL": "We can’t read a location from that link. Try copying it from the Share button in your maps app.",
     "INVALID_COORDINATES": "Those coordinates don’t look right. Check the latitude and longitude.",
     "APPOINTMENT_CANCELLED": "This plan was cancelled, so it can’t be changed."

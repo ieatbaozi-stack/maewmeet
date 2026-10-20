@@ -13,6 +13,7 @@ import { authCtx } from "@/lib/auth/context";
 import { listPinResets } from "@/lib/auth/services/admin-resets";
 import { getActor } from "@/lib/auth/session";
 import { clock } from "@/lib/shared/clock";
+import { Name } from "@/components/Name";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("me");
@@ -44,7 +45,7 @@ export default async function MePage() {
       <TopBar title={t("title")} />
       <main className="main stack-lg" id="main">
         <section className="settings account-card" aria-label={user.displayName}>
-          <p className="account-name">{user.displayName}</p>
+          <p className="account-name"><Name>{user.displayName}</Name></p>
           <p className="muted">{t("signedInAs", { username: user.username })}</p>
         </section>
         <PrefsSettings current={{ locale, theme }} />

@@ -1,6 +1,12 @@
 /**
  * R0-6 — เทสต์เมทริกซ์ RBAC สร้างอัตโนมัติจาก matrix.fixture.ts (ADR 0003 §4 ข้อ 1–4)
  * + กรณีขอบ (must_change_pin, suspended, กลุ่มถูกลบ, SA นอกกลุ่ม, D7, D8, Q2, audit)
+ *
+ * Mutation checks (R2-1, ทำมือและคืนค่าแล้ว — ผลจริงอยู่ใน Handoff R2 Auth):
+ *  M1  ใน can.ts `memberRemove` ตัดเงื่อนไข `resource.targetRole === 'member'` ของ moderator
+ *      → ล้ม: "member.remove [target:moderator] MOD", "[target:admin] MOD", D7 ×2
+ *  M2  ใน `adminModOrCreator` เปลี่ยน `(role === 'member' && createdBy === actor.id)` เป็น `role === 'member'`
+ *      → ล้ม: "invite.revoke [other] MEM", appointment.update/cancel [other] MEM, invite.list กรองแถว, §3 แถว 8, D4
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -22,7 +28,10 @@ import { POLICY_STATUS, PolicyError, RbacMisuseError, isPolicyError } from '@/li
 import type { Actor, GroupCtx, GroupRole, Resource, UserActor } from '@/lib/rbac/types';
 
 import {
+  ADMIN_TARGET_NEVER_ALLOWED,
   COLUMNS,
+  INVITE_LIST_VISIBLE,
+  MOD_REMOVABLE_TARGET_ROLES,
   EXPECT_PIN_CHANGE_ALLOWED,
   EXPECT_SA_AUDITED_SA_ONLY,
   MATRIX,
@@ -368,6 +377,138 @@ describe('กรณีขอบ', () => {
       code: 'ADMIN_TRANSFER_REQUIRED',
       status: 409,
     });
+  });
+});
+
+// ─────────────────────────── 4b. R2-1 กฎข้ามช่องของ group/member/invite ───────────────────────────
+
+describe('R2-1: กฎข้ามช่อง (ตรวจจากสเปก ไม่ใช่จากโค้ด)', () => {
+  const MEMBER_COLS = COLUMNS.filter((c) => c !== 'AN');
+
+  it.each(ADMIN_TARGET_NEVER_ALLOWED.map((a) => [a] as const))(
+    '%s: เป้าหมายถือ role admin → ไม่ allow ให้ใครเลย (D7/D8: ต้องผ่านการโอนเท่านั้น)',
+    (action) => {
+      for (const col of MEMBER_COLS) {
+        const group = groupFor(col);
+        const d = canAny(actorFor(col), action, {
+          type: 'member',
+          group,
+          targetUserId: OTHER_ADMIN,
+          targetRole: 'admin',
+        });
+        expect(d.allow, `${action}/${col}`).toBe(false);
+      }
+    },
+  );
+
+  it('D7: moderator ลบได้เฉพาะ role ใน MOD_REMOVABLE_TARGET_ROLES (ทุก role เป้าหมายครบ)', () => {
+    for (const targetRole of ['member', 'moderator', 'admin'] as const) {
+      const d = can(user('mod'), 'member.remove', { type: 'member', group: g('moderator'), targetUserId: 'x', targetRole });
+      const removable = (MOD_REMOVABLE_TARGET_ROLES as readonly string[]).includes(targetRole);
+      expect(d.allow, targetRole).toBe(removable);
+    }
+  });
+
+  it('GA ลบ moderator/member ได้ · ลบตัวเองไม่ได้ (ใช้ leave) · ไม่มีกรณี GA ลบ admin คนอื่น', () => {
+    const ga = user('ga');
+    for (const targetRole of ['member', 'moderator'] as const) {
+      expect(can(ga, 'member.remove', { type: 'member', group: g('admin'), targetUserId: 'x', targetRole })).toEqual({
+        allow: true,
+        auditAsSuperAdmin: false,
+      });
+    }
+    expect(can(ga, 'member.remove', { type: 'member', group: g('admin'), targetUserId: 'ga', targetRole: 'admin' })).toEqual({
+      allow: false,
+      code: 'FORBIDDEN',
+      status: 403,
+    });
+  });
+
+  it('D8: GA ออกเอง → 409 จนกว่าจะโอน · หลังโอน (กลายเป็น moderator) ออกได้ · moderator/member ออกได้เสมอ', () => {
+    expect(can(user('ga'), 'group.leave', { type: 'group', group: g('admin') })).toMatchObject({ code: 'ADMIN_TRANSFER_REQUIRED', status: 409 });
+    for (const role of ['moderator', 'member'] as const) {
+      expect(can(user('u'), 'group.leave', { type: 'group', group: g(role) })).toEqual({ allow: true, auditAsSuperAdmin: false });
+    }
+  });
+
+  it('โอน admin: GA โอนให้ member/moderator ได้ · ให้ตัวเอง/admin ไม่ได้ · MOD/MEM โอนไม่ได้ · NM 404', () => {
+    const res = (role: GroupRole | null, targetUserId: string, targetRole: GroupRole) =>
+      ({ type: 'member', group: g(role), targetUserId, targetRole }) as const;
+    expect(can(user('ga'), 'group.transferAdmin', res('admin', 'x', 'member'))).toMatchObject({ allow: true });
+    expect(can(user('ga'), 'group.transferAdmin', res('admin', 'x', 'moderator'))).toMatchObject({ allow: true });
+    expect(can(user('ga'), 'group.transferAdmin', res('admin', 'ga', 'admin'))).toMatchObject({ code: 'FORBIDDEN' });
+    expect(can(user('mod'), 'group.transferAdmin', res('moderator', 'x', 'member'))).toMatchObject({ code: 'FORBIDDEN' });
+    expect(can(user('mem'), 'group.transferAdmin', res('member', 'x', 'member'))).toMatchObject({ code: 'FORBIDDEN' });
+    expect(can(user('nm'), 'group.transferAdmin', res(null, 'x', 'member'))).toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('SA: ทำได้ทุกกลุ่มที่ยังอยู่ (ติดธง audit เมื่อไม่ใช่สมาชิก) ยกเว้น RSVP (403) และ leave (404)', () => {
+    const exceptions = new Set<Action>(['appointment.rsvp', 'group.leave']);
+    const cells = GROUP_CELLS.filter((c) => c.col === 'SA_nonmember');
+    for (const c of cells) {
+      const d = canAny(actorFor('SA_nonmember'), c.action, resourceFor(c.entry, c.scenario, c.col) as Resource);
+      if (exceptions.has(c.action) || c.expected !== 'allow') continue;
+      expect(d, `${c.action}/${c.scenario}`).toEqual({ allow: true, auditAsSuperAdmin: true });
+    }
+    // action จัดการกลุ่มทั้งหมดที่ SA นอกกลุ่มทำได้ต้องมีใน fixture จริง
+    const allowed = cells.filter((c) => c.expected === 'allow').map((c) => c.action);
+    for (const a of ['group.update', 'group.delete', 'group.transferAdmin', 'member.remove', 'member.setRole', 'invite.revoke', 'invite.list'] as const) {
+      expect(allowed, a).toContain(a);
+    }
+  });
+
+  it('SA ไม่แตะตัวเองผ่าน member.remove/setRole/transferAdmin (403) ทุกสถานะสมาชิก', () => {
+    for (const role of [null, 'member', 'moderator', 'admin'] as const) {
+      for (const action of ['member.remove', 'member.setRole', 'group.transferAdmin'] as const) {
+        const d = can(sa('s'), action, { type: 'member', group: g(role), targetUserId: 's', targetRole: role ?? 'member' });
+        expect(d, `${action}/${String(role)}`).toEqual({ allow: false, code: 'FORBIDDEN', status: 403 });
+      }
+    }
+  });
+
+  it('คนนอก (NM) ได้ NOT_FOUND ไม่ใช่ FORBIDDEN กับทุก action ผูกกลุ่ม ทุก scenario (ไม่ยืนยันว่ากลุ่มมีอยู่)', () => {
+    const nm = GROUP_CELLS.filter((c) => c.col === 'NM');
+    for (const c of nm) {
+      const d = canAny(actorFor('NM'), c.action, resourceFor(c.entry, c.scenario, c.col) as Resource);
+      expect(d, `${c.action}/${c.scenario}`).toEqual({ allow: false, code: 'NOT_FOUND', status: 404 });
+    }
+  });
+
+  it('invite.list: allow ให้สมาชิกทุก role + SA · NM 404 · AN 401', () => {
+    for (const col of ['SA_nonmember', 'SA_member', 'GA', 'MOD', 'MEM'] as const) {
+      expect(can(actorFor(col), 'invite.list', { type: 'group', group: groupFor(col) }), col).toMatchObject({ allow: true });
+    }
+    expect(can(actorFor('NM'), 'invite.list', { type: 'group', group: groupFor('NM') })).toMatchObject({ code: 'NOT_FOUND' });
+    expect(can(actorFor('AN'), 'invite.list', { type: 'group', group: groupFor('AN') })).toMatchObject({ code: 'AUTH_REQUIRED' });
+  });
+
+  it('invite.list การกรองระดับแถว (can(…,invite.revoke,row)) ตรงตาราง INVITE_LIST_VISIBLE', () => {
+    for (const col of ['SA_nonmember', 'SA_member', 'GA', 'MOD', 'MEM'] as const) {
+      const actor = actorFor(col);
+      const me = COLUMN_SPEC[col].id as string;
+      const rows = [
+        { id: 'own', createdBy: me },
+        { id: 'other', createdBy: OTHER_USER },
+      ];
+      const visible = rows.filter((row) => can(actor, 'invite.revoke', { type: 'invite', group: groupFor(col), createdBy: row.createdBy }).allow).map((r) => r.id);
+      const expected = [INVITE_LIST_VISIBLE[col].own && 'own', INVITE_LIST_VISIBLE[col].other && 'other'].filter(Boolean);
+      expect(visible, col).toEqual(expected);
+    }
+  });
+
+  it('กลุ่มถูกลบ: invite.revoke/list/leave/transfer ฯลฯ 404 เหมือนกันทุกคอลัมน์ (รวม SA — ดูคำถามถึง Lead ข้อ 1)', () => {
+    for (const col of ['SA_nonmember', 'SA_member', 'GA', 'MOD', 'MEM', 'NM'] as const) {
+      const group = groupFor(col, true);
+      for (const [action, res] of [
+        ['invite.list', { type: 'group', group }],
+        ['group.leave', { type: 'group', group }],
+        ['invite.revoke', { type: 'invite', group, createdBy: COLUMN_SPEC[col].id }],
+        ['member.remove', { type: 'member', group, targetUserId: 'x', targetRole: 'member' }],
+        ['group.transferAdmin', { type: 'member', group, targetUserId: 'x', targetRole: 'member' }],
+      ] as const) {
+        expect(canAny(actorFor(col), action, res as Resource), `${action}/${col}`).toEqual({ allow: false, code: 'NOT_FOUND', status: 404 });
+      }
+    }
   });
 });
 

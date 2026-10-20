@@ -6,6 +6,7 @@ import { authorize } from '@/lib/rbac/can';
 import type { Actor } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
+import { checkVisibleName } from '@/lib/shared/name-rules';
 import type { AuthCtx } from '../context';
 import { assertAcceptableNewPin, DISPLAY_NAME_MAX, parseNewUsername, USERNAME_MAX_INPUT } from '../pin-rules';
 import { currentPepper, requirePepper } from '../pepper';
@@ -32,10 +33,10 @@ export async function signup(actor: Actor, input: SignupInput, ctx: AuthCtx): Pr
   const pepperCtx = await requirePepper(db, now, ctx.pepperSource);
 
   const { username, usernameNormalized } = parseNewUsername(input.username);
-  const displayName = input.displayName.normalize('NFC').trim();
-  if (displayName.length < 1 || [...displayName].length > DISPLAY_NAME_MAX) {
-    throw new AppError('VALIDATION', { fields: { displayName: displayName.length < 1 ? 'TOO_SHORT' : 'TOO_LONG' } });
-  }
+  // กติกาตัวอักษรเดียวกับชื่อกลุ่ม (bidi/zero-width/ตัวมองไม่เห็น/ตัวควบคุม/เครื่องหมายผสมเกิน → INVALID)
+  const checked = checkVisibleName(input.displayName, { min: 1, max: DISPLAY_NAME_MAX });
+  if (!checked.ok) throw new AppError('VALIDATION', { fields: { displayName: checked.reason } });
+  const displayName = checked.name;
   assertAcceptableNewPin(input.pin);
   if (input.pin !== input.pinConfirm) throw new AppError('PIN_MISMATCH');
 
