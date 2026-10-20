@@ -2,6 +2,7 @@
 // คืน statement ที่ยังไม่รัน เพื่อให้ service รวมเป็น batch เดียว (atomic บน libSQL/Turso)
 import { and, eq, isNull, lt, lte, or } from 'drizzle-orm';
 import {
+  busyBlock,
   groupInvite,
   loginThrottle,
   notification,
@@ -12,12 +13,14 @@ import {
 } from '@/db/schema';
 import type { Db } from '@/db/client';
 import { DAY_MS } from '@/lib/shared/clock';
+import { BUSY_RETENTION_DAYS } from '@/lib/shared/limits';
 
 export const RETENTION = {
   rateLimitBucketMs: 2 * DAY_MS, // §8.1
   loginThrottleIdleMs: 30 * DAY_MS, // §8.1
   notificationMs: 90 * DAY_MS, // §8.3
   placeSearchCacheMs: 30 * DAY_MS, // §8.3
+  busyEndedMs: BUSY_RETENTION_DAYS * DAY_MS, // R3 H1: busy ที่จบนานกว่านี้ (เกินหน้าต่างแก้ย้อนหลังมาก) ลบถาวร
 } as const;
 
 export function maintenanceStatements(db: Db, now: number) {
@@ -50,6 +53,7 @@ export function maintenanceStatements(db: Db, now: number) {
       .where(and(eq(groupInvite.status, 'active'), lte(groupInvite.expiresAt, now))),
     // §8.3
     oldNotifications: db.delete(notification).where(lt(notification.createdAt, now - RETENTION.notificationMs)),
+    oldBusyBlocks: db.delete(busyBlock).where(lt(busyBlock.endAt, now - RETENTION.busyEndedMs)),
     stalePlaceSearchCache: db
       .delete(placeSearchCache)
       .where(lt(placeSearchCache.fetchedAt, now - RETENTION.placeSearchCacheMs)),

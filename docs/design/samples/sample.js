@@ -13,6 +13,9 @@
     document.querySelectorAll('[data-state-show]').forEach(function (el) {
       el.hidden = el.getAttribute('data-state-show').split(' ').indexOf(state) === -1;
     });
+    document.querySelectorAll('[data-state-hide]').forEach(function (el) {
+      el.hidden = el.getAttribute('data-state-hide').split(' ').indexOf(state) !== -1;
+    });
     if (lang !== 'en') return;
     var M = window.MESSAGES_EN || {};
     document.querySelectorAll('[data-t]').forEach(function (el) {

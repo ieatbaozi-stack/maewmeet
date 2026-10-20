@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-m="nav.calendar"></title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/members.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="../../../src/styles/calendar.css">
+<script src="sample.js"></script>
+<!--MESSAGES_EN-->
+</head>
+<body>
+<div class="aurora" data-intensity="soft" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<div class="app">
+  <header class="topbar">
+    <button class="group-switch" data-m-aria="calendar.groupSwitch.label" data-m-v='{"group":"แก๊งมัธยม ห้อง 6/3"}'><span class="name">แก๊งมัธยม ห้อง 6/3</span><i data-icon="chevron-down" class="sm"></i></button>
+    <button class="btn btn-secondary wide-only"><i data-icon="plus"></i><span data-m="busy.add"></span></button>
+  </header>
+  <main class="main wide" id="main" style="padding-bottom: calc(var(--tap-lg) + var(--space-7))">
+    <div class="segmented cal-views" role="group" data-m-aria="calendar.view.label"><button aria-pressed="false" data-m="calendar.view.month"></button><button aria-pressed="true" data-m="calendar.view.day"></button><button aria-pressed="false" data-m="calendar.view.mine"></button></div>
+    <div data-state-show="normal">
+      <gen-day scn="normal"></gen-day>
+    </div>
+    <div data-state-show="today" hidden>
+      <gen-day scn="today"></gen-day>
+    </div>
+    <div data-state-show="twelve" hidden>
+      <gen-day scn="twelve"></gen-day>
+    </div>
+    <div data-state-show="empty" hidden>
+      <gen-day scn="empty"></gen-day>
+    </div>
+    <div data-state-show="long" hidden>
+      <gen-day scn="long"></gen-day>
+    </div>
+    <div data-state-show="loading" hidden aria-busy="true">
+      <div class="cal-day-head"><button class="icon-btn" disabled data-m-aria="calendar.nav.prevDay"><i data-icon="chevron-left"></i></button><div class="skeleton" style="flex:1; height: var(--space-5)"></div><button class="icon-btn" disabled data-m-aria="calendar.nav.nextDay"><i data-icon="chevron-right"></i></button></div>
+      <section class="cal-card"><div class="skeleton" style="height: var(--space-5); width: 40%"></div>
+        <div class="skeleton" style="height: var(--space-4); margin-top: var(--space-4)"></div><div class="skeleton" style="height: var(--space-4); margin-top: var(--space-4)"></div><div class="skeleton" style="height: var(--space-4); margin-top: var(--space-4)"></div><div class="skeleton" style="height: var(--space-4); margin-top: var(--space-4)"></div></section>
+      <p class="loading-note" role="status" data-m="calendar.loading"></p>
+    </div>
+    <div data-state-show="error" hidden>
+      <div class="alert" role="alert" style="margin-top: var(--space-4)"><i data-icon="circle-alert"></i><div><b data-m="calendar.error.title"></b><span data-m="calendar.error.body"></span></div></div>
+      <button class="btn btn-secondary" style="margin-top: var(--space-3)"><i data-icon="refresh-cw"></i><span data-m="states.retry"></span></button>
+    </div>
+  </main>
+  <button class="btn btn-primary fab mobile-only" data-state-hide="error loading"><i data-icon="plus"></i><span data-m="busy.add"></span></button>
+  <nav class="tabbar" data-m-aria="nav.label">
+    <a class="tab" href="home.html"><i data-icon="house"></i><span data-m="nav.home"></span></a>
+    <a class="tab" href="calendar-month.html" aria-current="page"><i data-icon="calendar"></i><span data-m="nav.calendar"></span></a>
+    <a class="tab" href="groups.html"><i data-icon="users"></i><span data-m="nav.groups"></span></a>
+    <a class="tab" href="#"><i data-icon="user"></i><span data-m="nav.me"></span></a>
+  </nav>
+</div>
+</body>
+</html>

@@ -38,6 +38,9 @@ const SAMPLE_BODY: Record<string, unknown> = {
   'POST /api/groups/:gid/transfer-admin': { toUserId: UUID },
   'POST /api/groups/:gid/invites/direct': { username: 'someone' },
   'POST /api/invites/redeem': { code: 'ABCD-EFGH' },
+  // R3 (Platform): busy — body ผ่าน zod ก่อน actor (ปฏิทินกลุ่มตรวจ from/to หลังด่านสิทธิ์ จึงไม่ต้องมีตัวอย่าง)
+  'POST /api/me/busy': { kind: 'all_day', startDate: '2026-10-24', endDate: '2026-10-24' },
+  'PATCH /api/me/busy/:id': { title: 'x' },
 };
 
 const concretePath = (e: ManifestEntry) => e.path.replace(/:\w+/g, UUID);

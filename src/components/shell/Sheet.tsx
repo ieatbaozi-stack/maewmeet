@@ -14,16 +14,19 @@ export interface SheetProps {
   center?: boolean;
   /** dialog ยืนยันการกระทำที่ย้อนไม่ได้ (UX §4 R2): role=alertdialog + กลางจอบน iPad */
   alert?: boolean;
+  /** sheet สูง (ฟอร์มยาว เช่น ลงวันไม่ว่าง): เต็มความสูงจอเว้นขอบบน */
+  tall?: boolean;
   /** ปุ่ม/ช่องที่รับโฟกัสตอนเปิด (ไม่ส่ง = ตัวแรกใน sheet) — dialog ยืนยันใช้ปุ่ม "ยกเลิก" ไม่ใช่ปุ่มทำลาย */
   initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * bottom sheet แบบ dialog (UX §3): scrim + role=dialog aria-modal · Esc ปิด · Tab วนอยู่ใน sheet · คืนโฟกัสให้ปุ่มที่เปิด
  */
-export function Sheet({ title, onClose, children, footer, center = false, alert = false, initialFocusRef }: SheetProps) {
+export function Sheet({ title, onClose, children, footer, center = false, alert = false, tall = false, initialFocusRef }: SheetProps) {
   const t = useTranslations("a11y");
   const id = useId();
   const ref = useRef<HTMLElement>(null);
@@ -64,7 +67,7 @@ export function Sheet({ title, onClose, children, footer, center = false, alert 
       <div className="scrim" aria-hidden="true" onClick={onClose} />
       <section
         ref={ref}
-        className={["sheet", center || alert ? "center" : "", alert ? "alert-sheet" : ""].filter(Boolean).join(" ")}
+        className={["sheet", center || alert ? "center" : "", alert ? "alert-sheet" : "", tall ? "tall" : ""].filter(Boolean).join(" ")}
         role={alert ? "alertdialog" : "dialog"}
         aria-modal="true"
         aria-labelledby={`${id}-t`}

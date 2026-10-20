@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-m="nav.calendar"></title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/members.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="../../../src/styles/calendar.css">
+<script src="sample.js"></script>
+<!--MESSAGES_EN-->
+</head>
+<body>
+<div class="aurora" data-intensity="soft" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<div class="app">
+  <header class="topbar">
+    <button class="group-switch" data-m-aria="calendar.groupSwitch.label" data-m-v='{"group":"แก๊งมัธยม ห้อง 6/3"}'><span class="name">แก๊งมัธยม ห้อง 6/3</span><i data-icon="chevron-down" class="sm"></i></button>
+    <button class="btn btn-secondary wide-only"><i data-icon="plus"></i><span data-m="busy.add"></span></button>
+  </header>
+  <main class="main wide" id="main" style="padding-bottom: calc(var(--tap-lg) + var(--space-7))">
+    <div class="segmented cal-views" role="group" data-m-aria="calendar.view.label"><button aria-pressed="true" data-m="calendar.view.month"></button><button aria-pressed="false" data-m="calendar.view.day"></button><button aria-pressed="false" data-m="calendar.view.mine"></button></div>
+    <div data-state-show="normal">
+      <div class="cal-split">
+        <section data-m-aria="calendar.view.month"><gen-month scn="normal" sel="2026-10-23"></gen-month></section>
+        <aside class="cal-side"><gen-day scn="normal"></gen-day></aside>
+      </div>
+    </div>
+    <div data-state-show="twelve" hidden>
+      <div class="cal-split">
+        <section data-m-aria="calendar.view.month"><gen-month scn="twelve" sel="2026-10-24"></gen-month></section>
+        <aside class="cal-side"><gen-day scn="twelve"></gen-day></aside>
+      </div>
+    </div>
+    <div data-state-show="wk6" hidden>
+      <div class="cal-split">
+        <section data-m-aria="calendar.view.month"><gen-month scn="wk6" sel="2026-08-05"></gen-month></section>
+        <aside class="cal-side"><gen-day scn="aug"></gen-day></aside>
+      </div>
+    </div>
+    <div data-state-show="wk4" hidden>
+      <div class="cal-split">
+        <section data-m-aria="calendar.view.month"><gen-month scn="wk4" sel="2027-02-10"></gen-month></section>
+        <aside class="cal-side"><gen-day scn="feb"></gen-day></aside>
+      </div>
+    </div>
+    <div data-state-show="yearcross" hidden>
+      <div class="cal-split">
+        <section data-m-aria="calendar.view.month"><gen-month scn="yearcross" sel="2026-12-31"></gen-month></section>
+        <aside class="cal-side"><gen-day scn="dec"></gen-day></aside>
+      </div>
+    </div>
+    <div data-state-show="empty" hidden>
+      <div class="cal-split">
+        <section>
+          <gen-month scn="empty" sel="2026-11-03" nolegend="1"></gen-month>
+          <div class="empty panel" style="margin-top: var(--space-4)">
+            <i data-cat="calendar"></i>
+            <h2 class="h-section" data-m="empty.calendar.title"></h2>
+            <p class="muted" data-m="empty.calendar.body"></p>
+            <button class="btn btn-primary"><i data-icon="plus"></i><span data-m="empty.calendar.cta"></span></button>
+          </div>
+        </section>
+        <aside class="cal-side"><gen-day scn="empty"></gen-day></aside>
+      </div>
+    </div>
+    <div data-state-show="loading" hidden aria-busy="true">
+      <div class="cal-split">
+        <section>
+          <div class="cal-nav"><button class="icon-btn" disabled data-m-aria="calendar.nav.prevMonth"><i data-icon="chevron-left"></i></button><div class="skeleton" style="flex:1; height: var(--space-5)"></div><button class="icon-btn" disabled data-m-aria="calendar.nav.nextMonth"><i data-icon="chevron-right"></i></button></div>
+          <gen-month scn="normal" loading="1" nolegend="1"></gen-month>
+          <p class="loading-note" role="status" data-m="calendar.loading"></p>
+        </section>
+      </div>
+    </div>
+    <div data-state-show="error" hidden>
+      <div class="alert" role="alert" style="margin-top: var(--space-4)"><i data-icon="circle-alert"></i><div><b data-m="calendar.error.title"></b><span data-m="calendar.error.body"></span></div></div>
+      <button class="btn btn-secondary" style="margin-top: var(--space-3)"><i data-icon="refresh-cw"></i><span data-m="states.retry"></span></button>
+    </div>
+    <div data-state-show="gone" hidden>
+      <div class="empty panel" style="margin-top: var(--space-4)">
+        <i data-cat="lost"></i>
+        <h2 class="h-section" data-m="calendar.gone.title"></h2>
+        <p class="muted" data-m="calendar.gone.body"></p>
+        <button class="btn btn-primary" data-m="calendar.gone.cta"></button>
+      </div>
+    </div>
+    <div data-state-show="solo" hidden>
+      <div class="cal-split">
+        <section>
+          <div class="alert alert-warn" style="margin-top: var(--space-2)"><i data-icon="info"></i><div><b data-m="empty.calendarSolo.title"></b><span data-m="empty.calendarSolo.body"></span></div></div>
+          <gen-month scn="solo" sel="2026-10-23" nolegend="1"></gen-month>
+        </section>
+        <aside class="cal-side"><gen-day scn="solo"></gen-day></aside>
+      </div>
+    </div>
+  </main>
+  <button class="btn btn-primary fab mobile-only" data-state-hide="error gone loading"><i data-icon="plus"></i><span data-m="busy.add"></span></button>
+  <nav class="tabbar" data-m-aria="nav.label">
+    <a class="tab" href="home.html"><i data-icon="house"></i><span data-m="nav.home"></span></a>
+    <a class="tab" href="calendar-month.html" aria-current="page"><i data-icon="calendar"></i><span data-m="nav.calendar"></span></a>
+    <a class="tab" href="groups.html"><i data-icon="users"></i><span data-m="nav.groups"></span></a>
+    <a class="tab" href="#"><i data-icon="user"></i><span data-m="nav.me"></span></a>
+  </nav>
+  <div data-state-show="switch" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="gs-t">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="gs-t" data-m="calendar.groupSwitch.title"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+        <div class="places" role="radiogroup" data-m-aria="calendar.groupSwitch.title" style="margin-top: 0">
+          <button class="place" role="radio" aria-checked="true"><span class="radio"></span><span class="row-main"><span class="pn">แก๊งมัธยม ห้อง 6/3</span><br><span class="small muted" data-m="groups.memberCount" data-m-v='{"count": 6}'></span></span></button>
+          <button class="place" role="radio" aria-checked="false"><span class="radio"></span><span class="row-main"><span class="pn">ก๊วนแบดสวนลุม</span><br><span class="small muted" data-m="groups.memberCount" data-m-v='{"count": 12}'></span></span></button>
+          <button class="place" role="radio" aria-checked="false"><span class="radio"></span><span class="row-main"><span class="pn">บ้านเรา</span><br><span class="small muted" data-m="groups.memberCount" data-m-v='{"count": 3}'></span></span></button>
+          <button class="place" role="radio" aria-checked="false"><span class="radio"></span><span class="row-main"><span class="pn">ทีมงานแต่งงานน้องมายด์และคุณโอ๊ต ฝั่งเจ้าสาว</span><br><span class="small muted" data-m="groups.memberCount" data-m-v='{"count": 48}'></span></span></button>
+        </div>
+        <p class="sheet-hint" style="display:flex; gap: var(--space-2); align-items: flex-start"><i data-icon="info" class="sm" style="margin-top: var(--space-1)"></i><span data-m="calendar.groupSwitch.hint"></span></p>
+      </div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

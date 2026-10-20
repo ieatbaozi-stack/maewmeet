@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-m="busy.form.title"></title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/members.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="../../../src/styles/calendar.css">
+<script src="sample.js"></script>
+<!--MESSAGES_EN-->
+</head>
+<body>
+<div class="aurora" data-intensity="soft" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<div class="app">
+  <div aria-hidden="true">
+  <header class="topbar"><span class="group-switch"><span class="name">แก๊งมัธยม ห้อง 6/3</span></span></header>
+  <main class="main wide"><div class="segmented cal-views"><button>เดือน</button><button>วัน</button><button>ของฉัน</button></div><gen-month scn="normal" nolegend="1"></gen-month></main>
+  </div>
+  <div data-state-show="timed" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="bf-t-timed">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="bf-t-timed" data-m="busy.form.title"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+      <div class="field" style="margin-top: 0">
+        <span class="label" id="bf-type-l" data-m="busy.form.type.label"></span>
+        <div class="segmented busy-types" role="group" aria-labelledby="bf-type-l"><button aria-pressed="false" data-m="busy.form.type.allDay"></button><button aria-pressed="true" data-m="busy.form.type.timed"></button><button aria-pressed="false" data-m="busy.form.type.multi"></button></div>
+        <p class="busy-type-help" data-m="busy.form.type.help.timed"></p>
+      </div><div class="field">
+        <span class="label" data-m="busy.form.date.label"></span>
+        <gen-datebtn kind="timed" scn="timed1" open="0" sm="540" em="720"></gen-datebtn>
+        
+      </div><div class="pair2" style="margin-top: var(--space-3)">
+        <div class="field" style="margin-top: 0"><span class="label" data-m="busy.form.time.start"></span><div class="input select"><span class="num">09:00</span><i data-icon="chevron-down"></i></div></div>
+        <div class="field" style="margin-top: 0"><span class="label" data-m="busy.form.time.end"></span><div class="input select"><span class="num">12:00</span><i data-icon="chevron-down"></i></div></div>
+      </div><p class="cal-summary-line"><gen-sum kind="timed" scn="timed1" sm="540" em="720"></gen-sum><span class="muted small"><gen-dur min="180"></gen-dur></span></p><div class="field">
+        <div class="field-label-row"><label for="bf-what"><span data-m="busy.form.what.label"></span> <span class="opt">(<span data-m="busy.form.what.optional"></span>)</span></label></div>
+        <div class="input"><input id="bf-what" class="input-bare" data-m-ph="busy.form.what.placeholder" aria-describedby="bf-what-h"><span class="counter num">0/80</span></div>
+        <p class="field-hint" id="bf-what-h" data-m="busy.form.what.hint" data-m-v='{"max":80}'></p>
+      </div><div class="switch-row"><div class="tx"><b id="bf-hide-l" data-m="busy.form.hide.label"></b><span data-m="busy.form.hide.help"></span></div><button class="switch" role="switch" aria-checked="false" aria-labelledby="bf-hide-l"></button></div><div class="field">
+        <div class="field-label-row"><label for="bf-note" data-m="busy.form.note.label"></label><span class="private-badge"><i data-icon="lock"></i><span data-m="busy.form.note.badge"></span></span></div>
+        <div class="input"><textarea id="bf-note" class="input-bare" rows="3" style="resize: vertical; padding: var(--space-3) 0" data-m-ph="busy.form.note.placeholder" aria-describedby="bf-note-h"></textarea></div>
+        <p class="field-hint" id="bf-note-h"><span data-m="busy.form.note.help"></span> <span class="num">0/500</span></p>
+      </div>
+      </div>
+      <div class="sheet-foot">
+        <p class="visibility-line"><i data-icon="info" class="sm"></i><span><span data-m="busy.form.visibility"></span><small data-m="busy.form.visibilityGroups" data-m-v='{"count":3}'></small></span></p>
+        <button class="btn btn-primary btn-block" data-m="busy.form.submit"></button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="allday" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="bf-t-allday">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="bf-t-allday" data-m="busy.form.title"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+      <div class="field" style="margin-top: 0">
+        <span class="label" id="bf-type-l" data-m="busy.form.type.label"></span>
+        <div class="segmented busy-types" role="group" aria-labelledby="bf-type-l"><button aria-pressed="true" data-m="busy.form.type.allDay"></button><button aria-pressed="false" data-m="busy.form.type.timed"></button><button aria-pressed="false" data-m="busy.form.type.multi"></button></div>
+        <p class="busy-type-help" data-m="busy.form.type.help.allDay"></p>
+      </div><div class="field">
+        <span class="label" data-m="busy.form.date.label"></span>
+        <gen-datebtn kind="allday" scn="allday" open="1"></gen-datebtn>
+        <p class="field-hint" data-m="busy.form.date.pick"></p><gen-picker scn="allday"></gen-picker>
+      </div><div class="field">
+        <div class="field-label-row"><label for="bf-what"><span data-m="busy.form.what.label"></span> <span class="opt">(<span data-m="busy.form.what.optional"></span>)</span></label></div>
+        <div class="input"><input id="bf-what" class="input-bare" data-m-ph="busy.form.what.placeholder" aria-describedby="bf-what-h"><span class="counter num">0/80</span></div>
+        <p class="field-hint" id="bf-what-h" data-m="busy.form.what.hint" data-m-v='{"max":80}'></p>
+      </div><div class="switch-row"><div class="tx"><b id="bf-hide-l" data-m="busy.form.hide.label"></b><span data-m="busy.form.hide.help"></span></div><button class="switch" role="switch" aria-checked="false" aria-labelledby="bf-hide-l"></button></div><div class="field">
+        <div class="field-label-row"><label for="bf-note" data-m="busy.form.note.label"></label><span class="private-badge"><i data-icon="lock"></i><span data-m="busy.form.note.badge"></span></span></div>
+        <div class="input"><textarea id="bf-note" class="input-bare" rows="3" style="resize: vertical; padding: var(--space-3) 0" data-m-ph="busy.form.note.placeholder" aria-describedby="bf-note-h"></textarea></div>
+        <p class="field-hint" id="bf-note-h"><span data-m="busy.form.note.help"></span> <span class="num">0/500</span></p>
+      </div>
+      </div>
+      <div class="sheet-foot">
+        <p class="visibility-line"><i data-icon="info" class="sm"></i><span><span data-m="busy.form.visibility"></span><small data-m="busy.form.visibilityGroups" data-m-v='{"count":3}'></small></span></p>
+        <button class="btn btn-primary btn-block" data-m="busy.form.submit"></button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="multi" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="bf-t-multi">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="bf-t-multi" data-m="busy.form.title"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+      <div class="field" style="margin-top: 0">
+        <span class="label" id="bf-type-l" data-m="busy.form.type.label"></span>
+        <div class="segmented busy-types" role="group" aria-labelledby="bf-type-l"><button aria-pressed="false" data-m="busy.form.type.allDay"></button><button aria-pressed="false" data-m="busy.form.type.timed"></button><button aria-pressed="true" data-m="busy.form.type.multi"></button></div>
+        <p class="busy-type-help" data-m="busy.form.type.help.multi"></p>
+      </div><div class="field">
+        <span class="label" data-m="busy.form.date.label"></span>
+        <gen-datebtn kind="multi" scn="multi" open="1"></gen-datebtn>
+        <p class="field-hint" data-m="busy.form.date.pickRange"></p><gen-picker scn="multi"></gen-picker>
+      </div><p class="cal-summary-line"><gen-sum kind="multi" scn="multi"></gen-sum><span class="muted small"><gen-days n="4"></gen-days></span></p><div class="field">
+        <div class="field-label-row"><label for="bf-what"><span data-m="busy.form.what.label"></span> <span class="opt">(<span data-m="busy.form.what.optional"></span>)</span></label></div>
+        <div class="input"><input id="bf-what" class="input-bare" value="ไปเชียงใหม่" data-m-ph="busy.form.what.placeholder" aria-describedby="bf-what-h"><span class="counter num">11/80</span></div>
+        <p class="field-hint" id="bf-what-h" data-m="busy.form.what.hint" data-m-v='{"max":80}'></p>
+      </div><div class="switch-row"><div class="tx"><b id="bf-hide-l" data-m="busy.form.hide.label"></b><span data-m="busy.form.hide.help"></span></div><button class="switch" role="switch" aria-checked="false" aria-labelledby="bf-hide-l"></button></div><div class="field">
+        <div class="field-label-row"><label for="bf-note" data-m="busy.form.note.label"></label><span class="private-badge"><i data-icon="lock"></i><span data-m="busy.form.note.badge"></span></span></div>
+        <div class="input"><textarea id="bf-note" class="input-bare" rows="3" style="resize: vertical; padding: var(--space-3) 0" data-m-ph="busy.form.note.placeholder" aria-describedby="bf-note-h"></textarea></div>
+        <p class="field-hint" id="bf-note-h"><span data-m="busy.form.note.help"></span> <span class="num">0/500</span></p>
+      </div>
+      </div>
+      <div class="sheet-foot">
+        <p class="visibility-line"><i data-icon="info" class="sm"></i><span><span data-m="busy.form.visibility"></span><small data-m="busy.form.visibilityGroups" data-m-v='{"count":3}'></small></span></p>
+        <button class="btn btn-primary btn-block" data-m="busy.form.submit"></button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="overnight" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="bf-t-overnight">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="bf-t-overnight" data-m="busy.form.title"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+      <div class="field" style="margin-top: 0">
+        <span class="label" id="bf-type-l" data-m="busy.form.type.label"></span>
+        <div class="segmented busy-types" role="group" aria-labelledby="bf-type-l"><button aria-pressed="false" data-m="busy.form.type.allDay"></button><button aria-pressed="true" data-m="busy.form.type.timed"></button><button aria-pressed="false" data-m="busy.form.type.multi"></button></div>
+        <p class="busy-type-help" data-m="busy.form.type.help.timed"></p>
+      </div><div class="field">
+        <span class="label" data-m="busy.form.date.label"></span>
+        <gen-datebtn kind="timed" scn="timed" open="1"></gen-datebtn>
+        <p class="field-hint" data-m="busy.form.date.pickTimed"></p><gen-picker scn="timed"></gen-picker>
+      </div><div class="pair2" style="margin-top: var(--space-3)">
+        <div class="field" style="margin-top: 0"><span class="label" data-m="busy.form.time.start"></span><div class="input select"><span class="num">22:00</span><i data-icon="chevron-down"></i></div></div>
+        <div class="field" style="margin-top: 0"><span class="label" data-m="busy.form.time.end"></span><div class="input select"><span class="num">06:00</span><i data-icon="chevron-down"></i></div></div>
+      </div><p class="cal-summary-line"><gen-sum kind="timed" scn="timed"></gen-sum><span class="tag tag-event"><i data-icon="clock"></i><span data-m="busy.form.overnight"></span></span><span class="muted small"><gen-dur min="480"></gen-dur></span></p><div class="field">
+        <div class="field-label-row"><label for="bf-what"><span data-m="busy.form.what.label"></span> <span class="opt">(<span data-m="busy.form.what.optional"></span>)</span></label></div>
+        <div class="input"><input id="bf-what" class="input-bare" value="ดูหนังรอบดึก" data-m-ph="busy.form.what.placeholder" aria-describedby="bf-what-h"><span class="counter num">12/80</span></div>
+        <p class="field-hint" id="bf-what-h" data-m="busy.form.what.hint" data-m-v='{"max":80}'></p>
+      </div><div class="switch-row"><div class="tx"><b id="bf-hide-l" data-m="busy.form.hide.label"></b><span data-m="busy.form.hide.help"></span></div><button class="switch" role="switch" aria-checked="true" aria-labelledby="bf-hide-l"></button></div><div class="field">
+        <div class="field-label-row"><label for="bf-note" data-m="busy.form.note.label"></label><span class="private-badge"><i data-icon="lock"></i><span data-m="busy.form.note.badge"></span></span></div>
+        <div class="input"><textarea id="bf-note" class="input-bare" rows="3" style="resize: vertical; padding: var(--space-3) 0" data-m-ph="busy.form.note.placeholder" aria-describedby="bf-note-h">ซื้อตั๋วไว้แล้ว นั่งแถว H</textarea></div>
+        <p class="field-hint" id="bf-note-h"><span data-m="busy.form.note.help"></span> <span class="num">25/500</span></p>
+      </div>
+      </div>
+      <div class="sheet-foot">
+        <p class="visibility-line"><i data-icon="info" class="sm"></i><span><span data-m="busy.form.visibility"></span><small data-m="busy.form.visibilityGroups" data-m-v='{"count":3}'></small></span></p>
+        <button class="btn btn-primary btn-block" data-m="busy.form.submit"></button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="first" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="bf-t-first">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="bf-t-first" data-m="busy.form.title"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+      <div class="busy-notice" role="note"><i data-cat="peek"></i><div><b data-m="busy.form.notice.title"></b><p data-m="busy.form.notice.body"></p><button class="btn btn-secondary" data-m="busy.form.notice.cta"></button></div></div><div class="field" style="margin-top: var(--space-3)">
+        <span class="label" id="bf-type-l" data-m="busy.form.type.label"></span>
+        <div class="segmented busy-types" role="group" aria-labelledby="bf-type-l"><button aria-pressed="true" data-m="busy.form.type.allDay"></button><button aria-pressed="false" data-m="busy.form.type.timed"></button><button aria-pressed="false" data-m="busy.form.type.multi"></button></div>
+        <p class="busy-type-help" data-m="busy.form.type.help.allDay"></p>
+      </div><div class="field">
+        <span class="label" data-m="busy.form.date.label"></span>
+        <gen-datebtn kind="allday" scn="allday" open="0"></gen-datebtn>
+        
+      </div><div class="field">
+        <div class="field-label-row"><label for="bf-what"><span data-m="busy.form.what.label"></span> <span class="opt">(<span data-m="busy.form.what.optional"></span>)</span></label></div>
+        <div class="input"><input id="bf-what" class="input-bare" data-m-ph="busy.form.what.placeholder" aria-describedby="bf-what-h"><span class="counter num">0/80</span></div>
+        <p class="field-hint" id="bf-what-h" data-m="busy.form.what.hint" data-m-v='{"max":80}'></p>
+      </div><div class="switch-row"><div class="tx"><b id="bf-hide-l" data-m="busy.form.hide.label"></b><span data-m="busy.form.hide.help"></span></div><button class="switch" role="switch" aria-checked="false" aria-labelledby="bf-hide-l"></button></div><div class="field">
+        <div class="field-label-row"><label for="bf-note" data-m="busy.form.note.label"></label><span class="private-badge"><i data-icon="lock"></i><span data-m="busy.form.note.badge"></span></span></div>
+        <div class="input"><textarea id="bf-note" class="input-bare" rows="3" style="resize: vertical; padding: var(--space-3) 0" data-m-ph="busy.form.note.placeholder" aria-describedby="bf-note-h"></textarea></div>
+        <p class="field-hint" id="bf-note-h"><span data-m="busy.form.note.help"></span> <span class="num">0/500</span></p>
+      </div>
+      </div>
+      <div class="sheet-foot">
+        <p class="visibility-line"><i data-icon="info" class="sm"></i><span><span data-m="busy.form.visibility"></span><small data-m="busy.form.visibilityGroups" data-m-v='{"count":3}'></small></span></p>
+        <button class="btn btn-primary btn-block" data-m="busy.form.submit"></button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="error-range" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="bf-t-error-range">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="bf-t-error-range" data-m="busy.form.title"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+      <div class="field" style="margin-top: 0">
+        <span class="label" id="bf-type-l" data-m="busy.form.type.label"></span>
+        <div class="segmented busy-types" role="group" aria-labelledby="bf-type-l"><button aria-pressed="false" data-m="busy.form.type.allDay"></button><button aria-pressed="true" data-m="busy.form.type.timed"></button><button aria-pressed="false" data-m="busy.form.type.multi"></button></div>
+        <p class="busy-type-help" data-m="busy.form.type.help.timed"></p>
+      </div><div class="field">
+        <span class="label" data-m="busy.form.date.label"></span>
+        <gen-datebtn kind="timed" scn="timed1" open="0" sm="540" em="540"></gen-datebtn>
+        
+      </div><div class="pair2" style="margin-top: var(--space-3)">
+        <div class="field" style="margin-top: 0"><span class="label" data-m="busy.form.time.start"></span><div class="input select"><span class="num">09:00</span><i data-icon="chevron-down"></i></div></div>
+        <div class="field" style="margin-top: 0"><span class="label" data-m="busy.form.time.end"></span><div class="input select" aria-invalid="true"><span class="num">09:00</span><i data-icon="chevron-down"></i></div></div>
+      </div><p class="field-error" role="alert"><i data-icon="circle-alert" class="sm"></i><span data-m="errors.INVALID_RANGE" data-m-v='{"kind":"time"}'></span></p><div class="field">
+        <div class="field-label-row"><label for="bf-what"><span data-m="busy.form.what.label"></span> <span class="opt">(<span data-m="busy.form.what.optional"></span>)</span></label></div>
+        <div class="input"><input id="bf-what" class="input-bare" value="ติวหนังสือ" data-m-ph="busy.form.what.placeholder" aria-describedby="bf-what-h"><span class="counter num">10/80</span></div>
+        <p class="field-hint" id="bf-what-h" data-m="busy.form.what.hint" data-m-v='{"max":80}'></p>
+      </div><div class="switch-row"><div class="tx"><b id="bf-hide-l" data-m="busy.form.hide.label"></b><span data-m="busy.form.hide.help"></span></div><button class="switch" role="switch" aria-checked="false" aria-labelledby="bf-hide-l"></button></div><div class="field">
+        <div class="field-label-row"><label for="bf-note" data-m="busy.form.note.label"></label><span class="private-badge"><i data-icon="lock"></i><span data-m="busy.form.note.badge"></span></span></div>
+        <div class="input"><textarea id="bf-note" class="input-bare" rows="3" style="resize: vertical; padding: var(--space-3) 0" data-m-ph="busy.form.note.placeholder" aria-describedby="bf-note-h"></textarea></div>
+        <p class="field-hint" id="bf-note-h"><span data-m="busy.form.note.help"></span> <span class="num">0/500</span></p>
+      </div>
+      </div>
+      <div class="sheet-foot">
+        <p class="visibility-line"><i data-icon="info" class="sm"></i><span><span data-m="busy.form.visibility"></span><small data-m="busy.form.visibilityGroups" data-m-v='{"count":3}'></small></span></p>
+        <button class="btn btn-primary btn-block" data-m="busy.form.submit"></button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="error-limit" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="bf-t-error-limit">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="bf-t-error-limit" data-m="busy.form.title"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+      <div class="alert" role="alert" style="margin-top: 0; margin-bottom: var(--space-3)"><i data-icon="circle-alert"></i><div><span data-m="errors.LIMIT_REACHED" data-m-v='{"limit":"busyCount","max":300}'></span></div></div><div class="field" style="margin-top: 0">
+        <span class="label" id="bf-type-l" data-m="busy.form.type.label"></span>
+        <div class="segmented busy-types" role="group" aria-labelledby="bf-type-l"><button aria-pressed="true" data-m="busy.form.type.allDay"></button><button aria-pressed="false" data-m="busy.form.type.timed"></button><button aria-pressed="false" data-m="busy.form.type.multi"></button></div>
+        <p class="busy-type-help" data-m="busy.form.type.help.allDay"></p>
+      </div><div class="field">
+        <span class="label" data-m="busy.form.date.label"></span>
+        <gen-datebtn kind="allday" scn="allday" open="0"></gen-datebtn>
+        
+      </div><div class="field">
+        <div class="field-label-row"><label for="bf-what"><span data-m="busy.form.what.label"></span> <span class="opt">(<span data-m="busy.form.what.optional"></span>)</span></label></div>
+        <div class="input"><input id="bf-what" class="input-bare" value="ไปทำบุญ" data-m-ph="busy.form.what.placeholder" aria-describedby="bf-what-h"><span class="counter num">7/80</span></div>
+        <p class="field-hint" id="bf-what-h" data-m="busy.form.what.hint" data-m-v='{"max":80}'></p>
+      </div><div class="switch-row"><div class="tx"><b id="bf-hide-l" data-m="busy.form.hide.label"></b><span data-m="busy.form.hide.help"></span></div><button class="switch" role="switch" aria-checked="false" aria-labelledby="bf-hide-l"></button></div><div class="field">
+        <div class="field-label-row"><label for="bf-note" data-m="busy.form.note.label"></label><span class="private-badge"><i data-icon="lock"></i><span data-m="busy.form.note.badge"></span></span></div>
+        <div class="input"><textarea id="bf-note" class="input-bare" rows="3" style="resize: vertical; padding: var(--space-3) 0" data-m-ph="busy.form.note.placeholder" aria-describedby="bf-note-h"></textarea></div>
+        <p class="field-hint" id="bf-note-h"><span data-m="busy.form.note.help"></span> <span class="num">0/500</span></p>
+      </div>
+      </div>
+      <div class="sheet-foot">
+        <p class="visibility-line"><i data-icon="info" class="sm"></i><span><span data-m="busy.form.visibility"></span><small data-m="busy.form.visibilityGroups" data-m-v='{"count":3}'></small></span></p>
+        <button class="btn btn-primary btn-block" data-m="busy.form.submit"></button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="error-span" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="bf-t-error-span">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="bf-t-error-span" data-m="busy.form.title"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+      <div class="alert" role="alert" style="margin-top: 0; margin-bottom: var(--space-3)"><i data-icon="circle-alert"></i><div><span data-m="errors.LIMIT_REACHED" data-m-v='{"limit":"busySpan","max":366}'></span></div></div><div class="field" style="margin-top: 0">
+        <span class="label" id="bf-type-l" data-m="busy.form.type.label"></span>
+        <div class="segmented busy-types" role="group" aria-labelledby="bf-type-l"><button aria-pressed="false" data-m="busy.form.type.allDay"></button><button aria-pressed="false" data-m="busy.form.type.timed"></button><button aria-pressed="true" data-m="busy.form.type.multi"></button></div>
+        <p class="busy-type-help" data-m="busy.form.type.help.multi"></p>
+      </div><div class="field">
+        <span class="label" data-m="busy.form.date.label"></span>
+        <gen-datebtn kind="multi" scn="long" open="0"></gen-datebtn>
+        
+      </div><p class="cal-summary-line"><gen-sum kind="multi" scn="long"></gen-sum></p><div class="field">
+        <div class="field-label-row"><label for="bf-what"><span data-m="busy.form.what.label"></span> <span class="opt">(<span data-m="busy.form.what.optional"></span>)</span></label></div>
+        <div class="input"><input id="bf-what" class="input-bare" value="ไปเรียนต่อ" data-m-ph="busy.form.what.placeholder" aria-describedby="bf-what-h"><span class="counter num">10/80</span></div>
+        <p class="field-hint" id="bf-what-h" data-m="busy.form.what.hint" data-m-v='{"max":80}'></p>
+      </div><div class="switch-row"><div class="tx"><b id="bf-hide-l" data-m="busy.form.hide.label"></b><span data-m="busy.form.hide.help"></span></div><button class="switch" role="switch" aria-checked="false" aria-labelledby="bf-hide-l"></button></div><div class="field">
+        <div class="field-label-row"><label for="bf-note" data-m="busy.form.note.label"></label><span class="private-badge"><i data-icon="lock"></i><span data-m="busy.form.note.badge"></span></span></div>
+        <div class="input"><textarea id="bf-note" class="input-bare" rows="3" style="resize: vertical; padding: var(--space-3) 0" data-m-ph="busy.form.note.placeholder" aria-describedby="bf-note-h"></textarea></div>
+        <p class="field-hint" id="bf-note-h"><span data-m="busy.form.note.help"></span> <span class="num">0/500</span></p>
+      </div>
+      </div>
+      <div class="sheet-foot">
+        <p class="visibility-line"><i data-icon="info" class="sm"></i><span><span data-m="busy.form.visibility"></span><small data-m="busy.form.visibilityGroups" data-m-v='{"count":3}'></small></span></p>
+        <button class="btn btn-primary btn-block" data-m="busy.form.submit"></button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="error-backdate" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="bf-t-error-backdate">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="bf-t-error-backdate" data-m="busy.form.title"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+      <div class="field" style="margin-top: 0">
+        <span class="label" id="bf-type-l" data-m="busy.form.type.label"></span>
+        <div class="segmented busy-types" role="group" aria-labelledby="bf-type-l"><button aria-pressed="true" data-m="busy.form.type.allDay"></button><button aria-pressed="false" data-m="busy.form.type.timed"></button><button aria-pressed="false" data-m="busy.form.type.multi"></button></div>
+        <p class="busy-type-help" data-m="busy.form.type.help.allDay"></p>
+      </div><div class="field">
+        <span class="label" data-m="busy.form.date.label"></span>
+        <gen-datebtn kind="allday" scn="past" open="0" invalid="1"></gen-datebtn>
+        <p class="field-error" role="alert"><i data-icon="circle-alert" class="sm"></i><span data-m="errors.LIMIT_REACHED" data-m-v='{"limit":"busyBackdate","max":7}'></span></p>
+      </div><div class="field">
+        <div class="field-label-row"><label for="bf-what"><span data-m="busy.form.what.label"></span> <span class="opt">(<span data-m="busy.form.what.optional"></span>)</span></label></div>
+        <div class="input"><input id="bf-what" class="input-bare" data-m-ph="busy.form.what.placeholder" aria-describedby="bf-what-h"><span class="counter num">0/80</span></div>
+        <p class="field-hint" id="bf-what-h" data-m="busy.form.what.hint" data-m-v='{"max":80}'></p>
+      </div><div class="switch-row"><div class="tx"><b id="bf-hide-l" data-m="busy.form.hide.label"></b><span data-m="busy.form.hide.help"></span></div><button class="switch" role="switch" aria-checked="false" aria-labelledby="bf-hide-l"></button></div><div class="field">
+        <div class="field-label-row"><label for="bf-note" data-m="busy.form.note.label"></label><span class="private-badge"><i data-icon="lock"></i><span data-m="busy.form.note.badge"></span></span></div>
+        <div class="input"><textarea id="bf-note" class="input-bare" rows="3" style="resize: vertical; padding: var(--space-3) 0" data-m-ph="busy.form.note.placeholder" aria-describedby="bf-note-h"></textarea></div>
+        <p class="field-hint" id="bf-note-h"><span data-m="busy.form.note.help"></span> <span class="num">0/500</span></p>
+      </div>
+      </div>
+      <div class="sheet-foot">
+        <p class="visibility-line"><i data-icon="info" class="sm"></i><span><span data-m="busy.form.visibility"></span><small data-m="busy.form.visibilityGroups" data-m-v='{"count":3}'></small></span></p>
+        <button class="btn btn-primary btn-block" data-m="busy.form.submit"></button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="error-save" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="bf-t-error-save">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="bf-t-error-save" data-m="busy.form.title"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+      <div class="alert" role="alert" style="margin-top: 0; margin-bottom: var(--space-3)"><i data-icon="circle-alert"></i><div><span data-m="busy.form.error.save"></span></div></div><div class="field" style="margin-top: 0">
+        <span class="label" id="bf-type-l" data-m="busy.form.type.label"></span>
+        <div class="segmented busy-types" role="group" aria-labelledby="bf-type-l"><button aria-pressed="true" data-m="busy.form.type.allDay"></button><button aria-pressed="false" data-m="busy.form.type.timed"></button><button aria-pressed="false" data-m="busy.form.type.multi"></button></div>
+        <p class="busy-type-help" data-m="busy.form.type.help.allDay"></p>
+      </div><div class="field">
+        <span class="label" data-m="busy.form.date.label"></span>
+        <gen-datebtn kind="allday" scn="allday" open="0"></gen-datebtn>
+        
+      </div><div class="field">
+        <div class="field-label-row"><label for="bf-what"><span data-m="busy.form.what.label"></span> <span class="opt">(<span data-m="busy.form.what.optional"></span>)</span></label></div>
+        <div class="input"><input id="bf-what" class="input-bare" value="ซ้อมดนตรี" data-m-ph="busy.form.what.placeholder" aria-describedby="bf-what-h"><span class="counter num">9/80</span></div>
+        <p class="field-hint" id="bf-what-h" data-m="busy.form.what.hint" data-m-v='{"max":80}'></p>
+      </div><div class="switch-row"><div class="tx"><b id="bf-hide-l" data-m="busy.form.hide.label"></b><span data-m="busy.form.hide.help"></span></div><button class="switch" role="switch" aria-checked="false" aria-labelledby="bf-hide-l"></button></div><div class="field">
+        <div class="field-label-row"><label for="bf-note" data-m="busy.form.note.label"></label><span class="private-badge"><i data-icon="lock"></i><span data-m="busy.form.note.badge"></span></span></div>
+        <div class="input"><textarea id="bf-note" class="input-bare" rows="3" style="resize: vertical; padding: var(--space-3) 0" data-m-ph="busy.form.note.placeholder" aria-describedby="bf-note-h"></textarea></div>
+        <p class="field-hint" id="bf-note-h"><span data-m="busy.form.note.help"></span> <span class="num">0/500</span></p>
+      </div>
+      </div>
+      <div class="sheet-foot">
+        <p class="visibility-line"><i data-icon="info" class="sm"></i><span><span data-m="busy.form.visibility"></span><small data-m="busy.form.visibilityGroups" data-m-v='{"count":3}'></small></span></p>
+        <button class="btn btn-primary btn-block" data-m="busy.form.submit"></button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="saving" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="bf-t-saving">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="bf-t-saving" data-m="busy.form.title"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+      <div class="field" style="margin-top: 0">
+        <span class="label" id="bf-type-l" data-m="busy.form.type.label"></span>
+        <div class="segmented busy-types" role="group" aria-labelledby="bf-type-l"><button aria-pressed="true" data-m="busy.form.type.allDay"></button><button aria-pressed="false" data-m="busy.form.type.timed"></button><button aria-pressed="false" data-m="busy.form.type.multi"></button></div>
+        <p class="busy-type-help" data-m="busy.form.type.help.allDay"></p>
+      </div><div class="field">
+        <span class="label" data-m="busy.form.date.label"></span>
+        <gen-datebtn kind="allday" scn="allday" open="0"></gen-datebtn>
+        
+      </div><div class="field">
+        <div class="field-label-row"><label for="bf-what"><span data-m="busy.form.what.label"></span> <span class="opt">(<span data-m="busy.form.what.optional"></span>)</span></label></div>
+        <div class="input"><input id="bf-what" class="input-bare" value="ซ้อมดนตรี" data-m-ph="busy.form.what.placeholder" aria-describedby="bf-what-h"><span class="counter num">9/80</span></div>
+        <p class="field-hint" id="bf-what-h" data-m="busy.form.what.hint" data-m-v='{"max":80}'></p>
+      </div><div class="switch-row"><div class="tx"><b id="bf-hide-l" data-m="busy.form.hide.label"></b><span data-m="busy.form.hide.help"></span></div><button class="switch" role="switch" aria-checked="false" aria-labelledby="bf-hide-l"></button></div><div class="field">
+        <div class="field-label-row"><label for="bf-note" data-m="busy.form.note.label"></label><span class="private-badge"><i data-icon="lock"></i><span data-m="busy.form.note.badge"></span></span></div>
+        <div class="input"><textarea id="bf-note" class="input-bare" rows="3" style="resize: vertical; padding: var(--space-3) 0" data-m-ph="busy.form.note.placeholder" aria-describedby="bf-note-h"></textarea></div>
+        <p class="field-hint" id="bf-note-h"><span data-m="busy.form.note.help"></span> <span class="num">0/500</span></p>
+      </div>
+      </div>
+      <div class="sheet-foot">
+        <p class="visibility-line"><i data-icon="info" class="sm"></i><span><span data-m="busy.form.visibility"></span><small data-m="busy.form.visibilityGroups" data-m-v='{"count":3}'></small></span></p>
+        <button class="btn btn-primary btn-block" disabled data-m="busy.form.saving"></button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="edit" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="bf-t-edit">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="bf-t-edit" data-m="busy.form.editTitle"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+      <div class="field" style="margin-top: 0">
+        <span class="label" id="bf-type-l" data-m="busy.form.type.label"></span>
+        <div class="segmented busy-types" role="group" aria-labelledby="bf-type-l"><button aria-pressed="false" data-m="busy.form.type.allDay"></button><button aria-pressed="false" data-m="busy.form.type.timed"></button><button aria-pressed="true" data-m="busy.form.type.multi"></button></div>
+        <p class="busy-type-help" data-m="busy.form.type.help.multi"></p>
+      </div><div class="field">
+        <span class="label" data-m="busy.form.date.label"></span>
+        <gen-datebtn kind="multi" scn="edit" open="0"></gen-datebtn>
+        
+      </div><p class="cal-summary-line"><gen-sum kind="multi" scn="edit"></gen-sum><span class="muted small"><gen-days n="3"></gen-days></span></p><div class="field">
+        <div class="field-label-row"><label for="bf-what"><span data-m="busy.form.what.label"></span> <span class="opt">(<span data-m="busy.form.what.optional"></span>)</span></label></div>
+        <div class="input"><input id="bf-what" class="input-bare" value="ไปเชียงใหม่" data-m-ph="busy.form.what.placeholder" aria-describedby="bf-what-h"><span class="counter num">11/80</span></div>
+        <p class="field-hint" id="bf-what-h" data-m="busy.form.what.hint" data-m-v='{"max":80}'></p>
+      </div><div class="switch-row"><div class="tx"><b id="bf-hide-l" data-m="busy.form.hide.label"></b><span data-m="busy.form.hide.help"></span></div><button class="switch" role="switch" aria-checked="true" aria-labelledby="bf-hide-l"></button></div><div class="field">
+        <div class="field-label-row"><label for="bf-note" data-m="busy.form.note.label"></label><span class="private-badge"><i data-icon="lock"></i><span data-m="busy.form.note.badge"></span></span></div>
+        <div class="input"><textarea id="bf-note" class="input-bare" rows="3" style="resize: vertical; padding: var(--space-3) 0" data-m-ph="busy.form.note.placeholder" aria-describedby="bf-note-h">จองรถไฟไว้แล้ว ขบวน 9 ตู้ 3</textarea></div>
+        <p class="field-hint" id="bf-note-h"><span data-m="busy.form.note.help"></span> <span class="num">27/500</span></p>
+      </div><button class="btn btn-danger-quiet btn-block" style="margin-top: var(--space-5); min-height: var(--tap-lg)"><i data-icon="trash-2"></i><span data-m="busy.form.delete"></span></button>
+      </div>
+      <div class="sheet-foot">
+        <p class="visibility-line"><i data-icon="info" class="sm"></i><span><span data-m="busy.form.visibility"></span><small data-m="busy.form.visibilityGroups" data-m-v='{"count":3}'></small></span></p>
+        <button class="btn btn-primary btn-block" data-m="busy.form.submit"></button>
+      </div>
+    </section>
+  </div>
+  <div data-state-show="delete" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="bf-t-delete">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="bf-t-delete" data-m="busy.form.editTitle"></h2></div><button class="icon-btn" data-m-aria="a11y.close"><i data-icon="x"></i></button></div>
+      <div class="sheet-body">
+      <div class="field" style="margin-top: 0">
+        <span class="label" id="bf-type-l" data-m="busy.form.type.label"></span>
+        <div class="segmented busy-types" role="group" aria-labelledby="bf-type-l"><button aria-pressed="false" data-m="busy.form.type.allDay"></button><button aria-pressed="false" data-m="busy.form.type.timed"></button><button aria-pressed="true" data-m="busy.form.type.multi"></button></div>
+        <p class="busy-type-help" data-m="busy.form.type.help.multi"></p>
+      </div><div class="field">
+        <span class="label" data-m="busy.form.date.label"></span>
+        <gen-datebtn kind="multi" scn="edit" open="0"></gen-datebtn>
+        
+      </div><p class="cal-summary-line"><gen-sum kind="multi" scn="edit"></gen-sum><span class="muted small"><gen-days n="3"></gen-days></span></p><div class="field">
+        <div class="field-label-row"><label for="bf-what"><span data-m="busy.form.what.label"></span> <span class="opt">(<span data-m="busy.form.what.optional"></span>)</span></label></div>
+        <div class="input"><input id="bf-what" class="input-bare" value="ไปเชียงใหม่" data-m-ph="busy.form.what.placeholder" aria-describedby="bf-what-h"><span class="counter num">11/80</span></div>
+        <p class="field-hint" id="bf-what-h" data-m="busy.form.what.hint" data-m-v='{"max":80}'></p>
+      </div><div class="switch-row"><div class="tx"><b id="bf-hide-l" data-m="busy.form.hide.label"></b><span data-m="busy.form.hide.help"></span></div><button class="switch" role="switch" aria-checked="true" aria-labelledby="bf-hide-l"></button></div><div class="field">
+        <div class="field-label-row"><label for="bf-note" data-m="busy.form.note.label"></label><span class="private-badge"><i data-icon="lock"></i><span data-m="busy.form.note.badge"></span></span></div>
+        <div class="input"><textarea id="bf-note" class="input-bare" rows="3" style="resize: vertical; padding: var(--space-3) 0" data-m-ph="busy.form.note.placeholder" aria-describedby="bf-note-h">จองรถไฟไว้แล้ว ขบวน 9 ตู้ 3</textarea></div>
+        <p class="field-hint" id="bf-note-h"><span data-m="busy.form.note.help"></span> <span class="num">27/500</span></p>
+      </div><button class="btn btn-danger-quiet btn-block" style="margin-top: var(--space-5); min-height: var(--tap-lg)"><i data-icon="trash-2"></i><span data-m="busy.form.delete"></span></button>
+      </div>
+      <div class="sheet-foot">
+        <p class="visibility-line"><i data-icon="info" class="sm"></i><span><span data-m="busy.form.visibility"></span><small data-m="busy.form.visibilityGroups" data-m-v='{"count":3}'></small></span></p>
+        <button class="btn btn-primary btn-block" data-m="busy.form.submit"></button>
+      </div>
+    </section>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet center alert-sheet" role="alertdialog" aria-modal="true" aria-labelledby="dl-t" aria-describedby="dl-b">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2 id="dl-t" data-m="busy.delete.title"></h2></div></div>
+      <div class="sheet-body"><p id="dl-b" data-m="busy.delete.body"></p><p class="small muted" style="margin-top: var(--space-3)"><b><span data-m="busy.when.days" data-m-v='{"th":{"start":"29 ต.ค.","end":"31 ต.ค.","count":3},"en":{"start":"29 Oct","end":"31 Oct","count":3}}'></span></b> · ไปเชียงใหม่</p></div>
+      <div class="sheet-foot sheet-actions"><button class="btn btn-danger btn-block" style="min-height: var(--tap-lg)"><i data-icon="trash-2"></i><span data-m="busy.delete.confirm"></span></button><button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)" data-m="common.cancel"></button></div>
+    </section>
+  </div>
+  <div data-state-show="error-copy" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-label="errors">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head"><div class="t"><h2>errors.*</h2></div></div>
+      <div class="sheet-body"><ul><li class="code-line"><div class="top"><span class="hint-code" style="font-size: var(--text-sm)">INVALID_RANGE · kind:time</span></div><p data-m="errors.INVALID_RANGE" data-m-v='{"kind":"time"}'></p></li><li class="code-line"><div class="top"><span class="hint-code" style="font-size: var(--text-sm)">INVALID_RANGE · kind:dates</span></div><p data-m="errors.INVALID_RANGE" data-m-v='{"kind":"dates"}'></p></li><li class="code-line"><div class="top"><span class="hint-code" style="font-size: var(--text-sm)">TIME_NOT_ON_STEP</span></div><p data-m="errors.TIME_NOT_ON_STEP"></p></li><li class="code-line"><div class="top"><span class="hint-code" style="font-size: var(--text-sm)">INVALID_DATE</span></div><p data-m="errors.INVALID_DATE"></p></li><li class="code-line"><div class="top"><span class="hint-code" style="font-size: var(--text-sm)">DATE_OUT_OF_RANGE</span></div><p data-m="errors.DATE_OUT_OF_RANGE"></p></li><li class="code-line"><div class="top"><span class="hint-code" style="font-size: var(--text-sm)">INVALID_LOCAL_TIME</span></div><p data-m="errors.INVALID_LOCAL_TIME"></p></li><li class="code-line"><div class="top"><span class="hint-code" style="font-size: var(--text-sm)">LIMIT_REACHED · limit:busyCount,max:300</span></div><p data-m="errors.LIMIT_REACHED" data-m-v='{"limit":"busyCount","max":300}'></p></li><li class="code-line"><div class="top"><span class="hint-code" style="font-size: var(--text-sm)">LIMIT_REACHED · limit:busySpan,max:366</span></div><p data-m="errors.LIMIT_REACHED" data-m-v='{"limit":"busySpan","max":366}'></p></li><li class="code-line"><div class="top"><span class="hint-code" style="font-size: var(--text-sm)">LIMIT_REACHED · limit:busyBackdate,max:7</span></div><p data-m="errors.LIMIT_REACHED" data-m-v='{"limit":"busyBackdate","max":7}'></p></li><li class="code-line"><div class="top"><span class="hint-code" style="font-size: var(--text-sm)">RANGE_TOO_LARGE</span></div><p data-m="errors.RANGE_TOO_LARGE"></p></li><li class="code-line"><div class="top"><span class="hint-code" style="font-size: var(--text-sm)">busy.form.error.gone</span></div><p data-m="busy.form.error.gone"></p></li></ul></div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

@@ -8,6 +8,7 @@ import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
 import { createRequire } from 'node:module';
+import { expandCalendar, setIntl, takeEn } from './build-calendar.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '../../..');
@@ -21,6 +22,7 @@ const missing = new Set();
 const require = createRequire(import.meta.url);
 const { IntlMessageFormat } = require(resolve(root, 'node_modules/intl-messageformat'));
 const MSG = Object.fromEntries(['th', 'en'].map((l) => [l, JSON.parse(readFileSync(resolve(root, `messages/${l}.json`), 'utf8'))]));
+setIntl(IntlMessageFormat, MSG); // R3: ตัวสร้างปฏิทิน/ฟอร์ม busy ใช้ข้อความชุดเดียวกัน
 const lookup = (l, key) => key.split('.').reduce((o, k) => (o == null ? o : o[k]), MSG[l]);
 const fmt = (l, key, vals) => {
   const m = lookup(l, key);
@@ -72,7 +74,10 @@ const attr = (s, n) => (s.match(new RegExp(`${n}="([^"]*)"`)) || [])[1] || '';
 const tdir = resolve(here, 'templates');
 for (const f of readdirSync(tdir).filter((x) => x.endsWith('.html'))) {
   let html = readFileSync(resolve(tdir, f), 'utf8');
+  html = expandCalendar(html); // R3: <gen-month|day|picker|mine|sum|d> → markup (ก่อน applyMessages เพราะมี data-m)
   html = applyMessages(html);
+  const genEn = takeEn();
+  if (Object.keys(genEn).length) html = html.replace('</head>', `<script>window.MESSAGES_EN = Object.assign(window.MESSAGES_EN || {}, ${JSON.stringify(genEn).replace(/</g, '\\u003c')});</script>\n</head>`);
   html = html.replace(/<i ([^>]*data-icon="[^"]+"[^>]*)><\/i>/g, (_, a) => icon(attr(a, 'data-icon'), attr(a, 'class')));
   html = html.replace(/<i ([^>]*data-cat="[^"]+"[^>]*)><\/i>/g, (_, a) => cat(attr(a, 'data-cat'), attr(a, 'class'), attr(a, 'aria-label')));
   html = html.replace(/<i ([^>]*data-brand="[^"]+"[^>]*)><\/i>/g, (_, a) => readFileSync(resolve(root, `public/brand/${attr(a, 'data-brand')}.svg`), 'utf8')
