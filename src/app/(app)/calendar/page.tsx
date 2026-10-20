@@ -55,6 +55,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
         initialNowMs={data.nowMs}
         initialDate={data.date}
         initialView={data.view}
+        groupMissing={data.groupMissing}
         initial={data.initial}
       />
     </>

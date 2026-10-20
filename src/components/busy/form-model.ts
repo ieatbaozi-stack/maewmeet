@@ -45,6 +45,12 @@ export function formStateOfOwn(item: OwnBusy): BusyFormState {
   return { kind: "timed", pickStart: p.startDate, pickEnd: p.endDate, startTime: p.startTime ?? "09:00", endTime: p.endTime ?? "10:00", ...base };
 }
 
+/** เปลี่ยนแบบฟอร์ม → ค่าที่ต้องแก้ใน state: ทั้งวัน/ช่วงเวลา ต้องไม่พ่วงช่วงหลายวันเดิมไป (กัน busy 769 ชม.) → วันจบ = วันเริ่ม */
+export function kindChangePatch(s: Pick<BusyFormState, "pickStart" | "pickEnd">, kind: BusyKindChoice): Partial<BusyFormState> {
+  if ((kind === "allDay" || kind === "timed") && s.pickStart) return { kind, pickEnd: s.pickStart };
+  return { kind };
+}
+
 /**
  * วัน/เวลาสิ้นสุดจริงของแบบ "ช่วงเวลา"
  * - เลือกวันเดียว: เวลาจบ < เวลาเริ่ม → ข้ามเที่ยงคืน (วันจบ = วันถัดไป) · เวลาจบ = เวลาเริ่ม → ผิด (INVALID_RANGE)

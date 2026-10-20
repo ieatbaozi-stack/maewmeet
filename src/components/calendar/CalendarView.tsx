@@ -19,7 +19,7 @@ import { DayPanel } from "./DayPanel";
 import { GroupSwitchSheet, type GroupOption } from "./GroupSwitchSheet";
 import { MemberLegend, MonthGrid } from "./MonthGrid";
 import { MineList } from "./MineList";
-import { buildMonth, busyUsersByDate, monthStart, shiftMonth, spanOf, ymOf, type OwnBusy } from "./model";
+import { buildMonth, busyUsersByDate, fetchRange, monthStart, shiftMonth, spanOf, ymOf, type OwnBusy } from "./model";
 
 export type CalView = "month" | "day" | "mine";
 const VIEWS: readonly CalView[] = ["month", "day", "mine"];
@@ -37,11 +37,13 @@ export interface CalendarViewProps {
   initialNowMs: EpochMs;
   initialDate: DateISO;
   initialView: CalView;
+  /** ?g= ที่ขอมาไม่ใช่กลุ่มของฉัน → แสดงกลุ่มแรกแทน (แจ้งสั้นๆ) */
+  groupMissing?: boolean;
   initial: InitialCalendar;
 }
 
 type CalState = { key: string; nowMs: EpochMs; status: "ready"; data: GroupCalendarDto } | { key: string; nowMs: EpochMs; status: "error" | "gone" };
-type MineState = { key: string; nowMs: EpochMs; status: "ready"; items: OwnBusy[] } | { key: string; nowMs: EpochMs; status: "error" };
+type MineState = { key: string; nowMs: EpochMs; status: "ready"; items: OwnBusy[]; truncated: boolean } | { key: string; nowMs: EpochMs; status: "error" };
 type FormState = { edit: OwnBusy | null; today: DateISO; defaultDate: DateISO } | null;
 
 const WIDE = "(min-width: 48em)";
@@ -58,13 +60,26 @@ const TOAST_KEY: Record<BusyDone, string> = {
   gone: "busy.form.error.gone",
 };
 
+/** รายการถูกตัดที่เพดานแถว (Platform ส่ง truncated:true) — แจ้งเบาๆ ไม่บล็อก */
+function TruncatedNote({ messageKey }: { messageKey: string }) {
+  const t = useTranslations();
+  return (
+    <div className="alert alert-warn" role="status" data-testid="cal-truncated">
+      <Icon name="info" />
+      <div>
+        <span>{t(messageKey)}</span>
+      </div>
+    </div>
+  );
+}
+
 const calKeyOf = (gid: string, from: DateISO, to: DateISO, version: number) => `${gid}|${from}|${to}|${version}`;
 
 /**
  * แท็บปฏิทิน (UX §7): ตัวเลือกกลุ่ม · เดือน | วัน | ของฉัน · ฟอร์มลง busy
  * ข้อมูลโหลดครั้งแรกจากเซิร์ฟเวอร์ (page) แล้วขอใหม่ตามช่วงของตารางที่เห็น (≤ 42 วัน) · สิทธิ์ตรวจที่เซิร์ฟเวอร์ทุก API — UI แค่แสดงผล
  */
-export function CalendarView({ groups, gid, tz, userId, initialToday, initialNowMs, initialDate, initialView, initial }: CalendarViewProps) {
+export function CalendarView({ groups, gid, tz, userId, initialToday, initialNowMs, initialDate, initialView, groupMissing = false, initial }: CalendarViewProps) {
   const t = useTranslations();
   const locale = useLocale() as CalendarLocale;
   const router = useRouter();
@@ -82,6 +97,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   const [form, setForm] = useState<FormState>(null);
   const [switching, setSwitching] = useState(false);
   const [toast, setToast] = useState<BusyDone | null>(null);
+  const [missingShown, setMissingShown] = useState(groupMissing);
 
   const month = useMemo(() => buildMonth(ym.year, ym.month, today), [ym, today]);
   const calKey = calKeyOf(gid, month.from, month.to, version);
@@ -97,7 +113,9 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   useEffect(() => {
     if (view === "mine" || cal.key === calKey) return;
     let live = true;
-    void callApi<GroupCalendarDto>(`/api/groups/${gid}/calendar?from=${month.from}&to=${month.to}`, { method: "GET" }).then((res) => {
+    // ตารางเดือนของ 2000-01 / 2100-12 ล้นไปนอกปีที่ API รับ → ขอเฉพาะช่วงที่รับได้
+    const range = fetchRange(month.from, month.to);
+    void callApi<GroupCalendarDto>(`/api/groups/${gid}/calendar?from=${range.from}&to=${range.to}`, { method: "GET" }).then((res) => {
       if (!live) return;
       const nowMs = clock.now();
       if (res.ok) setCal({ key: calKey, nowMs, status: "ready", data: res.data });
@@ -111,10 +129,10 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   useEffect(() => {
     if (view !== "mine" || mine?.key === mineKey) return;
     let live = true;
-    void callApi<{ busy: OwnBusy[] }>("/api/me/busy", { method: "GET" }).then((res) => {
+    void callApi<{ busy: OwnBusy[]; truncated?: boolean }>("/api/me/busy", { method: "GET" }).then((res) => {
       if (!live) return;
       const nowMs = clock.now();
-      setMine(res.ok ? { key: mineKey, nowMs, status: "ready", items: res.data.busy } : { key: mineKey, nowMs, status: "error" });
+      setMine(res.ok ? { key: mineKey, nowMs, status: "ready", items: res.data.busy, truncated: res.data.truncated === true } : { key: mineKey, nowMs, status: "error" });
     });
     return () => {
       live = false;
@@ -145,6 +163,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   // ───────── การกระทำ ─────────
   function changeView(next: CalView) {
     setToast(null);
+    setMissingShown(false);
     setView(next);
   }
 
@@ -197,7 +216,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   function pickGroup(id: string) {
     setSwitching(false);
     if (id === gid) return;
-    startTransition(() => router.replace(`/calendar?g=${id}&v=${view}`));
+    startTransition(() => router.replace(`/calendar?g=${id}&v=${view}&d=${selected}`));
   }
 
   // ───────── ส่วนย่อยของหน้า ─────────
@@ -271,7 +290,12 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       body = errorBlock(t("busy.mine.error.title"), t("busy.mine.error.body"), retryCal, "cal-error");
     } else {
       showFab = mine.items.length > 0;
-      body = <MineList items={mine.items} nowMs={mine.nowMs} onOpen={(it) => openForm(it)} onAdd={() => openForm(null)} />;
+      body = (
+        <>
+          {mine.truncated ? <TruncatedNote messageKey="busy.mine.truncated" /> : null}
+          <MineList items={mine.items} nowMs={mine.nowMs} onOpen={(it) => openForm(it)} onAdd={() => openForm(null)} />
+        </>
+      );
     }
   } else if (!loading && cal.status === "gone") {
     showFab = false;
@@ -302,6 +326,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     showFab = !loading;
     body = (
       <>
+        {ready?.truncated === true ? <TruncatedNote messageKey="calendar.truncated" /> : null}
         {solo && !loading ? (
           <div className="alert alert-warn" data-testid="cal-solo">
             <Icon name="info" />
@@ -368,6 +393,14 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
             </button>
           ))}
         </div>
+        {missingShown ? (
+          <div className="alert alert-warn" role="status" data-testid="cal-group-missing">
+            <Icon name="info" />
+            <div>
+              <span>{t("calendar.groupMissing")}</span>
+            </div>
+          </div>
+        ) : null}
         {toast ? (
           <div data-testid="cal-toast">
             <Notice kind={toast === "gone" ? "error" : "ok"}>{t(TOAST_KEY[toast])}</Notice>

@@ -7,6 +7,7 @@ import {
   durationRef,
   formStateOfOwn,
   initialFormState,
+  kindChangePatch,
   mapSaveFailure,
   minPickDate,
   pickDate,
@@ -187,5 +188,22 @@ describe('notice — "เห็นแล้ว" ต่อผู้ใช้ ใ�
     expect(hasSeenNotice('u1')).toBe(false);
     expect(() => markNoticeSeen('u1')).not.toThrow();
     expect(hasSeenNotice('u1')).toBe(true);
+  });
+});
+
+describe('kindChangePatch — เปลี่ยนแบบฟอร์มไม่พ่วงช่วงหลายวัน', () => {
+  const range = { pickStart: '2026-10-20', pickEnd: '2026-12-31' };
+  it('หลายวัน → ช่วงเวลา: วันจบ = วันเริ่ม (ไม่เกิด busy 769 ชม.)', () => {
+    const next = { ...initialFormState('2026-10-20'), ...range, ...kindChangePatch(range, 'timed') };
+    expect(next.kind).toBe('timed');
+    expect(next.pickEnd).toBe('2026-10-20');
+    expect(timedMinutes(next)).toBe(60);
+  });
+  it('หลายวัน → ทั้งวัน: วันจบ = วันเริ่ม', () => {
+    expect(kindChangePatch(range, 'allDay')).toEqual({ kind: 'allDay', pickEnd: '2026-10-20' });
+  });
+  it('→ หลายวัน: คงช่วงเดิม · ยังไม่เลือกวัน: เปลี่ยนแค่ kind', () => {
+    expect(kindChangePatch(range, 'multi')).toEqual({ kind: 'multi' });
+    expect(kindChangePatch({ pickStart: null, pickEnd: null }, 'timed')).toEqual({ kind: 'timed' });
   });
 });

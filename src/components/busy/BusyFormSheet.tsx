@@ -18,6 +18,7 @@ import {
   TITLE_MAX,
   buildPayload,
   durationRef,
+  kindChangePatch,
   formStateOfOwn,
   initialFormState,
   mapSaveFailure,
@@ -100,7 +101,7 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
   function chooseKind(kind: BusyKindChoice) {
     if (kind === s.kind) return;
     setPending(false);
-    patch({ kind, ...(kind === "allDay" && s.pickStart ? { pickEnd: s.pickStart } : {}) });
+    patch(kindChangePatch(s, kind));
     setPickerOpen(kind !== "timed");
   }
 
@@ -211,7 +212,12 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
               <div>
                 <b>{t("busy.form.notice.title")}</b>
                 <p>{t("busy.form.notice.body")}</p>
-                <button type="button" className="btn btn-secondary" onClick={() => markNoticeSeen(userId)} data-testid="busy-notice-ok">
+                <button type="button" className="btn btn-secondary" onClick={() => {
+                    markNoticeSeen(userId);
+                    // ปุ่มนี้จะหายไป → ส่งโฟกัสไปตัวควบคุมแรกของฟอร์มแทนตกลง body
+                    firstRef.current?.focus();
+                  }}
+                  data-testid="busy-notice-ok">
                   {t("busy.form.notice.cta")}
                 </button>
               </div>

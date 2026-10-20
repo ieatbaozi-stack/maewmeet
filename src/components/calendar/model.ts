@@ -1,6 +1,8 @@
 // view-model ล้วนของแท็บปฏิทิน (R3) — ไม่แตะ DOM/เครือข่าย · ทดสอบที่ tests/ui/calendar-model.test.ts
 // วันที่เป็น PlainDate ('YYYY-MM-DD') เสมอ · คำนวณวัน/เวลาผ่าน src/lib/calendar เท่านั้น (ห้าม new Date) · ICU params: docs/design/UX.md §7.5
 import {
+  MAX_YEAR,
+  MIN_YEAR,
   addDays,
   addMonths,
   compareDates,
@@ -88,6 +90,22 @@ export function buildMonth(year: number, month: number, today: DateISO): MonthMo
     today: date === today,
   }));
   return { year, month, from: g.from, to: g.to, weeks: g.weeks, cells };
+}
+
+/** ช่วงที่ขอ API ได้: ตารางเดือนของ 2000-01 / 2100-12 ล้นไปปี 1999/2101 ซึ่ง API ปฏิเสธ → ตัดให้อยู่ใน 2000-01-01..2100-12-31 */
+export function fetchRange(from: DateISO, to: DateISO): { from: DateISO; to: DateISO } {
+  const lo = `${MIN_YEAR}-01-01`;
+  const hi = `${MAX_YEAR}-12-31`;
+  return { from: from < lo ? lo : from, to: to > hi ? hi : to };
+}
+
+/** ลูกศรในตารางเดือน → วันที่ปลายทาง (null = ไม่ขยับ/ไม่ใช่ลูกศร) */
+export function arrowTarget(cells: readonly { date: DateISO }[], current: DateISO, key: string): DateISO | null {
+  const delta = key === "ArrowLeft" ? -1 : key === "ArrowRight" ? 1 : key === "ArrowUp" ? -7 : key === "ArrowDown" ? 7 : 0;
+  if (!delta) return null;
+  const i = cells.findIndex((c) => c.date === current);
+  if (i < 0) return null;
+  return cells[i + delta]?.date ?? null;
 }
 
 /** เลื่อนเดือน; ชนขอบปี 2000–2100 → null (ปุ่มปิด) */

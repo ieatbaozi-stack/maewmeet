@@ -2,7 +2,9 @@
 import { describe, expect, it } from 'vitest';
 import { parseLocalDateTime } from '@/lib/calendar';
 import {
+  arrowTarget,
   buildMonth,
+  fetchRange,
   busyUsersByDate,
   dayRows,
   dotLayout,
@@ -221,5 +223,32 @@ describe('joinNames — ตัวคั่นแน่นอนทั้ง Node
     expect(joinNames(['A', 'B', 'C'], 'and', 'en')).toBe('A, B and C');
     expect(joinNames(['A'], 'and', 'en')).toBe('A');
     expect(joinNames([], 'and', 'en')).toBe('');
+  });
+});
+
+describe('R3 fixes: fetchRange / arrowTarget', () => {
+  it('ตารางเดือนขอบปีถูกตัดให้อยู่ใน 2000-01-01..2100-12-31 (API ปฏิเสธปีนอกช่วง)', () => {
+    const jan = buildMonth(2000, 1, '2026-10-20');
+    expect(jan.from < '2000-01-01').toBe(true);
+    expect(fetchRange(jan.from, jan.to).from).toBe('2000-01-01');
+    const dec = buildMonth(2100, 12, '2026-10-20');
+    expect(dec.to > '2100-12-31').toBe(true);
+    expect(fetchRange(dec.from, dec.to)).toEqual({ from: dec.from, to: '2100-12-31' });
+  });
+  it('เดือนกลางๆ ไม่เปลี่ยน', () => {
+    const m = buildMonth(2026, 10, '2026-10-20');
+    expect(fetchRange(m.from, m.to)).toEqual({ from: m.from, to: m.to });
+  });
+  it('arrowTarget: ซ้าย/ขวา ±1, ขึ้น/ลง ±7, ชนขอบ/ปุ่มอื่น = null', () => {
+    const m = buildMonth(2026, 10, '2026-10-20');
+    const c = m.cells;
+    const mid = c[10]!.date;
+    expect(arrowTarget(c, mid, 'ArrowRight')).toBe(c[11]!.date);
+    expect(arrowTarget(c, mid, 'ArrowLeft')).toBe(c[9]!.date);
+    expect(arrowTarget(c, mid, 'ArrowDown')).toBe(c[17]!.date);
+    expect(arrowTarget(c, mid, 'ArrowUp')).toBe(c[3]!.date);
+    expect(arrowTarget(c, c[0]!.date, 'ArrowLeft')).toBeNull();
+    expect(arrowTarget(c, mid, 'Enter')).toBeNull();
+    expect(arrowTarget(c, '1999-01-01', 'ArrowRight')).toBeNull();
   });
 });

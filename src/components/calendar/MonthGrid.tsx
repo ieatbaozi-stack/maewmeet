@@ -1,11 +1,11 @@
 "use client";
 
-import { type KeyboardEvent } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { memberSlot } from "@/components/groups/helpers";
 import { Name } from "@/components/Name";
 import { format, weekdayLabels, type CalendarLocale, type DateISO } from "@/lib/calendar";
-import { dotLayout, type MemberInfo, type MonthModel } from "./model";
+import { arrowTarget, dotLayout, type MemberInfo, type MonthModel } from "./model";
 
 const DOW = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
@@ -24,7 +24,7 @@ export interface MonthGridProps {
 
 /**
  * ตารางเดือน (UX X22–X25): หัว จ–อา (WEEK_START) · ช่องวัน = ปุ่มสูงตาม --cell-h (≥ เป้าแตะขั้นต่ำ) · จุดสีสมาชิก + "+N" · วันนี้ = กรอบหนา · นอกเดือน = ตัวเลขจาง
- * role=grid > row > gridcell(ปุ่ม) · aria-label ของช่อง = วันที่เต็ม + วันนี้/นอกเดือน + จำนวนคนที่ติด · ลูกศรเลื่อนโฟกัสเป็นส่วนเสริม (Tab ถึงทุกช่อง)
+ * role=grid > row > gridcell(ปุ่ม) · aria-label ของช่อง = วันที่เต็ม + วันนี้/นอกเดือน + จำนวนคนที่ติด · roving tabindex (Tab ช่องเดียว) · ลูกศรเลื่อนโฟกัส
  */
 export function MonthGrid({ model, monthTitle, members, busyByDate, selected, loading, onSelect }: MonthGridProps) {
   const t = useTranslations();
@@ -32,14 +32,23 @@ export function MonthGrid({ model, monthTitle, members, busyByDate, selected, lo
   const dowShort = weekdayLabels(locale, "short");
   const dowLong = weekdayLabels(locale, "long");
 
+  // roving tabindex: Tab หยุดที่ช่องเดียว (ช่องที่เลือก > วันนี้ > วันแรกของเดือน) · ลูกศรย้ายระหว่างช่อง · Enter/Space = กดปุ่มตามปกติ
+  const [focusDate, setFocusDate] = useState<DateISO | null>(null);
+  const has = (d: DateISO | null) => d !== null && model.cells.some((c) => c.date === d);
+  const stop = has(focusDate)
+    ? focusDate
+    : has(selected)
+      ? selected
+      : (model.cells.find((c) => c.today && !c.outside) ?? model.cells.find((c) => !c.outside) ?? model.cells[0])?.date;
+
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
-    const delta = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : e.key === "ArrowUp" ? -7 : e.key === "ArrowDown" ? 7 : 0;
     const date = (e.target as HTMLElement).dataset.date;
-    if (!delta || !date) return;
-    const dest = model.cells[model.cells.findIndex((c) => c.date === date) + delta];
+    if (!date) return;
+    const dest = arrowTarget(model.cells, date, e.key);
     if (!dest) return;
     e.preventDefault();
-    e.currentTarget.querySelector<HTMLElement>(`[data-date="${dest.date}"]`)?.focus();
+    setFocusDate(dest);
+    e.currentTarget.querySelector<HTMLElement>(`[data-date="${dest}"]`)?.focus();
   }
 
   const weeks = Array.from({ length: model.weeks }, (_, w) => model.cells.slice(w * 7, w * 7 + 7));
@@ -92,6 +101,8 @@ export function MonthGrid({ model, monthTitle, members, busyByDate, selected, lo
                     outside: c.outside ? "yes" : "no",
                     count: ids.length,
                   })}
+                  tabIndex={c.date === stop ? 0 : -1}
+                  onFocus={() => setFocusDate(c.date)}
                   onClick={() => onSelect(c.date)}
                 >
                   <span className="dn" aria-hidden="true">

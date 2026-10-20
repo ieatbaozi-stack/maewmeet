@@ -119,6 +119,8 @@
       "plan": "Has a plan",
       "countNote": "Numbers show how many of the {total} members are free that day."
     },
+    "groupMissing": "We couldn’t find that group, so we’re showing your first one instead.",
+    "truncated": "This calendar has a lot of entries, so not all of them are shown. Try a shorter stretch.",
     "groupSwitch": {
       "label": "Switch group — viewing “{group}”",
       "title": "Which group’s calendar?",
@@ -609,6 +611,7 @@
       "hasNote": "Private note",
       "noTitle": "No description",
       "openAria": "Edit {title}, {when}",
+      "truncated": "You have a lot of entries, so not all of them are shown. Delete old ones you don’t need and try again.",
       "limitNear": "You’re using {count} of {max} entries. Delete old ones you don’t need to free up space.",
       "loading": "Loading your busy time…",
       "empty": {

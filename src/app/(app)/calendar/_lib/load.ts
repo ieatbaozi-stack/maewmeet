@@ -7,6 +7,7 @@ import { dataCtx } from "@/lib/data/context";
 import { getGroupCalendar } from "@/lib/data/services/calendar";
 import { getGroup, listMyGroups } from "@/lib/data/services/groups";
 import { getActor } from "@/lib/auth/session";
+import { fetchRange } from "@/components/calendar/model";
 import { clock } from "@/lib/shared/clock";
 import { AppError } from "@/lib/shared/errors";
 
@@ -27,12 +28,14 @@ export type CalendarPageData =
       nowMs: EpochMs;
       date: DateISO;
       view: CalView;
+      /** มี ?g= แต่ไม่ใช่กลุ่มของฉัน → แสดงกลุ่มแรกแทน (UI แจ้งสั้นๆ; API ยัง 404 ไม่เปิดเผยว่ากลุ่มมีอยู่) */
+      groupMissing: boolean;
       initial: InitialCalendar;
     };
 
 const VIEWS: readonly CalView[] = ["month", "day", "mine"];
 
-/** group ที่ขอมาไม่ใช่ของฉัน/ไม่มี → ใช้กลุ่มแรก (ไม่เปิดเผยว่ามี) · d ที่ผิดรูปแบบ → วันนี้ · v ที่ไม่รู้จัก → เดือน */
+/** group ที่ขอมาไม่ใช่ของฉัน/ไม่มี → ใช้กลุ่มแรก (ไม่เปิดเผยว่ามี) + groupMissing=true · d ที่ผิดรูปแบบ → วันนี้ · v ที่ไม่รู้จัก → เดือน */
 export async function loadCalendarPage(search: CalendarSearch): Promise<CalendarPageData> {
   const req = await pageRequest();
   const actor = await getActor(req);
@@ -42,7 +45,9 @@ export async function loadCalendarPage(search: CalendarSearch): Promise<Calendar
   const { groups } = await listMyGroups(actor, ctx);
   const first = groups[0];
   if (!first) return { kind: "no-group" };
-  const chosen = groups.find((g) => g.id === search.g) ?? first;
+  const match = groups.find((g) => g.id === search.g);
+  const chosen = match ?? first;
+  const groupMissing = search.g !== undefined && search.g !== "" && match === undefined;
   const options = groups.map((g) => ({ id: g.id, name: g.name, memberCount: g.memberCount }));
   const view = VIEWS.find((v) => v === search.v) ?? "month";
 
@@ -53,7 +58,7 @@ export async function loadCalendarPage(search: CalendarSearch): Promise<Calendar
     if (e instanceof AppError && e.code === "NOT_FOUND") {
       // เพิ่งถูกนำออก/กลุ่มถูกลบระหว่างทาง
       const today = todayIn("Asia/Bangkok", nowMs);
-      return { kind: "ready", groups: options, gid: chosen.id, tz: "Asia/Bangkok", today, nowMs, date: today, view, initial: { status: "gone" } };
+      return { kind: "ready", groups: options, gid: chosen.id, tz: "Asia/Bangkok", today, nowMs, date: today, view, groupMissing, initial: { status: "gone" } };
     }
     throw e;
   }
@@ -61,11 +66,12 @@ export async function loadCalendarPage(search: CalendarSearch): Promise<Calendar
   const today = todayIn(tz, nowMs);
   const date = search.d !== undefined && isValidDate(search.d) ? search.d : today;
   const grid = monthGrid(Number(date.slice(0, 4)), Number(date.slice(5, 7)));
+  const range = fetchRange(grid.from, grid.to);
   let initial: InitialCalendar;
   try {
-    initial = { status: "ready", data: await getGroupCalendar(actor, chosen.id, { from: grid.from, to: grid.to }, ctx) };
+    initial = { status: "ready", data: await getGroupCalendar(actor, chosen.id, range, ctx) };
   } catch (e) {
     initial = { status: e instanceof AppError && e.code === "NOT_FOUND" ? "gone" : "error" };
   }
-  return { kind: "ready", groups: options, gid: chosen.id, tz, today, nowMs, date, view, initial };
+  return { kind: "ready", groups: options, gid: chosen.id, tz, today, nowMs, date, view, groupMissing, initial };
 }
