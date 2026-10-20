@@ -21,7 +21,10 @@ export interface FreeViewProps {
   monthTitle: string;
   /** ปุ่มเลื่อนเดือน/วันนี้ (ใช้ร่วมกับมุมมองเดือน) */
   nav: ReactNode;
+  /** วันแรกที่วางแผนได้ (= วันนี้ หรือพรุ่งนี้ถ้าวันนี้เลยหน้าต่างแล้ว — planFromDate) */
   today: DateISO;
+  /** วันนี้เลยปลายหน้าต่างของกลุ่มแล้ว (today ด้านบนจึงเป็นพรุ่งนี้) */
+  windowPassed: boolean;
   /** วันที่ผู้ใช้เลือกในมุมมองนี้ (null = ยังไม่เลือก) */
   picked: DateISO | null;
   /** มือถือ: เปิด sheet รายละเอียดวัน */
@@ -39,7 +42,7 @@ export interface FreeViewProps {
  * มุมมอง "ว่างตรงกัน" (UX §8, W14/W15): แถบสถานะ (ตัดทอน/ไม่มีใครลง) · การ์ดสรุป · เดือน · คำอธิบายช่อง · ที่มาของผล · ช่วงเวลาที่นับ
  * รายละเอียดวัน: มือถือ = bottom sheet · iPad (≥ 768) = แผงขวา (วันตั้งต้น = วันแรกที่ว่างร่วม ถ้าไม่มีใช้วันใกล้เคียงที่สุด)
  */
-export function FreeView({ data, gid, myId, month, monthTitle, nav, today, picked, sheetOpen, wide, canEditWindow, onPick, onCloseSheet, onNextMonth, onAddBusy }: FreeViewProps) {
+export function FreeView({ data, gid, myId, month, monthTitle, nav, today, windowPassed, picked, sheetOpen, wide, canEditWindow, onPick, onCloseSheet, onNextMonth, onAddBusy }: FreeViewProps) {
   const t = useTranslations();
   const locale = useLocale() as CalendarLocale;
   const hintId = useId();
@@ -135,6 +138,12 @@ export function FreeView({ data, gid, myId, month, monthTitle, nav, today, picke
             </ul>
             <p className="av-note-fraction">{t("availability.legend.fractionNote")}</p>
           </section>
+          {windowPassed ? (
+            <p className="av-info" data-testid="free-window-passed">
+              <Icon name="info" size="sm" />
+              <span>{t("availability.windowPassed")}</span>
+            </p>
+          ) : null}
           <p className="av-info" data-testid="free-explain">
             <Icon name="info" size="sm" />
             <span>{t("availability.explain")}</span>

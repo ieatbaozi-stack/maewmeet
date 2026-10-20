@@ -218,6 +218,8 @@ describe('joinNames — ตัวคั่นแน่นอนทั้ง Node
   it('ไทย ไม่ใช้จุลภาค', () => {
     expect(joinNames(['ก', 'ข', 'ค'], 'และ', 'th')).toBe('ก ข และค');
     expect(joinNames(['ก', 'ข'], 'และ', 'th')).toBe('ก และข');
+    expect(joinNames(['Ann', 'Cat'], 'และ', 'th')).toBe('Ann และ Cat'); // ชื่อละตินต้องเว้นวรรค
+    expect(joinNames(['ก', 'ข', 'Cat 2'], 'และ', 'th')).toBe('ก ข และ Cat 2');
   });
   it('อังกฤษ', () => {
     expect(joinNames(['A', 'B', 'C'], 'and', 'en')).toBe('A, B and C');

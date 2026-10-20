@@ -84,13 +84,25 @@ export default async function GroupPage({ params }: { params: Promise<{ gid: str
         </section>
 
         {!solo ? (
-          <section className="panel soon" aria-labelledby="soon-h">
-            <Cat pose="calendar" size="md" />
-            <div>
-              <h2 className="h-section" id="soon-h">
-                {t("group.calendarSoon.title")}
-              </h2>
-              <p>{t("group.calendarSoon.body")}</p>
+          <section className="cal-links" aria-labelledby="cal-links-h" data-testid="group-cal-links">
+            <h2 className="h-section" id="cal-links-h">
+              {t("group.calendarLinks.title")}
+            </h2>
+            <div className="cal-links-grid">
+              <Link className="panel cal-link" href={`/calendar?g=${group.id}&v=free`} data-testid="group-link-free">
+                <Cat pose="calendar" size="md" />
+                <span>
+                  <b>{t("group.calendarLinks.free.title")}</b>
+                  <span className="muted">{t("group.calendarLinks.free.body")}</span>
+                </span>
+              </Link>
+              <Link className="panel cal-link" href={`/calendar?g=${group.id}&v=month`} data-testid="group-link-month">
+                <Icon name="calendar" />
+                <span>
+                  <b>{t("group.calendarLinks.month.title")}</b>
+                  <span className="muted">{t("group.calendarLinks.month.body")}</span>
+                </span>
+              </Link>
             </div>
           </section>
         ) : null}

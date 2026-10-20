@@ -44,7 +44,7 @@
   "empty": {
     "home": {
       "title": "No plans yet",
-      "body": "Find a day when everyone’s free, then make a plan from it.",
+      "body": "Find a day when everyone’s free.",
       "cta": "Find a free day"
     },
     "homeNoGroup": {
@@ -184,8 +184,8 @@
       "toNext": "From {start}, into tomorrow",
       "dayOf": "Day {n} of {total}",
       "busyPlain": "Busy",
-      "noBusy": "Nothing marked",
-      "othersFree": "Nothing marked: {names}",
+      "noBusy": "Haven’t marked any busy days",
+      "othersFree": "Haven’t marked busy days: {names}",
       "listAnd": "and",
       "empty": {
         "title": "{when, select, today {No one’s marked busy today} other {No one’s marked busy on this day}}",
@@ -220,7 +220,7 @@
       }
     },
     "cell": {
-      "aria": "{date}{today, select, yes {, today} other {}}{outside, select, yes {, outside this month} other {}}, {state, select, all {everyone’s free together} nocommon {{free} of {total} free, but not at the same time} none {nobody’s free, busy all day} past {already passed} other {{free} of {total} free}}",
+      "aria": "{date}{today, select, yes {, today} other {}}{outside, select, yes {, outside this month} other {}}, {state, select, all {everyone’s free together} nocommon {{free} of {total} free, but not at the same time} none {nobody has enough free time} past {already passed} other {{free} of {total} free}}",
       "fraction": "{free}/{total}"
     },
     "legend": {
@@ -229,7 +229,7 @@
       "partial": "4/6 means 4 of 6 people are free",
       "few": "Stripes mean fewer than half the group is free",
       "nocommon": "Everyone’s free, but not together",
-      "none": "Nobody’s free that day",
+      "none": "Nobody has enough free time that day",
       "fractionNote": "The number only counts who’s free. It doesn’t mean they’re free together. Only days with a tick are."
     },
     "day": {
@@ -252,7 +252,7 @@
         "title": "Who’s busy when",
         "flag": "Counts as busy",
         "flagHint": "“Counts as busy” means less than {duration} free in the hours that count.",
-        "noBusy": "Nothing marked: {names}",
+        "noBusy": "Haven’t marked busy days: {names}",
         "empty": "No one has marked this day busy"
       },
       "names": {
@@ -264,6 +264,7 @@
       "soon": "Coming soon",
       "soonHint": "Creating a plan from a day is coming soon. For now, make a note of the date."
     },
+    "windowPassed": "Today’s counted hours are over, so we start from tomorrow.",
     "explain": "Based on the busy time members have added. Anyone who hasn’t added any counts as free.",
     "window": {
       "title": "Hours that count as free",
@@ -503,9 +504,16 @@
       "title": "It’s just you in this group",
       "body": "Invite your friends first, then you can see which days work for everyone."
     },
-    "calendarSoon": {
-      "title": "The group calendar is on its way",
-      "body": "Soon you’ll see the days everyone’s free, right here. In the meantime, you can bring your friends in."
+    "calendarLinks": {
+      "title": "The group’s days",
+      "free": {
+        "title": "Days everyone’s free",
+        "body": "See which days work for everyone, and who’s busy when."
+      },
+      "month": {
+        "title": "Group calendar",
+        "body": "See who’s marked busy days this month."
+      }
     }
   },
   "groupSettings": {

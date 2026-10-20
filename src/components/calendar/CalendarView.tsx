@@ -21,7 +21,7 @@ import { DayPanel } from "./DayPanel";
 import { GroupSwitchSheet, type GroupOption } from "./GroupSwitchSheet";
 import { MemberLegend, MonthGrid } from "./MonthGrid";
 import { MineList } from "./MineList";
-import { classifyDay, isSelectable } from "@/components/availability/model";
+import { classifyDay, isSelectable, planFromDate, urlDayParam } from "@/components/availability/model";
 import { buildMonth, busyUsersByDate, fetchRange, monthStart, shiftMonth, spanOf, ymOf, type OwnBusy } from "./model";
 
 export type CalView = "month" | "free" | "day" | "mine";
@@ -185,7 +185,9 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     const url = new URL(window.location.href);
     url.searchParams.set("g", gid);
     url.searchParams.set("v", view);
-    url.searchParams.set("d", view === "free" && freePicked ? freePicked : selected);
+    const d = urlDayParam(view, freePicked, selected);
+    if (d) url.searchParams.set("d", d);
+    else url.searchParams.delete("d"); // ว่างตรงกัน + ยังไม่เลือกวัน: อย่าปักวันลง URL (รีโหลดแล้วแผงขวาจะไม่ถูกปักที่วันนี้)
     window.history.replaceState(window.history.state, "", url);
   }, [gid, view, selected, freePicked]);
 
@@ -373,7 +375,8 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       );
     } else {
       showFab = !avLoading;
-      const pickedOk = freePicked !== null && avReady ? avReady.days.some((d) => d.date === freePicked && isSelectable(classifyDay(d, today))) : false;
+      const planFrom = avReady && av ? planFromDate(today, av.nowMs, avReady.group) : today;
+      const pickedOk = freePicked !== null && avReady ? avReady.days.some((d) => d.date === freePicked && isSelectable(classifyDay(d, planFrom))) : false;
       body = (
         <FreeView
           data={avReady}
@@ -382,7 +385,8 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
           month={month}
           monthTitle={monthTitle}
           nav={nav}
-          today={today}
+          today={planFrom}
+          windowPassed={planFrom !== today}
           picked={pickedOk ? freePicked : null}
           sheetOpen={sheetOpen}
           wide={wide}

@@ -1,6 +1,6 @@
 // view-model ล้วนของมุมมอง "ว่างตรงกัน" (R4A, UX §8) — ไม่แตะ DOM/เครือข่าย · ทดสอบที่ tests/ui/availability-model.test.ts
 // วัน/เวลาคำนวณผ่าน src/lib/calendar เท่านั้น (ห้าม new Date) · ใช้ตัวช่วยของ R3 ซ้ำ (spanOf/segmentOn/segmentLabel/segmentTitle/fetchRange/joinNames)
-import { daysBetween, format, type CalendarLocale, type DateISO, type EpochMs } from "@/lib/calendar";
+import { addDays, daysBetween, format, toLocal, type CalendarLocale, type DateISO, type EpochMs } from "@/lib/calendar";
 import {
   segmentLabel,
   segmentOn,
@@ -23,9 +23,10 @@ export interface AvSegment {
   end: string;
 }
 
+/** อ้างรายการ busy ด้วยดัชนีใน AvData.busy (ส่งครั้งเดียวระดับบน) */
 export interface AvBlocker {
   userId: string;
-  items: SharedBusy[];
+  itemIdx: number[];
 }
 
 export interface AvDay {
@@ -51,8 +52,24 @@ export interface AvData {
   from: DateISO;
   to: DateISO;
   members: MemberInfo[];
+  /** busy ที่ถูกอ้างโดย days[].blockers (เรียง startAt,id) */
+  busy: SharedBusy[];
   days: AvDay[];
   truncated: boolean;
+}
+
+/**
+ * วันแรกที่ใช้วางแผนได้: ถ้าตอนนี้ (tz กลุ่ม) เลยปลายหน้าต่างของวันนี้แล้ว → พรุ่งนี้ (วันนี้ถือเป็น past เป็นกลาง ไม่ใช่ "ว่างร่วม")
+ * `today` ที่ไม่ตรงกับวันท้องถิ่นของ nowMs (ข้อมูลค้าง) → ไม่ปรับ · หน้าต่างจบ 24:00 ไม่มีวันเลย
+ */
+export function planFromDate(today: DateISO, nowMs: EpochMs, group: Pick<AvGroup, "tz" | "windowEndMin">): DateISO {
+  const l = toLocal(nowMs, group.tz);
+  return l.date === today && l.minute >= group.windowEndMin ? addDays(today, 1) : today;
+}
+
+/** พารามิเตอร์ `d` ใน URL: free = เขียนเฉพาะเมื่อผู้ใช้เลือกวันเอง (null = ไม่เขียน/ลบทิ้ง) · มุมมองอื่น = วันที่เลือกเสมอ */
+export function urlDayParam(view: string, freePicked: DateISO | null, selected: DateISO): DateISO | null {
+  return view === "free" ? freePicked : selected;
 }
 
 // ───────── สถานะช่องวัน (UX §8.3 "ลำดับของสถานะช่องวัน") ─────────
@@ -239,11 +256,20 @@ export function entryOf(item: SharedBusy, date: DateISO, groupTz: string): Block
 }
 
 /** แถว "ใครไม่ว่างเมื่อไร": นับว่าไม่ว่างก่อน แล้วตามลำดับสมาชิก · คนที่ไม่มีรายการ → noBusy */
-export function dayBlockers(day: Pick<AvDay, "date" | "blockers" | "notFreeUserIds">, members: readonly MemberInfo[], groupTz: string): DayBlockers {
+export function dayBlockers(
+  day: Pick<AvDay, "date" | "blockers" | "notFreeUserIds">,
+  members: readonly MemberInfo[],
+  groupTz: string,
+  busy: readonly SharedBusy[],
+): DayBlockers {
   const flaggedIds = new Set(day.notFreeUserIds);
   const byUser = new Map<string, BlockerEntry[]>();
   for (const b of day.blockers) {
-    const entries = b.items.map((it) => entryOf(it, day.date, groupTz)).filter((e): e is BlockerEntry => e !== null);
+    const entries = b.itemIdx
+      .map((i) => busy[i])
+      .filter((it): it is SharedBusy => it !== undefined)
+      .map((it) => entryOf(it, day.date, groupTz))
+      .filter((e): e is BlockerEntry => e !== null);
     if (entries.length > 0) byUser.set(b.userId, entries.sort((a, c) => a.from - c.from));
   }
   const rows: BlockerRow[] = [];

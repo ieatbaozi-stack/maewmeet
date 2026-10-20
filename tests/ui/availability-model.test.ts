@@ -18,6 +18,8 @@ import {
   nameParts,
   namesOf,
   nobodyLoggedBusy,
+  planFromDate,
+  urlDayParam,
   partialLevel,
   segmentMinutes,
   showsFraction,
@@ -179,7 +181,7 @@ describe('สรุปบนสุด: วันแรกที่ว่าง�
   });
   it('nobodyLoggedBusy: ทุกวันไม่มี blockers เท่านั้น', () => {
     expect(nobodyLoggedBusy([day('2026-10-22', 3, 3), day('2026-10-23', 3, 3)])).toBe(true);
-    expect(nobodyLoggedBusy([day('2026-10-22', 3, 3), day('2026-10-23', 2, 3, { blockers: [{ userId: 'a', items: [] }] })])).toBe(false);
+    expect(nobodyLoggedBusy([day('2026-10-22', 3, 3), day('2026-10-23', 2, 3, { blockers: [{ userId: 'a', itemIdx: [] }] })])).toBe(false);
     expect(nobodyLoggedBusy([])).toBe(false);
   });
   it('dayMap ค้นหาตามวัน', () => {
@@ -220,28 +222,39 @@ describe('blockers: ต่อจากเมื่อวาน/ต่อไป�
 
   const members = [M('me', 'ต้นข้าว'), M('palm', 'ปาล์ม', 1), M('mind', 'มายด์', 2), M('oat', 'โอ๊ต', 3)];
   it('นับว่าไม่ว่างขึ้นก่อน · ที่เหลือตามลำดับสมาชิก · ไม่มีรายการ → noBusy (ไม่ใช่ว่าง)', () => {
+    const busy = [
+      timed('a', 'me', D, '10:00', D, '12:00', { title: 'ตัดผม' }),
+      timed('c', 'palm', D, '14:00', D, '16:00'),
+      timed('b', 'palm', D, '08:00', D, '09:00'),
+      item('e', 'oat', { allDay: true, localStartDate: D, localEndDate: D }),
+    ];
     const d = day(D, 2, 4, {
       notFreeUserIds: ['palm', 'oat'],
       blockers: [
-        { userId: 'me', items: [timed('a', 'me', D, '10:00', D, '12:00', { title: 'ตัดผม' })] },
-        { userId: 'palm', items: [timed('c', 'palm', D, '14:00', D, '16:00'), timed('b', 'palm', D, '08:00', D, '09:00')] },
-        { userId: 'oat', items: [item('e', 'oat', { allDay: true, localStartDate: D, localEndDate: D })] },
+        { userId: 'me', itemIdx: [0] },
+        { userId: 'palm', itemIdx: [1, 2] },
+        { userId: 'oat', itemIdx: [3] },
       ],
     });
-    const r = dayBlockers(d, members, TZ);
+    const r = dayBlockers(d, members, TZ, busy);
     expect(r.rows.map((x) => [x.member.userId, x.flagged])).toEqual([['palm', true], ['oat', true], ['me', false]]);
     expect(r.rows[0]?.entries.map((e) => e.when.values)).toEqual([{ start: '08:00', end: '09:00' }, { start: '14:00', end: '16:00' }]); // เรียงตามเวลา
     expect(r.noBusy.map((m) => m.userId)).toEqual(['mind']);
   });
   it('flagged ที่ไม่มี blockers ก็ยังขึ้นแถว (กันข้อมูลไม่สอดคล้อง) · blockers ว่าง = noBusy ทั้งกลุ่ม', () => {
-    expect(dayBlockers(day(D, 3, 4, { notFreeUserIds: ['palm'] }), members, TZ).rows.map((x) => x.member.userId)).toEqual(['palm']);
-    const empty = dayBlockers(day(D, 4, 4), members, TZ);
+    expect(dayBlockers(day(D, 3, 4, { notFreeUserIds: ['palm'] }), members, TZ, []).rows.map((x) => x.member.userId)).toEqual(['palm']);
+    const empty = dayBlockers(day(D, 4, 4), members, TZ, []);
     expect(empty.rows).toEqual([]);
     expect(empty.noBusy).toHaveLength(4);
   });
   it('รายการที่ไม่ตัดกับวันที่ (ข้อมูลเพี้ยน) ไม่ทำให้แถวพัง', () => {
-    const d = day(D, 3, 4, { blockers: [{ userId: 'me', items: [timed('z', 'me', '2026-10-30', '10:00', '2026-10-30', '11:00')] }] });
-    expect(dayBlockers(d, members, TZ).rows).toEqual([]);
+    const busy = [timed('z', 'me', '2026-10-30', '10:00', '2026-10-30', '11:00')];
+    const d = day(D, 3, 4, { blockers: [{ userId: 'me', itemIdx: [0] }] });
+    expect(dayBlockers(d, members, TZ, busy).rows).toEqual([]);
+  });
+  it('ดัชนีนอกช่วง busy[] (ข้อมูลเพี้ยน) ถูกข้าม ไม่ throw', () => {
+    const d = day(D, 3, 4, { blockers: [{ userId: 'me', itemIdx: [5, -1] }] });
+    expect(dayBlockers(d, members, TZ, []).rows).toEqual([]);
   });
 });
 
@@ -273,5 +286,37 @@ describe('วันที่', () => {
     expect(fetchRange(dec2100.from, dec2100.to).to).toBe('2100-12-31');
     const oct = buildMonth(2026, 10, TODAY);
     expect(fetchRange(oct.from, oct.to)).toEqual({ from: oct.from, to: oct.to });
+  });
+});
+
+describe('L1: d= ใน URL เขียนเฉพาะเมื่อผู้ใช้เลือกวันเอง (มุมมอง free)', () => {
+  it('free + ยังไม่เลือก → null (ไม่ปักวัน) · เลือกแล้ว → วันที่เลือก · มุมมองอื่น → selected เสมอ', () => {
+    expect(urlDayParam('free', null, '2026-10-20')).toBeNull();
+    expect(urlDayParam('free', '2026-10-25', '2026-10-20')).toBe('2026-10-25');
+    expect(urlDayParam('month', null, '2026-10-20')).toBe('2026-10-20');
+    expect(urlDayParam('day', null, '2026-10-21')).toBe('2026-10-21');
+  });
+});
+
+describe('L2: วันนี้เลยหน้าต่างแล้ว → วางแผนเริ่มพรุ่งนี้', () => {
+  const g = { tz: TZ, windowEndMin: 22 * 60 };
+  it('ก่อนปลายหน้าต่าง = วันนี้ · ตั้งแต่ปลายหน้าต่าง = พรุ่งนี้', () => {
+    expect(planFromDate(TODAY, at(TODAY, '21:59'), g)).toBe(TODAY);
+    expect(planFromDate(TODAY, at(TODAY, '22:00'), g)).toBe('2026-10-21');
+    expect(planFromDate(TODAY, at(TODAY, '23:30'), g)).toBe('2026-10-21');
+  });
+  it('หน้าต่างจบ 24:00 ไม่มีวันเลย · today ไม่ตรงวันท้องถิ่นของ nowMs = ไม่ปรับ', () => {
+    expect(planFromDate(TODAY, at(TODAY, '23:59'), { tz: TZ, windowEndMin: 1440 })).toBe(TODAY);
+    expect(planFromDate('2026-10-19', at(TODAY, '23:00'), g)).toBe('2026-10-19');
+  });
+  it('ใช้ tz กลุ่ม ไม่ใช่ UTC: 22:30 ไทย = 15:30Z', () => {
+    expect(planFromDate(TODAY, at(TODAY, '22:30'), { tz: TZ, windowEndMin: 22 * 60 })).toBe('2026-10-21');
+  });
+  it('วันนี้ถูกจัดเป็น past เมื่อใช้ planFrom เป็น today (เป็นกลาง ไม่ใช่ ว่างร่วม) · summary เริ่มพรุ่งนี้', () => {
+    const from = planFromDate(TODAY, at(TODAY, '23:00'), g);
+    const days = [allFree(TODAY, 3, [seg(TODAY, '08:00', '22:00')]), allFree('2026-10-22', 3, [seg('2026-10-22', '08:00', '12:00')])];
+    expect(classifyDay(days[0]!, from).state).toBe('past');
+    const s = summarize(days, from);
+    expect(s.kind === 'first' && s.day.date).toBe('2026-10-22');
   });
 });

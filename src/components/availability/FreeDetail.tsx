@@ -47,7 +47,7 @@ export function FreeDetail({ day, data, myId, variant, hintId }: FreeDetailProps
   const minDur = durationMsg(data.group.minFreeMinutes);
   const minDurText = t(minDur.key, minDur.values);
   const longest = longestSegment(day.segments);
-  const { rows, noBusy } = dayBlockers(day, data.members, data.group.tz);
+  const { rows, noBusy } = dayBlockers(day, data.members, data.group.tz, data.busy);
   const flaggedAny = rows.some((r) => r.flagged);
   const notFreeNames = namesOf(day.notFreeUserIds, data.members);
 
