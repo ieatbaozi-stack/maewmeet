@@ -106,6 +106,26 @@ const JOBS = [
   ['busy-mine', 'empty', 'view', VARIANTS],
   ['busy-mine', 'loading', 'view', VARIANTS],
   ['busy-mine', 'error', 'view', VARIANTS],
+  // R4A — วันที่ว่างตรงกัน (th/en × light/dark × 375/390/768)
+  ['availability', 'normal', 'full', VARIANTS],
+  ['availability', 'member', 'view', VARIANTS],
+  ['availability', 'day', 'view', VARIANTS],
+  ['availability', 'day-partial', 'view', VARIANTS],
+  ['availability', 'day-nocommon', 'view', VARIANTS],
+  ['availability', 'day-none', 'view', VARIANTS],
+  ['availability', 'none', 'view', VARIANTS],
+  ['availability', 'none-nocommon', 'view', VARIANTS],
+  ['availability', 'nobody', 'view', VARIANTS],
+  ['availability', 'twelve', 'view', VARIANTS],
+  ['availability', 'twelve-day', 'view', VARIANTS],
+  ['availability', 'wk6', 'view', VARIANTS],
+  ['availability', 'wk4', 'view', VARIANTS],
+  ['availability', 'truncated', 'view', VARIANTS],
+  ['availability', 'solo', 'view', VARIANTS],
+  ['availability', 'loading', 'view', VARIANTS],
+  ['availability', 'error', 'view', VARIANTS],
+  ['availability', 'gone', 'view', VARIANTS],
+  ['availability', 'nogroup', 'view', VARIANTS],
 ];
 const only = process.argv.slice(2);
 
@@ -137,7 +157,7 @@ for (const [page, state, mode, variants, opts = {}] of JOBS) {
         const missing = [...document.querySelectorAll('[data-missing]')].map((e) => e.getAttribute('data-missing'));
         // R3: จุดสมาชิก/ตัวเลข +N ต้องไม่ล้นช่องวัน · ข้อความในแถบเวลา/รายการต้องไม่ล้นแถว
         const clipped = [];
-        for (const el of document.querySelectorAll('.cal-dots, .cal-row, .cal-person, .busy-list .row, .cal-summary-line, .private-badge')) {
+        for (const el of document.querySelectorAll('.cal-dots, .cal-row, .cal-person, .busy-list .row, .cal-summary-line, .private-badge, .av-cell, .av-summary, .av-seg, .av-status, .av-sw, .segmented button')) {
           if (el.closest('[hidden]')) continue;
           if (el.scrollWidth > el.clientWidth + 1) clipped.push(`${el.className} ${el.scrollWidth}>${el.clientWidth}`);
         }

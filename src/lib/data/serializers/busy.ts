@@ -58,3 +58,16 @@ export function toBusyForViewers(r: SharedBusyRow): BusySharedView | BusyHiddenV
   const title = sanitizeDisplayText(r.title);
   return title === '' ? view : { ...view, title };
 }
+
+/**
+ * วันว่างร่วม (U9.1, ADR 0006 §3): busy ส่ง *ครั้งเดียว* ที่ระดับบนของ response เป็นอาร์เรย์ (เรียง startAt, id) ผ่าน toBusyForViewers ตัวเดียวกัน
+ * → รายการซ่อน/ไม่ได้กรอก title ไม่มีฟิลด์ title · ไม่มี note · แต่ละวันอ้างด้วย *ดัชนี* ในอาร์เรย์นั้น (เลขสั้น — id เป็น uuid 36 ตัวอักษร
+ * ซ้ำ แถว×วัน ก็ยังพอง ~700 KB ที่ 300 แถว × 62 วัน) ⇒ ขนาด O(แถว + วัน×สมาชิก×เลขสั้น)
+ */
+export type AvailabilityBusyView = BusySharedView | BusyHiddenView;
+/** itemIdx = ดัชนีใน `busy[]` ระดับบน · เรียงจากน้อยไปมาก (= ลำดับ startAt, id) */
+export type BlockerRef = { userId: string; itemIdx: number[] };
+
+/** เรียง startAt, id ให้ผลคงที่ */
+export const compareBusyRows = (a: Pick<SharedBusyRow, 'startAt' | 'id'>, b: Pick<SharedBusyRow, 'startAt' | 'id'>): number =>
+  a.startAt - b.startAt || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);

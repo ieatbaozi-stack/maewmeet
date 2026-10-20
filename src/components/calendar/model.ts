@@ -328,5 +328,7 @@ export function joinNames(names: readonly string[], and: string, locale: Calenda
   if (names.length <= 1) return names[0] ?? "";
   const head = names.slice(0, -1);
   const last = names[names.length - 1] ?? "";
-  return locale === "th" ? `${head.join(" ")} ${and}${last}` : `${head.join(", ")} ${and} ${last}`;
+  // ไทย: "ก ข และค" · ชื่อที่ขึ้นต้นด้วยตัวอักษรไทยติดคำเชื่อม ชื่อละติน/ตัวเลขเว้นวรรค ("และ Cat") — ถ้าไม่เว้น อ่านเป็น "และCat"
+  const glue = /^[\u0E00-\u0E7F]/.test(last) ? "" : " ";
+  return locale === "th" ? `${head.join(" ")} ${and}${glue}${last}` : `${head.join(", ")} ${and} ${last}`;
 }

@@ -4,7 +4,7 @@ import { Aurora } from "@/components/brand";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { TopBar } from "@/components/shell/TopBar";
 
-/** หน้าหลัก (UX W4) — R0 ยังไม่มีนัด → หน้าว่าง แมวถือแก้วชา */
+/** หน้าหลัก (UX W4) — R0 ยังไม่มีนัด → หน้าว่าง แมวถือแก้วชา · ปุ่ม "ดูวันที่ว่างตรงกัน" ไปมุมมอง ?v=free ของแท็บปฏิทิน (R4A, UX X34) */
 export default async function HomePage() {
   await requireUser();
   const t = await getTranslations("empty.home");
@@ -18,7 +18,7 @@ export default async function HomePage() {
           headingLevel={1}
           title={t("title")}
           body={t("body")}
-          cta={{ label: t("cta"), href: "/calendar" }}
+          cta={{ label: t("cta"), href: "/calendar?v=free" }}
         />
       </main>
     </>

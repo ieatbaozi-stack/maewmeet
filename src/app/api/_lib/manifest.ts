@@ -67,6 +67,7 @@ export const ROUTE_MANIFEST = [
   { method: 'PATCH', path: '/api/me/busy/:id', action: 'busy.update', auth: 'actor', owner: 'platform' },
   { method: 'DELETE', path: '/api/me/busy/:id', action: 'busy.delete', auth: 'actor', owner: 'platform' },
   { method: 'GET', path: '/api/groups/:gid/calendar', action: 'group.calendar.view', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/groups/:gid/availability', action: 'group.availability.view', auth: 'actor', owner: 'platform' },
 ] as const satisfies readonly ManifestEntry[];
 
 export function findRoute(method: string, path: string): ManifestEntry | undefined {

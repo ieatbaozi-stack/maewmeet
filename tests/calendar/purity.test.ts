@@ -9,6 +9,12 @@ const files = readdirSync(DIR).filter((f) => f.endsWith('.ts'));
 describe('src/lib/calendar เป็น pure', () => {
   it('มีไฟล์ให้ตรวจ', () => expect(files.length).toBeGreaterThan(5));
 
+  it('free-time.ts (R4A) อยู่ในชุดที่ตรวจ · ไม่ import temporal-polyfill ตรง · ไม่ใช้ Date/Intl/Math.random', () => {
+    expect(files).toContain('free-time.ts');
+    const src = readFileSync(join(DIR, 'free-time.ts'), 'utf8').replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(src).not.toMatch(/temporal-polyfill|\bDate\b|Intl\.|Math\.random|setTimeout|globalThis|require\(/);
+  });
+
   it.each(files)('%s: import เฉพาะ temporal-polyfill / ./ภายใน', (f) => {
     const src = readFileSync(join(DIR, f), 'utf8');
     const specs = [...src.matchAll(/^\s*(?:import|export)\s[^;]*?from\s+['"]([^'"]+)['"]/gms)].map((m) => m[1]!);

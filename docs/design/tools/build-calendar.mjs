@@ -2,7 +2,7 @@
 // แทนแท็ก <gen-month scn="..."></gen-month> · <gen-day …> · <gen-picker …> · <gen-mine …> ด้วย markup จริง
 // ข้อความมาจาก messages/*.json (data-m / data-m-aria) · วันที่จัดรูปด้วย Intl (th-TH-u-ca-buddhist / en-GB เหมือน ADR 0004 §6)
 // ข้อมูลตัวอย่างเป็นข้อมูลสมมติ (วันนี้ในฉาก = 2026-10-20 18:00 ถ้าไม่ระบุ) · ไม่ใช้ใน src/ (ใช้ Date ได้ เพราะเป็นเครื่องมือเอกสาร อยู่นอกขอบเขต eslint)
-const WEEK = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+export const WEEK = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 // ---------- วันที่ (ISO ค.ศ. ล้วน) ----------
 const parse = (iso) => { const [y, m, d] = iso.split('-').map(Number); return Date.UTC(y, m - 1, d); };
@@ -10,7 +10,7 @@ const iso = (ms) => new Date(ms).toISOString().slice(0, 10);
 export const addDays = (s, n) => iso(parse(s) + n * 86400000);
 export const diffDays = (a, b) => Math.round((parse(b) - parse(a)) / 86400000);
 const dowMon = (s) => (new Date(parse(s)).getUTCDay() + 6) % 7; // 0 = จันทร์
-const monthGrid = (y, m) => {
+export const monthGrid = (y, m) => {
   const first = `${y}-${String(m).padStart(2, '0')}-01`;
   const last = iso(Date.UTC(y, m, 0));
   const from = addDays(first, -dowMon(first));
@@ -29,16 +29,16 @@ const STYLES = {
   month: { month: 'long', year: 'numeric' },
 };
 export const fmtDate = (lang, s, style) => dtf(LOC[lang], STYLES[style]).format(parse(s));
-const hhmm = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
-const list = (lang, arr) => new Intl.ListFormat(lang === 'th' ? 'th' : 'en-GB', { style: 'long', type: 'conjunction' }).format(arr);
+export const hhmm = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+export const list = (lang, arr) => new Intl.ListFormat(lang === 'th' ? 'th' : 'en-GB', { style: 'long', type: 'conjunction' }).format(arr);
 
 // ---------- ตัวช่วยสร้างข้อความ ----------
-const EN = {}; // data-t id → อังกฤษ (ผนวกเข้า window.MESSAGES_EN)
-const j = (o) => JSON.stringify(o).replace(/'/g, '&#39;');
-const T = (key, v) => `<span data-m="${key}"${v ? ` data-m-v='${j(v)}'` : ''}></span>`;
-const both = (f) => ({ th: f('th'), en: f('en') });
+export const EN = {}; // data-t id → อังกฤษ (ผนวกเข้า window.MESSAGES_EN)
+export const j = (o) => JSON.stringify(o).replace(/'/g, '&#39;');
+export const T = (key, v) => `<span data-m="${key}"${v ? ` data-m-v='${j(v)}'` : ''}></span>`;
+export const both = (f) => ({ th: f('th'), en: f('en') });
 /** วันที่เป็นข้อความธรรมดา (th ใน HTML, en ผ่าน data-t) */
-const D = (s, style) => {
+export const D = (s, style) => {
   const id = `d:${s}:${style}`; EN[id] = fmtDate('en', s, style);
   return `<span data-t="${id}">${fmtDate('th', s, style)}</span>`;
 };
@@ -49,15 +49,15 @@ export const MEMBERS = [
   { n: 'ต้นข้าว', slot: 1, me: true }, { n: 'ปาล์ม', slot: 3 }, { n: 'มายด์', slot: 5 }, { n: 'โอ๊ต', slot: 8 }, { n: 'ฟ้า', slot: 10 }, { n: 'บีม', slot: 2 },
   { n: 'นุ่น', slot: 4 }, { n: 'Kwan', slot: 6 }, { n: 'ณัฐพงศ์ วงศ์สวัสดิ์ศรีสกุล', slot: 7 }, { n: 'พลอย', slot: 9 }, { n: 'ไอซ์', slot: 1 }, { n: 'แพรว', slot: 2 },
 ];
-const initial = (name) => { const ch = [...name].find((c) => !'เแโใไ'.includes(c)) || name[0]; return /[a-z]/i.test(ch) ? ch.toUpperCase() : ch; };
-const avatar = (m, cls = 'sm') => `<span class="member-avatar ${cls}" data-slot="${m.slot}" aria-hidden="true"><span class="member-initial">${initial(m.n)}</span></span>`;
+export const initial = (name) => { const ch = [...name].find((c) => !'เแโใไ'.includes(c)) || name[0]; return /[a-z]/i.test(ch) ? ch.toUpperCase() : ch; };
+export const avatar = (m, cls = 'sm') => `<span class="member-avatar ${cls}" data-slot="${m.slot}" aria-hidden="true"><span class="member-initial">${initial(m.n)}</span></span>`;
 const dot = (m) => `<span class="member-dot" data-slot="${m.slot}"></span>`;
 
 // item: { m: index, sd, sm, ed, em, all, title, hidden }  (all = ทั้งวัน: sd..ed รวมปลาย · timed: sd sm → ed em)
-const A = (m, sd, ed, title, hidden = false) => ({ m, all: true, sd, ed, title, hidden });
-const Tm = (m, sd, sm, ed, em, title, hidden = false) => ({ m, all: false, sd, sm, ed, em, title, hidden });
-const H = (h, m = 0) => h * 60 + m;
-const ITEMS = {
+export const A = (m, sd, ed, title, hidden = false) => ({ m, all: true, sd, ed, title, hidden });
+export const Tm = (m, sd, sm, ed, em, title, hidden = false) => ({ m, all: false, sd, sm, ed, em, title, hidden });
+export const H = (h, m = 0) => h * 60 + m;
+export const ITEMS = {
   six: [
     Tm(0, '2026-10-20', H(19), '2026-10-20', H(21), 'ซ้อมดนตรี'),
     Tm(0, '2026-10-23', H(20), '2026-10-24', H(2), 'ดูหนังรอบดึก'),
@@ -109,7 +109,7 @@ for (let i = 3; i < 10; i++) ITEMS.twelve.push(A(i, '2026-10-10', '2026-10-10', 
 ITEMS.twelve.push(Tm(8, '2026-10-22', H(22), '2026-10-23', H(5), 'กะดึก'));
 
 /** รายการที่แตะวัน d → [{item, from, to, cutStart, cutEnd, dayN, dayTotal}] */
-function onDay(items, d) {
+export function onDay(items, d) {
   const out = [];
   for (const it of items) {
     if (it.all) {
@@ -187,7 +187,7 @@ const DAY_SCN = {
   feb: { d: '2027-02-10', items: 'feb', n: 6, today: '2027-02-09' },
   solo: { d: '2026-10-23', items: 'six', n: 1, today: '2026-10-20' },
 };
-function itemLines(x, d) {
+export function itemLines(x, d) {
   const it = x.it; const lines = [];
   let when;
   if (it.all) when = T('calendar.day.allDay');
@@ -293,7 +293,7 @@ function mineBlock() {
   }
   return out + '</ul>';
 }
-let msg = () => { throw new Error('เรียก setIntl() ก่อน'); };
+export let msg = () => { throw new Error('เรียก setIntl() ก่อน'); };
 export function setIntl(IntlMessageFormat, MSG) {
   msg = (l, key, v) => String(new IntlMessageFormat(key.split('.').reduce((o, k) => o[k], MSG[l]), l).format(v || {}));
 }

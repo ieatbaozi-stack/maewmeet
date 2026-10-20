@@ -154,7 +154,8 @@ for (const locale of LOCALES) {
         await expect(h1(adm.page)).toHaveText(gworld.groupName);
         await expect(adm.page.getByText(msg(locale, 'group.yourRole', { role: 'admin' }))).toBeVisible();
         await expect(adm.page.getByRole('heading', { level: 2, name: msg(locale, 'group.members.title') })).toBeVisible();
-        await expect(adm.page.getByRole('heading', { level: 2, name: msg(locale, 'group.calendarSoon.title') })).toBeVisible();
+        await expect(adm.page.getByRole('heading', { level: 2, name: msg(locale, 'group.calendarLinks.title') })).toBeVisible();
+        await expect(adm.page.getByTestId('group-link-free')).toHaveAttribute('href', `/calendar?g=${gworld.gid}&v=free`);
         await check(adm.page, testInfo, 'group-home-admin');
 
         await go(adm.page, `/groups/${gworld.soloGid}`);

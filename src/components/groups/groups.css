@@ -74,6 +74,16 @@
 .soon .mm-cat { width: calc(var(--space-7) * 2); height: calc(var(--space-7) * 2); }
 .soon p { margin-top: var(--space-1); font-size: var(--text-sm); color: var(--ink-muted); }
 
+/* ลิงก์ไปปฏิทิน/วันว่างร่วมจากหน้ากลุ่ม */
+.cal-links { margin-top: var(--space-4); }
+.cal-links .h-section { margin-bottom: var(--space-3); }
+.cal-links-grid { display: grid; gap: var(--space-3); }
+@media (min-width: 48em) { .cal-links-grid { grid-template-columns: 1fr 1fr; } }
+.cal-link { display: grid; grid-template-columns: auto 1fr; gap: var(--space-3); align-items: center; padding: var(--space-4); min-height: var(--tap); color: var(--ink); text-decoration: none; }
+.cal-link .mm-cat { width: calc(var(--space-7) * 1.5); height: calc(var(--space-7) * 1.5); }
+.cal-link b { display: block; font-weight: var(--weight-semibold); }
+.cal-link .muted { display: block; margin-top: var(--space-1); font-size: var(--text-sm); }
+
 /* ตั้งค่ากลุ่ม */
 .settings-main { padding-top: 0; }
 .settings-sub { margin-bottom: var(--space-2); overflow-wrap: anywhere; }
