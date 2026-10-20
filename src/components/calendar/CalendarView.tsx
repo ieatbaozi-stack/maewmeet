@@ -6,6 +6,7 @@ import { startTransition, useEffect, useMemo, useState, useSyncExternalStore } f
 import { useLocale, useTranslations } from "next-intl";
 import { callApi } from "@/components/auth/api";
 import { BusyFormSheet, type BusyDone } from "@/components/busy/BusyFormSheet";
+import { FreeView } from "@/components/availability/FreeView";
 import { Cat } from "@/components/brand";
 import { Notice } from "@/components/groups/Notice";
 import { isGone } from "@/components/groups/errors";
@@ -13,18 +14,23 @@ import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { DEFAULT_TZ, addDays, format, toLocal, todayIn, type CalendarLocale, type DateISO, type EpochMs } from "@/lib/calendar";
+import type { GroupAvailabilityDto } from "@/lib/data/services/availability";
 import type { GroupCalendarDto } from "@/lib/data/services/calendar";
 import { clock } from "@/lib/shared/clock";
 import { DayPanel } from "./DayPanel";
 import { GroupSwitchSheet, type GroupOption } from "./GroupSwitchSheet";
 import { MemberLegend, MonthGrid } from "./MonthGrid";
 import { MineList } from "./MineList";
+import { classifyDay, isSelectable } from "@/components/availability/model";
 import { buildMonth, busyUsersByDate, fetchRange, monthStart, shiftMonth, spanOf, ymOf, type OwnBusy } from "./model";
 
-export type CalView = "month" | "day" | "mine";
-const VIEWS: readonly CalView[] = ["month", "day", "mine"];
+export type CalView = "month" | "free" | "day" | "mine";
+/** ลำดับปุ่ม (UX X34): เดือน | ว่างตรงกัน | วัน | ของฉัน */
+const VIEWS: readonly CalView[] = ["month", "free", "day", "mine"];
 
-export type InitialCalendar = { status: "ready"; data: GroupCalendarDto } | { status: "error" } | { status: "gone" };
+/** skipped = เซิร์ฟเวอร์ไม่ได้โหลดปฏิทิน (เปิดมาที่ ?v=free) → โหลดเมื่อสลับไปมุมมองเดือน/วัน */
+export type InitialCalendar = { status: "ready"; data: GroupCalendarDto } | { status: "error" } | { status: "gone" } | { status: "skipped" };
+export type InitialAvailability = { status: "ready"; data: GroupAvailabilityDto } | { status: "error" } | { status: "gone" };
 
 export interface CalendarViewProps {
   groups: readonly GroupOption[];
@@ -39,10 +45,16 @@ export interface CalendarViewProps {
   initialView: CalView;
   /** ?g= ที่ขอมาไม่ใช่กลุ่มของฉัน → แสดงกลุ่มแรกแทน (แจ้งสั้นๆ) */
   groupMissing?: boolean;
+  /** มี ?d= มาจริง → มุมมองว่างตรงกันเลือกวันนั้นที่แผงขวา (iPad) */
+  dateGiven?: boolean;
+  /** admin/ผู้ช่วยดูแล → ลิงก์ปรับช่วงเวลา (ความสะดวก — สิทธิ์จริงที่ API) */
+  canEditWindow?: boolean;
   initial: InitialCalendar;
+  initialAvailability?: InitialAvailability | null;
 }
 
 type CalState = { key: string; nowMs: EpochMs; status: "ready"; data: GroupCalendarDto } | { key: string; nowMs: EpochMs; status: "error" | "gone" };
+type AvState = { key: string; nowMs: EpochMs; status: "ready"; data: GroupAvailabilityDto } | { key: string; nowMs: EpochMs; status: "error" | "gone" };
 type MineState = { key: string; nowMs: EpochMs; status: "ready"; items: OwnBusy[]; truncated: boolean } | { key: string; nowMs: EpochMs; status: "error" };
 type FormState = { edit: OwnBusy | null; today: DateISO; defaultDate: DateISO } | null;
 
@@ -74,12 +86,13 @@ function TruncatedNote({ messageKey }: { messageKey: string }) {
 }
 
 const calKeyOf = (gid: string, from: DateISO, to: DateISO, version: number) => `${gid}|${from}|${to}|${version}`;
+const avKeyOf = (gid: string, from: DateISO, to: DateISO, version: number) => `av|${gid}|${from}|${to}|${version}`;
 
 /**
- * แท็บปฏิทิน (UX §7): ตัวเลือกกลุ่ม · เดือน | วัน | ของฉัน · ฟอร์มลง busy
+ * แท็บปฏิทิน (UX §7, §8): ตัวเลือกกลุ่ม · เดือน | ว่างตรงกัน | วัน | ของฉัน · ฟอร์มลง busy
  * ข้อมูลโหลดครั้งแรกจากเซิร์ฟเวอร์ (page) แล้วขอใหม่ตามช่วงของตารางที่เห็น (≤ 42 วัน) · สิทธิ์ตรวจที่เซิร์ฟเวอร์ทุก API — UI แค่แสดงผล
  */
-export function CalendarView({ groups, gid, tz, userId, initialToday, initialNowMs, initialDate, initialView, groupMissing = false, initial }: CalendarViewProps) {
+export function CalendarView({ groups, gid, tz, userId, initialToday, initialNowMs, initialDate, initialView, groupMissing = false, dateGiven = false, canEditWindow = false, initial, initialAvailability = null }: CalendarViewProps) {
   const t = useTranslations();
   const locale = useLocale() as CalendarLocale;
   const router = useRouter();
@@ -98,23 +111,36 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   const [switching, setSwitching] = useState(false);
   const [toast, setToast] = useState<BusyDone | null>(null);
   const [missingShown, setMissingShown] = useState(groupMissing);
+  // มุมมองว่างตรงกัน: วันที่ผู้ใช้เลือก (null = ใช้วันตั้งต้น) · sheet รายละเอียดวัน (มือถือ)
+  const [freePicked, setFreePicked] = useState<DateISO | null>(initialView === "free" && dateGiven ? initialDate : null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const month = useMemo(() => buildMonth(ym.year, ym.month, today), [ym, today]);
   const calKey = calKeyOf(gid, month.from, month.to, version);
   const [cal, setCal] = useState<CalState>(() => {
     const m = buildMonth(ymOf(initialDate).year, ymOf(initialDate).month, initialToday);
     const key = calKeyOf(gid, m.from, m.to, 0);
-    return initial.status === "ready" ? { key, nowMs: initialNowMs, status: "ready", data: initial.data } : { key, nowMs: initialNowMs, status: initial.status };
+    if (initial.status === "ready") return { key, nowMs: initialNowMs, status: "ready", data: initial.data };
+    // skipped: key ว่างไม่มีวันตรงกับ calKey → ถือว่ายังไม่ได้โหลด (สถานะ error ไม่ถูกแสดงเพราะ loading มาก่อน)
+    return initial.status === "skipped" ? { key: "", nowMs: initialNowMs, status: "error" } : { key, nowMs: initialNowMs, status: initial.status };
+  });
+  const range = useMemo(() => fetchRange(month.from, month.to), [month.from, month.to]);
+  const avKey = avKeyOf(gid, range.from, range.to, version);
+  const [av, setAv] = useState<AvState | null>(() => {
+    if (!initialAvailability) return null;
+    const m = buildMonth(ymOf(initialDate).year, ymOf(initialDate).month, initialToday);
+    const r = fetchRange(m.from, m.to);
+    const key = avKeyOf(gid, r.from, r.to, 0);
+    return initialAvailability.status === "ready" ? { key, nowMs: initialNowMs, status: "ready", data: initialAvailability.data } : { key, nowMs: initialNowMs, status: initialAvailability.status };
   });
   const mineKey = `mine|${version}`;
   const [mine, setMine] = useState<MineState | null>(null);
 
   // ───────── โหลดข้อมูล (setState เฉพาะใน callback หลัง await — ไม่ซิงก์ใน effect) ─────────
   useEffect(() => {
-    if (view === "mine" || cal.key === calKey) return;
+    if (view === "mine" || view === "free" || cal.key === calKey) return;
     let live = true;
     // ตารางเดือนของ 2000-01 / 2100-12 ล้นไปนอกปีที่ API รับ → ขอเฉพาะช่วงที่รับได้
-    const range = fetchRange(month.from, month.to);
     void callApi<GroupCalendarDto>(`/api/groups/${gid}/calendar?from=${range.from}&to=${range.to}`, { method: "GET" }).then((res) => {
       if (!live) return;
       const nowMs = clock.now();
@@ -124,7 +150,22 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     return () => {
       live = false;
     };
-  }, [view, cal.key, calKey, gid, month.from, month.to]);
+  }, [view, cal.key, calKey, gid, range.from, range.to]);
+
+  // ว่างตรงกัน: ขอผลของทั้งตารางเดือน (≤ 42 วัน) · กันผลเก่า: live=false เมื่อเปลี่ยนเดือน/กลุ่ม/ลองใหม่ + ผลเก็บพร้อม key ของคำขอ (เทียบ avKey ก่อนใช้)
+  useEffect(() => {
+    if (view !== "free" || av?.key === avKey) return;
+    let live = true;
+    void callApi<GroupAvailabilityDto>(`/api/groups/${gid}/availability?from=${range.from}&to=${range.to}`, { method: "GET" }).then((res) => {
+      if (!live) return;
+      const nowMs = clock.now();
+      if (res.ok) setAv({ key: avKey, nowMs, status: "ready", data: res.data });
+      else setAv({ key: avKey, nowMs, status: isGone(res) ? "gone" : "error" });
+    });
+    return () => {
+      live = false;
+    };
+  }, [view, av?.key, avKey, gid, range.from, range.to]);
 
   useEffect(() => {
     if (view !== "mine" || mine?.key === mineKey) return;
@@ -144,13 +185,15 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     const url = new URL(window.location.href);
     url.searchParams.set("g", gid);
     url.searchParams.set("v", view);
-    url.searchParams.set("d", selected);
+    url.searchParams.set("d", view === "free" && freePicked ? freePicked : selected);
     window.history.replaceState(window.history.state, "", url);
-  }, [gid, view, selected]);
+  }, [gid, view, selected, freePicked]);
 
   // ───────── ค่าที่คำนวณจากข้อมูล ─────────
   const loading = cal.key !== calKey;
   const ready = !loading && cal.status === "ready" ? cal.data : null;
+  const avLoading = av === null || av.key !== avKey;
+  const avReady = !avLoading && av?.status === "ready" ? av.data : null;
   const groupTz = ready?.group.tz ?? tz;
   const members = ready?.members ?? [];
   const spans = useMemo(() => (ready ? ready.busy.map((b) => spanOf(b, groupTz)) : []), [ready, groupTz]);
@@ -164,6 +207,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   function changeView(next: CalView) {
     setToast(null);
     setMissingShown(false);
+    setSheetOpen(false);
     setView(next);
   }
 
@@ -177,6 +221,15 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     setToday(td);
     setSelected(td);
     setYm(ymOf(td));
+    if (view === "free") setFreePicked(wide ? td : null);
+  }
+
+  /** ว่างตรงกัน: แตะวัน (หรือการ์ดสรุป) = เลือกวัน · มือถือเปิด sheet · iPad เปลี่ยนแผงขวา */
+  function pickFree(date: DateISO) {
+    setToast(null);
+    setFreePicked(date);
+    selectDate(date);
+    if (!wide) setSheetOpen(true);
   }
 
   function moveMonth(n: number) {
@@ -297,6 +350,50 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
         </>
       );
     }
+  } else if (view === "free") {
+    const avGone = !avLoading && av?.status === "gone";
+    const avError = !avLoading && av?.status === "error";
+    if (avGone) {
+      showFab = false;
+      body = (
+        <div data-testid="free-gone">
+          <EmptyState pose="lost" title={t("calendar.gone.title")} body={t("calendar.gone.body")} cta={{ label: t("calendar.gone.cta"), href: "/groups" }} />
+        </div>
+      );
+    } else if (avError) {
+      showFab = false;
+      body = errorBlock(t("availability.error.title"), t("availability.error.body"), retryCal, "free-error");
+    } else if (avReady && avReady.members.length <= 1) {
+      // กลุ่มคนเดียว: X/1 ไม่มีความหมาย → ซ่อนตาราง ชวนเพื่อนแทน
+      showFab = false;
+      body = (
+        <div data-testid="free-solo">
+          <EmptyState pose="calendar" title={t("empty.calendarSolo.title")} body={t("empty.calendarSolo.body")} cta={{ label: t("empty.calendarSolo.cta"), href: `/groups/${gid}/settings#invite` }} />
+        </div>
+      );
+    } else {
+      showFab = !avLoading;
+      const pickedOk = freePicked !== null && avReady ? avReady.days.some((d) => d.date === freePicked && isSelectable(classifyDay(d, today))) : false;
+      body = (
+        <FreeView
+          data={avReady}
+          gid={gid}
+          myId={userId}
+          month={month}
+          monthTitle={monthTitle}
+          nav={nav}
+          today={today}
+          picked={pickedOk ? freePicked : null}
+          sheetOpen={sheetOpen}
+          wide={wide}
+          canEditWindow={canEditWindow}
+          onPick={pickFree}
+          onCloseSheet={() => setSheetOpen(false)}
+          onNextMonth={shiftMonth(ym.year, ym.month, 1) === null ? null : () => moveMonth(1)}
+          onAddBusy={() => openForm(null)}
+        />
+      );
+    }
   } else if (!loading && cal.status === "gone") {
     showFab = false;
     body = (
@@ -386,7 +483,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       </header>
       <main className="main wide cal-main" id="main" data-view={view}>
         <h1 className="sr-only">{t("nav.calendar")}</h1>
-        <div className="segmented cal-views" role="group" aria-label={t("calendar.view.label")}>
+        <div className="segmented cols-4 cal-views" role="group" aria-label={t("calendar.view.label")}>
           {VIEWS.map((v) => (
             <button type="button" key={v} aria-pressed={view === v} data-testid={`cal-view-${v}`} onClick={() => changeView(v)}>
               {t(`calendar.view.${v}`)}

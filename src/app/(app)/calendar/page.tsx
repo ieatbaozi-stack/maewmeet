@@ -16,7 +16,7 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const one = (v: string | string[] | undefined): string | undefined => (Array.isArray(v) ? v[0] : v);
 
 /**
- * ปฏิทิน (R3, UX §7): ตัวเลือกกลุ่ม (จำใน ?g=) · เดือน | วัน | ของฉัน (?v=, ?d=) · ลงวันไม่ว่าง
+ * ปฏิทิน (R3, UX §7 + R4A §8): ตัวเลือกกลุ่ม (จำใน ?g=) · เดือน | ว่างตรงกัน | วัน | ของฉัน (?v=, ?d=) · ลงวันไม่ว่าง
  * เซิร์ฟเวอร์โหลดกลุ่ม + ปฏิทินเดือนแรกผ่าน service (authorize ที่ service) แล้วส่งให้ฝั่งไคลเอนต์ขอเดือนอื่นต่อเองผ่าน API
  */
 export default async function CalendarPage({ searchParams }: { searchParams: SearchParams }) {
@@ -56,7 +56,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
         initialDate={data.date}
         initialView={data.view}
         groupMissing={data.groupMissing}
+        dateGiven={data.dateGiven}
+        canEditWindow={data.canEditWindow}
         initial={data.initial}
+        initialAvailability={data.initialAvailability}
       />
     </>
   );

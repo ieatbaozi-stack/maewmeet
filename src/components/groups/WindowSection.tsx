@@ -22,7 +22,7 @@ export interface WindowValue {
   min: number;
 }
 
-/** ช่วงเวลาที่นับว่าว่าง (D9, ก้าว 30 นาที) — บันทึกได้แต่ยังไม่ถูกใช้คำนวณจนถึง R4 (ข้อความ window.body บอกผู้ใช้ตรงๆ) */
+/** ช่วงเวลาที่นับว่าว่าง (D9, ก้าว 30 นาที) — ใช้คำนวณ "ว่างตรงกัน" ในแท็บปฏิทินแล้ว (R4A) · id="window" ให้ลิงก์ /groups/:gid/settings#window */
 export function WindowSection({ groupId, editable, notify, saved }: SectionProps & { saved: WindowValue }) {
   const t = useTranslations("groupSettings");
   const tAll = useTranslations();
@@ -63,7 +63,7 @@ export function WindowSection({ groupId, editable, notify, saved }: SectionProps
   }
 
   return (
-    <section className="set-sec" aria-labelledby={`${id}-h`}>
+    <section className="set-sec" id="window" aria-labelledby={`${id}-h`}>
       <h2 id={`${id}-h`}>{t("window.title")}</h2>
       <p className="lead">{t("window.body")}</p>
       {editable ? (

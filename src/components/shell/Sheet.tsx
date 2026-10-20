@@ -16,6 +16,8 @@ export interface SheetProps {
   alert?: boolean;
   /** sheet สูง (ฟอร์มยาว เช่น ลงวันไม่ว่าง): เต็มความสูงจอเว้นขอบบน */
   tall?: boolean;
+  /** คลาสเสริมของ sheet (เช่น av-sheet ของรายละเอียดวัน "ว่างตรงกัน") */
+  className?: string;
   /** ปุ่ม/ช่องที่รับโฟกัสตอนเปิด (ไม่ส่ง = ตัวแรกใน sheet) — dialog ยืนยันใช้ปุ่ม "ยกเลิก" ไม่ใช่ปุ่มทำลาย */
   initialFocusRef?: RefObject<HTMLElement | null>;
 }
@@ -26,7 +28,7 @@ const FOCUSABLE =
 /**
  * bottom sheet แบบ dialog (UX §3): scrim + role=dialog aria-modal · Esc ปิด · Tab วนอยู่ใน sheet · คืนโฟกัสให้ปุ่มที่เปิด
  */
-export function Sheet({ title, onClose, children, footer, center = false, alert = false, tall = false, initialFocusRef }: SheetProps) {
+export function Sheet({ title, onClose, children, footer, center = false, alert = false, tall = false, className, initialFocusRef }: SheetProps) {
   const t = useTranslations("a11y");
   const id = useId();
   const ref = useRef<HTMLElement>(null);
@@ -67,7 +69,7 @@ export function Sheet({ title, onClose, children, footer, center = false, alert 
       <div className="scrim" aria-hidden="true" onClick={onClose} />
       <section
         ref={ref}
-        className={["sheet", center || alert ? "center" : "", alert ? "alert-sheet" : "", tall ? "tall" : ""].filter(Boolean).join(" ")}
+        className={["sheet", center || alert ? "center" : "", alert ? "alert-sheet" : "", tall ? "tall" : "", className ?? ""].filter(Boolean).join(" ")}
         role={alert ? "alertdialog" : "dialog"}
         aria-modal="true"
         aria-labelledby={`${id}-t`}

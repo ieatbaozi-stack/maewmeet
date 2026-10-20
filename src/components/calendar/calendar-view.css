@@ -96,3 +96,8 @@
 .cal-skel { height: calc(var(--space-7) * 1.5); margin-top: var(--space-4); }
 .cal-retry { margin-top: var(--space-3); }
 .alert-warn .link-btn { display: inline-flex; margin-top: var(--space-1); color: var(--warn-ink); font-weight: var(--weight-semibold); text-decoration: underline; text-underline-offset: var(--space-1); }
+
+/* มุมมอง "ว่างตรงกัน" (R4A): ปุ่มในแถบเตือน "ไม่มีใครลง" */
+.av-nobody-cta { margin-top: var(--space-2); }
+.av-nobody-cta .btn { background: var(--surface); }
+.av-cta .btn .soon { display: inline-flex; margin-top: 0; gap: 0; grid-template-columns: none; }  /* ชนกับ .soon ของหน้ากลุ่ม (groups.css) */
