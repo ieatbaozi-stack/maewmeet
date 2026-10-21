@@ -54,6 +54,18 @@ function balanced(src: string, open: number, o = '(', c = ')'): string {
 }
 
 /* ───────────────────────────── 1. ไม่ log ข้อมูลผู้ใช้ ───────────────────────────── */
+describe('0. ตัวเลือกไฟล์สแกนครอบไฟล์ R4B จริง (กัน regex คลาดแล้วสแกนว่างเปล่า)', () => {
+  it('ถ้ามี service นัด/แจ้งเตือน/สถานที่ ต้องอยู่ใน R4B_FILES ทุกไฟล์', () => {
+    const real = SRC.map(rel).filter((r) => /^src\/lib\/data\/services\/(?:appointments?|notifications?|places?)[^/]*\.ts$/.test(r));
+    const scanned = new Set(R4B_FILES.map(rel));
+    expect(real.filter((r) => !scanned.has(r))).toEqual([]);
+    const routes = SRC.map(rel).filter((r) =>
+      /^src\/app\/api\/(?:appointments|places|me\/(?:appointments|notifications)|groups\/\[[^/]+\]\/appointments)\//.test(r),
+    );
+    expect(routes.filter((r) => !scanned.has(r))).toEqual([]);
+  });
+});
+
 describe('1. โค้ดนัด/แจ้งเตือน/สถานที่ ไม่ log params/title/สถานที่/mapUrl/body/error ดิบ', () => {
   const LOG_CALL =
     /\b(?:console\s*\.\s*\w+|logger\s*\.\s*\w+|log\s*\.\s*(?:debug|info|warn|error)|logError|logWarn|logInfo|debugLog)\s*\(/g;
