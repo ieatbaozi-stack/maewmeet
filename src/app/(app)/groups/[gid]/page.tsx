@@ -8,7 +8,9 @@ import { MemberList } from "@/components/groups/MemberList";
 import { viewerRole } from "@/components/groups/helpers";
 import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
+import { CreateAppointmentButton } from "@/components/appointments/CreateAppointmentButton";
 import { loadGroup } from "../_lib/load";
+import { loadGroupAppointments } from "../../appointments/_lib/load";
 
 export async function generateMetadata({ params }: { params: Promise<{ gid: string }> }): Promise<Metadata> {
   // ชื่อกลุ่มเป็นข้อมูลของสมาชิก: ไม่ล็อกอิน/ถูกระงับ/ต้องเปลี่ยน PIN → ใช้ title เริ่มต้น (หน้าเองจะ redirect) ไม่เรียก service ที่จะโยน PolicyError แล้วไป log stack
@@ -29,9 +31,12 @@ export default async function GroupPage({ params }: { params: Promise<{ gid: str
   const group = await loadGroup(gid);
   const t = await getTranslations();
   const solo = group.memberCount <= 1;
+  // จำนวนนัดที่กำลังจะถึง (ไม่นับที่ยกเลิก) สำหรับการ์ดนัดของกลุ่ม · โหลดไม่ได้ → ไม่ทำให้หน้ากลุ่มล้ม (การ์ดแสดงข้อความ 0)
+  const upcoming = solo ? null : await loadGroupAppointments(gid).catch(() => null);
+  const upcomingCount = upcoming ? upcoming.appointments.filter((a) => a.status !== "cancelled").length : 0;
   const invitePath = `/groups/${group.id}/settings#invite`;
-  const inviteButton = (
-    <Link className="btn btn-primary" href={invitePath}>
+  const inviteButton = (tone: "btn-primary" | "btn-secondary") => (
+    <Link className={`btn ${tone}`} href={invitePath}>
       <Icon name="user-plus" />
       <span>{t("group.invite")}</span>
     </Link>
@@ -70,10 +75,13 @@ export default async function GroupPage({ params }: { params: Promise<{ gid: str
             <Cat pose="sit" size="md" />
             <h2 className="h-section">{t("group.solo.title")}</h2>
             <p className="muted">{t("group.solo.body")}</p>
-            {inviteButton}
+            {inviteButton("btn-primary")}
           </section>
         ) : (
-          <div className="btn-row">{inviteButton}</div>
+          <div className="btn-row">
+            <CreateAppointmentButton groupId={group.id} groupName={group.name} memberCount={group.memberCount} tz={group.tz} userId={user.id} testId="group-create-appt" />
+            {inviteButton("btn-secondary")}
+          </div>
         )}
 
         <section aria-labelledby="mem-h" className="members-section">
@@ -89,6 +97,13 @@ export default async function GroupPage({ params }: { params: Promise<{ gid: str
               {t("group.calendarLinks.title")}
             </h2>
             <div className="cal-links-grid">
+              <Link className="panel cal-link" href={`/groups/${group.id}/appointments`} data-testid="group-link-appointments">
+                <Cat pose="pin" size="md" />
+                <span>
+                  <b>{t("group.calendarLinks.appointments.title")}</b>
+                  <span className="muted">{t("group.calendarLinks.appointments.body", { count: upcomingCount })}</span>
+                </span>
+              </Link>
               <Link className="panel cal-link" href={`/calendar?g=${group.id}&v=free`} data-testid="group-link-free">
                 <Cat pose="calendar" size="md" />
                 <span>

@@ -1,21 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useMemo, type ReactNode } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { MonthModel } from "@/components/calendar/model";
+import { AppointmentFormSheet } from "@/components/appointments/AppointmentFormSheet";
+import { prefillFromSegment } from "@/components/appointments/model";
 import { Icon } from "@/components/icons/Icon";
 import { Sheet } from "@/components/shell/Sheet";
 import { format, type CalendarLocale, type DateISO } from "@/lib/calendar";
 import { CreateCta, FreeDetail } from "./FreeDetail";
 import { FreeMonthGrid } from "./FreeMonthGrid";
 import { FreeSummary } from "./FreeSummary";
-import { clockOf, dayMap, defaultPanelDate, durationMsg, nobodyLoggedBusy, summarize, type AvData } from "./model";
+import { clockOf, dayMap, defaultPanelDate, durationMsg, nobodyLoggedBusy, summarize, type AvData, type AvSegment } from "./model";
 
 export interface FreeViewProps {
   /** null = กำลังโหลด (โครงตาราง) */
   data: AvData | null;
   gid: string;
+  /** ชื่อกลุ่ม (หัวฟอร์มสร้างนัด) */
+  groupName?: string;
   myId: string;
   month: MonthModel;
   monthTitle: string;
@@ -42,10 +46,12 @@ export interface FreeViewProps {
  * มุมมอง "ว่างตรงกัน" (UX §8, W14/W15): แถบสถานะ (ตัดทอน/ไม่มีใครลง) · การ์ดสรุป · เดือน · คำอธิบายช่อง · ที่มาของผล · ช่วงเวลาที่นับ
  * รายละเอียดวัน: มือถือ = bottom sheet · iPad (≥ 768) = แผงขวา (วันตั้งต้น = วันแรกที่ว่างร่วม ถ้าไม่มีใช้วันใกล้เคียงที่สุด)
  */
-export function FreeView({ data, gid, myId, month, monthTitle, nav, today, windowPassed, picked, sheetOpen, wide, canEditWindow, onPick, onCloseSheet, onNextMonth, onAddBusy }: FreeViewProps) {
+export function FreeView({ data, gid, groupName = "", myId, month, monthTitle, nav, today, windowPassed, picked, sheetOpen, wide, canEditWindow, onPick, onCloseSheet, onNextMonth, onAddBusy }: FreeViewProps) {
   const t = useTranslations();
   const locale = useLocale() as CalendarLocale;
   const hintId = useId();
+  /** ฟอร์มสร้างนัดที่เปิดอยู่ (วัน = วันที่เลือก · seg = ช่วงว่างร่วมที่แตะ หรือ null = ค่าตั้งต้น 18:00–21:00) */
+  const [create, setCreate] = useState<{ date: DateISO; seg: AvSegment | null } | null>(null);
 
   const days = useMemo(() => dayMap(data?.days ?? []), [data]);
   const summary = useMemo(() => (data ? summarize(data.days, today) : null), [data, today]);
@@ -57,6 +63,10 @@ export function FreeView({ data, gid, myId, month, monthTitle, nav, today, windo
   }, [data, days, picked, today]);
   const detailDay = wide ? (panelDate ? days.get(panelDate) : undefined) : sheetOpen && picked ? days.get(picked) : undefined;
   const highlight = wide ? panelDate : sheetOpen ? picked : null;
+
+  const openCreate = (seg: AvSegment | null) => {
+    if (detailDay) setCreate({ date: detailDay.date, seg });
+  };
 
   const win = data ? data.group : null;
   const minDur = win ? durationMsg(win.minFreeMinutes) : null;
@@ -185,18 +195,31 @@ export function FreeView({ data, gid, myId, month, monthTitle, nav, today, windo
                 <h2 data-testid="free-detail-title" suppressHydrationWarning>
                   {dateTitle(detailDay.date)}
                 </h2>
-                <FreeDetail day={detailDay} data={data} myId={myId} variant="panel" hintId={hintId} />
+                <FreeDetail day={detailDay} data={data} myId={myId} variant="panel" hintId={hintId} onCreate={openCreate} />
               </section>
             ) : null}
           </aside>
         ) : null}
       </div>
       {!wide && data && detailDay ? (
-        <Sheet title={dateTitle(detailDay.date)} onClose={onCloseSheet} footer={<CreateCta hintId={hintId} withHint={false} />} className="av-sheet">
+        <Sheet title={dateTitle(detailDay.date)} onClose={onCloseSheet} footer={<CreateCta hintId={hintId} withHint={false} allFree={detailDay.allFree} onCreate={() => openCreate(null)} />} className="av-sheet">
           <div className="av-detail" data-testid="free-sheet">
-            <FreeDetail day={detailDay} data={data} myId={myId} variant="sheet" hintId={hintId} />
+            <FreeDetail day={detailDay} data={data} myId={myId} variant="sheet" hintId={hintId} onCreate={openCreate} />
           </div>
         </Sheet>
+      ) : null}
+      {create && data ? (
+        <AppointmentFormSheet
+          mode="create"
+          groupId={gid}
+          groupName={groupName}
+          memberCount={data.members.length}
+          tz={data.group.tz}
+          userId={myId}
+          initial={{ date: create.date, ...prefillFromSegment(create.seg) }}
+          prefilled={create.seg !== null}
+          onClose={() => setCreate(null)}
+        />
       ) : null}
     </>
   );

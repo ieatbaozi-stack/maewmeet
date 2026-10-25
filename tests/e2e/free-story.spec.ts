@@ -86,15 +86,15 @@ test('th: A,B,C → ว่างร่วม/2 จาก 3/ซ่อน/T24 · �
   const order = [seg('08:00', '10:00'), seg('12:00', '14:00'), seg('16:00', '22:00')].map((s) => dayX.indexOf(s));
   expect(order.every((i) => i >= 0), `ช่วงว่างร่วมครบ 3 ช่วง:\n${dayX}`).toBe(true);
   expect([...order].sort((p, q) => p - q), 'เรียงตามเวลา').toEqual(order);
-  // ปุ่ม "สร้างนัด": disabled + "เร็วๆ นี้" · กดแล้วไม่เกิดอะไร
+  // ปุ่ม "สร้างนัด" (R4B X66): เปิดใช้แล้ว (ไม่มีป้าย "เร็วๆ นี้") · กดแล้วเปิดฟอร์มสร้างนัดทับ sheet วัน
   await expect(freeCreate(b.page)).toBeVisible();
   await expect(freeCreate(b.page)).toContainText(T('availability.cta.create'));
-  await expect(freeCreate(b.page)).toContainText(T('availability.cta.soon'));
-  await expect(freeCreate(b.page)).toHaveAttribute('aria-disabled', 'true');
-  const urlBefore = b.page.url();
-  await freeCreate(b.page).click({ force: true });
-  expect(b.page.url()).toBe(urlBefore);
-  await expect(b.page.getByRole('dialog')).toHaveCount(1); // ยังเป็น sheet วันเดิมเท่านั้น ไม่มีฟอร์มสร้างนัดเปิดขึ้น
+  await expect(freeCreate(b.page)).not.toContainText(T('availability.cta.soon'));
+  await expect(freeCreate(b.page)).not.toHaveAttribute('aria-disabled', 'true');
+  await freeCreate(b.page).click();
+  await expect(b.page.getByTestId('appt-form')).toBeVisible();
+  await b.page.getByTestId('appt-form-cancel').click();
+  await expect(b.page.getByTestId('appt-form')).toHaveCount(0);
   await expect(b.page.getByTestId('cal-toast')).toHaveCount(0);
   await expect(freeDay(b.page)).toHaveAttribute('data-date', X);
 

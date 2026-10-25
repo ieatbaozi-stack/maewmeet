@@ -884,6 +884,7 @@
       "count": "{count, plural, =0 {No upcoming plans} one {1 upcoming plan} other {# upcoming plans}}",
       "limitNear": "{count} of {max} upcoming plans used. Cancel ones you don’t need to free up room.",
       "pastCapped": "Showing the latest {count}",
+      "loadMore": "Show more",
       "loading": "Loading the group’s plans…",
       "empty": {
         "upcoming": {
