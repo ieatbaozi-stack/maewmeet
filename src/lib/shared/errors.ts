@@ -43,6 +43,7 @@ export const ERROR_CODES = [
   'INVALID_MAP_URL',
   'INVALID_COORDINATES',
   'APPOINTMENT_CANCELLED',
+  'APPOINTMENT_PAST',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -92,7 +93,8 @@ export const ERROR_HTTP_STATUS = {
 
   INVALID_MAP_URL: 400,
   INVALID_COORDINATES: 400,
-  APPOINTMENT_CANCELLED: 409,
+  APPOINTMENT_CANCELLED: 409, // แก้/ตอบนัดที่ยกเลิกแล้ว
+  APPOINTMENT_PAST: 409, // ตอบ (RSVP) นัดที่จบไปแล้ว
 } as const satisfies Record<ErrorCode, number>;
 
 export function httpStatusOf(code: ErrorCode): number {

@@ -1,5 +1,5 @@
 // repo: notification — ADR 0007 · params = ค่าดิบ (ไม่ใช่ข้อความแปลแล้ว) · ทุก query ผูก user_id (เจ้าของ)
-import { and, count, desc, eq, isNull } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
 import { notification } from '@/db/schema';
 import type { DbOrTx } from '@/db/client';
 
@@ -51,6 +51,61 @@ export async function markAllNotificationsRead(db: DbOrTx, userId: string, now: 
     .update(notification)
     .set({ readAt: now })
     .where(and(eq(notification.userId, userId), isNull(notification.readAt)))
+    .returning({ id: notification.id });
+  return rows.length;
+}
+
+/** แถวใหม่หลายแถวในคำสั่งเดียว (ผู้เรียกคือ notify() — ดู src/lib/data/notifications/notify.ts) */
+export async function insertNotificationRows(
+  db: DbOrTx,
+  rows: readonly { id: string; userId: string; kind: string; params: Record<string, unknown> }[],
+  now: number,
+): Promise<void> {
+  if (rows.length === 0) return;
+  await db.insert(notification).values(rows.map((r) => ({ id: r.id, userId: r.userId, kind: r.kind, params: r.params, createdAt: now })));
+}
+
+/**
+ * แจ้งเตือนที่ผู้ใช้ "ควรเห็น": ชนิดที่เกี่ยวกับนัด (appointment.*) เห็นได้เฉพาะเมื่อยังเป็นสมาชิกของกลุ่มนั้นและกลุ่มยังไม่ถูกลบ
+ * (ถูกลบออก/ออกเอง → ไม่เห็นชื่อนัดของกลุ่มเดิมอีก) · ชนิดอื่นเห็นเสมอ · ใช้ร่วมกันระหว่างรายการและจำนวนที่ยังไม่อ่าน
+ */
+const visibleToOwner: SQL = sql`(${notification.kind} NOT LIKE 'appointment.%' OR EXISTS (
+  SELECT 1 FROM group_member gm INNER JOIN groups g ON g.id = gm.group_id
+  WHERE gm.user_id = ${notification.userId} AND g.deleted_at IS NULL AND gm.group_id = json_extract(${notification.params}, '$.groupId')))`;
+
+export type NotificationCursor = { createdAt: number; id: string };
+
+/** ใหม่สุดก่อน keyset (created_at, id) · ขอ limit+1 เพื่อรู้ว่ามีหน้าถัดไป */
+export async function listVisibleNotifications(
+  db: DbOrTx,
+  userId: string,
+  q: { limit: number; cursor: NotificationCursor | null },
+): Promise<NotificationRow[]> {
+  const conds: SQL[] = [eq(notification.userId, userId), visibleToOwner];
+  if (q.cursor) conds.push(sql`(${notification.createdAt}, ${notification.id}) < (${q.cursor.createdAt}, ${q.cursor.id})`);
+  return db
+    .select()
+    .from(notification)
+    .where(and(...conds))
+    .orderBy(desc(notification.createdAt), desc(notification.id))
+    .limit(q.limit);
+}
+
+export async function countUnreadVisibleNotifications(db: DbOrTx, userId: string): Promise<number> {
+  const rows = await db
+    .select({ n: count() })
+    .from(notification)
+    .where(and(eq(notification.userId, userId), isNull(notification.readAt), visibleToOwner));
+  return Number(rows[0]?.n ?? 0);
+}
+
+/** mark อ่านแล้วตาม id — เฉพาะของเจ้าของ (id ของคนอื่นถูกเมินเงียบ ๆ) · คืนจำนวนแถวที่เปลี่ยน */
+export async function markNotificationsReadByIds(db: DbOrTx, userId: string, ids: readonly string[], now: number): Promise<number> {
+  if (ids.length === 0) return 0;
+  const rows = await db
+    .update(notification)
+    .set({ readAt: now })
+    .where(and(eq(notification.userId, userId), inArray(notification.id, [...ids]), isNull(notification.readAt)))
     .returning({ id: notification.id });
   return rows.length;
 }

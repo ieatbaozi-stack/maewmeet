@@ -40,4 +40,31 @@ export const BUSY_TITLE_MAX = 80;
 export const BUSY_NOTE_MAX = 500;
 
 /** ชนิดเพดานที่ใส่ใน params ของ LIMIT_REACHED (UX แปลตามนี้) */
-export type LimitKind = 'groups' | 'members' | 'codes' | 'pendingInvites' | 'busyCount' | 'busySpan' | 'busyBackdate';
+export type LimitKind =
+  | 'groups'
+  | 'members'
+  | 'codes'
+  | 'pendingInvites'
+  | 'busyCount'
+  | 'busySpan'
+  | 'busyBackdate'
+  | 'appointments'
+  | 'appointmentSpan';
+
+// ───────── นัด / แจ้งเตือน / สถานที่ — R4B_CONTRACT §2 ─────────
+export const APPOINTMENT_TITLE_MAX = 80;
+export const APPOINTMENT_DESCRIPTION_MAX = 1000;
+export const APPOINTMENT_PLACE_NAME_MAX = 120;
+export const APPOINTMENT_MAP_URL_MAX = 500;
+/** นัดที่ยัง active และยังไม่จบ (end_at > now) ต่อกลุ่ม — ยกเลิกแล้วไม่นับ (R4B-1/R4B-5) */
+export const APPOINTMENT_MAX_ACTIVE_PER_GROUP = 100;
+/** สร้าง/ย้ายเวลานัดให้เริ่มย้อนหลังได้ไม่เกินนี้ (กันกดพลาด) */
+export const APPOINTMENT_MAX_BACKDATE_MS = 60 * 60 * 1000;
+/** ความยาวนัดสูงสุด (วัน) — เท่ากับ busy แบบมีเวลา (ADR 0004 §2) */
+export const APPOINTMENT_MAX_SPAN_DAYS = BUSY_MAX_TIMED_DAYS;
+export const APPOINTMENT_LIST_DEFAULT = 20;
+export const APPOINTMENT_LIST_MAX = 50;
+export const NOTIFICATION_LIST_DEFAULT = 20;
+export const NOTIFICATION_LIST_MAX = 50;
+/** POST /api/me/notifications/read {ids} — จำนวน id สูงสุดต่อคำขอ */
+export const NOTIFICATION_READ_IDS_MAX = 100;

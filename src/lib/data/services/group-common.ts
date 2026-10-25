@@ -21,7 +21,7 @@ export const NOTIFY_KIND = {
 export type AuditEntry = {
   /** ชื่อ action ของ ADR 0003 */
   action: string;
-  targetType: 'group' | 'member' | 'invite';
+  targetType: 'group' | 'member' | 'invite' | 'appointment';
   targetId: string;
   groupId: string;
   /** ห้ามมี PIN/token/hash/โค้ดเชิญ — repo ปฏิเสธคีย์ที่ตรง pin|token|hash|secret|pepper|code|password */
