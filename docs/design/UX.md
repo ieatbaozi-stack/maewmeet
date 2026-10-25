@@ -279,6 +279,8 @@ iPad: ปฏิทินซ้าย + แผงวันขวา (ไม่ม
 - ผิดพลาด: "เวลาจบต้องหลังเวลาเริ่ม" / "บันทึกไม่สำเร็จ ข้อมูลในฟอร์มยังอยู่ ลองอีกครั้ง"
 
 ### W7 สร้างนัด (sheet veil เหนือ aurora soft + scrim) — ดู `samples/create.html`
+> **R4B: แทนที่ด้วย §9 (W17–W20)** — ฟอร์มจริงมีค้นหาสถานที่/คำเตือนคนอาจไม่ว่าง/ข้ามคืน · ส่วนนี้เก็บไว้เป็นประวัติ
+
 ```
 ╞═══════════ (sheet) ═══════════╡
 │ สร้างนัด                      ✕ │
@@ -310,6 +312,8 @@ iPad: ปฏิทินซ้าย + แผงวันขวา (ไม่ม
 - สำเร็จ: แมวถือหมุด "สร้างนัดแล้ว" "ทุกคนในกลุ่มเห็นนัดนี้แล้ว" [ดูนัด]
 
 ### W8 รายละเอียดนัด
+> **R4B: แทนที่ด้วย §9 (W21)** — มีแผนที่ OSM, RSVP 3 ปุ่ม, ยกเลิกนัด
+
 ```
 ┌───────────────────────────────┐
 │ ←  นัด                     ⋯ │ ← ⋯ = แก้/ยกเลิก (เฉพาะผู้สร้าง/admin/moderator)
@@ -367,6 +371,8 @@ iPad: ปฏิทินซ้าย + แผงวันขวา (ไม่ม
 - ลบบัญชีขณะเป็นผู้ดูแลกลุ่ม: "โอนผู้ดูแลของ แก๊งมัธยม ห้อง 6/3 ก่อน แล้วค่อยลบบัญชี" [ไปที่กลุ่ม]
 
 ### W11 การแจ้งเตือน (ในแอป)
+> **R4B: แทนที่ด้วย §9 (W24)** — หน้ารายการเต็ม + กระดิ่งทุกแท็บ
+
 - ปกติ: แถวเรียงเวลา "ปาล์มสร้างนัด ตีแบดประจำสัปดาห์" · "คำขอเปลี่ยน PIN ได้รับอนุมัติ" · ยังไม่อ่าน = จุด + ตัวหนา 600
 - โหลด: แถวนิ่ง · ว่าง: แมวนอน "ยังไม่มีอะไรใหม่" (ไม่มีปุ่ม) · ผิดพลาด: กล่องแดง + [ลองอีกครั้ง]
 
@@ -590,7 +596,7 @@ namespace ใหม่ใน `messages/*.json`: `calendar.*` (เพิ่มจ
 | X42 | ใครไม่ว่างเมื่อไร (blockers) | ใช้ `.cal-person/.cal-item` ของ R3 · เวลาแบบเดียวกับมุมมองวัน (`calendar.day.range/fromPrev/toNext/allDay/dayOf`) · รายการซ่อน/ไม่มีชื่อ = "ไม่ว่าง" (`calendar.day.busyPlain` ตัวรอง — ผู้ดูแยกไม่ได้ ตรง ADR 0006) · สมาชิกที่ **"นับว่าไม่ว่าง"** (เหลือเวลาว่างในหน้าต่างไม่ถึงขั้นต่ำ หรือติดทั้งวัน) ขึ้นก่อนพร้อมป้ายไอคอน ban "นับว่าไม่ว่าง" + คำอธิบายใต้รายการ · สมาชิกที่ไม่มีรายการ = "ไม่ได้ลงว่าติด: …" (X29 ยังใช้ — ไม่ใช่ "ว่าง") | ต้องอธิบายได้ว่าทำไมตัวเลขเป็น 5/6 หรือ 3/3 แต่ไม่ตรง (T24) |
 | X43 | ความจริงของผล | บรรทัดตายตัว (ไอคอน ⓘ) ทั้งใต้ตารางและท้ายรายละเอียดวัน: "อิงจากวันไม่ว่างที่สมาชิกลงไว้ คนที่ยังไม่ได้ลงจะนับว่าว่าง" · **ไม่มีใครลงเลยในช่วงที่เห็น** = แถบอำพันเหนือการ์ดสรุป "ยังไม่มีใครลงวันไม่ว่างในช่วงนี้" + ปุ่ม "ลงวันไม่ว่าง" (R4A_CONTRACT §6 ความเสี่ยงข้อ 4) | ผลที่ดูแน่นอนเกินจริงเป็นความเสี่ยงหลัก |
 | X44 | ช่วงเวลาที่นับ | ใต้ตาราง: "ช่วงเวลาที่นับว่าว่าง **08:00–22:00 · ขั้นต่ำ 2 ชม.**" · ผู้ที่ `can(group.update)` (admin/ผู้ช่วยดูแล) เห็นลิงก์ "ปรับช่วงเวลา" → `/groups/<gid>/settings#window` · คนอื่นเห็นข้อความ "ผู้ดูแลกลุ่มปรับได้ในตั้งค่ากลุ่ม" (ไม่มีลิงก์) · ซ่อนปุ่ม = ความสะดวกเท่านั้น สิทธิ์จริงตรวจที่ server | |
-| X45 | ปุ่ม "สร้างนัด" (R4B ยังไม่ทำ) | **แสดงแบบ disabled** (ไม่ซ่อน — ผู้ใช้เห็นว่ามีต่อ): ปุ่มรอง `aria-disabled="true"` (ไม่ใช่ `disabled` เพื่อให้โฟกัส/อ่านคำอธิบายได้) + ป้าย "เร็วๆ นี้" + ข้อความ `aria-describedby` "สร้างนัดจากวันที่เลือกจะเปิดให้ใช้เร็วๆ นี้ ระหว่างนี้จดวันที่ไว้ก่อนได้เลย" · กดแล้วไม่เกิดอะไร ไม่มี toast | R4A_CONTRACT §2 · ซ่อนแล้ว R4B โผล่มาทีหลังทำให้ผู้ใช้ไม่รู้ว่าจะมี |
+| X45 | ปุ่ม "สร้างนัด" (R4B ยังไม่ทำ — **R4B เปิดใช้แล้ว ดู X66/W26**) | **แสดงแบบ disabled** (ไม่ซ่อน — ผู้ใช้เห็นว่ามีต่อ): ปุ่มรอง `aria-disabled="true"` (ไม่ใช่ `disabled` เพื่อให้โฟกัส/อ่านคำอธิบายได้) + ป้าย "เร็วๆ นี้" + ข้อความ `aria-describedby` "สร้างนัดจากวันที่เลือกจะเปิดให้ใช้เร็วๆ นี้ ระหว่างนี้จดวันที่ไว้ก่อนได้เลย" · กดแล้วไม่เกิดอะไร ไม่มี toast | R4A_CONTRACT §2 · ซ่อนแล้ว R4B โผล่มาทีหลังทำให้ผู้ใช้ไม่รู้ว่าจะมี |
 | X46 | ตัดทอน | `truncated` → แถบอำพัน "ช่วงนี้มีรายการไม่ว่างเยอะมาก เลยคำนวณได้ไม่ครบ บางวันอาจดูว่างกว่าความจริง ลองดูทีละเดือน" (ต่างจาก `calendar.truncated` ตรงที่เตือนว่า **ว่างเกินจริงได้**) | ผล availability ผิดข้างที่อันตราย (บอกว่าว่างทั้งที่ไม่) |
 
 ### 8.2 Wireframe (375 px) — ต่อเลข W13
@@ -680,3 +686,134 @@ namespace ใหม่ `availability.*` + `calendar.view.free` (ปุ่มม�
 - **กติกาชื่อ (`names`)**: ≤ 3 คน = `Intl.ListFormat` (conjunction) ของภาษานั้น · > 3 คน = `availability.day.names.more` (ไม่ผูกชื่อยาวเป็นย่อหน้า) · ชื่อ **ไม่แปล** · รายการ blockers เรียง "นับว่าไม่ว่าง" ก่อน แล้วตามลำดับสมาชิก
 - **การแสดงผลต่อสถานะ**: `all` ไม่แสดง `fraction` · ปุ่ม "สร้างนัด" = `availability.cta.create` + ป้าย `.soon` + `aria-describedby` ไป `.soonHint` · ปุ่ม/ลิงก์ "ปรับช่วงเวลา" ใช้ `aria-label` = `availability.window.editAria`
 - **คำศัพท์ EN**: "Free days" (มุมมอง) · "Everyone’s free" (= ว่างร่วม) · "n of m free" · "Counts as busy" · "Coming soon" — ไม่ใช้คำว่า overlap/availability ในหน้าผู้ใช้
+
+
+## 9. R4B — นัด · RSVP · สถานที่/แผนที่ · แจ้งเตือนในแอป · หน้าหลัก
+> UX & Brand · 2026-10-26 · อ้างอิง: R4B_CONTRACT · PRD U10–U11/D4/D11 · ADR 0005 §4 · ADR 0006 · ADR 0007 · ตัวอย่าง: `samples/home.html` `appt-form.html` `appt-detail.html` `appt-list.html` `notifications.html` `group.html` `availability.html` (`?lang=th|en` `?theme=light|dark` `?state=…`) · CSS: `src/styles/{appointments,home,notifications}.css` (ไม่เพิ่ม token สีใหม่; 9 คู่คอนทราสต์ใหม่ใน `contrast.mjs`) · "วันนี้" ในฉาก = อังคาร 2026-10-20 18:00
+
+### 9.1 การตัดสินใจ
+| # | เรื่อง | ตัดสินใจ | เหตุผล |
+|---|---|---|---|
+| X47 | นับถอยหลัง | ไม่ใช้ ICU tag: `home.countdown.before/after/aria` · ตัวเลขใหญ่เมื่อ `days ≥ 2` · 0/1 วัน ตัว "วันนี้/พรุ่งนี้" เป็นตัวใหญ่เอง · กำลังเกิดขึ้น = `appointments.status.ongoing` | เทสต์ format ใส่ทุกตัวแปรเป็น 3 → tag พัง · ภาษาไทยไม่ต้องมีพหูพจน์ |
+| X48 | การ์ดนัดถัดไป (หน้าหลัก) | แถบบนบอกเวลา (อีก N วัน + วันที่ พ.ศ.) · ชื่อ · เวลา 24 ชม. · สถานที่ + [เปิดในแอปแผนที่] · ชื่อกลุ่ม · อวาตาร์สีสมาชิก ≤ 5 + "และอีก N คน" · สรุป ไป/อาจไป/ยังไม่ตอบ · ปุ่ม RSVP 3 ปุ่ม · ลิงก์ดูรายละเอียด | ตอบ RSVP จากหน้าแรกได้ในแตะเดียว |
+| X49 | นัดที่ยกเลิก | ไม่เป็น "นัดถัดไป" · แถวขีดฆ่า + แท็บ "ยกเลิกแล้ว" (ไอคอน ban + ข้อความ ไม่พึ่งสี) · ถ้ามีแต่นัดยกเลิก = การ์ดว่างแมว + แถวยกเลิก | ไม่ให้ผู้ใช้เข้าใจผิดว่ายังนัดอยู่ แต่ยังเห็นว่ามีอะไรเปลี่ยน |
+| X50 | รายการนัดถัดๆ ไป | ไม่มีลิงก์ "ดูทั้งหมด" ข้ามกลุ่ม (สัญญาไม่มีหน้านั้น) → ถ้าถูกตัดแสดง `home.moreNote` | ไม่สร้างลิงก์ที่ไปไหนไม่ได้ |
+| X51 | RSVP | segmented 3 ปุ่ม (ไป/อาจไป/ไม่ไป) ปุ่มละไอคอน (circle-check/help/x) + คำ · ที่เลือก = กรอบ `currentColor` หนา + ตัวหนา + ไอคอนเส้นหนา + พื้นสี (ไม่พึ่งสีอย่างเดียว) · `role=radiogroup` · ปิด (นัดผ่าน/ยกเลิก) = ปุ่ม disabled + บรรทัดอธิบาย | WCAG 1.4.1 |
+| X52 | บัตรแสดงจำนวน | ไป · อาจไป · [ไม่ไป เฉพาะหน้ารายละเอียด] · ยังไม่ตอบ (ไอคอนเส้นประ) · อวาตาร์ไม่ซ้อนกัน | อ่านชื่อ/จำนวนได้ชัดบน 375 |
+| X53 | ฟอร์มสร้าง/แก้ไข | sheet สูง · กลุ่มถูกกำหนดจากบริบท (ไม่มีตัวเลือกกลุ่ม) · ชื่อ(≤80)/วัน/เริ่ม–สิ้นสุด (ขั้น 30 นาที)/สถานที่/รายละเอียด(≤1000) · ท้าย = [ยกเลิก \| สร้างนัด] + บรรทัด "สมาชิกอีก N คนจะเห็นและได้รับแจ้งเตือน" · โหมดแก้ไขมี `form.editNote` "แก้ไขไม่แจ้งเตือน" | ตรงสัญญา: แก้ไม่ notify |
+| X54 | ข้ามคืน | เลือกเวลาสิ้นสุด ≤ เริ่ม = ข้ามคืนอัตโนมัติ แสดงแท็ก "จบ {วัน}" (`form.time.endsOn`) + ระยะรวม | ไม่ให้ผู้ใช้ต้องเลือกวันที่สองเอง · ยาวเกิน 62 วัน = `errors.LIMIT_REACHED` (appointmentSpan) |
+| X55 | คำเตือน "คนอาจไม่ว่าง" | **ไม่บล็อก** · 6 สถานะ: checking / clear / warn (ชื่อ + เวลา) / warn-min (ชื่อเท่านั้น) / unknown (ข้อมูลถูกตัดทอน) / check-error · clear เขียนอย่างซื่อสัตย์ "ตามที่สมาชิกลงไว้ ยังไม่มีใครติดช่วงนี้" · unknown **ห้ามพูดว่าไม่มีใครติด** · รายชื่อ ≤ 5 + "และอีก N คน" · ท้ายบล็อกลิงก์ความหมาย `availability.explain` | ADR 0005/0006: ผลคำนวณ ≠ ความจริง · ข้อมูลที่ซ่อน = "ไม่ว่าง" โดยไม่บอกเหตุ |
+| X56 | ค้นหาสถานที่ | ช่องชื่อ + ปุ่ม [ค้นหา] ชัดเจน (**ไม่ autocomplete**) · ผล ≤ 5 เป็น radiogroup + บรรทัดเครดิต OpenStreetMap · สถานะ: loading / noResults / error / rateLimited (`errors.RATE_LIMITED`) / disabled (`errors.FEATURE_DISABLED` → "ค้นหาสถานที่ปิดชั่วคราว — วางลิงก์หรือพิกัดแทน" และเปิดแผงวางลิงก์ให้เอง) / tooShort | Nominatim policy + kill-switch |
+| X57 | วางลิงก์/พิกัด | ปุ่มสลับ `places.paste.*` เปิดแผงช่องเดียว · รับลิงก์แผนที่หรือ "lat, lng" · ผิด = `errors.INVALID_MAP_URL` / `errors.INVALID_COORDINATES` ใต้ช่อง | ใช้ได้แม้ไม่มีการค้นหา |
+| X58 | สถานที่ที่เลือก | chip (ชื่อ + พิกัด หรือโฮสต์ของลิงก์) + ปุ่มล้าง (aria มีชื่อสถานที่) | |
+| X59 | แผนที่ | **เฉพาะหน้ารายละเอียด** ไม่มีแผนที่ในฟอร์ม · OSM tile · เครดิต "© OpenStreetMap contributors" เป็นลิงก์ 44 px **ใต้แผนที่** (ไม่ทับ tile) · ปุ่ม [เปิดในแอปแผนที่] · มีแต่ลิงก์ = ปุ่ม "เปิดลิงก์แผนที่ ({host})" ไม่มีแผนที่ · สถานะ loading/failed (โหลดไม่ได้ → ข้อความ + ปุ่มเปิดแอป) | CSP/policy · fallback เมื่อ tile ล้ม |
+| X60 | หน้ารายละเอียด | topbar: ย้อน/"นัด"/ดินสอ (เมื่อ `canEdit`) · แบนเนอร์ยกเลิก (ใคร + เมื่อไร หรือ `bannerGone`) · แท็กสถานะ · ชื่อ · เวลา · กลุ่ม(ลิงก์) · สถานที่ · รายละเอียด (pre-wrap) · RSVP · รายชื่อตามคำตอบ · จัดการ (แก้ไข / ยกเลิกนัด) · "สร้างโดย" | |
+| X61 | ยกเลิกนัด | `alertdialog` กลางจอ: ชื่อนัด + `cancel.notify` (select `notify=yes\|no` — แจ้งสมาชิก N คน / ไม่แจ้ง) · ปุ่ม danger "ยกเลิกนัดนี้" + "ไม่ยกเลิก" · ผิดพลาด → alert ในกล่อง | ปุ่มทำลายล้างต้องยืนยัน |
+| X62 | หน้ารายการนัดของกลุ่ม | ปุ่มหลัก [สร้างนัด] · segmented "กำลังจะถึง \| ที่ผ่านมา" · บรรทัดจำนวน · เตือนใกล้เต็ม (`limitNear`) · ที่ผ่านมาถูกจำกัด (`pastCapped`) · ว่าง/โหลด/ผิดพลาด | |
+| X63 | เข้าหน้ารายการ | การ์ดที่ 3 ในหน้ากลุ่ม (แมว `pin`, `group.calendarLinks.appointments.*`) + ปุ่มหลัก "สร้างนัด" (ซ่อนเมื่อกลุ่มมีคนเดียว) · และจากรายละเอียดวันของ "ว่างตรงกัน" | |
+| X64 | แจ้งเตือน | กระดิ่ง + จำนวนที่ยังไม่อ่านใน topbar **ทุกแท็บ** (ตัวเลข; >9 = "9+") → หน้า `/notifications` เต็มหน้า | |
+| X65 | ยังไม่อ่าน ≠ สีอย่างเดียว | จุดทึบ + ตัวหนา + แถบซ้าย + พื้น accent-soft + ข้อความซ่อน "ยังไม่ได้อ่าน" · [อ่านทั้งหมด] · ว่าง/โหลด/ผิดพลาด/mark-error · ท้ายหน้า "เก็บการแจ้งเตือนไว้ N วัน" · ชนิดที่ไม่รู้จัก = `notifications.unknown` | |
+| X66 | ปุ่ม "สร้างนัด" ใน availability (แทน X45/X41) | เปิดใช้แล้ว: `btn-primary` เมื่อวันนั้น "ว่างร่วม" · `btn-secondary` เมื่อไม่ · ลบป้าย "เร็วๆ นี้" + `aria-describedby` · แถวช่วงว่างร่วมเป็นปุ่ม (ชิฟรอน + คำใบ้ `segments.hint`, aria `segments.createAria`) · `truncated` → `day.truncatedNote` | ดูค่าตั้งต้นใน 9.4 |
+
+### 9.2 Wireframe (375 px) — ต่อเลข W15
+**W16 หน้าหลัก**
+```
+┌──────────────────────────────┐
+│ 🐱 แมวเจอกัน             🔔③ │
+│ นัดถัดไป                       │
+│ ┌──────────────────────────┐ │
+│ │ อีก 4 วัน   เสาร์ที่ 24 ต.ค. 2569 │
+│ │ หมูกระทะวันเกิดต้นข้าว      │
+│ │ ◷ 18:00–21:00              │
+│ │ ⌖ ป้าแดงหมูกระทะ ลาดพร้าว 71 │
+│ │   เปิดในแอปแผนที่ ↗         │
+│ │ ◎ แก๊งมัธยม ห้อง 6/3        │
+│ │ ต ป ม อ  ✓ไป 4 ◔อาจไป 1 ◌ยังไม่ตอบ 1 │
+│ │ [ ✓ไป ][ ?อาจไป ][ ✕ไม่ไป ] │
+│ │ ดูรายละเอียดนัด        ›    │
+│ └──────────────────────────┘ │
+│ นัดถัดๆ ไป                    │
+│ 25 ต.ค. ตีแบด…  ◌ ยังไม่ได้ตอบ › │
+│ 8 พ.ย. ~~กินข้าว~~ ⊘ ยกเลิกแล้ว › │
+└──────────────────────────────┘
+```
+**W17 สร้าง/แก้ไขนัด (sheet)** — ชื่อ → วัน → เริ่ม|สิ้นสุด → รวม N ชม. [+จบ {วัน}] → **บล็อกคำเตือน (W19)** → สถานที่ [ชื่อ][ค้นหา] / วางลิงก์ → รายละเอียด → ท้าย sticky: "สมาชิกอีก N คนจะเห็น…" [ยกเลิก][สร้างนัด]
+**W18 สถานะค้นหาสถานที่** — loading (skeleton 3 แถว) · results (≤5 radiogroup + เครดิต OSM) · noResults (`places.search.noResults.*` + ชวนวางลิงก์) · error · rateLimited · disabled (เปิดแผงวางลิงก์ให้เอง) · selected chip [ชื่อ ⌖พิกัด ✕]
+**W19 คำเตือนคนอาจไม่ว่าง** — กล่องอำพัน ⚠ "9 คนอาจไม่ว่างช่วงนี้" › การ์ดย่อยพื้น `--surface`: [อวาตาร์] ชื่อ / 17:00–19:00 · ซ้อมดนตรี (ชื่อรายการเฉพาะที่เจ้าของเปิดเผย; ซ่อน = "ไม่ว่าง") · "และอีก N คน" · ⓘ ผลคำนวณจากที่สมาชิกลงไว้
+**W20 สร้างสำเร็จ (sheet กลางจอ)** — แมว `pin` · "สร้างนัดแล้ว" · แจ้งสมาชิกอีก N คนแล้ว · [ดูนัด][เสร็จแล้ว]
+**W21 รายละเอียดนัด** — ดูภาพ `appt-detail-full-*` (ลำดับตาม X60)
+**W22 ยืนยันยกเลิก** — `.sheet.center.alert-sheet` (X61)
+**W23 นัดของกลุ่ม** — ดู `appt-list-upcoming-full-*`
+**W24 แจ้งเตือน** — ดู `notifications-full-*` (แถวละ: วงไอคอนตามชนิด · ข้อความ ≤3 บรรทัด · เวลา · จุด/ชิฟรอน)
+**W25 หน้ากลุ่ม** — การ์ดปฏิทิน 3 ใบ (ปฏิทิน / วันที่ว่างตรงกัน / นัดของกลุ่ม) + ปุ่มหลัก "สร้างนัด"
+**W26 รายละเอียดวัน (availability)**
+```
+ ช่วงที่ทุกคนว่างพร้อมกัน
+ ┌─────────────────────────────┐
+ │ ◷ 13:00–19:00   6 ชม.  นานที่สุด › │  ← ปุ่ม แตะ = สร้างนัดช่วงนี้
+ └─────────────────────────────┘
+ แตะช่วงเวลาเพื่อสร้างนัดตรงช่วงนั้น
+ [ 📅 สร้างนัด ]   (primary เมื่อ ว่างร่วม · secondary เมื่อไม่)
+ นัดจะเริ่มจากช่วงที่เลือก แก้เวลาได้ในฟอร์ม
+```
+
+### 9.3 สถานะ (ทุกหน้า × th/en × สว่าง/มืด × 375/390/768)
+| หน้า | `?state=` |
+|---|---|
+| หน้าหลัก | `normal` `today` `tomorrow` `ongoing` `overnight` `one` `long` `only-cancelled` `many` `rsvp-saving` `rsvp-error` `empty` `nogroup` `loading` `error` |
+| ฟอร์ม | `create` `empty` `edit` `edit-cancelled` `checking` `check-error` `warn` `warn-many` `warn-min` `unknown` `unknown-warn` `error-fields` `error-limit` `error-rate` `place-*` (ค้นหา/ผล/ไม่พบ/ปิดชั่วคราว/rate/วางลิงก์/chip/ยาว) `created` |
+| รายละเอียด | `normal` `member` `today` `ongoing` `past` `cancelled` `cancelled-gone` `nolink` `nocoords` `noplace` `map-failed` `map-loading` `unanswered` `rsvp-saving` `rsvp-error` `cancel-confirm` `cancel-error` `overnight` `long` `loading` `error` `gone` |
+| รายการนัด | `upcoming` `past` `empty-upcoming` `empty-past` `loading` `error` `near-limit` `long` `past-capped` |
+| แจ้งเตือน | `normal` `allread` `more` `long` `mark-error` `empty` `loading` `error` |
+| availability | เพิ่ม `truncated` day-detail (note) · CTA เปิดใช้ทุกวัน |
+ข้อความยาวมาก (ชื่อ 80 ตัว, กลุ่ม 40, สมาชิก 12 คน) ทดสอบใน `long`/`many`: ชื่อตัดด้วย … ในแถว, ขึ้นบรรทัดใหม่ในการ์ดใหญ่/รายละเอียด, ไม่มี scroll แนวนอนที่ 375
+
+### 9.4 ค่าตั้งต้นของฟอร์มจากรายละเอียดวัน (X66)
+วัน = วันที่เลือก · เริ่ม = เริ่มช่วงที่แตะ · สิ้นสุด = min(จบช่วง, เริ่ม + 3 ชม.) · แตะปุ่ม "สร้างนัด" โดยไม่เลือกช่วง / วันที่ไม่ว่างร่วม = 18:00–21:00 · ฟอร์มยังไม่ล็อก — ผู้ใช้แก้ได้ · กลุ่ม = กลุ่มที่กำลังดู
+
+### 9.5 ข้อมูลที่หน้าจอต้องการ (คำขอถึง Platform / Front-end)
+**Platform**
+1. `GET me/appointments` (หน้าหลัก): ต่อรายการ `id, title, startAt, endAt, tz, status, group{id,name}, place{name,lat,lng,mapUrlHost}?, counts{going,maybe,notGoing,noReply}, goingSample[≤5 userId+slot], myRsvp, canEdit/canCancel` · **รวมนัดที่ยกเลิกแล้วที่ยังไม่ผ่าน** (เพื่อแสดงสถานะ ไม่ใช่นัดถัดไป) · บอก `truncated`/`total` เพื่อโชว์ `home.moreNote`
+2. รายการกลุ่ม: `upcoming` (รวมยกเลิก) / `past` (จำกัด N + `truncated:true` → `pastCapped`) + `count`, `limit`(appointmentsPerGroup)
+3. endpoint ตรวจชนเวลา (ADR 0006 DTO): `warnings[{userId, from?, to?, title?}]` (title เฉพาะที่เจ้าของเปิดเผย; ซ่อน = ไม่ส่ง title) + `unknown:boolean` (ข้อมูลถูกตัดทอน) · ห้ามรั่วรายละเอียดที่ซ่อน
+4. รายละเอียดนัด: `canEdit`, `canCancel` คำนวณฝั่งเซิร์ฟเวอร์ (creator/admin/moderator) · `cancelledBy`, `cancelledAt` (หรือ null = `bannerGone`) · `rsvp.members[{userId,answer}]`
+5. ค้นหาสถานที่: ผล ≤ 5 `{name, lat, lng, address?}` · `FEATURE_DISABLED` / `RATE_LIMITED` ตามเดิม
+6. ข้อผิดพลาดวันเริ่มย้อนหลัง >1 ชม.: ถ้า Platform ใช้รหัสอื่นนอกจาก `APPOINTMENT_PAST` ให้ Front-end ผูกกับคีย์ `appointments.form.error.start.past` ที่ระดับช่อง
+7. เสนอ NotificationKind ใหม่ **`appointment.cancelled`** (params: `groupId, groupName, appointmentId, title, startAt, tz`) — มีข้อความ th/en แล้ว (`notifications.appointment.cancelled`) รอ Lead อนุมัติให้เพิ่มใน union · **ไม่มี** `appointment.updated` (แก้ไม่แจ้งเตือน)
+**Front-end**
+1. `globals.css` `@import` `appointments.css`, `home.css`, `notifications.css` · ใช้ atom เดิม `.btn .tag .alert .field .input .pair2 .counter .segmented .sheet .skeleton`
+2. เพิ่มไอคอน `link` ใน `src/components/icons/lucide.ts` (ใช้ `clock` แทน history)
+3. กระดิ่ง + badge ใน topbar ทุกแท็บ · `aria-label` = `notifications.bell.aria`
+4. ลบ `availability.cta.soon`/`soonHint` พร้อม `FreeDetail.tsx` เดิมและ `tests/e2e/free-story.spec.ts` ที่อ้างถึง (ตอนนี้คีย์ยังอยู่เพื่อไม่ให้พัง — deprecated)
+5. `when` ใน `notifications.appointment.*` ให้ Front-end จัดรูปจาก `startAt`+`tz` (lib `src/lib/calendar`) ก่อนส่งเข้า ICU
+6. ปลายทางเมื่อแตะแจ้งเตือน (เสนอ): `appointment.*` → `/appointments/[id]` · `group.invite.received` → `/groups` · `group.invite.accepted|declined` → `/groups/[gid]` · `pin_reset.*` → `/me`
+7. สถานะ `saving` ของ RSVP = optimistic + ปุ่ม `aria-busy`; ผิดพลาด = alert ใต้ปุ่ม + คงคำตอบเดิม
+
+### 9.6 สัญญา ICU
+- **ค่าที่มาจากผู้ใช้** (ชื่อนัด/กลุ่ม/สมาชิก/สถานที่) ใน DOM ห่อ `<bdi>` · ในข้อความ ICU ธรรมดา (แจ้งเตือน/aria) ห่อด้วย Unicode isolate `U+2068…U+2069` ก่อนส่งเข้า format
+- **ห้าม ICU tag** (`<b>`) — เทสต์ format ใส่ทุกตัวแปรเป็น 3
+- วัน-เวลา format ด้วย `src/lib/calendar` (Asia/Bangkok, ปี พ.ศ. ในภาษาไทย, 24 ชม.) แล้วส่งเป็น string
+| key | ตัวแปร |
+|---|---|
+| `home.countdown.before/after/aria` | `days` (number ≥ 0) |
+| `home.row.aria` | `title,group,when,state` · `home.moreNote` ← `count` |
+| `appointments.when.overnight` | `start,end` ("HH:MM") |
+| `appointments.row.aria` | `title,when,state` |
+| `appointments.rsvp.summary.*` / `list.*` | `count` · `rsvp.facesMore` ← `count` · `rsvp.saved`,`yourAnswer` ← `answer` ('going'\|'maybe'\|'notGoing') |
+| `appointments.detail.createdBy` | `name,date` · `createdByGone` ← `date` · `inGroup/openGroupAria` ← `group` · `editAria` ← `title` |
+| `appointments.cancelled.banner` | `name,when` · `bannerGone` ← `when` · `cancel.title` ← `title` · `cancel.notify` ← `notify` ('yes'\|'no'), `count` |
+| `appointments.form.*` | `inGroup` ← `group` · `title.hint/description.hint/error.*.tooLong` ← `max` · `time.endsOn` ← `date` · `notifyLine`,`created.body` ← `count` · `error.start.past` ← `hours` |
+| `appointments.overlap.title/more` | `count` |
+| `appointments.list.count/limitNear/pastCapped` | `count` (+ `max`) |
+| `places.*` | `query,min,count,name,lat,lng,host,max` ตามคีย์ |
+| `notifications.group.invite.*` | `groupName` + `inviterName`\|`inviteeName` |
+| `notifications.appointment.created` | `groupName,title,when` (`when` = จัดรูปแล้ว) |
+| `notifications.pin_reset.approved` | `expiresAt` (จัดรูปแล้ว) |
+| `notifications.bell.aria`, `unreadCount` | `count` · `retention` ← `days` · `time.minutes/hours` ← `count` · `time.yesterday` ← `time` · `time.date` ← `date,time` |
+- **ทุก NotificationKind ใน ADR 0007 มีข้อความ th/en** (6 ชนิด + `appointment.cancelled` ที่เสนอ + `notifications.unknown`) · **ทุก ErrorCode มี `errors.*`** รวม `INVALID_MAP_URL`, `INVALID_COORDINATES`, `APPOINTMENT_CANCELLED`, `APPOINTMENT_PAST`, `LIMIT_REACHED` (ใหม่: `appointments`, `appointmentSpan`), `FEATURE_DISABLED`, `RATE_LIMITED`
+
+### 9.7 ข้อสมมติ (ต้องยืนยัน)
+1. ไอคอน/ปลายทางของ `appointment.cancelled` และปลายทางของทุกชนิด เป็นข้อเสนอของ UX
+2. ขอบเขต "นัดถัดไป" = นัดที่ยังไม่ผ่าน ไม่ยกเลิก เรียงตามเวลาเริ่ม (กำลังเกิดขึ้น = นับเป็นนัดถัดไป)
+3. ข้อความ "ปิดชั่วคราว" ของค้นหาสถานที่ใช้ `errors.FEATURE_DISABLED` เดียวกับทุกที่ (ปรับน้ำเสียงเป็น `places.search.disabled.*` ในบริบทนี้)
+4. ปุ่มตอบ RSVP ในการ์ดหน้าหลักใช้ endpoint เดียวกับหน้ารายละเอียด

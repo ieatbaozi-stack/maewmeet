@@ -22,11 +22,6 @@ const JOBS = [
   ['login', 'normal', 'view', VARIANTS],
   ['login', 'error', 'view', [['th', 'light'], ['en', 'dark']]],
   ['login', 'loading', 'view', [['th', 'dark']]],
-  ['home', 'normal', 'view', VARIANTS],
-  ['home', 'normal', 'full', [['th', 'light'], ['th', 'dark']]],
-  ['home', 'empty', 'view', [['th', 'light'], ['th', 'dark'], ['en', 'light'], ['en', 'dark']]],
-  ['home', 'loading', 'view', [['th', 'light']]],
-  ['home', 'error', 'view', [['th', 'light'], ['en', 'dark']]],
   ['calendar', 'normal', 'view', VARIANTS],
   ['create', 'normal', 'view', VARIANTS],
   ['cats', 'normal', 'full', [['th', 'light'], ['th', 'dark']]],
@@ -126,6 +121,36 @@ const JOBS = [
   ['availability', 'error', 'view', VARIANTS],
   ['availability', 'gone', 'view', VARIANTS],
   ['availability', 'nogroup', 'view', VARIANTS],
+  // R4B — หน้าหลัก · นัด (ฟอร์ม/รายละเอียด/รายการ) · แจ้งเตือน (th/en × light/dark × 375/390/768)
+  ...(() => {
+    const V2 = [['th', 'light'], ['en', 'dark']];
+    const V2b = [['th', 'dark'], ['en', 'light']];
+    const out = [];
+    for (const s of ['normal', 'today', 'tomorrow', 'ongoing', 'overnight', 'one', 'long', 'only-cancelled', 'many', 'rsvp-error', 'rsvp-saving', 'empty', 'nogroup', 'loading', 'error']) {
+      out.push(['home', s, s === 'normal' || s === 'many' || s === 'long' ? 'full' : 'view', ['normal', 'empty', 'long'].includes(s) ? VARIANTS : s === 'today' || s === 'only-cancelled' ? V2b : V2]);
+    }
+    out.push(['home', 'normal', 'view', VARIANTS]);
+    for (const s of ['normal', 'member', 'today', 'ongoing', 'past', 'cancelled', 'cancelled-gone', 'nolink', 'nocoords', 'noplace', 'map-failed', 'map-loading', 'unanswered', 'rsvp-error', 'rsvp-saving', 'cancel-confirm', 'cancel-error', 'overnight', 'long', 'loading', 'error', 'gone']) {
+      out.push(['appt-detail', s, ['cancel-confirm', 'cancel-error', 'loading', 'error', 'gone'].includes(s) ? 'view' : 'full', ['normal', 'cancelled', 'past', 'long'].includes(s) ? VARIANTS : V2]);
+    }
+    for (const s of ['upcoming', 'past', 'empty-upcoming', 'empty-past', 'loading', 'error', 'near-limit', 'long', 'past-capped']) {
+      out.push(['appt-list', s, s === 'upcoming' || s === 'long' || s === 'past' ? 'full' : 'view', ['upcoming', 'past'].includes(s) ? VARIANTS : V2]);
+    }
+    for (const s of ['normal', 'allread', 'more', 'long', 'mark-error', 'empty', 'loading', 'error']) {
+      out.push(['notifications', s, s === 'normal' || s === 'more' || s === 'long' ? 'full' : 'view', ['normal', 'empty'].includes(s) ? VARIANTS : V2]);
+    }
+    const FORMS = ['create', 'empty', 'prefilled', 'filled', 'warn', 'warn-min', 'warn-many', 'unknown', 'unknown-warn', 'checking', 'check-error', 'overnight', 'error-fields', 'error-past', 'error-range', 'error-save', 'error-limit', 'error-rate', 'saving', 'edit', 'edit-cancelled', 'long', 'created'];
+    for (const s of FORMS) out.push(['appt-form', s, 'view', ['create', 'warn', 'prefilled', 'created'].includes(s) ? VARIANTS : V2]);
+    out.push(['appt-form', 'warn', 'view', V2, { scrollTo: '.ov' }]);
+    out.push(['appt-form', 'warn-many', 'view', V2, { scrollTo: '.ov' }]);
+    out.push(['appt-form', 'create', 'view', V2, { scroll: 'end' }]);
+    out.push(['appt-form', 'edit', 'view', V2, { scroll: 'end' }]);
+    out.push(['appt-form', 'long', 'view', V2, { scroll: 'end' }]);
+    for (const s of ['place-typed', 'place-searching', 'place-results', 'place-picked', 'place-none', 'place-error', 'place-rate', 'place-disabled', 'place-short', 'place-paste', 'place-paste-error', 'place-coords-error', 'place-chip', 'place-link', 'place-pin', 'place-long']) {
+      out.push(['appt-form', s, 'view', ['place-results', 'place-disabled', 'place-chip'].includes(s) ? VARIANTS : V2b, { scrollTo: '#place' }]);
+    }
+    return out;
+  })(),
 ];
 const only = process.argv.slice(2);
 
@@ -157,7 +182,7 @@ for (const [page, state, mode, variants, opts = {}] of JOBS) {
         const missing = [...document.querySelectorAll('[data-missing]')].map((e) => e.getAttribute('data-missing'));
         // R3: จุดสมาชิก/ตัวเลข +N ต้องไม่ล้นช่องวัน · ข้อความในแถบเวลา/รายการต้องไม่ล้นแถว
         const clipped = [];
-        for (const el of document.querySelectorAll('.cal-dots, .cal-row, .cal-person, .busy-list .row, .cal-summary-line, .private-badge, .av-cell, .av-summary, .av-seg, .av-status, .av-sw, .segmented button')) {
+        for (const el of document.querySelectorAll('.cal-dots, .cal-row, .cal-person, .busy-list .row, .cal-summary-line, .private-badge, .av-cell, .av-summary, .av-seg, .av-status, .av-sw, .segmented button, .appt-band, .appt-count, .appt-row, .appt-row-main, .notif-row, .notif-body, .place-search, .place-chip, .ov-list li, .ov, .appt-section, .appt-card')) {
           if (el.closest('[hidden]')) continue;
           if (el.scrollWidth > el.clientWidth + 1) clipped.push(`${el.className} ${el.scrollWidth}>${el.clientWidth}`);
         }
@@ -169,8 +194,9 @@ for (const [page, state, mode, variants, opts = {}] of JOBS) {
         }
         return { sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, fams: [...new Set(fams)], small, missing, clipped };
       });
+      if (opts.scrollTo) await p.evaluate((sel) => { const el = [...document.querySelectorAll('.sheet-body ' + sel)].find((e) => e.getClientRects().length); const sb = el && el.closest('.sheet-body'); if (el && sb) sb.scrollTop = el.offsetTop - sb.offsetTop - 8; }, opts.scrollTo);
       if (opts.scroll === 'end') await p.evaluate(() => document.querySelectorAll('.sheet-body').forEach((e) => { e.scrollTop = e.scrollHeight; }));
-      const suffix = (state === 'normal' ? '' : '-' + state) + (opts.scroll === 'end' ? '-end' : '') + (fullPage && page !== 'cats' ? '-full' : '');
+      const suffix = (state === 'normal' ? '' : '-' + state) + (opts.scroll === 'end' ? '-end' : '') + (opts.scrollTo ? '-at' : '') + (fullPage && page !== 'cats' ? '-full' : '');
       const file = `${page}${suffix}-${lang}-${theme}-${w}.png`;
       if (fullPage) { // ให้แถบล่าง (fixed) อยู่ท้ายภาพ ไม่ลอยกลางภาพ
         const fullH = await p.evaluate(() => document.documentElement.scrollHeight);

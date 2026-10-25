@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-m="appointments.form.createTitle"></title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/members.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="../../../src/styles/calendar.css">
+<link rel="stylesheet" href="../../../src/styles/availability.css">
+<link rel="stylesheet" href="../../../src/styles/appointments.css">
+<link rel="stylesheet" href="../../../src/styles/home.css">
+<link rel="stylesheet" href="../../../src/styles/notifications.css">
+<script src="sample.js"></script>
+<!--MESSAGES_EN-->
+</head>
+<body>
+<div class="aurora" data-intensity="soft" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<div class="app">
+  <div aria-hidden="true"><gen-appt page="formbg" scn="x"></gen-appt></div>
+  <div data-state-show="normal create"><gen-appt page="form" scn="create"></gen-appt></div>
+  <div data-state-show="empty" hidden><gen-appt page="form" scn="empty"></gen-appt></div>
+  <div data-state-show="prefilled" hidden><gen-appt page="form" scn="prefilled"></gen-appt></div>
+  <div data-state-show="filled" hidden><gen-appt page="form" scn="filled"></gen-appt></div>
+  <div data-state-show="warn" hidden><gen-appt page="form" scn="warn"></gen-appt></div>
+  <div data-state-show="warn-min" hidden><gen-appt page="form" scn="warn-min"></gen-appt></div>
+  <div data-state-show="warn-many" hidden><gen-appt page="form" scn="warn-many"></gen-appt></div>
+  <div data-state-show="unknown" hidden><gen-appt page="form" scn="unknown"></gen-appt></div>
+  <div data-state-show="unknown-warn" hidden><gen-appt page="form" scn="unknown-warn"></gen-appt></div>
+  <div data-state-show="checking" hidden><gen-appt page="form" scn="checking"></gen-appt></div>
+  <div data-state-show="check-error" hidden><gen-appt page="form" scn="check-error"></gen-appt></div>
+  <div data-state-show="overnight" hidden><gen-appt page="form" scn="overnight"></gen-appt></div>
+  <div data-state-show="place-typed" hidden><gen-appt page="form" scn="place-typed"></gen-appt></div>
+  <div data-state-show="place-searching" hidden><gen-appt page="form" scn="place-searching"></gen-appt></div>
+  <div data-state-show="place-results" hidden><gen-appt page="form" scn="place-results"></gen-appt></div>
+  <div data-state-show="place-picked" hidden><gen-appt page="form" scn="place-picked"></gen-appt></div>
+  <div data-state-show="place-none" hidden><gen-appt page="form" scn="place-none"></gen-appt></div>
+  <div data-state-show="place-error" hidden><gen-appt page="form" scn="place-error"></gen-appt></div>
+  <div data-state-show="place-rate" hidden><gen-appt page="form" scn="place-rate"></gen-appt></div>
+  <div data-state-show="place-disabled" hidden><gen-appt page="form" scn="place-disabled"></gen-appt></div>
+  <div data-state-show="place-short" hidden><gen-appt page="form" scn="place-short"></gen-appt></div>
+  <div data-state-show="place-paste" hidden><gen-appt page="form" scn="place-paste"></gen-appt></div>
+  <div data-state-show="place-paste-error" hidden><gen-appt page="form" scn="place-paste-error"></gen-appt></div>
+  <div data-state-show="place-coords-error" hidden><gen-appt page="form" scn="place-coords-error"></gen-appt></div>
+  <div data-state-show="place-chip" hidden><gen-appt page="form" scn="place-chip"></gen-appt></div>
+  <div data-state-show="place-link" hidden><gen-appt page="form" scn="place-link"></gen-appt></div>
+  <div data-state-show="place-pin" hidden><gen-appt page="form" scn="place-pin"></gen-appt></div>
+  <div data-state-show="place-long" hidden><gen-appt page="form" scn="place-long"></gen-appt></div>
+  <div data-state-show="error-fields" hidden><gen-appt page="form" scn="error-fields"></gen-appt></div>
+  <div data-state-show="error-past" hidden><gen-appt page="form" scn="error-past"></gen-appt></div>
+  <div data-state-show="error-range" hidden><gen-appt page="form" scn="error-range"></gen-appt></div>
+  <div data-state-show="error-save" hidden><gen-appt page="form" scn="error-save"></gen-appt></div>
+  <div data-state-show="error-limit" hidden><gen-appt page="form" scn="error-limit"></gen-appt></div>
+  <div data-state-show="error-rate" hidden><gen-appt page="form" scn="error-rate"></gen-appt></div>
+  <div data-state-show="saving" hidden><gen-appt page="form" scn="saving"></gen-appt></div>
+  <div data-state-show="edit" hidden><gen-appt page="form" scn="edit"></gen-appt></div>
+  <div data-state-show="edit-cancelled" hidden><gen-appt page="form" scn="edit-cancelled"></gen-appt></div>
+  <div data-state-show="long" hidden><gen-appt page="form" scn="long"></gen-appt></div>
+  <div data-state-show="created" hidden><gen-appt page="form" scn="created"></gen-appt></div>
+  <nav class="tabbar" data-m-aria="nav.label">
+    <a class="tab" href="home.html"><i data-icon="house"></i><span data-m="nav.home"></span></a>
+    <a class="tab" href="availability.html"><i data-icon="calendar"></i><span data-m="nav.calendar"></span></a>
+    <a class="tab" aria-current="page" href="groups.html"><i data-icon="users"></i><span data-m="nav.groups"></span></a>
+    <a class="tab" href="#"><i data-icon="user"></i><span data-m="nav.me"></span></a>
+  </nav>
+</div>
+</body>
+</html>
