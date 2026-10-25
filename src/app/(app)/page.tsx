@@ -1,26 +1,23 @@
-import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/app/_lib/session";
 import { Aurora } from "@/components/brand";
-import { EmptyState } from "@/components/shell/EmptyState";
+import { HomeView } from "@/components/home/HomeView";
 import { TopBar } from "@/components/shell/TopBar";
+import { loadHome } from "./_lib/home";
 
-/** หน้าหลัก (UX W4) — R0 ยังไม่มีนัด → หน้าว่าง แมวถือแก้วชา · ปุ่ม "ดูวันที่ว่างตรงกัน" ไปมุมมอง ?v=free ของแท็บปฏิทิน (R4A, UX X34) */
+/**
+ * หน้าหลัก (UX W16 · R4B U11) — การ์ด "นัดถัดไป" ข้ามทุกกลุ่ม + นัดถัดๆ ไป + ตอบ RSVP ได้จากการ์ด
+ * ไม่มีนัด → แมว + ปุ่ม "ดูวันที่ว่างตรงกัน" (/calendar?v=free) · ไม่มีกลุ่ม → ชวนสร้างกลุ่ม
+ * เซิร์ฟเวอร์โหลดข้อมูลแรก (service ตรง) · ไคลเอนต์ดูแล RSVP แบบ optimistic + รีเฟรชเมื่อกลับมาที่แท็บ
+ */
 export default async function HomePage() {
   await requireUser();
-  const t = await getTranslations("empty.home");
+  const data = await loadHome();
+  const initial = data.kind === "ready" ? ({ kind: "ready", appointments: data.appointments } as const) : ({ kind: data.kind } as const);
   return (
     <>
       <Aurora intensity="hero" />
       <TopBar />
-      <main className="main" id="main">
-        <EmptyState
-          pose="tea"
-          headingLevel={1}
-          title={t("title")}
-          body={t("body")}
-          cta={{ label: t("cta"), href: "/calendar?v=free" }}
-        />
-      </main>
+      <HomeView initial={initial} initialNowMs={data.nowMs} />
     </>
   );
 }

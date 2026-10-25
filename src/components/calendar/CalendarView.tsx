@@ -10,6 +10,7 @@ import { FreeView } from "@/components/availability/FreeView";
 import { Cat } from "@/components/brand";
 import { Notice } from "@/components/groups/Notice";
 import { isGone } from "@/components/groups/errors";
+import { Bell } from "@/components/shell/Bell";
 import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
 import { EmptyState } from "@/components/shell/EmptyState";
@@ -381,6 +382,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
         <FreeView
           data={avReady}
           gid={gid}
+          groupName={groupName}
           myId={userId}
           month={month}
           monthTitle={monthTitle}
@@ -484,6 +486,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
           <Icon name="plus" />
           <span>{t("busy.add")}</span>
         </button>
+        <Bell />
       </header>
       <main className="main wide cal-main" id="main" data-view={view}>
         <h1 className="sr-only">{t("nav.calendar")}</h1>
