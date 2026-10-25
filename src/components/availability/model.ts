@@ -1,6 +1,7 @@
 // view-model ล้วนของมุมมอง "ว่างตรงกัน" (R4A, UX §8) — ไม่แตะ DOM/เครือข่าย · ทดสอบที่ tests/ui/availability-model.test.ts
 // วัน/เวลาคำนวณผ่าน src/lib/calendar เท่านั้น (ห้าม new Date) · ใช้ตัวช่วยของ R3 ซ้ำ (spanOf/segmentOn/segmentLabel/segmentTitle/fetchRange/joinNames)
 import { addDays, daysBetween, format, toLocal, type CalendarLocale, type DateISO, type EpochMs } from "@/lib/calendar";
+import { weekdayShort } from "@/components/shell/weekday";
 import {
   segmentLabel,
   segmentOn,
@@ -111,7 +112,8 @@ export const dayMap = (days: readonly AvDay[]): Map<DateISO, AvDay> => new Map(d
 // ───────── วันที่แบบสั้นมีวันในสัปดาห์ (lib ไม่มีสไตล์นี้ → ประกอบจาก weekday + day-month) ─────────
 /** th: "อาทิตย์ 25 ต.ค." (long = วันอาทิตย์) · en: "Sunday 25 Oct" / "Sun 25 Oct" */
 export function weekdayDate(date: DateISO, locale: CalendarLocale, width: "short" | "long"): string {
-  return `${format(date, { locale, style: width === "long" ? "weekday-long" : "weekday-short" })} ${format(date, { locale, style: "day-month" })}`;
+  const wd = width === "long" ? format(date, { locale, style: "weekday-long" }) : weekdayShort(date, { locale });
+  return `${wd} ${format(date, { locale, style: "day-month" })}`;
 }
 
 // ───────── ช่วงเวลา ─────────

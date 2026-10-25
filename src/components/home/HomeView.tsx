@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { EmptyState } from "@/components/shell/EmptyState";
-import { AppIcon, type AppIconName } from "@/components/shell/AppIcon";
+import { Icon, type IconName } from "@/components/icons/Icon";
 import { format, type CalendarLocale } from "@/lib/calendar";
 import { fetchMyAppointments, putRsvp } from "./api";
 import {
@@ -36,7 +36,7 @@ export interface HomeViewProps {
 type Status = "ready" | "loading" | "error";
 const REFRESH_GAP_MS = 30_000;
 
-const ANSWER_ICON: Record<RsvpAnswer | "none", AppIconName> = {
+const ANSWER_ICON: Record<RsvpAnswer | "none", IconName> = {
   going: "circle-check",
   maybe: "circle-help",
   not_going: "circle-x",
@@ -137,14 +137,14 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
     return (
       <main className="main home-main" id="main">
         <div className="alert" role="alert" style={{ marginTop: "var(--space-4)" }} data-testid="home-error">
-          <AppIcon name="circle-alert" />
+          <Icon name="circle-alert" />
           <div>
             <b>{t("home.error.title")}</b>
             <span>{t("home.error.body")}</span>
           </div>
         </div>
         <button type="button" className="btn btn-secondary" style={{ marginTop: "var(--space-4)" }} onClick={() => void load(false)} data-testid="home-retry">
-          <AppIcon name="refresh-cw" />
+          <Icon name="refresh-cw" />
           <span>{t("states.retry")}</span>
         </button>
       </main>
@@ -228,7 +228,7 @@ function LoadingMain() {
       <div className="skeleton" style={{ height: "var(--space-5)", width: "40%", margin: "var(--space-3) 0" }} />
       <div className="skeleton" style={{ height: "calc(var(--space-7) * 5)", borderRadius: "var(--radius-lg)" }} />
       <p className="loading-note" role="status">
-        <AppIcon name="refresh-cw" size="sm" />
+        <Icon name="refresh-cw" size="sm" />
         <span>{t("home.loading")}</span>
       </p>
       <div className="skeleton" style={{ height: "calc(var(--space-7) * 3)", marginTop: "var(--space-5)" }} />
@@ -274,7 +274,7 @@ function NextCard({
         <p className="appt-count" data-testid="home-countdown" data-kind={kind}>
           {kind === "ongoing" ? (
             <span className="state">
-              <AppIcon name="clock" />
+              <Icon name="clock" />
               <span>{t("appointments.status.ongoing")}</span>
             </span>
           ) : kind === "today" || kind === "tomorrow" ? (
@@ -298,12 +298,12 @@ function NextCard({
         </h2>
         <ul className="appt-facts">
           <li className="appt-fact">
-            <AppIcon name="clock" />
+            <Icon name="clock" />
             <WhenFact a={a} locale={locale} />
           </li>
           {place ? (
             <li className="appt-fact">
-              <AppIcon name="map-pin" />
+              <Icon name="map-pin" />
               <span className="appt-place">
                 {place.linkOnly ? null : <bdi>{place.label}</bdi>}
                 {place.href ? (
@@ -320,14 +320,14 @@ function NextCard({
                     data-testid="home-maplink"
                   >
                     <span>{place.linkOnly ? t("places.openLink", { host: place.host ?? "" }) : t("places.open")}</span>
-                    <AppIcon name="external-link" size="sm" />
+                    <Icon name="external-link" size="sm" />
                   </a>
                 ) : null}
               </span>
             </li>
           ) : null}
           <li className="appt-fact">
-            <AppIcon name="users" />
+            <Icon name="users" />
             <span>
               <bdi>{a.groupName}</bdi>
             </span>
@@ -336,18 +336,18 @@ function NextCard({
         <div className="appt-who">
           <p className="rsvp-counts" data-testid="home-counts">
             <span className="rsvp-count" data-answer="going" data-testid="home-count-going">
-              <AppIcon name="circle-check" size="sm" />
+              <Icon name="circle-check" size="sm" />
               <span>{t("appointments.rsvp.summary.going", { count: going })}</span>
             </span>
             {maybe > 0 ? (
               <span className="rsvp-count" data-answer="maybe">
-                <AppIcon name="circle-help" size="sm" />
+                <Icon name="circle-help" size="sm" />
                 <span>{t("appointments.rsvp.summary.maybe", { count: maybe })}</span>
               </span>
             ) : null}
             {noResponse > 0 ? (
               <span className="rsvp-count" data-answer="none">
-                <AppIcon name="circle-dashed" size="sm" />
+                <Icon name="circle-dashed" size="sm" />
                 <span>{t("appointments.rsvp.summary.noReply", { count: noResponse })}</span>
               </span>
             ) : null}
@@ -367,27 +367,27 @@ function NextCard({
                 aria-pressed={summary.mine === c}
                 onClick={() => void onChoose(a, c)}
               >
-                <AppIcon name={ANSWER_ICON[c]} size="sm" />
+                <Icon name={ANSWER_ICON[c]} size="sm" />
                 <span>{t(`appointments.rsvp.answer.${c}`)}</span>
               </button>
             ))}
           </div>
           {saving ? (
             <p className="rsvp-note" role="status">
-              <AppIcon name="refresh-cw" size="sm" />
+              <Icon name="refresh-cw" size="sm" />
               <span>{t("appointments.rsvp.saving")}</span>
             </p>
           ) : null}
           {errorText ? (
             <p className="rsvp-error" role="alert" data-testid="home-rsvp-error">
-              <AppIcon name="circle-alert" size="sm" />
+              <Icon name="circle-alert" size="sm" />
               <span>{errorText}</span>
             </p>
           ) : null}
         </div>
         <Link className="appt-open" href={`/appointments/${encodeURIComponent(a.id)}`} aria-label={t("home.next.openAria", { title: a.title })} data-testid="home-next-open">
           <span>{t("home.next.open")}</span>
-          <AppIcon name="chevron-right" />
+          <Icon name="chevron-right" />
         </Link>
       </div>
     </article>
@@ -425,12 +425,12 @@ function Row({ a, rsvp, locale }: { a: HomeAppointment; rsvp: RsvpState; locale:
             <bdi>{a.groupName}</bdi>
           </span>
           <span className="rsvp-pill" data-answer={state}>
-            <AppIcon name={ANSWER_ICON[state]} size="sm" />
+            <Icon name={ANSWER_ICON[state]} size="sm" />
             <span>{t(`appointments.rsvp.mine.${state}`)}</span>
           </span>
         </span>
       </span>
-      <AppIcon name="chevron-right" className="chev" />
+      <Icon name="chevron-right" className="chev" />
     </Link>
   );
 }

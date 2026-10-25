@@ -264,8 +264,6 @@
     },
     "cta": {
       "create": "Create plan",
-      "soon": "Coming soon",
-      "soonHint": "Creating a plan from a day is coming soon. For now, make a note of the date.",
       "createHintAll": "The plan starts from the time you tapped. You can change it in the form.",
       "createHintOther": "There’s no time today when everyone’s free. You can still make a plan, and we’ll show who may be busy."
     },

@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { Cat } from "@/components/brand";
 import { Icon } from "@/components/icons/Icon";
+import { weekdayShort } from "@/components/shell/weekday";
 import { Name } from "@/components/Name";
 import { format, type CalendarLocale, type EpochMs } from "@/lib/calendar";
 import { BUSY_MAX_PER_USER } from "@/lib/shared/limits";
@@ -69,7 +70,7 @@ export function MineList({ items, nowMs, onOpen, onAdd }: MineListProps) {
                   >
                     <span className="datebox" aria-hidden="true">
                       <span className="d">{Number(first.slice(8, 10))}</span>
-                      <span className="m">{format(first, { locale, style: "weekday-short" })}</span>
+                      <span className="m">{weekdayShort(first, { locale })}</span>
                     </span>
                     <span className="row-main">
                       {title ? (

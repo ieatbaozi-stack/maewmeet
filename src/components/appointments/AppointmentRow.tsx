@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
 import { format, toLocal, type CalendarLocale } from "@/lib/calendar";
 import type { AppointmentDto } from "@/lib/data/serializers/appointments";
+import { weekdayShort } from "@/components/shell/weekday";
 import { ANSWER_ICON } from "./RsvpControl";
 import { appointmentWhen, apptPhase, dateBox, hhmm, rowState } from "./model";
 
@@ -17,7 +18,7 @@ export function AppointmentRow({ a, nowMs }: { a: AppointmentDto; nowMs: number 
   const box = dateBox(a.localDate, locale);
   const when = appointmentWhen(a, locale);
   const start = toLocal(a.startAt, a.tz);
-  const whenPlain = `${format(a.localDate, { locale, style: "weekday-short" })} ${format(a.localDate, { locale, style: "day-month" })} ${hhmm(start.minute)}`;
+  const whenPlain = `${weekdayShort(a.localDate, { locale })} ${format(a.localDate, { locale, style: "day-month" })} ${hhmm(start.minute)}`;
   const mine = a.rsvp.mine;
   const cls = phase === "cancelled" ? " is-cancelled" : phase === "past" ? " is-past" : "";
   return (
@@ -39,7 +40,7 @@ export function AppointmentRow({ a, nowMs }: { a: AppointmentDto; nowMs: number 
             <Name>{a.title}</Name>
           </span>
           <span className="appt-row-meta">
-            {format(a.localDate, { locale, style: "weekday-short" })} · <span className="num">{t(when.key, when.values)}</span>
+            {weekdayShort(a.localDate, { locale })} · <span className="num">{t(when.key, when.values)}</span>
           </span>
           <span className="appt-row-pills">
             {phase === "cancelled" ? (

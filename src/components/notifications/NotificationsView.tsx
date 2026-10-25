@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Cat } from "@/components/brand";
-import { AppIcon } from "@/components/shell/AppIcon";
+import { Icon } from "@/components/icons/Icon";
 import { useNotifications } from "@/components/shell/NotificationsProvider";
 import type { CalendarLocale } from "@/lib/calendar";
 import { fetchNotifications, markRead } from "./api";
@@ -170,7 +170,7 @@ export function NotificationsView({ initial, initialNowMs }: NotificationsViewPr
     <>
       <header className="topbar">
         <Link className="icon-btn" href="/" aria-label={t("notifications.back")} data-testid="notif-back">
-          <AppIcon name="arrow-left" />
+          <Icon name="arrow-left" />
         </Link>
         <h1 className="title" style={{ fontSize: "var(--text-lg)" }}>
           {t("notifications.title")}
@@ -194,14 +194,14 @@ export function NotificationsView({ initial, initialNowMs }: NotificationsViewPr
         {status === "error" ? (
           <>
             <div className="alert" role="alert" data-testid="notif-error">
-              <AppIcon name="circle-alert" />
+              <Icon name="circle-alert" />
               <div>
                 <b>{t("notifications.error.title")}</b>
                 <span>{t("notifications.error.body")}</span>
               </div>
             </div>
             <button type="button" className="btn btn-secondary" style={{ marginTop: "var(--space-3)" }} onClick={() => void reload()} data-testid="notif-retry">
-              <AppIcon name="refresh-cw" />
+              <Icon name="refresh-cw" />
               <span>{t("states.retry")}</span>
             </button>
           </>
@@ -221,7 +221,7 @@ export function NotificationsView({ initial, initialNowMs }: NotificationsViewPr
             </p>
             {markFailed ? (
               <div className="alert" role="alert" style={{ marginBottom: "var(--space-3)" }} data-testid="notif-mark-error">
-                <AppIcon name="circle-alert" />
+                <Icon name="circle-alert" />
                 <div>
                   <span>{t("notifications.markError")}</span>
                 </div>
@@ -246,7 +246,7 @@ export function NotificationsView({ initial, initialNowMs }: NotificationsViewPr
                 </div>
                 {moreFailed ? (
                   <div className="alert" role="alert" style={{ marginTop: "var(--space-3)" }} data-testid="notif-more-error">
-                    <AppIcon name="circle-alert" />
+                    <Icon name="circle-alert" />
                     <div>
                       <b>{t("notifications.error.title")}</b>
                       <span>{t("notifications.error.body")}</span>
@@ -283,7 +283,7 @@ function LoadingBlock() {
         </div>
       </div>
       <p className="loading-note" role="status">
-        <AppIcon name="refresh-cw" size="sm" />
+        <Icon name="refresh-cw" size="sm" />
         <span>{t("notifications.loading")}</span>
       </p>
     </>
@@ -299,7 +299,7 @@ function Row({ item, nowMs, locale, onOpen }: { item: NotificationItem; nowMs: n
   const body = (
     <>
       <span className={`notif-ico${view.tone === "plain" ? "" : ` k-${view.tone}`}`} aria-hidden="true">
-        <AppIcon name={view.icon} />
+        <Icon name={view.icon} />
       </span>
       <span className="notif-body">
         <span className="notif-msg">
@@ -309,7 +309,7 @@ function Row({ item, nowMs, locale, onOpen }: { item: NotificationItem; nowMs: n
         <span className="notif-time">{t(tl.key, tl.values)}</span>
       </span>
       {isUnread ? <span className="notif-dot" aria-hidden="true" /> : null}
-      {view.href ? <AppIcon name="chevron-right" className="notif-chev" /> : null}
+      {view.href ? <Icon name="chevron-right" className="notif-chev" /> : null}
     </>
   );
   const common = { className, "data-notif-id": item.id, "data-unread": isUnread ? "true" : "false", "data-testid": "notif-row" } as const;

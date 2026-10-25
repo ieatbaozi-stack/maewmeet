@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { badgeText, bellCount } from "@/components/notifications/model";
-import { AppIcon } from "./AppIcon";
+import { Icon } from "@/components/icons/Icon";
 import { useNotifications } from "./NotificationsProvider";
 
 /**
@@ -29,7 +29,7 @@ export function Bell() {
   return (
     <>
       <Link href="/notifications" className="icon-btn bell" aria-label={t("notifications.bell.aria", { count })} data-testid="bell">
-        <AppIcon name="bell" />
+        <Icon name="bell" />
         {text ? (
           <span className="bell-badge" aria-hidden="true" data-testid="bell-badge">
             {text}
