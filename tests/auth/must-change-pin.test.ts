@@ -41,6 +41,12 @@ const SAMPLE_BODY: Record<string, unknown> = {
   // R3 (Platform): busy — body ผ่าน zod ก่อน actor (ปฏิทินกลุ่มตรวจ from/to หลังด่านสิทธิ์ จึงไม่ต้องมีตัวอย่าง)
   'POST /api/me/busy': { kind: 'all_day', startDate: '2026-10-24', endDate: '2026-10-24' },
   'PATCH /api/me/busy/:id': { title: 'x' },
+  // R4B (Platform): นัด/RSVP/แจ้งเตือน — body ผ่าน zod ก่อน actor
+  'POST /api/groups/:gid/appointments': { title: 'x', startDate: '2026-10-24', startTime: '10:00', endDate: '2026-10-24', endTime: '11:00' },
+  'POST /api/groups/:gid/appointments/check': { startDate: '2026-10-24', startTime: '10:00', endDate: '2026-10-24', endTime: '11:00' },
+  'PATCH /api/appointments/:id': { title: 'x' },
+  'PUT /api/appointments/:id/rsvp': { response: 'going' },
+  'POST /api/me/notifications/read': { all: true },
 };
 
 const concretePath = (e: ManifestEntry) => e.path.replace(/:\w+/g, UUID);
