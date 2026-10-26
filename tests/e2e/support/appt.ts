@@ -119,7 +119,7 @@ async function withBusyRetry<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-/** แทรกนัด active n รายการด้วย SQL (เลี่ยงยิง API ร้อยครั้ง) — อยู่ในอนาคตไกล (ต้นปี +2) เรียงทีละ 3 ชม. */
+/** แทรกนัด active n รายการด้วย SQL (เลี่ยงยิง API ร้อยครั้ง; created_at ย้อนหลัง 3 วัน ไม่ให้ติดเพดานสร้างต่อวัน R4B) — อยู่ในอนาคตไกล (ต้นปี +2) เรียงทีละ 3 ชม. */
 export async function seedActiveAppointments(gid: string, createdBy: string, n: number, titlePrefix = 'seed'): Promise<void> {
   const base = Date.UTC(Number(todayBkk().slice(0, 4)) + 2, 0, 1);
   const now = Date.now();
@@ -130,7 +130,7 @@ export async function seedActiveAppointments(gid: string, createdBy: string, n: 
       const start = base + j * 3 * 3_600_000;
       const local = new Date(start + 7 * 3_600_000).toISOString().slice(0, 10);
       vals.push("(?, ?, ?, ?, ?, 'Asia/Bangkok', ?, 'active', ?, ?, ?)");
-      args.push(randomUUID(), gid, `${titlePrefix} ${j}`, start, start + 1_800_000, local, createdBy, now, now);
+      args.push(randomUUID(), gid, `${titlePrefix} ${j}`, start, start + 1_800_000, local, createdBy, now - 3 * 86_400_000, now);
     }
     await withBusyRetry(() =>
       db().execute({
