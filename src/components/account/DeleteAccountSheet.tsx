@@ -13,7 +13,7 @@ import { deleteOutcome, type GroupRef } from "./model";
 
 type Step = { kind: "info" } | { kind: "pin" } | { kind: "transfer"; groups: GroupRef[] } | { kind: "superAdmin" };
 
-const GONE = ["sessions", "groups", "busy", "rsvp", "invites", "name"] as const;
+const GONE = ["sessions", "groups", "busy", "rsvp", "invites", "resets", "name"] as const;
 const KEEP = ["appointments", "audit"] as const;
 
 /**
