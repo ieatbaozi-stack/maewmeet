@@ -11,6 +11,7 @@ let calls: string[];
 let reply: () => Response;
 let realFetch: typeof fetch;
 const saved = process.env.NOMINATIM_CONTACT;
+const savedEnabled = process.env.PLACE_SEARCH_ENABLED; // CI ตั้ง false (ci-env.sh) — เทสต์นี้ต้องเปิดเองเสมอ
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
 const SIAM = [{ lat: '13.7461', lon: '100.5347', display_name: 'สยามพารากอน', osm_type: 'way', osm_id: 1 }];
@@ -22,6 +23,7 @@ beforeEach(async () => {
   a = await person(h, 'alice');
   b = await person(h, 'bob');
   process.env.NOMINATIM_CONTACT = 'ops@maewmeet.test';
+  process.env.PLACE_SEARCH_ENABLED = 'true';
   resetEnvCache();
   calls = [];
   reply = () => json(SIAM);
@@ -36,6 +38,8 @@ afterEach(async () => {
   resetPlaceFetch();
   if (saved === undefined) delete process.env.NOMINATIM_CONTACT;
   else process.env.NOMINATIM_CONTACT = saved;
+  if (savedEnabled === undefined) delete process.env.PLACE_SEARCH_ENABLED;
+  else process.env.PLACE_SEARCH_ENABLED = savedEnabled;
   resetEnvCache();
   await h.cleanup();
 });

@@ -29,6 +29,7 @@ beforeEach(async () => {
   b = await person(h, 'bob');
   for (const k of KEYS) saved[k] = process.env[k];
   setEnv('NOMINATIM_CONTACT', 'ops@maewmeet.test');
+  setEnv('PLACE_SEARCH_ENABLED', 'true'); // CI ตั้ง false (ci-env.sh) — เทสต์นี้ต้องเปิดเองเสมอ
   calls = [];
   reply = () => json(SIAM);
   setPlaceFetch(async (url, init) => {
