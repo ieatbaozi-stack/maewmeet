@@ -47,6 +47,10 @@ export async function callApiFull<T>(path: string, opts: FullOptions = {}): Prom
     const data = typeof json === "object" && json !== null && "data" in json ? (json as { data: T }).data : undefined;
     return { ok: true, data: data as T };
   }
-  return { ok: false, kind: "api", status: res.status, error: apiErrorMessage(json), fields: fieldsOf(json) };
+  const error = apiErrorMessage(json);
+  // Retry-After อยู่ใน header (ไม่อยู่ใน body) → ส่งต่อเป็น values.retryAfterSec ให้ข้อความ RATE_LIMITED ใช้บอกเวลารอ
+  const ra = Number(res.headers?.get?.("Retry-After"));
+  if (error.code === "RATE_LIMITED" && error.values.retryAfterSec === undefined && Number.isFinite(ra) && ra > 0) error.values.retryAfterSec = Math.ceil(ra);
+  return { ok: false, kind: "api", status: res.status, error, fields: fieldsOf(json) };
 }
 

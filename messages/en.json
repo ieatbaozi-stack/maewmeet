@@ -692,8 +692,7 @@
     },
     "unknown": "A notification we can’t show right now",
     "appointment": {
-      "created": "New plan in “{groupName}”: {title} ({when})",
-      "cancelled": "“{title}” in “{groupName}” ({when}) was cancelled"
+      "created": "New plan: {title} ({when}) in “{groupName}”"
     }
   },
   "errors": {
@@ -720,7 +719,7 @@
     "INVITE_INVALID": "This code doesn’t work. Ask someone in the group for a new one.",
     "ALREADY_MEMBER": "That person’s already in this group.",
     "USER_NOT_FOUND": "No one has that username. Check the spelling, or send them an invite code instead.",
-    "LIMIT_REACHED": "{limit, select, groups {You can create up to {max} groups. Delete one you no longer use to make a new one.} members {This group is full ({max} members at most). An admin can remove members who aren’t active.} codes {This group already has {max} active invite codes. Revoke one you don’t need to make a new one.} busyCount {You already have {max} upcoming busy entries, the most we allow. Delete ones you don’t need, then add this one.} busySpan {One entry can cover {max} days at most. Try splitting it into a few.} busyBackdate {You can add busy time up to {max} days back. Pick a more recent date.} appointments {This group already has {max} upcoming plans, the most we allow. Cancel one you don’t need to make a new one.} appointmentSpan {One plan can run {max} days at most. Try splitting it into a few.} other {You’ve hit a limit. Free something up and try again.}}",
+    "LIMIT_REACHED": "{limit, select, groups {You can create up to {max} groups. Delete one you no longer use to make a new one.} members {This group is full ({max} members at most). An admin can remove members who aren’t active.} codes {This group already has {max} active invite codes. Revoke one you don’t need to make a new one.} busyCount {You already have {max} upcoming busy entries, the most we allow. Delete ones you don’t need, then add this one.} busySpan {One entry can cover {max} days at most. Try splitting it into a few.} busyBackdate {You can add busy time up to {max} days back. Pick a more recent date.} appointments {This group already has {max} upcoming plans, the most we allow. Cancel one you don’t need to make a new one.} appointmentSpan {One plan can run {max} days at most. Try splitting it into a few.} appointmentsPerDay {You’ve already created {max} plans today, the most we allow. Try again tomorrow, or edit one you already have.} other {You’ve hit a limit. Free something up and try again.}}",
     "INVALID_RANGE": "{kind, select, dates {The last day can’t come before the first day.} other {The end has to be after the start.}}",
     "INVALID_DATE": "That date doesn’t exist (like 30 February). Pick one from the calendar.",
     "INVALID_LOCAL_TIME": "That time doesn’t exist here because the clocks skip ahead. Pick another time.",
@@ -866,6 +865,7 @@
   },
   "appointments": {
     "create": "Create plan",
+    "rateRetry": "That’s a lot at once. Try again in {n} {unit, select, min {{n, plural, one {minute} other {minutes}}} other {{n, plural, one {second} other {seconds}}}}.",
     "status": {
       "cancelled": "Cancelled",
       "past": "Past",
@@ -935,7 +935,8 @@
         "maybe": "Maybe · {count}",
         "notGoing": "Can’t go · {count}",
         "noReply": "No reply · {count}",
-        "nobody": "No one has answered yet. Be the first."
+        "nobody": "No one has answered yet. Be the first.",
+        "nobodyClosed": "Nobody answered before this plan closed."
       },
       "facesMore": "and {count} more"
     },

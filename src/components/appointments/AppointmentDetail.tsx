@@ -17,7 +17,7 @@ import type { AppointmentDetailDto, PersonDto } from "@/lib/data/serializers/app
 import { callApiFull } from "./api";
 import { AppointmentFormSheet } from "./AppointmentFormSheet";
 import { ANSWER_ICON, RsvpControl } from "./RsvpControl";
-import { appointmentWhen, applyRsvp, apptPhase, coordsText, rsvpClosedReason, type Rsvp } from "./model";
+import { actionFailureRef, appointmentWhen, applyRsvp, apptPhase, coordsText, rsvpClosedReason, type Rsvp } from "./model";
 
 /** ยกเลิกนัดตอนนี้ยังไม่ส่งแจ้งเตือน (ADR 0007 v1 มีแค่ appointment.created) — ข้อความใน dialog จึงบอกว่า "ไม่แจ้ง" */
 export const CANCEL_NOTIFIES = false;
@@ -47,9 +47,10 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
 
   const phase = apptPhase(a, nowMs);
   const cancelled = a.status === "cancelled";
-  const live = phase === "upcoming" || phase === "ongoing";
-  const canEdit = a.permissions.canEdit && live;
-  const canCancel = a.permissions.canCancel && live;
+  const live = phase === "upcoming" || phase === "ongoing"; // ใช้แค่เลือกข้อความบอกสิทธิ์ ไม่ใช้ตัดสินว่าปุ่มโผล่หรือไม่
+  // สิทธิ์ตามที่เซิร์ฟเวอร์ส่งเท่านั้น (ไม่เช็กเวลาฝั่งไคลเอนต์) — ยกเว้นสถานะ "ยกเลิกแล้ว" ที่ไคลเอนต์เพิ่งตั้งเองหลังได้ APPOINTMENT_CANCELLED
+  const canEdit = a.permissions.canEdit && !cancelled;
+  const canCancel = a.permissions.canCancel && !cancelled;
   const closed = rsvpClosedReason(a);
   const when = appointmentWhen(a, locale);
   const whenText = t(when.key, when.values);
@@ -76,10 +77,9 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
     if (res.kind === "api") {
       if (res.error.code === "APPOINTMENT_CANCELLED") restored = { ...before, status: "cancelled" };
       else if (res.error.code === "APPOINTMENT_PAST") restored = { ...before, isPast: true };
-      setRsvpError(res.error.code === "APPOINTMENT_CANCELLED" || res.error.code === "APPOINTMENT_PAST" ? t(res.error.key) : t("appointments.rsvp.error"));
-    } else {
-      setRsvpError(t("appointments.rsvp.error"));
     }
+    const fr = actionFailureRef(res, "appointments.rsvp.error");
+    setRsvpError(t(fr.key, fr.values));
     setA(restored);
   }
 
@@ -101,7 +101,8 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
       setA({ ...a, status: "cancelled" });
       return;
     }
-    setCancelError(res.kind === "api" && res.error.code !== "UNKNOWN" && res.error.code !== "VALIDATION" ? t(res.error.key, res.error.values) : t("appointments.cancel.error"));
+    const fr = actionFailureRef(res, "appointments.cancel.error");
+    setCancelError(t(fr.key, fr.values));
   }
 
   const c = a.rsvp.counts;
@@ -144,14 +145,6 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
         <article className="appt-card" aria-labelledby={`${uid}-t`}>
           <Band a={a} phase={phase} locale={locale} />
           <div className="appt-body">
-            {phase !== "upcoming" ? (
-              <div className="appt-status-row">
-                <span className={`appt-status is-${phase}`} data-testid="appt-status">
-                  <Icon name={phase === "cancelled" ? "ban" : "clock"} size="sm" />
-                  <span>{t(`appointments.status.${phase}`)}</span>
-                </span>
-              </div>
-            ) : null}
             <h2 className={cancelled ? "appt-title is-cancelled" : "appt-title"} id={`${uid}-t`} data-testid="appt-detail-title">
               <Name>{a.title}</Name>
             </h2>
@@ -211,7 +204,7 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
 
         <section className="appt-section" aria-labelledby={`${uid}-wh`} data-testid="appt-who">
           <h2 id={`${uid}-wh`}>{t("appointments.rsvp.list.title")}</h2>
-          {answered === 0 ? <p className="muted">{t("appointments.rsvp.list.nobody")}</p> : null}
+          {answered === 0 ? <p className="muted" data-testid="appt-who-nobody">{t(cancelled || a.isPast ? "appointments.rsvp.list.nobodyClosed" : "appointments.rsvp.list.nobody")}</p> : null}
           <div className="rsvp-groups">
             {answerGroups.map((g) =>
               g.list.length === 0 ? null : (

@@ -248,6 +248,22 @@ function endInstantChanged(s: ApptFormState, end: { endDate: DateISO } | null, o
 // ───────── error → ตำแหน่ง/ข้อความ ─────────
 export type SaveFailure = { type: "problem"; problems: FormProblem[]; openPaste: boolean } | { type: "gone" };
 
+/** RATE_LIMITED: มี Retry-After → บอกเวลารอ (วินาที ≤ 60 · เกินนั้นเป็นนาที) · ไม่มี → ข้อความทั่วไป */
+export function rateLimitedRef(values: Record<string, string | number>): MessageRef {
+  const sec = values.retryAfterSec;
+  if (typeof sec !== "number" || !Number.isFinite(sec) || sec <= 0) return ref("errors.RATE_LIMITED");
+  return sec <= 60 ? ref("appointments.rateRetry", { n: Math.ceil(sec), unit: "sec" }) : ref("appointments.rateRetry", { n: Math.ceil(sec / 60), unit: "min" });
+}
+
+/** ข้อความของความล้มเหลวที่แสดงใต้ปุ่ม (RSVP/ยกเลิก): รหัสที่ผู้ใช้แก้เองได้ใช้ errors.* · อื่นๆ ใช้ fallback */
+export function actionFailureRef(f: Failure, fallbackKey: string): MessageRef {
+  if (f.kind === "network") return ref(fallbackKey);
+  const { code, values, key } = f.error;
+  if (code === "RATE_LIMITED") return rateLimitedRef(values);
+  if (code === "UNKNOWN" || code === "VALIDATION") return ref(fallbackKey);
+  return ref(key, values);
+}
+
 /** รหัสผิดพลาดของ API → ช่อง + ข้อความ (UX §9) */
 export function mapFormFailure(f: Failure, mode: "create" | "edit"): SaveFailure {
   const one = (pos: FieldPos, r: MessageRef, openPaste = false): SaveFailure => ({ type: "problem", problems: [{ pos, ref: r }], openPaste });
@@ -297,8 +313,9 @@ export function mapFormFailure(f: Failure, mode: "create" | "edit"): SaveFailure
       }
       return problems.length > 0 ? { type: "problem", problems, openPaste: false } : one("banner", ref("errors.VALIDATION"));
     }
-    case "FORBIDDEN":
     case "RATE_LIMITED":
+      return one("banner", rateLimitedRef(values));
+    case "FORBIDDEN":
     case "FEATURE_DISABLED":
       return one("banner", ref(`errors.${code}`));
     default:
