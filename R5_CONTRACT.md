@@ -91,4 +91,4 @@
    - action ใหม่ `admin.group.view` (SA-only, audit ทุกครั้งที่เปิดรายละเอียด) แยกจาก `admin.group.list` — บันทึกใน ADR 0003 Addendum R5
 3. หน้าเว็บ: ป้าย action ของ audit ใน `messages/*.json` ใช้คีย์ที่แทน `.` ด้วย `_` (next-intl ห้ามจุดในชื่อคีย์) เช่น `adminAudit.actions.admin_user_suspend`
 4. Follow-up ที่ทำในรอบนี้: `src/lib/auth/services/pin-change.ts` เขียนตัวนับ PIN ผ่าน `serialized()` แล้ว (เหมือน `services/account.ts`) + เทสต์ `tests/auth/pin-change-concurrency.test.ts`
-
+5. รอบแก้หลัง QA/Security (2026-10-27): session สร้างเฉพาะบัญชี active ในคำสั่ง INSERT เดียว + session ของบัญชีที่ลบถือว่าไม่มี (Sec L1/L2) · unsuspend/unlock super admin คนอื่น → 403 (L3) · `admin.group.view` ไม่เกิน 1 แถว/(SA, กลุ่ม)/10 นาที (L4) · ห้ามชื่อที่แสดงเป็นป้าย "บัญชีที่ถูกลบ"/"Deleted account" → VALIDATION `RESERVED` (L5) · SQL ลบด้วยมือใช้กับบัญชีที่ระงับได้ (L6) · ลบบัญชีล้างอุปกรณ์/ประเทศของคำขอ reset (QA L2) · "บัญชีที่ถูกลบ" ตัดสินจาก displayName ว่างเท่านั้น (QA M1)
