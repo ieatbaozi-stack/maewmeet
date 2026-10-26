@@ -76,6 +76,14 @@ describe('OPERATIONS I3 — SQL ลบบัญชีด้วยมือ', () 
     expect(page1.json.data?.entries[0]?.id).toBe(row!.id);
   });
 
+  it('Security R5 L6: บัญชีที่ถูกระงับลบด้วย SQL นี้ได้ (ทางที่คู่มือแนะนำ: ระงับก่อน แล้วค่อยลบ)', async () => {
+    expect((await post(boss.c, `/api/admin/users/${b.id}/suspend`)).status).toBe(200);
+    await h.db.$client.executeMultiple(SQL.replaceAll('USER_ID', b.id));
+    const [u] = await h.rows<{ status: string; display_name: string; pin_hash: string | null }>('SELECT status, display_name, pin_hash FROM user WHERE id = ?', [b.id]);
+    expect(u).toMatchObject({ status: 'deleted', display_name: '', pin_hash: null });
+    expect(await h.count("audit_log WHERE action = 'user.delete' AND target_id = ?", [b.id])).toBe(1);
+  });
+
   it('ด่าน: super admin / ผู้ดูแลกลุ่มที่ยังอยู่ → ไม่มีอะไรเปลี่ยนเลย (ไม่มีสถานะครึ่งทาง) · รันซ้ำไม่เกิด audit ซ้ำ', async () => {
     const gid = await makeGroup(a, 'ก๊วนของอลิซ');
     await join(a, b, gid);

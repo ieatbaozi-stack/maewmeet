@@ -385,18 +385,18 @@ turso db shell maewmeet-prod "SELECT username, is_admin, status FROM user WHERE 
 turso db shell maewmeet-prod "SELECT id, username, status, is_admin FROM user WHERE username_normalized = lower('ชื่อผู้ใช้');"
 turso db shell maewmeet-prod "SELECT g.id, g.name FROM group_member gm JOIN groups g ON g.id = gm.group_id WHERE gm.user_id = 'USER_ID' AND gm.role = 'admin' AND g.deleted_at IS NULL;"
 ```
-ต้องเห็น `status = active` และ `is_admin = 0` (ถ้า `is_admin = 1` → ทางแรกของ I3 แทน)
+ต้องเห็น `status` = `active` หรือ `suspended` (บัญชีที่ระงับไว้ลบได้เลย ไม่ต้องยกเลิกระงับก่อน) และ `is_admin = 0` (ถ้า `is_admin = 1` → ทางแรกของ I3 แทน)
 
 ☐ **I3.2** สร้างไฟล์ `delete-user.sql` ในเครื่อง (แทน `USER_ID` **ทุกที่** ด้วย id จาก I3.1 — ใน editor ใช้ Find/Replace) — ทำแบบเดียวกับ `POST /api/me/delete` ทุกข้อ (`src/lib/data/repos/account.ts`) ในธุรกรรมเดียว · รันซ้ำได้ไม่เกิดผลซ้ำ (id ของแถว audit ต้องเป็นรูป UUID — cursor ของหน้า audit ตรวจรูปนี้) · ทดสอบแล้วด้วย `tests/ops/manual-delete-sql.test.ts`:
 ```sql
 BEGIN;
--- 1) ด่าน: ลบได้เฉพาะบัญชี active · ไม่ใช่ super admin · ไม่ถือผู้ดูแลกลุ่มที่ยังอยู่ (ไม่ตรง = ไม่มีอะไรเปลี่ยน ทุกคำสั่งข้างล่างไม่ได้แถว)
-DELETE FROM login_throttle WHERE key = 'u:' || (SELECT username_normalized FROM user WHERE id = 'USER_ID' AND status = 'active' AND is_admin = 0
+-- 1) ด่าน: ลบได้เฉพาะบัญชี active หรือถูกระงับ · ไม่ใช่ super admin · ไม่ถือผู้ดูแลกลุ่มที่ยังอยู่ (ไม่ตรง = ไม่มีอะไรเปลี่ยน ทุกคำสั่งข้างล่างไม่ได้แถว)
+DELETE FROM login_throttle WHERE key = 'u:' || (SELECT username_normalized FROM user WHERE id = 'USER_ID' AND status IN ('active', 'suspended') AND is_admin = 0
    AND NOT EXISTS (SELECT 1 FROM group_member gm JOIN groups g ON g.id = gm.group_id WHERE gm.user_id = 'USER_ID' AND gm.role = 'admin' AND g.deleted_at IS NULL));
 UPDATE user SET status = 'deleted', deleted_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000, updated_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000,
        pin_hash = NULL, must_change_pin = 0, display_name = '', line_user_id = NULL,
        username = 'deleted-' || id, username_normalized = 'deleted-' || id
- WHERE id = 'USER_ID' AND status = 'active' AND is_admin = 0
+ WHERE id = 'USER_ID' AND status IN ('active', 'suspended') AND is_admin = 0
    AND NOT EXISTS (SELECT 1 FROM group_member gm JOIN groups g ON g.id = gm.group_id WHERE gm.user_id = 'USER_ID' AND gm.role = 'admin' AND g.deleted_at IS NULL);
 -- 2) ร่องรอย (ทุกคำสั่งทำเฉพาะเมื่อขั้น 1 สำเร็จ)
 UPDATE notification SET params = json_set(params, '$.inviterName', '')
