@@ -88,3 +88,26 @@ export async function insertAuditViewThrottled(
     RETURNING id`);
   return rows.length === 1;
 }
+
+export const GROUP_VIEW_ACTION = 'admin.group.view';
+
+/**
+ * เขียน `admin.group.view` ถ้า (ผู้ใช้, กลุ่ม) นี้ยังไม่มีแถวภายใน `intervalMs` — คำสั่งเดียว INSERT … WHERE NOT EXISTS (Security R5 L4)
+ * กัน audit บวมจากการรีเฟรช/ยิงวน และลดผลของการนำทางข้ามไซต์ที่ปลอมแถว · meta = { asSuperAdmin: true } เหมือนเดิม · คืน true = เขียนแถวใหม่
+ */
+export async function insertGroupViewThrottled(
+  db: DbOrTx,
+  input: { id: string; actorId: string; groupId: string; intervalMs: number },
+  now: number,
+): Promise<boolean> {
+  const meta = JSON.stringify({ asSuperAdmin: true });
+  const rows = await db.all<{ id: string }>(sql`
+    INSERT INTO audit_log (id, actor_id, action, target_type, target_id, group_id, meta, created_at)
+    SELECT ${input.id}, ${input.actorId}, ${GROUP_VIEW_ACTION}, 'group', ${input.groupId}, ${input.groupId}, ${meta}, ${now}
+     WHERE NOT EXISTS (SELECT 1 FROM audit_log
+                        WHERE actor_id = ${input.actorId} AND action = ${GROUP_VIEW_ACTION} AND target_id = ${input.groupId}
+                          AND created_at > ${now - input.intervalMs})
+    RETURNING id`);
+  return rows.length === 1;
+}
+

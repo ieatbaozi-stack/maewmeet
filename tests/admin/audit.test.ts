@@ -1,5 +1,5 @@
 // R5-6 — GET /api/admin/audit: ใหม่→เก่า · cursor ไม่ซ้ำ/ไม่ตกหล่นเมื่อ createdAt ซ้ำ · กรองได้ · meta ผ่าน whitelist ·
-// admin.audit.view ไม่เกิน 1 แถว/10 นาที/ผู้ใช้ · admin.group.view ทุกครั้งที่เปิดรายละเอียด (R5_CONTRACT §2 ข้อ 3)
+// admin.audit.view ไม่เกิน 1 แถว/10 นาที/ผู้ใช้ · admin.group.view ไม่เกิน 1 แถว/(ผู้ใช้,กลุ่ม)/10 นาที (Sec L4) (R5_CONTRACT §2 ข้อ 3)
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { newId } from '@/lib/shared/id';
 import { MIN, call, get, makeGroup, person, post, setupHarness, type Harness, type Person } from '../groups/harness';
@@ -158,17 +158,30 @@ describe('meta whitelist ต่อ action (ตอนอ่าน)', () => {
   });
 });
 
-describe('admin.group.view — audit ทุกครั้งที่เปิดรายละเอียด (ไม่ audit การเปิดรายการ)', () => {
-  it('เปิด 2 ครั้ง = 2 แถว · รายการกลุ่ม = 0 แถว · ไม่พบ = 404 ไม่มีแถว', async () => {
+describe('admin.group.view — audit การเปิดรายละเอียด ไม่เกิน 1 แถว/(ผู้ใช้, กลุ่ม)/10 นาที (Security R5 L4) · ไม่ audit การเปิดรายการ', () => {
+  it('เปิดซ้ำใน 10 นาที = 1 แถว · กลุ่มอื่นนับแยก · ผู้ใช้อื่นนับแยก · พ้น 10 นาที = แถวใหม่ · รายการ = 0 แถว · ไม่พบ = 404 ไม่มีแถว', async () => {
     const gid = await makeGroup(alice, 'ก๊วน');
-    await get(boss.c, `/api/admin/groups/${gid}`);
-    await get(boss.c, `/api/admin/groups/${gid}`);
+    const gid2 = await makeGroup(alice, 'ก๊วนสอง');
+    const boss2 = await person(h, 'boss2', { admin: true });
+    const views = (actor: string, g: string) =>
+      h.count("audit_log WHERE action = 'admin.group.view' AND actor_id = ? AND target_id = ? AND group_id = ?", [actor, g, g]);
+    for (let i = 0; i < 5; i++) expect((await get(boss.c, `/api/admin/groups/${gid}`)).status).toBe(200);
     await get(boss.c, '/api/admin/groups');
     await get(boss.c, '/api/admin/users');
-    expect(await h.count("audit_log WHERE action = 'admin.group.view' AND actor_id = ? AND target_id = ? AND group_id = ?", [boss.id, gid, gid])).toBe(2);
+    expect(await views(boss.id, gid)).toBe(1);
+    await get(boss.c, `/api/admin/groups/${gid2}`);
+    await get(boss2.c, `/api/admin/groups/${gid}`);
+    expect(await views(boss.id, gid2)).toBe(1);
+    expect(await views(boss2.id, gid)).toBe(1);
     expect(await h.count("audit_log WHERE action IN ('admin.group.list','admin.user.list')")).toBe(0);
+    // meta คงเดิม
+    const [row] = await h.rows<{ meta: string }>("SELECT meta FROM audit_log WHERE action = 'admin.group.view' AND actor_id = ? AND target_id = ?", [boss.id, gid]);
+    expect(JSON.parse(row!.meta)).toEqual({ asSuperAdmin: true });
+    h.clock.advance(10 * MIN + 1);
+    await get(boss.c, `/api/admin/groups/${gid}`);
+    expect(await views(boss.id, gid)).toBe(2);
     expect((await get(boss.c, '/api/admin/groups/00000000-0000-4000-8000-000000000000')).status).toBe(404);
-    expect(await h.count("audit_log WHERE action = 'admin.group.view'")).toBe(2);
+    expect(await h.count("audit_log WHERE action = 'admin.group.view'")).toBe(4);
     expect((await call(boss.c, 'GET', '/api/admin/groups/not-uuid')).code).toBe('VALIDATION');
   });
 });
