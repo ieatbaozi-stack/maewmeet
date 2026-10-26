@@ -82,3 +82,20 @@ for (const locale of LOCALES) {
     });
   }
 }
+
+// QA R5 L5 — "สร้างโดย <ชื่อ>" ที่ชื่อยาวไม่มีช่องว่าง (40 ตัว) ต้องไม่ล้นจอที่ 375 (และทุกความกว้าง)
+test('ชื่อผู้สร้างยาวไม่มีช่องว่าง: หน้ารายละเอียดนัดไม่เลื่อนแนวนอน', async ({ newDevice, baseURL }, testInfo) => {
+  const { makeScene, createApptApi, daysAhead } = await import('./support/appt');
+  const { measureLayout } = await import('./support/fixtures');
+  const longName = 'W'.repeat(40);
+  const { gid, members } = await makeScene(newDevice, baseURL!, { locale: 'th', labels: ['Long', 'View'], displayNames: [longName, undefined] });
+  const d = daysAhead(5);
+  const id = await createApptApi(members[0]!.context.request, gid, { title: 'นัดของคนชื่อยาว', startDate: d, startTime: '10:00', endDate: d, endTime: '11:00' });
+  const p = members[1]!.page;
+  await p.goto(`/appointments/${id}`, { waitUntil: 'networkidle' });
+  await expect(p.getByTestId('appt-created-by')).toContainText(longName);
+  const layout = await measureLayout(p);
+  expect(layout.scrollWidth, 'documentElement').toBeLessThanOrEqual(layout.clientWidth);
+  expect(layout.bodyScrollWidth, 'body').toBeLessThanOrEqual(layout.clientWidth);
+  await p.screenshot({ path: testInfo.outputPath(`r5-long-creator-${testInfo.project.name}.png`), fullPage: true });
+});
