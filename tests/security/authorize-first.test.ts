@@ -206,3 +206,273 @@ describe('C. route ของ busy / ปฏิทิน ผูก action ที�
     expect(bad.map((e) => `${e.method} ${e.path}`)).toEqual([]);
   });
 });
+
+/* ──────────────────────────────────────────────────────────────────────────────────────────────
+ * D. R4B — route ของนัด / RSVP / check / me/appointments / me/notifications / places/search ผูก action ที่ถูกต้อง
+ *    (R4B_CONTRACT §2, §5 R4B-2/3/7; ADR 0003 ตารางแถว 9–11 และ action ผูกผู้ใช้)
+ *
+ * ตารางด้านล่าง "เขียนมือ" จากสเปก ไม่ได้คัดจาก manifest. Platform เพิ่มไฟล์ route ทีหลัง:
+ *  - skip เฉพาะกรณี "ไม่พบไฟล์ route" ของ route นั้น (ENOENT เทียบเท่า — ยังไม่ถูกสร้าง) และข้อความ skip ระบุชื่อ route
+ *  - ไฟล์ที่มีแล้วต้องผ่านเต็ม: ประกาศ method+path ตรงสเปก, อยู่ใน ROUTE_MANIFEST ด้วย action/auth ที่ถูก, ไม่มี method เกิน
+ *  - ไม่ skip ในกรณี "ไฟล์มีแต่ manifest ไม่ลง" หรือ "ผูก action ผิด" (= fail)
+ * ────────────────────────────────────────────────────────────────────────────────────────────── */
+type ExpectedRoute = {
+  /** regex ของตำแหน่งไฟล์ route (ชื่อพารามิเตอร์โฟลเดอร์ใดก็ได้) */
+  file: RegExp;
+  routes: ReadonlyArray<{
+    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+    path: string;
+    action: string;
+  }>;
+};
+const R4B_EXPECTED: ExpectedRoute[] = [
+  {
+    file: /^src\/app\/api\/groups\/\[[^/]+\]\/appointments\/route\.ts$/,
+    routes: [
+      {
+        method: "POST",
+        path: "/api/groups/:gid/appointments",
+        action: "appointment.create",
+      },
+      {
+        method: "GET",
+        path: "/api/groups/:gid/appointments",
+        action: "appointment.view",
+      },
+    ],
+  },
+  {
+    // check ไม่เขียนข้อมูล แต่ใช้สิทธิ์เดียวกับการสร้าง (ผู้ตรวจต้องสร้างนัดได้ ไม่งั้นรั่ว busy ให้คนที่ไม่มีสิทธิ์)
+    file: /^src\/app\/api\/groups\/\[[^/]+\]\/appointments\/check\/route\.ts$/,
+    routes: [
+      {
+        method: "POST",
+        path: "/api/groups/:gid/appointments/check",
+        action: "appointment.create",
+      },
+    ],
+  },
+  {
+    file: /^src\/app\/api\/appointments\/\[[^/]+\]\/route\.ts$/,
+    routes: [
+      {
+        method: "GET",
+        path: "/api/appointments/:id",
+        action: "appointment.view",
+      },
+      {
+        method: "PATCH",
+        path: "/api/appointments/:id",
+        action: "appointment.update",
+      },
+    ],
+  },
+  {
+    file: /^src\/app\/api\/appointments\/\[[^/]+\]\/cancel\/route\.ts$/,
+    routes: [
+      {
+        method: "POST",
+        path: "/api/appointments/:id/cancel",
+        action: "appointment.cancel",
+      },
+    ],
+  },
+  {
+    file: /^src\/app\/api\/appointments\/\[[^/]+\]\/rsvp\/route\.ts$/,
+    routes: [
+      {
+        method: "PUT",
+        path: "/api/appointments/:id/rsvp",
+        action: "appointment.rsvp",
+      },
+    ],
+  },
+  {
+    file: /^src\/app\/api\/me\/appointments\/route\.ts$/,
+    routes: [
+      {
+        method: "GET",
+        path: "/api/me/appointments",
+        action: "appointment.list.mine",
+      },
+    ],
+  },
+  {
+    file: /^src\/app\/api\/me\/notifications\/route\.ts$/,
+    routes: [
+      {
+        method: "GET",
+        path: "/api/me/notifications",
+        action: "notification.list.own",
+      },
+    ],
+  },
+  {
+    file: /^src\/app\/api\/me\/notifications\/read\/route\.ts$/,
+    routes: [
+      {
+        method: "POST",
+        path: "/api/me/notifications/read",
+        action: "notification.markRead.own",
+      },
+    ],
+  },
+  {
+    file: /^src\/app\/api\/places\/search\/route\.ts$/,
+    routes: [
+      { method: "GET", path: "/api/places/search", action: "place.search" },
+    ],
+  },
+];
+/** ชื่อพารามิเตอร์ใน path ไม่สำคัญ (:id / :aid) — เทียบที่ตำแหน่ง */
+const normPath = (p: string) => p.replace(/:[A-Za-z0-9_]+/g, ":p");
+const R4B_PATH_FAMILY =
+  /^\/api\/(?:groups\/:[^/]+\/appointments|appointments|me\/appointments|me\/notifications|places)(?:\/|$)/;
+
+describe("D. R4B route → action (เขียนมือ; skip เฉพาะ route ที่ยังไม่มีไฟล์)", () => {
+  const rows = R4B_EXPECTED.flatMap((e) => e.routes.map((r) => ({ e, r })));
+
+  // ENOENT-equivalent: ไม่พบไฟล์ route (Platform ยังไม่สร้าง) → skip เฉพาะแถวนั้น · พบไฟล์แล้วต้องผ่านเต็ม
+  const foundOf = (e: ExpectedRoute) =>
+    ROUTE_FILES.map(rel).filter((f) => e.file.test(f));
+  for (const { e, r } of rows) {
+    const name = `${r.method} ${r.path}`;
+    it.skipIf(foundOf(e).length === 0)(name, () => {
+      const found = foundOf(e);
+      expect(
+        found.length,
+        `${name}: พบไฟล์ route มากกว่าหนึ่งที่ตรง pattern เดียวกัน`,
+      ).toBe(1);
+
+      const src = stripComments(readFileSync(join(ROOT, found[0]!), "utf8"));
+      const m = new RegExp(
+        `export\\s+const\\s+${r.method}\\s*=\\s*route\\s*\\(\\s*\\{[\\s\\S]*?path:\\s*['"]([^'"]+)['"]`,
+      ).exec(src);
+      expect(
+        m,
+        `${name}: ${found[0]} ต้อง export const ${r.method} = route({ path })`,
+      ).not.toBeNull();
+      expect(normPath(m![1]!), `${name}: path ในไฟล์ route ไม่ตรงสเปก`).toBe(
+        normPath(r.path),
+      );
+
+      const entry = ROUTE_MANIFEST.find(
+        (x) => x.method === r.method && normPath(x.path) === normPath(r.path),
+      );
+      expect(entry, `${name} ไม่อยู่ใน ROUTE_MANIFEST`).toBeDefined();
+      expect(entry!.auth, `${name}: ต้อง auth='actor'`).toBe("actor");
+      expect(entry!.action, `${name}: ผูก action ผิด`).toBe(r.action);
+    });
+  }
+
+  it("ไฟล์ route ที่มีแล้วของ R4B ไม่ export method เกินสเปก (เช่น DELETE /api/appointments/:id ที่ไม่มีในสัญญา)", () => {
+    for (const e of R4B_EXPECTED) {
+      const found = ROUTE_FILES.map(rel).filter((f) => e.file.test(f));
+      for (const f of found) {
+        const src = stripComments(readFileSync(join(ROOT, f), "utf8"));
+        const methods = [
+          ...src.matchAll(
+            /export\s+(?:async\s+)?(?:const|function)\s+(GET|POST|PUT|PATCH|DELETE)\b/g,
+          ),
+        ]
+          .map((x) => x[1]!)
+          .sort();
+        expect(methods, `${f}: method ที่ export`).toEqual(
+          e.routes.map((r) => r.method).sort(),
+        );
+      }
+    }
+  });
+
+  it("ใน ROUTE_MANIFEST ตระกูลนัด/แจ้งเตือน/สถานที่ ไม่มี entry นอกสเปก และ action ทุกตัวอยู่ในตระกูลที่ถูก", () => {
+    const allowed = new Set(
+      rows.map(({ r }) => `${r.method} ${normPath(r.path)}`),
+    );
+    const family = ROUTE_MANIFEST.filter((x) => R4B_PATH_FAMILY.test(x.path));
+    const extra = family
+      .filter((x) => !allowed.has(`${x.method} ${normPath(x.path)}`))
+      .map((x) => `${x.method} ${x.path}`);
+    expect(
+      extra,
+      "route นอกสัญญา R4B (ต้องเสนอ Lead + เพิ่มสเปกในเทสต์นี้)",
+    ).toEqual([]);
+    for (const x of family)
+      expect(x.action, `${x.method} ${x.path}`).toMatch(
+        /^(appointment|notification)\.|^place\.search$/,
+      );
+  });
+
+  it("ไม่มี route ที่เปิดให้ระบุ user id/group id ของคนอื่นเพื่ออ่านนัดหรือแจ้งเตือน (/api/users/:id/appointments, /api/users/:id/notifications ฯลฯ)", () => {
+    const bad = ROUTE_MANIFEST.filter(
+      (x) =>
+        /(appointment|notification|rsvp)/.test(x.path) &&
+        !R4B_PATH_FAMILY.test(x.path),
+    );
+    expect(bad.map((x) => `${x.method} ${x.path}`)).toEqual([]);
+  });
+
+  it("route นัด/แจ้งเตือน/สถานที่ที่มีอยู่ ห้ามใช้ auth ที่ไม่ใช่ actor (ไม่มี public/cron)", () => {
+    for (const x of ROUTE_MANIFEST.filter((y) => R4B_PATH_FAMILY.test(y.path)))
+      expect(x.auth, `${x.method} ${x.path}`).toBe("actor");
+  });
+});
+
+describe("D2. service ของ R4B (ถ้ามีไฟล์) เรียก authorize ด้วย action ในตระกูลเดียวกัน และครอบครบทุก action ที่เกี่ยว", () => {
+  const FAMILY =
+    /services\/(?:appointments?|rsvp|notifications?|places?)[^/]*\.ts$/;
+  const files = SERVICE_FILES.filter((f) => FAMILY.test(rel(f)));
+  const ACTION_LITERAL =
+    /\b(?:authorize|authorizeInGroup|can|canInGroup)\s*\(\s*[A-Za-z_.]+\s*,\s*['"]([a-zA-Z.]+)['"]/g;
+
+  // ไม่มีไฟล์ service ของ R4B (ENOENT) → skip แถวเดียว · มีแล้วต้องผ่านเต็มทุกไฟล์
+  const svcCases = files.length
+    ? files.map((f) => [rel(f), f] as const)
+    : [["(ยังไม่มีไฟล์ service ของ R4B — ENOENT)", ""] as const];
+  it.skipIf(files.length === 0).each(svcCases)("%s", (name, f) => {
+    const code = stripComments(readFileSync(f, "utf8"));
+    const used = [...code.matchAll(ACTION_LITERAL)].map((m) => m[1]!);
+    expect(
+      used.length,
+      `${name}: ไม่พบการเรียก authorize(actor, '<action>', …) ด้วย literal`,
+    ).toBeGreaterThan(0);
+    for (const a of used) {
+      // group.view ใช้โหลดกลุ่มก่อนตอบ 404 ได้ · นอกนั้นต้องเป็น action ตระกูลเดียวกัน
+      expect(a, `${name}: action แปลกปลอม`).toMatch(
+        /^(appointment|notification)\.|^place\.search$|^group\.view$/,
+      );
+    }
+  });
+
+  it.skipIf(files.length === 0)(
+    "รวมทุกไฟล์ service ของ R4B: ใช้ครบ create/view/update/cancel/rsvp/list.mine + notification.list.own/markRead.own + place.search",
+    () => {
+      const used = new Set(
+        files.flatMap((f) =>
+          [
+            ...stripComments(readFileSync(f, "utf8")).matchAll(ACTION_LITERAL),
+          ].map((m) => m[1]!),
+        ),
+      );
+      // เฉพาะเมื่อ Platform ส่งครบชุด (มีไฟล์ของทั้งนัดและแจ้งเตือนและสถานที่) จึงบังคับ coverage ทั้งหมด
+      const have = (re: RegExp) => files.some((f) => re.test(rel(f)));
+      const need: string[] = [];
+      if (have(/appointment/))
+        need.push(
+          "appointment.create",
+          "appointment.view",
+          "appointment.update",
+          "appointment.cancel",
+          "appointment.rsvp",
+          "appointment.list.mine",
+        );
+      if (have(/notification/))
+        need.push("notification.list.own", "notification.markRead.own");
+      if (have(/place/)) need.push("place.search");
+      for (const a of need)
+        expect(
+          used.has(a),
+          `ไม่พบการ authorize('${a}') ในไฟล์ service ของ R4B`,
+        ).toBe(true);
+    },
+  );
+});

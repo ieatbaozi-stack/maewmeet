@@ -20,7 +20,7 @@ export const monthGrid = (y, m) => {
 const fmtCache = {};
 const dtf = (loc, opts) => (fmtCache[loc + JSON.stringify(opts)] ||= new Intl.DateTimeFormat(loc, { timeZone: 'UTC', ...opts }));
 const LOC = { th: 'th-TH-u-ca-buddhist-nu-latn', en: 'en-GB-u-nu-latn' };
-const STYLES = {
+export const STYLES = {
   monthYear: { month: 'long', year: 'numeric' },
   long: { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' },
   short: { day: 'numeric', month: 'short' },

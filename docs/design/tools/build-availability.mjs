@@ -191,8 +191,8 @@ function detailBody(sc, i) {
     const lg = i.segments.length > 1 ? longest(i.segments) : null;
     segs = `<h3 class="sub" data-m="availability.day.segments.title"></h3><ul class="av-segs">${i.segments.map((s) => {
       const dm = s[1] - s[0]; const dk = dm % 60 === 0 ? 'hour' : Math.floor(dm / 60) === 0 ? 'min' : 'hourMin';
-      return `<li class="av-seg">${icon('clock')}<span class="tm">${T('availability.day.segments.row', { start: hhmm(s[0]), end: hhmm(s[1]) })}</span><span class="du">${T('busy.duration.' + dk, { hours: Math.floor(dm / 60), minutes: dm % 60 })}</span>${lg && lg === s ? `<span class="tag" data-m="availability.day.segments.longest"></span>` : ''}</li>`;
-    }).join('')}</ul>`;
+      return `<li><button type="button" class="av-seg av-seg-btn" ${'data-m-aria="availability.day.segments.createAria"'} data-m-v='${JSON.stringify({ start: hhmm(s[0]), end: hhmm(s[1]) })}'>${icon('clock')}<span class="tm">${T('availability.day.segments.row', { start: hhmm(s[0]), end: hhmm(s[1]) })}</span><span class="du">${T('busy.duration.' + dk, { hours: Math.floor(dm / 60), minutes: dm % 60 })}</span>${lg && lg === s ? `<span class="tag" data-m="availability.day.segments.longest"></span>` : ''}${icon('chevron-right')}</button></li>`;
+    }).join('')}</ul><p class="av-hint" data-m="availability.day.segments.hint"></p>`;
   }
 
   // ใครไม่ว่างเมื่อไร: คนที่ "นับว่าไม่ว่าง" ขึ้นก่อน แล้วตามลำดับสมาชิก · คนไม่มีรายการ = "ไม่ได้ลงว่าติด"
@@ -202,13 +202,14 @@ function detailBody(sc, i) {
   const people = withRows.map(({ m, mi, p }) => `<li class="cal-person">${avatar(m, 'sm')}<span class="pn"><span>${m.n}${m.me ? ` <span class="you small muted" data-m="group.members.you"></span>` : ''}</span>${i.memberFree[mi] ? '' : `<span class="tag tag-busy av-flag">${icon('ban')}<span data-m="availability.day.blockers.flag"></span></span>`}</span><div class="items">${p.rows.sort((a, b) => a.from - b.from).map((x) => itemLines(x, d)).join('')}</div></li>`).join('');
   const anyFlag = withRows.some(({ mi }) => !i.memberFree[mi]);
   const blockers = `<h3 class="sub" data-m="availability.day.blockers.title"></h3>${people ? `<ul class="cal-people">${people}</ul>` : `<p class="av-hint" data-m="availability.day.blockers.empty"></p>`}${idle.length && people ? `<p class="cal-others" style="margin-top:0">${T('availability.day.blockers.noBusy', both((l) => ({ names: names(l, idle) })))}</p>` : ''}${anyFlag ? `<p class="av-hint">${T('availability.day.blockers.flagHint', both((l) => ({ duration: dur(l, WIN.min) })))}</p>` : ''}`;
-  return `${status}${segs}${blockers}<p class="av-info">${icon('info')}<span data-m="availability.explain"></span></p>`;
+  const trunc = sc.truncated ? `<p class="av-hint" role="note" data-m="availability.day.truncatedNote"></p>` : '';
+  return `${status}${trunc}${segs}${blockers}<p class="av-info">${icon('info')}<span data-m="availability.explain"></span></p>`;
 }
-const ctaBtn = () => `<button class="btn btn-secondary" aria-disabled="true" aria-describedby="av-soon">${icon('calendar-plus')}<span data-m="availability.cta.create"></span><span class="tag soon" data-m="availability.cta.soon"></span></button>`;
-const ctaHint = () => `<p class="av-hint" id="av-soon" data-m="availability.cta.soonHint"></p>`;
-function ctaBlock() { return `<div class="av-cta">${ctaBtn()}${ctaHint()}</div>`; }
+const ctaBtn = (i) => `<button type="button" class="btn ${i.allFree ? 'btn-primary' : 'btn-secondary'}">${icon('calendar-plus')}<span data-m="availability.cta.create"></span></button>`;
+const ctaHint = (i) => `<p class="av-hint" data-m="${i.allFree ? 'availability.cta.createHintAll' : 'availability.cta.createHintOther'}"></p>`;
+function ctaBlock(i) { return `<div class="av-cta">${ctaBtn(i)}${ctaHint(i)}</div>`; }
 function detailPanel(sc, i) {
-  return `<h2>${D(i.d, 'long')}</h2>${detailBody(sc, i)}${ctaBlock()}`;
+  return `<h2>${D(i.d, 'long')}</h2>${detailBody(sc, i)}${ctaBlock(i)}`;
 }
 
 // ---------- ทั้งหน้า ----------
@@ -235,8 +236,8 @@ function page(sc, { sel, sheet, role }) {
     <section class="sheet av-sheet" role="dialog" aria-modal="true" aria-labelledby="av-sh-t">
       <div class="sheet-handle" aria-hidden="true"></div>
       <div class="sheet-head"><div class="t"><h2 id="av-sh-t">${D(selected, 'long')}</h2></div><button class="icon-btn" data-m-aria="a11y.close">${icon('x')}</button></div>
-      <div class="sheet-body av-detail">${detailBody(sc, infos[selected])}${ctaHint()}</div>
-      <div class="sheet-foot"><div class="av-cta">${ctaBtn()}</div></div>
+      <div class="sheet-body av-detail">${detailBody(sc, infos[selected])}${ctaHint(infos[selected])}</div>
+      <div class="sheet-foot"><div class="av-cta">${ctaBtn(infos[selected])}</div></div>
     </section></div>` : '';
   return `<div class="cal-split">${left}${side}</div>${sh}`;
 }

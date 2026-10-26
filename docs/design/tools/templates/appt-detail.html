@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-m="appointments.detail.title"></title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/members.css">
+<link rel="stylesheet" href="../../../src/components/brand/aurora.css">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="../../../src/styles/calendar.css">
+<link rel="stylesheet" href="../../../src/styles/availability.css">
+<link rel="stylesheet" href="../../../src/styles/appointments.css">
+<link rel="stylesheet" href="../../../src/styles/home.css">
+<link rel="stylesheet" href="../../../src/styles/notifications.css">
+<script src="sample.js"></script>
+<!--MESSAGES_EN-->
+</head>
+<body>
+<div class="aurora" data-intensity="soft" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
+<div class="app">
+  <div data-state-show="normal normal"><gen-appt page="detail" scn="normal"></gen-appt></div>
+  <div data-state-show="member" hidden><gen-appt page="detail" scn="member"></gen-appt></div>
+  <div data-state-show="today" hidden><gen-appt page="detail" scn="today"></gen-appt></div>
+  <div data-state-show="ongoing" hidden><gen-appt page="detail" scn="ongoing"></gen-appt></div>
+  <div data-state-show="past" hidden><gen-appt page="detail" scn="past"></gen-appt></div>
+  <div data-state-show="cancelled" hidden><gen-appt page="detail" scn="cancelled"></gen-appt></div>
+  <div data-state-show="cancelled-gone" hidden><gen-appt page="detail" scn="cancelled-gone"></gen-appt></div>
+  <div data-state-show="nolink" hidden><gen-appt page="detail" scn="nolink"></gen-appt></div>
+  <div data-state-show="nocoords" hidden><gen-appt page="detail" scn="nocoords"></gen-appt></div>
+  <div data-state-show="noplace" hidden><gen-appt page="detail" scn="noplace"></gen-appt></div>
+  <div data-state-show="map-failed" hidden><gen-appt page="detail" scn="map-failed"></gen-appt></div>
+  <div data-state-show="map-loading" hidden><gen-appt page="detail" scn="map-loading"></gen-appt></div>
+  <div data-state-show="unanswered" hidden><gen-appt page="detail" scn="unanswered"></gen-appt></div>
+  <div data-state-show="rsvp-error" hidden><gen-appt page="detail" scn="rsvp-error"></gen-appt></div>
+  <div data-state-show="rsvp-saving" hidden><gen-appt page="detail" scn="rsvp-saving"></gen-appt></div>
+  <div data-state-show="cancel-confirm" hidden><gen-appt page="detail" scn="cancel-confirm"></gen-appt></div>
+  <div data-state-show="cancel-error" hidden><gen-appt page="detail" scn="cancel-error"></gen-appt></div>
+  <div data-state-show="overnight" hidden><gen-appt page="detail" scn="overnight"></gen-appt></div>
+  <div data-state-show="long" hidden><gen-appt page="detail" scn="long"></gen-appt></div>
+  <div data-state-show="loading" hidden><gen-appt page="detail" scn="loading"></gen-appt></div>
+  <div data-state-show="error" hidden><gen-appt page="detail" scn="error"></gen-appt></div>
+  <div data-state-show="gone" hidden><gen-appt page="detail" scn="gone"></gen-appt></div>
+  <nav class="tabbar" data-m-aria="nav.label">
+    <a class="tab" aria-current="page" href="home.html"><i data-icon="house"></i><span data-m="nav.home"></span></a>
+    <a class="tab" href="availability.html"><i data-icon="calendar"></i><span data-m="nav.calendar"></span></a>
+    <a class="tab" href="groups.html"><i data-icon="users"></i><span data-m="nav.groups"></span></a>
+    <a class="tab" href="#"><i data-icon="user"></i><span data-m="nav.me"></span></a>
+  </nav>
+</div>
+</body>
+</html>

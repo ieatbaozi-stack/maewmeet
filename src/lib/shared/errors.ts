@@ -43,6 +43,7 @@ export const ERROR_CODES = [
   'INVALID_MAP_URL',
   'INVALID_COORDINATES',
   'APPOINTMENT_CANCELLED',
+  'APPOINTMENT_PAST',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -79,7 +80,7 @@ export const ERROR_HTTP_STATUS = {
   INVITE_INVALID: 400,
   ALREADY_MEMBER: 409, // ปกติใช้เป็นธงในผลสำเร็จ (ARCHITECTURE §6) — status นี้ใช้เฉพาะถ้ามีใครโยนเป็น error
   USER_NOT_FOUND: 404,
-  LIMIT_REACHED: 409, // R2: เพดานกลุ่มต่อผู้ใช้ (10) / สมาชิกต่อกลุ่ม (50) / โค้ดเชิญที่ใช้ได้พร้อมกัน (20) — params: { limit: 'groups' | 'members' | 'codes', max }
+  LIMIT_REACHED: 409, // R2: เพดานกลุ่มต่อผู้ใช้ (10) / สมาชิกต่อกลุ่ม (50) / โค้ดเชิญที่ใช้ได้พร้อมกัน (20) — params: { limit: 'groups' | 'members' | 'codes' | 'appointments' | 'appointmentsPerDay' | 'appointmentSpan' ..., max }
 
   INVALID_RANGE: 400,
   INVALID_DATE: 400,
@@ -92,7 +93,8 @@ export const ERROR_HTTP_STATUS = {
 
   INVALID_MAP_URL: 400,
   INVALID_COORDINATES: 400,
-  APPOINTMENT_CANCELLED: 409,
+  APPOINTMENT_CANCELLED: 409, // แก้/ตอบนัดที่ยกเลิกแล้ว
+  APPOINTMENT_PAST: 409, // ตอบ (RSVP) นัดที่จบไปแล้ว
 } as const satisfies Record<ErrorCode, number>;
 
 export function httpStatusOf(code: ErrorCode): number {

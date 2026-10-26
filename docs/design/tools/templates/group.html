@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="../../../src/styles/members.css">
 <link rel="stylesheet" href="../../../src/components/brand/aurora.css">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="../../../src/components/groups/groups.css">
 <script src="sample.js"></script>
 <!--MESSAGES_EN-->
 </head>
@@ -29,7 +30,8 @@
     </div>
     <div style="padding: 0 var(--gutter); max-width: var(--content-max); margin: 0 auto">
       <div data-state-show="normal member" class="btn-row" style="margin-top: 0">
-        <button class="btn btn-primary"><i data-icon="user-plus"></i><span data-m="group.invite"></span></button>
+        <a class="btn btn-primary" href="appt-form.html"><i data-icon="calendar-plus"></i><span data-m="appointments.create"></span></a>
+        <button class="btn btn-secondary"><i data-icon="user-plus"></i><span data-m="group.invite"></span></button>
       </div>
 
       <section data-state-show="normal member" aria-labelledby="mem-h">
@@ -105,10 +107,14 @@
         </ul>
       </section>
 
-      <!-- ที่ว่างของปฏิทิน (R3–R4) -->
-      <section data-state-show="normal member" class="panel soon" aria-labelledby="soon-h">
-        <i data-cat="calendar"></i>
-        <div><h2 class="h-section" id="soon-h" data-m="group.calendarSoon.title"></h2><p data-m="group.calendarSoon.body"></p></div>
+      <!-- ปฏิทินและนัดของกลุ่ม (R3–R4B) -->
+      <section data-state-show="normal member" class="cal-links" aria-labelledby="cal-links-h">
+        <h2 class="h-section" id="cal-links-h" data-m="group.calendarLinks.title"></h2>
+        <div class="cal-links-grid">
+          <a class="panel cal-link" href="appt-list.html"><i data-cat="pin"></i><span><b data-m="group.calendarLinks.appointments.title"></b><span class="muted" data-m="group.calendarLinks.appointments.body" data-m-v='{"count":3}'></span></span></a>
+          <a class="panel cal-link" href="availability.html"><i data-cat="calendar"></i><span><b data-m="group.calendarLinks.free.title"></b><span class="muted" data-m="group.calendarLinks.free.body"></span></span></a>
+          <a class="panel cal-link" href="calendar-month.html"><i data-icon="calendar"></i><span><b data-m="group.calendarLinks.month.title"></b><span class="muted" data-m="group.calendarLinks.month.body"></span></span></a>
+        </div>
       </section>
     </div>
   </main>

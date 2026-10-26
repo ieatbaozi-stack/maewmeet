@@ -5,7 +5,7 @@
 //   Y (อ.)  B ติดทั้งวัน                         → ว่าง 2/3 · ไม่ว่าง: B
 //   W (พ.)  B ติด 10–12 แบบซ่อน (title+note canary) → blockers เห็นแค่ "ไม่ว่าง" · canary ไม่อยู่ใน DOM/response
 //   Z (พฤ.) T24: A 08–15, B 15–22              → ว่าง 3/3 แต่ "ไม่ตรงกัน" (กรอบประ ไม่ใช่ว่างร่วม)
-//  admin เปลี่ยนหน้าต่าง (ตั้งค่ากลุ่ม) → ผลเปลี่ยน · C ออกกลุ่ม → นับ 2 คนทันทีหลังโหลดใหม่ · กลุ่มคนเดียว · สิทธิ์ลิงก์ปรับช่วงเวลา · ปุ่มสร้างนัด disabled
+//  admin เปลี่ยนหน้าต่าง (ตั้งค่ากลุ่ม) → ผลเปลี่ยน · C ออกกลุ่ม → นับ 2 คนทันทีหลังโหลดใหม่ · กลุ่มคนเดียว · สิทธิ์ลิงก์ปรับช่วงเวลา · ปุ่มสร้างนัดเปิดใช้งาน
 import { expect, test } from './support/auth';
 import { addDays, canary, createBusyApi, monthOf, recordResponses } from './support/busy';
 import { pageDump } from './support/calendar-ui';
@@ -35,7 +35,7 @@ const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const stateTail = (state: 'all' | 'nocommon' | 'none' | 'partial', free: number, total: number) =>
   new RegExp(`${esc(T('availability.cell.aria', { date: '', today: 'no', outside: 'no', state, free, total }).replace(/^, /, ', '))}$`);
 
-test('th: A,B,C → ว่างร่วม/2 จาก 3/ซ่อน/T24 · เปลี่ยนหน้าต่าง · C ออก · คนเดียว · สิทธิ์ลิงก์ · สร้างนัด disabled', async ({ newDevice, baseURL }) => {
+test('th: A,B,C → ว่างร่วม/2 จาก 3/ซ่อน/T24 · เปลี่ยนหน้าต่าง · C ออก · คนเดียว · สิทธิ์ลิงก์ · สร้างนัดเปิดใช้งาน', async ({ newDevice, baseURL }) => {
   test.setTimeout(240_000);
   const [a, b, c] = await Promise.all([newDevice(), newDevice(), newDevice()]);
   for (const x of [a, b, c]) await setPrefs(x.context, baseURL!, { locale });
@@ -86,15 +86,14 @@ test('th: A,B,C → ว่างร่วม/2 จาก 3/ซ่อน/T24 · �
   const order = [seg('08:00', '10:00'), seg('12:00', '14:00'), seg('16:00', '22:00')].map((s) => dayX.indexOf(s));
   expect(order.every((i) => i >= 0), `ช่วงว่างร่วมครบ 3 ช่วง:\n${dayX}`).toBe(true);
   expect([...order].sort((p, q) => p - q), 'เรียงตามเวลา').toEqual(order);
-  // ปุ่ม "สร้างนัด": disabled + "เร็วๆ นี้" · กดแล้วไม่เกิดอะไร
+  // ปุ่ม "สร้างนัด" (R4B X66): เปิดใช้แล้ว (ไม่มีป้าย "เร็วๆ นี้") · กดแล้วเปิดฟอร์มสร้างนัดทับ sheet วัน
   await expect(freeCreate(b.page)).toBeVisible();
   await expect(freeCreate(b.page)).toContainText(T('availability.cta.create'));
-  await expect(freeCreate(b.page)).toContainText(T('availability.cta.soon'));
-  await expect(freeCreate(b.page)).toHaveAttribute('aria-disabled', 'true');
-  const urlBefore = b.page.url();
-  await freeCreate(b.page).click({ force: true });
-  expect(b.page.url()).toBe(urlBefore);
-  await expect(b.page.getByRole('dialog')).toHaveCount(1); // ยังเป็น sheet วันเดิมเท่านั้น ไม่มีฟอร์มสร้างนัดเปิดขึ้น
+  await expect(freeCreate(b.page)).not.toHaveAttribute('aria-disabled', 'true');
+  await freeCreate(b.page).click();
+  await expect(b.page.getByTestId('appt-form')).toBeVisible();
+  await b.page.getByTestId('appt-form-cancel').click();
+  await expect(b.page.getByTestId('appt-form')).toHaveCount(0);
   await expect(b.page.getByTestId('cal-toast')).toHaveCount(0);
   await expect(freeDay(b.page)).toHaveAttribute('data-date', X);
 

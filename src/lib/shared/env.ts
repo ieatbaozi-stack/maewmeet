@@ -38,7 +38,7 @@ const originString = z.string().refine(
 );
 
 /** โปรไฟล์ dev/test — ใช้กับทุกสภาพแวดล้อม (deployed เพิ่มเงื่อนไขทับ) */
-export const baseEnvSchema = z.object({
+const envObject = z.object({
   // ── ฐานข้อมูล ──
   TURSO_DATABASE_URL: z.preprocess(
     blankToUndefined,
@@ -73,6 +73,25 @@ export const baseEnvSchema = z.object({
   NOMINATIM_CONTACT: optionalString,
   // ── อื่น ๆ ──
   LOG_LEVEL: z.preprocess(blankToUndefined, z.enum(['debug', 'info', 'warn', 'error']).default('info')),
+  NODE_ENV: optionalString,
+});
+
+/** NOMINATIM_BASE_URL: https เท่านั้น · http ได้เฉพาะ localhost / 127.0.0.1 นอก production (dev/test mock) — กันส่งคำค้นแบบไม่เข้ารหัส/ชี้ไปโฮสต์ภายใน */
+function nominatimUrlProblem(raw: string, nodeEnv: string | undefined): string | null {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return 'must be a valid URL';
+  }
+  if (u.protocol === 'https:') return null;
+  if (u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1') && nodeEnv !== 'production') return null;
+  return 'must be https (http://localhost or http://127.0.0.1 only outside production)';
+}
+
+export const baseEnvSchema = envObject.superRefine((env, ctx) => {
+  const problem = nominatimUrlProblem(env.NOMINATIM_BASE_URL, env.NODE_ENV?.trim());
+  if (problem !== null) ctx.addIssue({ code: 'custom', path: ['NOMINATIM_BASE_URL'], message: problem });
 });
 
 /** โปรไฟล์ deployed (Vercel production/preview) — "ต้องมีตอน runtime prod" */

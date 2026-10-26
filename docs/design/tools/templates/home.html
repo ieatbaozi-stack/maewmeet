@@ -3,152 +3,43 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>หน้าหลัก — แมวเจอกัน</title>
+<title data-m="nav.home"></title>
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="../../../src/styles/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/members.css">
 <link rel="stylesheet" href="../../../src/components/brand/aurora.css">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="../../../src/styles/calendar.css">
+<link rel="stylesheet" href="../../../src/styles/availability.css">
+<link rel="stylesheet" href="../../../src/styles/appointments.css">
+<link rel="stylesheet" href="../../../src/styles/home.css">
+<link rel="stylesheet" href="../../../src/styles/notifications.css">
 <script src="sample.js"></script>
-<script>
-window.MESSAGES_EN = {
-  _title: 'Home — maewmeet',
-  brand: 'maewmeet',
-  notifications: 'Notifications, 1 unread',
-  nextUp: 'Up next',
-  inDays: 'In <b>2</b> days',
-  nextDate: 'Sat 17 Oct 2026',
-  openMap: 'Open in Maps',
-  group: 'Group',
-  going: '4 going',
-  maybe: '1 maybe',
-  noReply: '1 no reply',
-  areYouGoing: 'Are you going?',
-  rsvpYes: 'Going', rsvpMaybe: 'Maybe', rsvpNo: 'Can’t go',
-  later: 'Later',
-  seeAll: 'See all',
-  monOct: 'Oct', monOctNov: 'Oct–Nov', monNov: 'Nov',
-  r1time: 'Sun 25 Oct, 09:00–11:00',
-  r2time: 'Sat 31 Oct – Sun 1 Nov (2 days)',
-  r3time: 'Sun 8 Nov, 11:30–14:00',
-  cancelled: 'Cancelled',
-  tabHome: 'Home', tabCal: 'Calendar', tabGroups: 'Groups', tabMe: 'Me',
-  loading: 'Loading your plans…',
-  emptyTitle: 'No plans yet',
-  emptyBody: 'Find a day when everyone’s free, then make a plan from it.',
-  emptyCta: 'Find a free day',
-  errTitle: 'Couldn’t load your plans',
-  errBody: 'Check your connection and try again. Nothing you saved is lost.',
-  retry: 'Try again'
-};
-</script>
+<!--MESSAGES_EN-->
 </head>
 <body>
 <div class="aurora" data-intensity="hero" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
-
 <div class="app">
-  <header class="topbar">
-    <div class="brand">
-      <i data-brand="logo-mark" class="brand-mark"></i>
-      <span class="brand-name" data-t="brand">แมวเจอกัน</span>
-    </div>
-    <button class="icon-btn" aria-label="การแจ้งเตือน มี 1 รายการใหม่" data-t-aria="notifications">
-      <i data-icon="bell"></i><span class="badge-dot"></span>
-    </button>
-  </header>
-
-  <main class="main">
-    <!-- ===== ปกติ ===== -->
-    <div data-state-show="normal">
-      <h1 class="h-section" style="margin: var(--space-2) 0 var(--space-3)" data-t="nextUp">นัดถัดไป</h1>
-      <article class="next" aria-labelledby="next-title">
-        <div class="next-when">
-          <p class="countdown" data-t="inDays">อีก <b>2</b> วัน</p>
-          <p class="next-date" data-t="nextDate">เสาร์ 17 ต.ค. 2569</p>
-        </div>
-        <div class="next-body">
-          <h2 class="next-title" id="next-title">หมูกระทะวันเกิดต้นข้าว</h2>
-          <ul class="facts">
-            <li class="fact"><i data-icon="clock"></i><span class="num">18:00–21:00</span></li>
-            <li class="fact"><i data-icon="map-pin"></i>
-              <span class="fact-place"><span>ป้าแดงหมูกระทะ ลาดพร้าว 71</span>
-              <a href="#"><span data-t="openMap">เปิดในแอปแผนที่</span><i data-icon="external-link" class="sm"></i></a></span>
-            </li>
-            <li class="fact"><i data-icon="users"></i><span>แก๊งมัธยม ห้อง 6/3</span></li>
-          </ul>
-          <div class="who">
-            <div class="stack" aria-hidden="true">
-              <span class="avatar sm m1">ต</span><span class="avatar sm m6">ป</span><span class="avatar sm m7">ม</span><span class="avatar sm m4">อ</span><span class="avatar sm m2">ฟ</span>
-            </div>
-            <p class="who-counts">
-              <span class="go"><i data-icon="circle-check" class="sm"></i><span data-t="going">ไป 4 คน</span></span>
-              <span><i data-icon="circle-help" class="sm"></i><span data-t="maybe">อาจไป 1</span></span>
-              <span class="muted"><i data-icon="circle-dashed" class="sm"></i><span data-t="noReply">ยังไม่ตอบ 1</span></span>
-            </p>
-          </div>
-          <div class="rsvp">
-            <p class="rsvp-label" data-t="areYouGoing">คุณจะไปไหม</p>
-            <div class="segmented" role="group" aria-label="คำตอบของคุณ">
-              <button aria-pressed="true"><i data-icon="check" class="sm"></i><span data-t="rsvpYes">ไป</span></button>
-              <button aria-pressed="false" data-t="rsvpMaybe">อาจไป</button>
-              <button aria-pressed="false" data-t="rsvpNo">ไม่ไป</button>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <section class="list-card" aria-labelledby="later-h">
-      <div class="section-head">
-        <h2 class="h-section" id="later-h" data-t="later">นัดถัดๆ ไป</h2>
-        <a href="#" data-t="seeAll">ดูทั้งหมด</a>
-      </div>
-      <ul class="rows">
-        <li><a class="row" href="#">
-          <span class="datebox"><span class="d">25</span><span class="m" data-t="monOct">ต.ค.</span></span>
-          <span class="row-main"><span class="row-title">ตีแบดประจำสัปดาห์</span><span class="row-meta num" data-t="r1time">อา. 25 ต.ค. 09:00–11:00</span><span class="row-meta">ก๊วนแบดสวนลุม</span></span>
-          <i data-icon="chevron-right" class="chev"></i></a></li>
-        <li><a class="row" href="#">
-          <span class="datebox"><span class="d">31</span><span class="m" data-t="monOctNov">ต.ค.–พ.ย.</span></span>
-          <span class="row-main"><span class="row-title">ค้างคืนเขาใหญ่ เช่าบ้านพักริมลำธาร</span><span class="row-meta num" data-t="r2time">ส. 31 ต.ค. – อา. 1 พ.ย. (2 วัน)</span><span class="row-meta">แก๊งมัธยม ห้อง 6/3</span></span>
-          <i data-icon="chevron-right" class="chev"></i></a></li>
-        <li><a class="row is-cancelled" href="#">
-          <span class="datebox"><span class="d">8</span><span class="m" data-t="monNov">พ.ย.</span></span>
-          <span class="row-main"><span class="row-title">กินข้าวบ้านยาย</span><span class="row-meta num" data-t="r3time">อา. 8 พ.ย. 11:30–14:00</span><span class="row-meta">บ้านเรา</span></span>
-          <span class="tag tag-busy"><i data-icon="ban" class="sm"></i><span data-t="cancelled">ยกเลิกแล้ว</span></span></a></li>
-      </ul>
-      </section>
-    </div>
-
-    <!-- ===== โหลด ===== -->
-    <div data-state-show="loading" hidden aria-busy="true">
-      <div class="skeleton" style="height: var(--space-5); width: 40%; margin: var(--space-3) 0"></div>
-      <div class="skeleton" style="height: calc(var(--space-7) * 5); border-radius: var(--radius-lg)"></div>
-      <p class="loading-note" role="status"><i data-icon="refresh-cw" class="sm"></i><span data-t="loading">กำลังโหลดนัดของคุณ…</span></p>
-      <div class="skeleton" style="height: calc(var(--space-7) * 3); margin-top: var(--space-5)"></div>
-    </div>
-
-    <!-- ===== ว่าง ===== -->
-    <div data-state-show="empty" hidden class="empty panel" style="margin-top: var(--space-5)">
-      <i data-cat="tea"></i>
-      <h1 class="h-section" data-t="emptyTitle">ยังไม่มีนัดเลย</h1>
-      <p class="muted" data-t="emptyBody">ดูว่าวันไหนทุกคนว่างตรงกัน แล้วสร้างนัดจากวันนั้นได้เลย</p>
-      <a class="btn btn-primary" href="calendar.html" data-t="emptyCta">ดูวันที่ว่างตรงกัน</a>
-    </div>
-
-    <!-- ===== ผิดพลาด ===== -->
-    <div data-state-show="error" hidden style="padding-top: var(--space-4)">
-      <div class="alert" role="alert">
-        <i data-icon="circle-alert"></i>
-        <div><b data-t="errTitle">โหลดนัดไม่สำเร็จ</b><span data-t="errBody">ตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง ข้อมูลที่บันทึกไว้ไม่หาย</span></div>
-      </div>
-      <button class="btn btn-secondary" style="margin-top: var(--space-4)"><i data-icon="refresh-cw"></i><span data-t="retry">ลองอีกครั้ง</span></button>
-    </div>
-  </main>
-
-  <nav class="tabbar" aria-label="เมนูหลัก">
-    <a class="tab" href="home.html" aria-current="page"><i data-icon="house"></i><span data-t="tabHome">หน้าหลัก</span></a>
-    <a class="tab" href="calendar.html"><i data-icon="calendar"></i><span data-t="tabCal">ปฏิทิน</span></a>
-    <a class="tab" href="#"><i data-icon="users"></i><span data-t="tabGroups">กลุ่ม</span></a>
-    <a class="tab" href="#"><i data-icon="user"></i><span data-t="tabMe">ฉัน</span></a>
+  <div data-state-show="normal normal"><gen-appt page="home" scn="normal"></gen-appt></div>
+  <div data-state-show="today" hidden><gen-appt page="home" scn="today"></gen-appt></div>
+  <div data-state-show="tomorrow" hidden><gen-appt page="home" scn="tomorrow"></gen-appt></div>
+  <div data-state-show="ongoing" hidden><gen-appt page="home" scn="ongoing"></gen-appt></div>
+  <div data-state-show="overnight" hidden><gen-appt page="home" scn="overnight"></gen-appt></div>
+  <div data-state-show="one" hidden><gen-appt page="home" scn="one"></gen-appt></div>
+  <div data-state-show="long" hidden><gen-appt page="home" scn="long"></gen-appt></div>
+  <div data-state-show="only-cancelled" hidden><gen-appt page="home" scn="only-cancelled"></gen-appt></div>
+  <div data-state-show="many" hidden><gen-appt page="home" scn="many"></gen-appt></div>
+  <div data-state-show="rsvp-error" hidden><gen-appt page="home" scn="rsvp-error"></gen-appt></div>
+  <div data-state-show="rsvp-saving" hidden><gen-appt page="home" scn="rsvp-saving"></gen-appt></div>
+  <div data-state-show="empty" hidden><gen-appt page="home" scn="empty"></gen-appt></div>
+  <div data-state-show="nogroup" hidden><gen-appt page="home" scn="nogroup"></gen-appt></div>
+  <div data-state-show="loading" hidden><gen-appt page="home" scn="loading"></gen-appt></div>
+  <div data-state-show="error" hidden><gen-appt page="home" scn="error"></gen-appt></div>
+  <nav class="tabbar" data-m-aria="nav.label">
+    <a class="tab" aria-current="page" href="home.html"><i data-icon="house"></i><span data-m="nav.home"></span></a>
+    <a class="tab" href="availability.html"><i data-icon="calendar"></i><span data-m="nav.calendar"></span></a>
+    <a class="tab" href="groups.html"><i data-icon="users"></i><span data-m="nav.groups"></span></a>
+    <a class="tab" href="#"><i data-icon="user"></i><span data-m="nav.me"></span></a>
   </nav>
 </div>
 </body>

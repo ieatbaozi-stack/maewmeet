@@ -488,3 +488,4 @@ textarea.input { padding: var(--space-3); min-height: calc(var(--tap-lg) * 1.6);
   .invite-card { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
   .invite-card .actions { min-width: calc(var(--space-7) * 4); }
 }
+.cal-link .cat { width: calc(var(--space-7) * 1.5); height: calc(var(--space-7) * 1.5); }

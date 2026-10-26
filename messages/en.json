@@ -44,7 +44,7 @@
   "empty": {
     "home": {
       "title": "No plans yet",
-      "body": "Find a day when everyone’s free.",
+      "body": "Find a day when everyone’s free, then make a plan from it.",
       "cta": "Find a free day"
     },
     "homeNoGroup": {
@@ -246,7 +246,9 @@
       "segments": {
         "title": "When everyone’s free",
         "row": "{start}–{end}",
-        "longest": "Longest"
+        "longest": "Longest",
+        "hint": "Tap a time to plan something then",
+        "createAria": "Create a plan for {start}–{end}"
       },
       "blockers": {
         "title": "Who’s busy when",
@@ -257,12 +259,13 @@
       },
       "names": {
         "more": "{names} and {count} more"
-      }
+      },
+      "truncatedNote": "Some busy time in this range wasn’t counted, so these hours may look freer than they are. We’ll check again when you create the plan."
     },
     "cta": {
       "create": "Create plan",
-      "soon": "Coming soon",
-      "soonHint": "Creating a plan from a day is coming soon. For now, make a note of the date."
+      "createHintAll": "The plan starts from the time you tapped. You can change it in the form.",
+      "createHintOther": "There’s no time today when everyone’s free. You can still make a plan, and we’ll show who may be busy."
     },
     "windowPassed": "Today’s counted hours are over, so we start from tomorrow.",
     "explain": "Based on the busy time members have added. Anyone who hasn’t added any counts as free.",
@@ -505,7 +508,7 @@
       "body": "Invite your friends first, then you can see which days work for everyone."
     },
     "calendarLinks": {
-      "title": "The group’s days",
+      "title": "Calendar and plans",
       "free": {
         "title": "Days everyone’s free",
         "body": "See which days work for everyone, and who’s busy when."
@@ -513,6 +516,10 @@
       "month": {
         "title": "Group calendar",
         "body": "See who’s marked busy days this month."
+      },
+      "appointments": {
+        "title": "Group plans",
+        "body": "{count, plural, =0 {No upcoming plans yet. Make the first one.} one {1 upcoming plan} other {# upcoming plans}}"
       }
     }
   },
@@ -651,6 +658,41 @@
         "accepted": "{inviteeName} accepted your invite and joined “{groupName}”",
         "declined": "{inviteeName} declined your invite to “{groupName}”"
       }
+    },
+    "title": "Notifications",
+    "back": "Back",
+    "bell": {
+      "aria": "Notifications{count, plural, =0 {} one {, 1 unread} other {, # unread}}"
+    },
+    "unreadCount": "{count, plural, =0 {All caught up} one {1 unread} other {# unread}}",
+    "unreadSr": "Unread",
+    "markAll": "Mark all read",
+    "markAllAria": "Mark all notifications as read",
+    "marking": "Saving…",
+    "markedAll": "All marked as read",
+    "markError": "Couldn’t mark them as read. Try again.",
+    "loading": "Loading notifications…",
+    "loadMore": "Show older",
+    "loadingMore": "Loading…",
+    "retention": "Notifications are kept for {days} days.",
+    "empty": {
+      "title": "Nothing new yet",
+      "body": "New plans and group invites will show up here."
+    },
+    "error": {
+      "title": "Couldn’t load notifications",
+      "body": "Check your connection and try again."
+    },
+    "time": {
+      "justNow": "Just now",
+      "minutes": "{count} min ago",
+      "hours": "{count} hr ago",
+      "yesterday": "Yesterday {time}",
+      "date": "{date} · {time}"
+    },
+    "unknown": "A notification we can’t show right now",
+    "appointment": {
+      "created": "New plan: {title} ({when}) in “{groupName}”"
     }
   },
   "errors": {
@@ -677,7 +719,7 @@
     "INVITE_INVALID": "This code doesn’t work. Ask someone in the group for a new one.",
     "ALREADY_MEMBER": "That person’s already in this group.",
     "USER_NOT_FOUND": "No one has that username. Check the spelling, or send them an invite code instead.",
-    "LIMIT_REACHED": "{limit, select, groups {You can create up to {max} groups. Delete one you no longer use to make a new one.} members {This group is full ({max} members at most). An admin can remove members who aren’t active.} codes {This group already has {max} active invite codes. Revoke one you don’t need to make a new one.} busyCount {You already have {max} upcoming busy entries, the most we allow. Delete ones you don’t need, then add this one.} busySpan {One entry can cover {max} days at most. Try splitting it into a few.} busyBackdate {You can add busy time up to {max} days back. Pick a more recent date.} other {You’ve hit a limit. Free something up and try again.}}",
+    "LIMIT_REACHED": "{limit, select, groups {You can create up to {max} groups. Delete one you no longer use to make a new one.} members {This group is full ({max} members at most). An admin can remove members who aren’t active.} codes {This group already has {max} active invite codes. Revoke one you don’t need to make a new one.} busyCount {You already have {max} upcoming busy entries, the most we allow. Delete ones you don’t need, then add this one.} busySpan {One entry can cover {max} days at most. Try splitting it into a few.} busyBackdate {You can add busy time up to {max} days back. Pick a more recent date.} appointments {This group already has {max} upcoming plans, the most we allow. Cancel one you don’t need to make a new one.} appointmentSpan {One plan can run {max} days at most. Try splitting it into a few.} appointmentsPerDay {You’ve already created {max} plans today, the most we allow. Try again tomorrow, or edit one you already have.} other {You’ve hit a limit. Free something up and try again.}}",
     "INVALID_RANGE": "{kind, select, dates {The last day can’t come before the first day.} other {The end has to be after the start.}}",
     "INVALID_DATE": "That date doesn’t exist (like 30 February). Pick one from the calendar.",
     "INVALID_LOCAL_TIME": "That time doesn’t exist here because the clocks skip ahead. Pick another time.",
@@ -688,7 +730,8 @@
     "INVALID_WINDOW": "The group’s free-time hours don’t work. The end has to be after the start, and the window can’t be shorter than the minimum free stretch.",
     "INVALID_MAP_URL": "We can’t read a location from that link. Try copying it from the Share button in your maps app.",
     "INVALID_COORDINATES": "Those coordinates don’t look right. Check the latitude and longitude.",
-    "APPOINTMENT_CANCELLED": "This plan was cancelled, so it can’t be changed."
+    "APPOINTMENT_CANCELLED": "This plan was cancelled, so it can’t be changed.",
+    "APPOINTMENT_PAST": "This plan is over, so answers are closed."
   },
   "busy": {
     "add": "Add busy time",
@@ -796,6 +839,272 @@
       "saved": "Busy time saved",
       "updated": "Changes saved",
       "deleted": "Busy time deleted"
+    }
+  },
+  "home": {
+    "nextUp": "Up next",
+    "later": "Coming up",
+    "countdown": {
+      "before": "{days, plural, =0 {Today} =1 {Tomorrow} other {In}}",
+      "after": "{days, plural, =0 {} =1 {} other {days}}",
+      "aria": "{days, plural, =0 {Today} =1 {Tomorrow} other {In # days}}"
+    },
+    "next": {
+      "open": "See plan details",
+      "openAria": "See details for {title}"
+    },
+    "moreNote": "Showing the first {count}. You’ll find the rest on each group’s page.",
+    "row": {
+      "aria": "{title}, {when}, {group}{state, select, cancelled {, cancelled} going {, you’re going} maybe {, you’re a maybe} not_going {, you can’t go} other {, no reply yet}}"
+    },
+    "loading": "Loading your plans…",
+    "error": {
+      "title": "Couldn’t load your plans",
+      "body": "Check your connection and try again. Nothing you saved is lost."
+    }
+  },
+  "appointments": {
+    "create": "Create plan",
+    "rateRetry": "That’s a lot at once. Try again in {n} {unit, select, min {{n, plural, one {minute} other {minutes}}} other {{n, plural, one {second} other {seconds}}}}.",
+    "status": {
+      "cancelled": "Cancelled",
+      "past": "Past",
+      "ongoing": "Happening now"
+    },
+    "when": {
+      "overnight": "{start} – {end} the next day"
+    },
+    "list": {
+      "title": "Group plans",
+      "tabsLabel": "When",
+      "upcoming": "Upcoming",
+      "past": "Past",
+      "count": "{count, plural, =0 {No upcoming plans} one {1 upcoming plan} other {# upcoming plans}}",
+      "limitNear": "{count} of {max} upcoming plans used. Cancel ones you don’t need to free up room.",
+      "pastCapped": "Showing the latest {count}",
+      "loadMore": "Show more",
+      "loading": "Loading the group’s plans…",
+      "empty": {
+        "upcoming": {
+          "title": "No upcoming plans",
+          "body": "Find a day when everyone’s free, then make a plan from it.",
+          "free": "Find a free day"
+        },
+        "past": {
+          "title": "No past plans yet",
+          "body": "Plans that have happened will show up here."
+        }
+      },
+      "error": {
+        "title": "Couldn’t load the group’s plans",
+        "body": "Check your connection and try again. The plans you made are safe."
+      }
+    },
+    "row": {
+      "aria": "{title}, {when}{state, select, cancelled {, cancelled} going {, you’re going} maybe {, you’re a maybe} not_going {, you can’t go} other {, no reply yet}}"
+    },
+    "rsvp": {
+      "question": "Are you going?",
+      "groupAria": "Your answer",
+      "answer": {
+        "going": "Going",
+        "maybe": "Maybe",
+        "not_going": "Can’t go"
+      },
+      "mine": {
+        "going": "You’re going",
+        "maybe": "You’re a maybe",
+        "not_going": "You can’t go",
+        "none": "No reply yet"
+      },
+      "saving": "Saving your answer…",
+      "saved": "Answer saved: {answer}",
+      "error": "Couldn’t save your answer. Your previous answer is still there. Try again.",
+      "closedPast": "This plan has already happened, so answers are closed.",
+      "closedCancelled": "This plan was cancelled, so you can’t answer.",
+      "yourAnswer": "Your answer: {answer}",
+      "summary": {
+        "going": "{count} going",
+        "maybe": "{count} maybe",
+        "notGoing": "{count} can’t go",
+        "noReply": "{count} no reply"
+      },
+      "list": {
+        "title": "Who’s coming",
+        "going": "Going · {count}",
+        "maybe": "Maybe · {count}",
+        "notGoing": "Can’t go · {count}",
+        "noReply": "No reply · {count}",
+        "nobody": "No one has answered yet. Be the first.",
+        "nobodyClosed": "Nobody answered before this plan closed."
+      },
+      "facesMore": "and {count} more"
+    },
+    "detail": {
+      "title": "Plan",
+      "back": "Back",
+      "edit": "Edit plan",
+      "editAria": "Edit {title}",
+      "inGroup": "In {group}",
+      "openGroupAria": "Go to {group}",
+      "description": "Details",
+      "place": "Place",
+      "createdBy": "Created by {name} · {date}",
+      "createdByGone": "Created by a former member · {date}",
+      "manage": "Manage this plan",
+      "cancelAction": "Cancel this plan",
+      "noPermission": "Only the person who made this plan and the group’s admins can edit or cancel it.",
+      "loading": "Loading the plan…",
+      "error": {
+        "title": "Couldn’t load this plan",
+        "body": "Check your connection and try again."
+      },
+      "gone": {
+        "title": "We can’t find this plan",
+        "body": "It may have been removed, or you may no longer be in this group.",
+        "cta": "Back to home"
+      }
+    },
+    "cancelled": {
+      "banner": "{name} cancelled this plan on {when}",
+      "bannerGone": "This plan was cancelled on {when}",
+      "hint": "You can still look at the details, but nobody can answer or edit it any more."
+    },
+    "cancel": {
+      "title": "Cancel “{title}”?",
+      "body": "The plan stays in the group’s list marked “Cancelled”, but nobody can answer or edit it any more. This can’t be undone.",
+      "notify": "{notify, select, yes {Members will get a notification that this plan was cancelled.} other {We don’t send a notification when a plan is cancelled, so let your friends know.}}",
+      "confirm": "Cancel plan",
+      "keep": "Keep it",
+      "working": "Cancelling…",
+      "error": "Couldn’t cancel the plan. Try again.",
+      "done": "Plan cancelled"
+    },
+    "form": {
+      "createTitle": "Create plan",
+      "editTitle": "Edit plan",
+      "inGroup": "In {group}",
+      "prefilled": "We filled in the day and time from when everyone’s free. You can change them.",
+      "title": {
+        "label": "What’s the plan?",
+        "placeholder": "e.g. Hotpot for Tonkhao’s birthday",
+        "hint": "Up to {max} characters"
+      },
+      "date": {
+        "label": "Day"
+      },
+      "time": {
+        "stepHint": "Times go in half-hour steps.",
+        "endsOn": "Ends {date}"
+      },
+      "description": {
+        "label": "Details",
+        "placeholder": "e.g. Meet at the entrance, bring some cash",
+        "hint": "Up to {max} characters"
+      },
+      "optional": "optional",
+      "notifyLine": "{count, plural, =0 {There’s no one else in the group to see this yet.} one {1 other member will see this plan and get a notification.} other {# other members will see this plan and get a notification.}}",
+      "editNote": "Edits don’t send a notification. If you change the time or place, let your friends know.",
+      "submit": {
+        "create": "Create plan",
+        "creating": "Creating…",
+        "save": "Save changes",
+        "saving": "Saving…"
+      },
+      "error": {
+        "title": {
+          "required": "Give the plan a name first.",
+          "tooLong": "The name can be up to {max} characters."
+        },
+        "date": {
+          "required": "Pick a day first."
+        },
+        "start": {
+          "past": "A plan can start at most {hours, plural, one {# hour} other {# hours}} in the past. Pick a later time."
+        },
+        "description": {
+          "tooLong": "Details can be up to {max} characters."
+        },
+        "place": {
+          "tooLong": "The place name can be up to {max} characters."
+        },
+        "save": "Couldn’t create the plan. Everything you typed is still here. Try again.",
+        "saveEdit": "Couldn’t save your changes. Everything you typed is still here. Try again.",
+        "gone": "This plan is gone. It may have been removed, or you may no longer be in the group."
+      }
+    },
+    "overlap": {
+      "checking": "Checking whether anyone is busy then…",
+      "clear": "As far as members have marked, nobody is busy then.",
+      "title": "{count, plural, one {# person may be busy then} other {# people may be busy then}}",
+      "nonBlocking": "You can still create the plan. This is just a heads-up.",
+      "more": "and {count} more",
+      "unknown": {
+        "title": "We couldn’t check everything",
+        "body": "There’s so much busy time around then that we can’t tell for sure who’s tied up. You can still create the plan, but check with your friends."
+      },
+      "error": "Couldn’t check just now. You can still create the plan.",
+      "groupAria": "Members who may be busy"
+    },
+    "created": {
+      "title": "Plan created",
+      "body": "{count, plural, =0 {It’s in the group’s list now.} one {1 other member has been notified.} other {# other members have been notified.}}",
+      "view": "See the plan",
+      "done": "Done"
+    }
+  },
+  "places": {
+    "label": "Place",
+    "name": {
+      "placeholder": "Place name, e.g. Auntie Daeng’s hotpot",
+      "hint": "Type a name and press “Search”, or paste a map link instead.",
+      "hintCount": "Up to {max} characters"
+    },
+    "search": {
+      "button": "Search",
+      "searching": "Searching…",
+      "aria": "Search for “{query}”",
+      "tooShort": "Type at least {min} characters of the place name before searching.",
+      "results": "Search results",
+      "count": "{count, plural, one {Found # place} other {Found # places}}",
+      "pickAria": "Choose {name}",
+      "attribution": "Search results from OpenStreetMap",
+      "noResults": {
+        "title": "No match for “{query}”",
+        "body": "Try different words, or paste a map link instead."
+      },
+      "error": "Search didn’t work. Try again, or paste a map link instead.",
+      "rateLimited": "That’s a lot of searches at once. Wait a moment and try again.",
+      "disabled": "Place search is off for now — paste a link or coordinates instead."
+    },
+    "paste": {
+      "toggle": "Paste a map link or coordinates instead",
+      "back": "Search by name instead",
+      "label": "Map link or coordinates",
+      "placeholder": "https://… or 13.7563, 100.5018",
+      "hint": "Copy the link from your maps app’s Share button (it must start with https://), or enter latitude, longitude.",
+      "submit": "Use this"
+    },
+    "selected": {
+      "aria": "Selected place: {name}",
+      "coords": "Coordinates {lat}, {lng}",
+      "linkOnly": "Has a map link ({host})",
+      "defaultName": "Dropped pin"
+    },
+    "clear": "Clear",
+    "clearAria": "Clear the place {name}",
+    "open": "Open in Maps",
+    "openAria": "Open {name} in Maps (opens in a new tab)",
+    "openLink": "Open map link ({host})",
+    "openLinkAria": "Open the map link for {name} at {host} (opens in a new tab)",
+    "map": {
+      "region": "Map showing {name}",
+      "loading": "Loading the map…",
+      "failed": {
+        "title": "The map isn’t loading right now",
+        "body": "You can still open it in your maps app, or use the name and coordinates below."
+      },
+      "attribution": "© OpenStreetMap contributors"
     }
   }
 }

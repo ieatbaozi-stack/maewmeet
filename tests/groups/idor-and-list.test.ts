@@ -105,7 +105,7 @@ describe('R2-6 IDOR', () => {
 });
 
 describe('endpoint ใหม่ทั้งหมดอยู่ใน manifest + ปฏิเสธ anonymous', () => {
-  const R2 = ROUTE_MANIFEST.filter((e) => e.owner === 'platform' && (e.path.startsWith('/api/groups') || e.path.startsWith('/api/invites') || e.path.startsWith('/api/me/invites')) && !e.path.endsWith('/calendar') && !e.path.endsWith('/availability')); // calendar = R3, availability = R4A
+  const R2 = ROUTE_MANIFEST.filter((e) => e.owner === 'platform' && (e.path.startsWith('/api/groups') || e.path.startsWith('/api/invites') || e.path.startsWith('/api/me/invites')) && !e.path.endsWith('/calendar') && !e.path.endsWith('/availability') && !e.path.includes('/appointments')); // calendar = R3, availability = R4A, appointments = R4B (tests/appointments)
 
   it('ครบ 17 endpoint ของ R2_CONTRACT §2', () => {
     expect(R2.map((e) => `${e.method} ${e.path}`).sort()).toEqual(

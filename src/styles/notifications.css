@@ -1,0 +1,40 @@
+/*
+ * แจ้งเตือนในแอป (R4B ADR 0007) — หน้ารายการเต็ม /notifications — เจ้าของ: UX & Brand
+ * ยังไม่อ่าน ≠ สีอย่างเดียว: จุดทึบ + ตัวหนา (600) + แถบซ้าย + ข้อความซ่อน "ยังไม่ได้อ่าน" สำหรับ screen reader
+ * กติกา: ห้าม hex/px — var(--*) เท่านั้น
+ */
+.notif-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin: var(--space-2) 0 var(--space-3); }
+.notif-sub { font-size: var(--text-sm); color: var(--ink-muted); }
+.notif-card { background: var(--surface); border: var(--border) solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
+.notif-list > li + li { border-top: var(--border) solid var(--line); }
+.notif-row {
+  position: relative; display: flex; align-items: flex-start; gap: var(--space-3);
+  min-height: calc(var(--tap) + var(--space-4)); padding: var(--space-3) var(--space-4);
+  color: var(--ink); text-decoration: none; background: transparent; width: 100%; border: 0; text-align: left;
+}
+a.notif-row:focus-visible { outline-offset: calc(var(--focus-ring) * -1); }
+.notif-ico { flex: none; display: inline-grid; place-items: center; width: var(--avatar); height: var(--avatar); border-radius: var(--radius-full); background: var(--surface-2); color: var(--ink); }
+.notif-ico.k-invite { background: var(--accent-soft); color: var(--accent-soft-ink); }
+.notif-ico.k-appt { background: var(--event); color: var(--event-ink); }
+.notif-ico.k-cancel { background: var(--busy); color: var(--busy-ink); }
+.notif-ico.k-ok { background: var(--free); color: var(--free-ink); }
+.notif-body { flex: 1; min-width: 0; display: grid; gap: var(--space-1); }
+.notif-msg { overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.notif-time { font-size: var(--text-sm); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.notif-chev { flex: none; color: var(--ink-muted); align-self: center; }
+
+/* ยังไม่อ่าน */
+.notif-row.is-unread { background: var(--accent-soft); box-shadow: inset var(--space-1) 0 0 var(--accent); }
+.notif-row.is-unread .notif-msg { font-weight: var(--weight-semibold); }
+.notif-row.is-unread .notif-time { color: var(--ink-muted); }
+.notif-dot { flex: none; align-self: center; width: var(--space-2); height: var(--space-2); border-radius: var(--radius-full); background: var(--accent); }
+.notif-dot.is-read { background: transparent; }
+
+.notif-foot { display: grid; justify-items: center; gap: var(--space-2); margin-top: var(--space-4); }
+.notif-retention { font-size: var(--text-xs); color: var(--ink-muted); text-align: center; margin-top: var(--space-3); }
+.notif-skel { display: grid; gap: var(--space-3); padding: var(--space-3) var(--space-4); }
+.notif-skel > div { height: calc(var(--space-6) + var(--space-3)); }
+
+@media (min-width: 48em) {
+  .notif-row { padding: var(--space-3) var(--space-5); }
+}

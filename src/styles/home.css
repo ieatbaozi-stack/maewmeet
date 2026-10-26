@@ -1,0 +1,30 @@
+/*
+ * หน้าหลัก (R4B U11) + กระดิ่งแจ้งเตือนในหัวหน้า — เจ้าของ: UX & Brand
+ * การ์ดนัดถัดไป/แถวนัด/RSVP อยู่ใน appointments.css (ใช้ร่วมกับหน้ารายละเอียดและรายการของกลุ่ม)
+ * กติกา: ห้าม hex/px — var(--*) เท่านั้น
+ */
+
+/* กระดิ่ง: ไอคอน + ตัวเลขจำนวนที่ยังไม่อ่าน (ตัวเลข = สัญญาณที่ไม่ใช่สี · >9 แสดง "9+") */
+.bell { position: relative; }
+.bell-badge {
+  position: absolute; top: var(--space-1); right: 0;
+  min-width: var(--icon); height: var(--icon); padding: 0 var(--space-1);
+  display: inline-grid; place-items: center;
+  border-radius: var(--radius-full); background: var(--danger); color: var(--on-danger);
+  font-size: var(--text-xs); font-weight: var(--weight-semibold); line-height: 1; font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 var(--focus-ring) var(--bg);
+}
+
+.home-h { margin: var(--space-2) 0 var(--space-3); }
+.home-main { display: block; }
+.home-main .appt-list-card { margin-top: var(--space-5); }
+.home-more { margin-top: var(--space-2); }
+
+/* หน้าว่าง/ไม่มีกลุ่ม: แผงบน aurora ใช้ .empty.panel ของระบบ — เพิ่มลิงก์รองใต้ปุ่ม */
+.home-empty-links { display: grid; justify-items: center; gap: var(--space-1); }
+
+@media (min-width: 48em) {
+  .home-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+  .home-main .appt-list-card { margin-top: 0; }
+  .home-main > .home-h { grid-column: 1 / -1; margin-bottom: 0; }
+}

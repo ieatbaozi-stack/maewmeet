@@ -1,5 +1,5 @@
 // เพดานของกลุ่ม/คำเชิญ — R2_CONTRACT §3 ข้อ 2–3, 5 · ปรับได้ที่นี่ที่เดียว (ทุกด่านอ่านจากค่าเหล่านี้)
-import { DAY_MS } from './clock';
+import { DAY_MS, MINUTE_MS } from './clock';
 
 export const GROUP_LIMITS = {
   /** กลุ่มที่ผู้ใช้หนึ่งคน "สร้าง" ได้ (นับเฉพาะที่ยังไม่ถูกลบ) */
@@ -40,4 +40,45 @@ export const BUSY_TITLE_MAX = 80;
 export const BUSY_NOTE_MAX = 500;
 
 /** ชนิดเพดานที่ใส่ใน params ของ LIMIT_REACHED (UX แปลตามนี้) */
-export type LimitKind = 'groups' | 'members' | 'codes' | 'pendingInvites' | 'busyCount' | 'busySpan' | 'busyBackdate';
+export type LimitKind =
+  | 'groups'
+  | 'members'
+  | 'codes'
+  | 'pendingInvites'
+  | 'busyCount'
+  | 'busySpan'
+  | 'busyBackdate'
+  | 'appointments'
+  | 'appointmentsPerDay'
+  | 'appointmentSpan';
+
+// ───────── นัด / แจ้งเตือน / สถานที่ — R4B_CONTRACT §2 ─────────
+export const APPOINTMENT_TITLE_MAX = 80;
+export const APPOINTMENT_DESCRIPTION_MAX = 1000;
+export const APPOINTMENT_PLACE_NAME_MAX = 120;
+export const APPOINTMENT_MAP_URL_MAX = 500;
+/** นัดที่ยัง active และยังไม่จบ (end_at > now) ต่อกลุ่ม — ยกเลิกแล้วไม่นับ (R4B-1/R4B-5) */
+export const APPOINTMENT_MAX_ACTIVE_PER_GROUP = 100;
+/** สร้าง/ย้ายเวลานัดให้เริ่มย้อนหลังได้ไม่เกินนี้ (กันกดพลาด) */
+export const APPOINTMENT_MAX_BACKDATE_MS = 60 * 60 * 1000;
+/** ความยาวนัดสูงสุด (วัน) — เท่ากับ busy แบบมีเวลา (ADR 0004 §2) */
+export const APPOINTMENT_MAX_SPAN_DAYS = BUSY_MAX_TIMED_DAYS;
+export const APPOINTMENT_LIST_DEFAULT = 20;
+export const APPOINTMENT_LIST_MAX = 50;
+export const NOTIFICATION_LIST_DEFAULT = 20;
+export const NOTIFICATION_LIST_MAX = 50;
+/** POST /api/me/notifications/read {ids} — จำนวน id สูงสุดต่อคำขอ */
+export const NOTIFICATION_READ_IDS_MAX = 100;
+
+/** นัดที่ "สร้าง" ในกลุ่มภายใน 24 ชม.ล่าสุด (rolling) — นับรวมนัดที่ยกเลิกแล้ว กันวน create/cancel · เกิน → LIMIT_REACHED { limit: 'appointmentsPerDay', max } (R4B SEC M1) */
+export const APPOINTMENT_MAX_CREATED_PER_GROUP_PER_DAY = 30;
+/** แจ้งเตือน appointment.created ที่ยังไม่อ่านต่อผู้ใช้ต่อกลุ่ม — ครบแล้วไม่เขียนเพิ่ม (coalesce; ผู้ใช้เห็น 20+ อยู่แล้ว) · นับเฉพาะที่เห็นได้ */
+export const APPOINTMENT_NOTIFY_UNREAD_PER_GROUP_MAX = 20;
+/** limiter เขียนต่อผู้ใช้ (ทุกกลุ่มรวมกัน) — fixed window ผ่าน rate_limit_bucket · เกิน → RATE_LIMITED + Retry-After */
+export const APPOINTMENT_WRITE_RATE_LIMITS = {
+  createShort: { prefix: 'appt:create:s', limit: 10, windowMs: 10 * MINUTE_MS },
+  createDay: { prefix: 'appt:create:d', limit: 30, windowMs: DAY_MS },
+  update: { prefix: 'appt:update', limit: 60, windowMs: 10 * MINUTE_MS },
+  cancel: { prefix: 'appt:cancel', limit: 60, windowMs: 10 * MINUTE_MS },
+  rsvp: { prefix: 'appt:rsvp', limit: 120, windowMs: 10 * MINUTE_MS },
+} as const;

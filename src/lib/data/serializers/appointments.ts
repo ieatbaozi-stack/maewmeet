@@ -1,0 +1,172 @@
+// DTO ของนัด + RSVP + ผลเตือนนัดทับ (R4B) — ที่เดียวที่นัดออกจากระบบ
+//  - ชื่อ/สถานที่/คำอธิบายผ่าน sanitizeDisplayText ตอนอ่าน (แถวที่เข้ามาก่อนมีกติกา) · คำอธิบายคงขึ้นบรรทัดได้
+//  - RSVP: นับ/แสดงเฉพาะ "สมาชิกปัจจุบัน" (repo join group_member) · ชื่อ = ชื่อที่แสดง · สี = memberColorIndex ชุดเดียวกับปฏิทิน
+//  - ผู้สร้าง/ผู้ยกเลิก: แสดงเมื่อยังเป็นสมาชิกกลุ่ม ไม่งั้น null (ไม่เปิดเผยชื่อคนที่ออกแล้ว)
+//  - busy ในผลเตือนนัดทับผ่าน toBusyForViewers ตัวเดียวกับปฏิทิน/วันว่าง — ไม่มี note · รายการซ่อนไม่มี title
+import type { AppointmentRow, RsvpResponse, RsvpRow } from '@/lib/data/repos/appointment';
+import { daysUntil } from '@/lib/calendar';
+import { memberColorIndex } from '@/lib/shared/member-color';
+import { sanitizeDisplayText } from '@/lib/shared/name-rules';
+import type { BusyHiddenView, BusySharedView } from './busy';
+
+export const RSVP_RESPONSES = ['going', 'maybe', 'not_going'] as const satisfies readonly RsvpResponse[];
+
+export type PersonDto = { userId: string; displayName: string; colorIndex: number };
+
+export type RsvpCountsDto = { going: number; maybe: number; not_going: number; noResponse: number };
+
+export type RsvpSummaryDto = {
+  counts: RsvpCountsDto;
+  /** คำตอบของผู้ดู · null = ยังไม่ตอบ (หรือผู้ดูไม่ใช่สมาชิก) */
+  mine: RsvpResponse | null;
+};
+
+export type RsvpDetailDto = RsvpSummaryDto & {
+  /** รายชื่อสมาชิกปัจจุบันต่อคำตอบ (ตามเวลาที่ตอบ เก่า→ใหม่) */
+  members: Record<RsvpResponse, PersonDto[]>;
+};
+
+export type AppointmentStatus = 'active' | 'cancelled';
+
+export type AppointmentDto = {
+  id: string;
+  groupId: string;
+  groupName: string;
+  title: string;
+  description: string | null;
+  placeName: string | null;
+  lat: number | null;
+  lng: number | null;
+  mapUrl: string | null;
+  /** epoch ms UTC */
+  startAt: number;
+  endAt: number;
+  /** tz ของกลุ่ม ณ ตอนสร้าง/แก้เวลา — ใช้แสดงเวลา */
+  tz: string;
+  /** วันท้องถิ่นของจุดเริ่ม YYYY-MM-DD (ใน tz ของนัด) */
+  localDate: string;
+  status: AppointmentStatus;
+  /** end_at <= เวลาของคำขอ — ตอบ RSVP ไม่ได้แล้ว */
+  isPast: boolean;
+  /** "อีกกี่วัน" เป็นวันปฏิทินใน tz ของนัด ณ เวลาของคำขอ (วันนี้ = 0 · ผ่านแล้วเป็นลบ) */
+  daysUntil: number;
+  createdBy: PersonDto | null;
+  createdAt: number;
+  updatedAt: number;
+  cancelledAt: number | null;
+  cancelledBy: PersonDto | null;
+  rsvp: RsvpSummaryDto;
+};
+
+export type AppointmentPermissionsDto = {
+  /** ใช้ซ่อน/แสดงปุ่มเท่านั้น — สิทธิ์จริงตัดสินที่เซิร์ฟเวอร์ทุกครั้ง */
+  canEdit: boolean;
+  canCancel: boolean;
+  canRsvp: boolean;
+};
+
+export type AppointmentDetailDto = Omit<AppointmentDto, 'rsvp'> & {
+  rsvp: RsvpDetailDto;
+  permissions: AppointmentPermissionsDto;
+};
+
+export type OverlapBlockedDto = {
+  userId: string;
+  displayName: string;
+  colorIndex: number;
+  /** busy ของคนนี้ที่ทับนัด (เรียง startAt, id) — ผ่าน serializer เดียวกับปฏิทิน */
+  items: (BusySharedView | BusyHiddenView)[];
+};
+
+export type OverlapDto = {
+  /** `unknown` = busy ที่โหลดถูกตัด (เกินเพดาน) — ห้ามสรุปว่า "ไม่มีใครติด" · blocked คือที่พบในส่วนที่โหลดได้ */
+  status: 'ok' | 'unknown';
+  blocked: OverlapBlockedDto[];
+};
+
+const person = (groupId: string, userId: string, displayName: string): PersonDto => ({
+  userId,
+  displayName: sanitizeDisplayText(displayName),
+  colorIndex: memberColorIndex(groupId, userId),
+});
+
+export type AppointmentContext = {
+  viewerId: string;
+  now: number;
+  groupName: string;
+  /** สมาชิกปัจจุบันของกลุ่มที่นัดสังกัด (userId → ชื่อ) */
+  memberNames: ReadonlyMap<string, string>;
+  memberCount: number;
+  /** RSVP ของสมาชิกปัจจุบันของนัดนี้ */
+  rsvps: readonly RsvpRow[];
+};
+
+function buildRsvp(row: AppointmentRow, c: AppointmentContext): RsvpDetailDto {
+  const members: Record<RsvpResponse, PersonDto[]> = { going: [], maybe: [], not_going: [] };
+  let mine: RsvpResponse | null = null;
+  for (const r of c.rsvps) {
+    if (r.appointmentId !== row.id) continue;
+    members[r.response].push(person(row.groupId, r.userId, r.displayName));
+    if (r.userId === c.viewerId) mine = r.response;
+  }
+  const answered = members.going.length + members.maybe.length + members.not_going.length;
+  return {
+    counts: { going: members.going.length, maybe: members.maybe.length, not_going: members.not_going.length, noResponse: Math.max(0, c.memberCount - answered) },
+    mine,
+    members,
+  };
+}
+
+function toBase(row: AppointmentRow, c: AppointmentContext): Omit<AppointmentDto, 'rsvp'> {
+  const named = (id: string | null): PersonDto | null => {
+    if (id === null) return null;
+    const name = c.memberNames.get(id);
+    return name === undefined ? null : person(row.groupId, id, name);
+  };
+  return {
+    id: row.id,
+    groupId: row.groupId,
+    groupName: sanitizeDisplayText(c.groupName),
+    title: sanitizeDisplayText(row.title),
+    description: row.description === null ? null : cleanMultiline(row.description),
+    placeName: row.placeName === null ? null : sanitizeDisplayText(row.placeName),
+    lat: row.lat,
+    lng: row.lng,
+    mapUrl: row.mapUrl,
+    startAt: row.startAt,
+    endAt: row.endAt,
+    tz: row.tz,
+    localDate: row.localDate,
+    status: row.status,
+    isPast: row.endAt <= c.now,
+    daysUntil: daysUntil(c.now, row.startAt, row.tz),
+    createdBy: named(row.createdBy),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    cancelledAt: row.cancelledAt,
+    cancelledBy: named(row.cancelledBy),
+  };
+}
+
+/** คำอธิบายหลายบรรทัด: ทำความสะอาดทีละบรรทัด (คงการขึ้นบรรทัด) */
+function cleanMultiline(raw: string): string {
+  return raw
+    .split(/\r\n?|\n/)
+    .map((l) => sanitizeDisplayText(l))
+    .join('\n')
+    .trim();
+}
+
+/** มุมมองรายการ — จำนวนต่อคำตอบ + คำตอบของฉัน (ไม่มีรายชื่อ) */
+export function toAppointmentDto(row: AppointmentRow, c: AppointmentContext): AppointmentDto {
+  const { members: _members, ...summary } = buildRsvp(row, c);
+  void _members;
+  return { ...toBase(row, c), rsvp: summary };
+}
+
+/** มุมมองรายละเอียด — รายชื่อต่อคำตอบ + สิทธิ์ของผู้ดู */
+export function toAppointmentDetailDto(row: AppointmentRow, c: AppointmentContext, permissions: AppointmentPermissionsDto): AppointmentDetailDto {
+  return { ...toBase(row, c), rsvp: buildRsvp(row, c), permissions };
+}
+
+export { person as toPersonDto };

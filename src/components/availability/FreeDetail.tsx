@@ -6,7 +6,7 @@ import { MemberAvatar } from "@/components/groups/MemberAvatar";
 import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
 import type { CalendarLocale } from "@/lib/calendar";
-import { dayBlockers, durationMsg, longestSegment, namesOf, statusVariant, type AvData, type AvDay } from "./model";
+import { dayBlockers, durationMsg, longestSegment, namesOf, statusVariant, type AvData, type AvDay, type AvSegment } from "./model";
 import { namesSentence } from "./FreeSummary";
 
 export interface FreeDetailProps {
@@ -17,21 +17,25 @@ export interface FreeDetailProps {
   variant: "sheet" | "panel";
   /** id ของข้อความอธิบายปุ่ม "สร้างนัด" (aria-describedby) */
   hintId: string;
+  /** กด "สร้างนัด" (seg = ช่วงว่างร่วมที่แตะ · null = ปุ่มรวม → ค่าตั้งต้น 18:00–21:00) */
+  onCreate: (seg: AvSegment | null) => void;
 }
 
-/** ปุ่ม "สร้างนัด" ที่ยังไม่เปิดใช้ (R4B, X45): aria-disabled ไม่ใช่ disabled → โฟกัส/อ่านคำอธิบายได้ · กดแล้วไม่เกิดอะไร */
-export function CreateCta({ hintId, withHint }: { hintId: string; withHint: boolean }) {
+/**
+ * ปุ่ม "สร้างนัด" (R4B X66): เปิดใช้ทุกวัน · primary เมื่อวันนั้น "ว่างร่วม" · secondary เมื่อไม่ (ฟอร์มจะเตือนว่าใครอาจติด)
+ * คำอธิบายใต้ปุ่มอยู่ที่ hintId (aria-describedby) — variant sheet วางไว้ในเนื้อหา, variant panel วางใต้ปุ่ม
+ */
+export function CreateCta({ hintId, withHint, allFree, onCreate }: { hintId: string; withHint: boolean; allFree: boolean; onCreate: () => void }) {
   const t = useTranslations("availability.cta");
   return (
     <div className="av-cta">
-      <button type="button" className="btn btn-secondary" aria-disabled="true" aria-describedby={hintId} data-testid="free-create" onClick={(e) => e.preventDefault()}>
-        <Icon name="calendar" />
+      <button type="button" className={allFree ? "btn btn-primary" : "btn btn-secondary"} aria-describedby={hintId} data-testid="free-create" onClick={onCreate}>
+        <Icon name="calendar-plus" />
         <span>{t("create")}</span>
-        <span className="tag soon">{t("soon")}</span>
       </button>
       {withHint ? (
         <p className="av-hint" id={hintId}>
-          {t("soonHint")}
+          {t(allFree ? "createHintAll" : "createHintOther")}
         </p>
       ) : null}
     </div>
@@ -39,7 +43,7 @@ export function CreateCta({ hintId, withHint }: { hintId: string; withHint: bool
 }
 
 /** เนื้อหารายละเอียดวัน (X39–X43): กล่องสถานะ → ช่วงว่างร่วม → ใครไม่ว่างเมื่อไร → ที่มาของผล */
-export function FreeDetail({ day, data, myId, variant, hintId }: FreeDetailProps) {
+export function FreeDetail({ day, data, myId, variant, hintId, onCreate }: FreeDetailProps) {
   const t = useTranslations();
   const locale = useLocale() as CalendarLocale;
   const uid = useId();
@@ -97,15 +101,27 @@ export function FreeDetail({ day, data, myId, variant, hintId }: FreeDetailProps
             {day.segments.map((s) => {
               const dur = durationMsg(Math.round((s.endAt - s.startAt) / 60_000));
               return (
-                <li className="av-seg" key={s.startAt} data-testid="free-segment">
-                  <Icon name="clock" size="sm" />
-                  <span className="tm">{t("availability.day.segments.row", { start: s.start, end: s.end })}</span>
-                  <span className="du">{t(dur.key, dur.values)}</span>
-                  {day.segments.length >= 2 && longest === s ? <span className="tag" data-testid="free-longest">{t("availability.day.segments.longest")}</span> : null}
+                <li key={s.startAt}>
+                  <button type="button" className="av-seg av-seg-btn" aria-label={t("availability.day.segments.createAria", { start: s.start, end: s.end })} data-testid="free-segment" onClick={() => onCreate(s)}>
+                    <Icon name="clock" size="sm" />
+                    <span className="tm">{t("availability.day.segments.row", { start: s.start, end: s.end })}</span>
+                    <span className="du">{t(dur.key, dur.values)}</span>
+                    {day.segments.length >= 2 && longest === s ? <span className="tag" data-testid="free-longest">{t("availability.day.segments.longest")}</span> : null}
+                    <Icon name="chevron-right" size="sm" />
+                  </button>
                 </li>
               );
             })}
           </ul>
+          <p className="av-hint" data-testid="free-segments-hint">
+            {t("availability.day.segments.hint")}
+          </p>
+          {data.truncated ? (
+            <p className="av-hint av-truncated" data-testid="free-truncated-note">
+              <Icon name="info" size="sm" />
+              <span>{t("availability.day.truncatedNote")}</span>
+            </p>
+          ) : null}
         </>
       ) : null}
 
@@ -163,12 +179,18 @@ export function FreeDetail({ day, data, myId, variant, hintId }: FreeDetailProps
         <Icon name="info" size="sm" />
         <span>{t("availability.explain")}</span>
       </p>
+      {data.truncated && day.segments.length === 0 ? (
+        <p className="av-hint av-truncated" data-testid="free-truncated-note">
+          <Icon name="info" size="sm" />
+          <span>{t("availability.day.truncatedNote")}</span>
+        </p>
+      ) : null}
       {variant === "sheet" ? (
         <p className="av-hint" id={hintId}>
-          {t("availability.cta.soonHint")}
+          {t(day.allFree ? "availability.cta.createHintAll" : "availability.cta.createHintOther")}
         </p>
       ) : (
-        <CreateCta hintId={hintId} withHint />
+        <CreateCta hintId={hintId} withHint allFree={day.allFree} onCreate={() => onCreate(null)} />
       )}
     </div>
   );

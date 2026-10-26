@@ -68,6 +68,18 @@ export const ROUTE_MANIFEST = [
   { method: 'DELETE', path: '/api/me/busy/:id', action: 'busy.delete', auth: 'actor', owner: 'platform' },
   { method: 'GET', path: '/api/groups/:gid/calendar', action: 'group.calendar.view', auth: 'actor', owner: 'platform' },
   { method: 'GET', path: '/api/groups/:gid/availability', action: 'group.availability.view', auth: 'actor', owner: 'platform' },
+  // ── U10–U11, D11, ADR 0007 (R4B · Platform) ──
+  { method: 'POST', path: '/api/groups/:gid/appointments', action: 'appointment.create', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/groups/:gid/appointments', action: 'appointment.view', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/groups/:gid/appointments/check', action: 'appointment.create', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/appointments/:id', action: 'appointment.view', auth: 'actor', owner: 'platform' },
+  { method: 'PATCH', path: '/api/appointments/:id', action: 'appointment.update', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/appointments/:id/cancel', action: 'appointment.cancel', auth: 'actor', owner: 'platform' },
+  { method: 'PUT', path: '/api/appointments/:id/rsvp', action: 'appointment.rsvp', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/me/appointments', action: 'appointment.list.mine', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/me/notifications', action: 'notification.list.own', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/me/notifications/read', action: 'notification.markRead.own', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/places/search', action: 'place.search', auth: 'actor', owner: 'platform' },
 ] as const satisfies readonly ManifestEntry[];
 
 export function findRoute(method: string, path: string): ManifestEntry | undefined {

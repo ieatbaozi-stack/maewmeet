@@ -67,6 +67,12 @@ export async function listMembers(db: DbOrTx, groupId: string): Promise<MemberWi
   return rows.map((r) => ({ ...r.m, displayName: r.displayName }));
 }
 
+/** user id ของสมาชิกปัจจุบันทั้งกลุ่ม (เบา — ไม่ join ตาราง user) */
+export async function listMemberIds(db: DbOrTx, groupId: string): Promise<string[]> {
+  const rows = await db.select({ userId: groupMember.userId }).from(groupMember).where(eq(groupMember.groupId, groupId)).orderBy(asc(groupMember.userId));
+  return rows.map((r) => r.userId);
+}
+
 export async function insertAdminMember(db: DbOrTx, groupId: string, userId: string, now: number): Promise<void> {
   await db.insert(groupMember).values({ groupId, userId, role: 'admin', joinedAt: now });
 }
