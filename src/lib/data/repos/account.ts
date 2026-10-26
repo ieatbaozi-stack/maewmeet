@@ -84,7 +84,7 @@ export type PurgeCounts = {
  * ลบ/ปิดร่องรอยของผู้ใช้ที่ถูกลบ (R5_CONTRACT §2 ข้อ 2) — เรียกในธุรกรรมเดียวกับ markUserDeletedGuarded
  *  - session ทั้งหมด · สมาชิกภาพทุกกลุ่ม (รวมกลุ่มที่ลบแล้ว) · busy ทั้งหมด · RSVP · notification + outbox ของตัวเอง
  *  - คำเชิญ/โค้ดที่ผู้ใช้สร้างและยัง active → revoked · คำเชิญตรงที่ส่งถึงผู้ใช้และยัง active → declined (ไม่แจ้งผู้เชิญ)
- *  - คำขอ reset PIN ที่ค้าง (pending/approved) → cancelled · ตัวนับ login ของ username เดิม (ผู้สมัครชื่อนี้ใหม่ต้องไม่รับล็อกไปด้วย)
+ *  - คำขอ reset PIN ที่ค้าง (pending/approved) → cancelled · อุปกรณ์/ประเทศของคำขอทุกแถว → NULL · ตัวนับ login ของ username เดิม (ผู้สมัครชื่อนี้ใหม่ต้องไม่รับล็อกไปด้วย)
  *  - ชื่อของผู้ใช้ใน params ของแจ้งเตือนคนอื่น (inviterName / inviteeName ที่เก็บ ณ เวลาเกิด) → '' (UI แสดง "บัญชีที่ถูกลบ")
  * นัดที่ผู้ใช้สร้างยังอยู่ (created_by ชี้ id เดิม — serializer แสดงผู้สร้างเป็น null เพราะไม่ใช่สมาชิกแล้ว)
  */
@@ -125,6 +125,8 @@ export async function purgeDeletedUserFootprint(
     .set({ status: 'cancelled' })
     .where(and(eq(pinResetRequest.userId, userId), inArray(pinResetRequest.status, ['pending', 'approved'])))
     .returning({ id: pinResetRequest.id });
+  // ข้อมูลอุปกรณ์/ประเทศของคำขอ reset ทุกแถวของผู้ใช้ (ทุกสถานะ) → NULL · แถวคงไว้เพื่อความปลอดภัย (สถานะ + เวลา) — QA R5 L2 / Sec Info 2
+  await db.update(pinResetRequest).set({ requesterUa: null, requesterCountry: null }).where(eq(pinResetRequest.userId, userId));
   await db.delete(loginThrottle).where(eq(loginThrottle.key, input.loginThrottleKey));
 
   return {

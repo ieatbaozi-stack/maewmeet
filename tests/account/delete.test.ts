@@ -120,8 +120,13 @@ describe('สำเร็จ — ทุกข้อใน §2.2 ตรวจจ�
     const toB = await post<{ invite: { id: string } }>(c.c, `/api/groups/${g4}/invites/direct`, { username: 'bob' });
     expect(toB.status).toBe(201);
     await h.rows(
-      "INSERT INTO pin_reset_request (id, user_id, status, device_token_hash, requested_at, pending_expires_at) VALUES ('rq-b', ?, 'pending', 'x', ?, ?)",
+      "INSERT INTO pin_reset_request (id, user_id, status, device_token_hash, requester_ua, requester_country, requested_at, pending_expires_at) VALUES ('rq-b', ?, 'pending', 'x', 'iPhone · Safari', 'TH', ?, ?)",
       [b.id, h.clock.now(), h.clock.now() + 7 * 86_400_000],
+    );
+    // คำขอเก่าที่ปิดไปแล้ว (rejected) — ข้อมูลอุปกรณ์/ประเทศก็ต้องถูกล้างด้วย
+    await h.rows(
+      "INSERT INTO pin_reset_request (id, user_id, status, device_token_hash, requester_ua, requester_country, requested_at, pending_expires_at) VALUES ('rq-old', ?, 'rejected', 'y', 'Android · Chrome', 'JP', ?, ?)",
+      [b.id, h.clock.now() - 86_400_000, h.clock.now()],
     );
     const second = new Client();
     expect((await second.login('bob', GOOD_PIN)).status).toBe(200);
@@ -155,6 +160,11 @@ describe('สำเร็จ — ทุกข้อใน §2.2 ตรวจจ�
     expect(await h.count("group_invite WHERE created_by = ? AND status = 'revoked'", [b.id])).toBe(2);
     expect((await h.rows<{ status: string }>('SELECT status FROM group_invite WHERE id = ?', [toB.data.invite.id]))[0]!.status).toBe('declined');
     expect((await h.rows<{ status: string }>("SELECT status FROM pin_reset_request WHERE id = 'rq-b'"))[0]!.status).toBe('cancelled');
+    // QA R5 L2 / Sec Info 2: แถวคงไว้ (สถานะ + เวลา) แต่อุปกรณ์/ประเทศถูกล้างทุกแถว
+    expect(await h.rows("SELECT id, status, requester_ua, requester_country FROM pin_reset_request WHERE user_id = ? ORDER BY id", [b.id])).toEqual([
+      { id: 'rq-b', status: 'cancelled', requester_ua: null, requester_country: null },
+      { id: 'rq-old', status: 'rejected', requester_ua: null, requester_country: null },
+    ]);
     // นัดยังอยู่ · admin ของทุกกลุ่มยังอยู่ครบ (กลุ่มละ 1)
     expect(await h.count("appointment WHERE id = ? AND status = 'active'", [appt.id])).toBe(1);
     for (const g of [g1, g2, g3, g4]) expect(await h.count("group_member WHERE group_id = ? AND role = 'admin'", [g])).toBe(1);
