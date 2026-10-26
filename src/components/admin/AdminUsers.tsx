@@ -121,6 +121,8 @@ export function AdminUsers({ meId }: { meId: string }) {
             {list.items.map((u) => {
               const self = u.id === meId;
               const actionable = !self && !u.isAdmin && u.status !== "deleted";
+              // ปลดล็อก: ผู้ใช้ทั่วไปหรือตัวเอง · super admin คนอื่นไม่ได้ (เซิร์ฟเวอร์ตอบ 403)
+              const unlockable = u.locked && u.status !== "deleted" && (self || !u.isAdmin);
               return (
                 <li className="admin-card" key={u.id} data-testid="admin-user" data-username={u.username} data-status={u.status}>
                   <div className="admin-card-top">
@@ -163,7 +165,7 @@ export function AdminUsers({ meId }: { meId: string }) {
                       <span>{t("adminUsers.joined", { date: date(u.createdAt) })}</span>
                     </li>
                   </ul>
-                  {actionable || (u.locked && u.status !== "deleted") ? (
+                  {actionable || unlockable ? (
                     <div className="admin-card-actions">
                       {actionable ? (
                         u.status === "suspended" ? (
@@ -177,7 +179,7 @@ export function AdminUsers({ meId }: { meId: string }) {
                           </button>
                         )
                       ) : null}
-                      {u.locked ? (
+                      {unlockable ? (
                         <button type="button" className="btn btn-secondary" aria-label={t("adminUsers.unlockFor", { username: u.username })} onClick={() => open("unlock", u)}>
                           <Icon name="lock" />
                           <span>{t("adminUsers.unlock")}</span>
