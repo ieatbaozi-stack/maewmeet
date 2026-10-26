@@ -9,7 +9,7 @@ import { LOCALES, msg } from './support/messages';
 type Shell = { name: string; path: string; status: number; h1: string; tab?: 'home' | 'calendar' | 'groups' | 'me'; signedIn?: boolean };
 
 const PAGES: readonly Shell[] = [
-  { name: 'หน้าหลัก', path: '/', status: 200, signedIn: true, h1: 'empty.home.title', tab: 'home' },
+  { name: 'หน้าหลัก', path: '/', status: 200, signedIn: true, h1: 'empty.homeNoGroup.title', tab: 'home' },
   { name: 'ปฏิทิน', path: '/calendar', status: 200, signedIn: true, h1: 'nav.calendar', tab: 'calendar' },
   { name: 'กลุ่ม', path: '/groups', status: 200, signedIn: true, h1: 'nav.groups', tab: 'groups' },
   { name: 'ฉัน', path: '/me', status: 200, signedIn: true, h1: 'nav.me', tab: 'me' },
