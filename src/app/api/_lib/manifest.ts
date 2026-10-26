@@ -83,6 +83,13 @@ export const ROUTE_MANIFEST = [
   // ── U12–U13 (R5 · Platform + Auth & Access) ──
   { method: 'PATCH', path: '/api/me', action: 'self.update', auth: 'actor', owner: 'platform' },
   { method: 'POST', path: '/api/me/delete', action: 'self.delete', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/admin/users', action: 'admin.user.list', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/admin/users/:id/suspend', action: 'admin.user.suspend', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/admin/users/:id/unsuspend', action: 'admin.user.suspend', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/admin/users/:id/unlock', action: 'admin.user.unlock', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/admin/groups', action: 'admin.group.list', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/admin/groups/:gid', action: 'admin.group.view', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/admin/audit', action: 'admin.audit.view', auth: 'actor', owner: 'platform' },
 ] as const satisfies readonly ManifestEntry[];
 
 export function findRoute(method: string, path: string): ManifestEntry | undefined {
