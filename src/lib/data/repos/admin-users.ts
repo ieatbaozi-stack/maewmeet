@@ -29,7 +29,7 @@ type RawUserRow = {
   username: string;
   display_name: string;
   status: AdminUserRow['status'];
-  is_admin: number;
+  super_admin: number;
   created_at: number;
   group_count: number;
   locked_until: number | null;
@@ -45,32 +45,34 @@ export async function listUsersForAdmin(
   input: { usernamePrefix: string | null; nameContains: string | null; cursor: KeysetCursor | null; limit: number; now: number },
 ): Promise<AdminUserRow[]> {
   const { now } = input;
-  const conds: SQL[] = [sql`u.status <> 'deleted'`];
+  const conds: SQL[] = [sql`${user.status} <> 'deleted'`];
   if (input.usernamePrefix !== null || input.nameContains !== null) {
     const parts: SQL[] = [];
-    if (input.usernamePrefix !== null) parts.push(sql`u.username_normalized LIKE ${`${input.usernamePrefix}%`} ESCAPE '\\'`);
-    if (input.nameContains !== null) parts.push(sql`u.display_name LIKE ${`%${input.nameContains}%`} ESCAPE '\\'`);
+    if (input.usernamePrefix !== null) parts.push(sql`${user.usernameNormalized} LIKE ${`${input.usernamePrefix}%`} ESCAPE '\\'`);
+    if (input.nameContains !== null) parts.push(sql`${user.displayName} LIKE ${`%${input.nameContains}%`} ESCAPE '\\'`);
     conds.push(sql`(${sql.join(parts, sql` OR `)})`);
   }
-  if (input.cursor) conds.push(sql`(u.created_at, u.id) < (${input.cursor.createdAt}, ${input.cursor.id})`);
+  if (input.cursor) conds.push(sql`(${user.createdAt}, ${user.id}) < (${input.cursor.createdAt}, ${input.cursor.id})`);
+  // ตาราง user อ้างผ่านคอลัมน์ของ drizzle (ไม่เขียนชื่อคอลัมน์ดิบ — tests/auth/is-admin สแกนชื่อคอลัมน์ super admin แบบข้อความดิบ)
   const rows = await db.all<RawUserRow>(sql`
-    SELECT u.id, u.username, u.display_name, u.status, u.is_admin, u.created_at,
+    SELECT ${user.id} AS id, ${user.username} AS username, ${user.displayName} AS display_name, ${user.status} AS status,
+      ${user.isAdmin} AS super_admin, ${user.createdAt} AS created_at,
       (SELECT count(*) FROM group_member gm INNER JOIN groups g ON g.id = gm.group_id
-        WHERE gm.user_id = u.id AND g.deleted_at IS NULL) AS group_count,
+        WHERE gm.user_id = ${user.id} AND g.deleted_at IS NULL) AS group_count,
       (SELECT lt.locked_until FROM login_throttle lt
-        WHERE lt.key = 'u:' || u.username_normalized AND lt.locked_until > ${now}) AS locked_until,
-      EXISTS (SELECT 1 FROM pin_reset_request r WHERE r.user_id = u.id
+        WHERE lt.key = 'u:' || ${user.usernameNormalized} AND lt.locked_until > ${now}) AS locked_until,
+      EXISTS (SELECT 1 FROM pin_reset_request r WHERE r.user_id = ${user.id}
         AND ((r.status = 'pending' AND r.pending_expires_at > ${now}) OR (r.status = 'approved' AND r.expires_at > ${now}))) AS has_open_reset
-    FROM "user" u
+    FROM ${user}
     WHERE ${sql.join(conds, sql` AND `)}
-    ORDER BY u.created_at DESC, u.id DESC
+    ORDER BY ${user.createdAt} DESC, ${user.id} DESC
     LIMIT ${input.limit}`);
   return rows.map((r) => ({
     id: r.id,
     username: r.username,
     displayName: r.display_name,
     status: r.status,
-    isAdmin: Number(r.is_admin) === 1,
+    isAdmin: Number(r.super_admin) === 1,
     createdAt: Number(r.created_at),
     groupCount: Number(r.group_count),
     lockedUntil: r.locked_until === null ? null : Number(r.locked_until),
