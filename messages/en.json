@@ -1123,7 +1123,7 @@
       "save": "Save name",
       "saving": "Saving…",
       "done": "Display name updated",
-      "invalid": "{reason, select, TOO_SHORT {Enter at least 1 character.} TOO_LONG {Names can be up to {max} characters.} other {This name has characters we can’t use. Try typing it instead of pasting.}}",
+      "invalid": "{reason, select, TOO_SHORT {Enter at least 1 character.} TOO_LONG {Names can be up to {max} characters.} RESERVED {That name is used by the app itself. Pick another one.} other {This name has characters we can’t use. Try typing it instead of pasting.}}",
       "rateLimited": "You’ve changed your name {perDay} times today. Try again tomorrow."
     },
     "delete": {

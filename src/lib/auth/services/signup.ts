@@ -6,7 +6,7 @@ import { authorize } from '@/lib/rbac/can';
 import type { Actor } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
-import { checkVisibleName } from '@/lib/shared/name-rules';
+import { checkDisplayName } from '@/lib/shared/name-rules';
 import type { AuthCtx } from '../context';
 import { assertAcceptableNewPin, DISPLAY_NAME_MAX, parseNewUsername, USERNAME_MAX_INPUT } from '../pin-rules';
 import { currentPepper, requirePepper } from '../pepper';
@@ -34,7 +34,7 @@ export async function signup(actor: Actor, input: SignupInput, ctx: AuthCtx): Pr
 
   const { username, usernameNormalized } = parseNewUsername(input.username);
   // กติกาตัวอักษรเดียวกับชื่อกลุ่ม (bidi/zero-width/ตัวมองไม่เห็น/ตัวควบคุม/เครื่องหมายผสมเกิน → INVALID)
-  const checked = checkVisibleName(input.displayName, { min: 1, max: DISPLAY_NAME_MAX });
+  const checked = checkDisplayName(input.displayName, { min: 1, max: DISPLAY_NAME_MAX }); // + ห้ามป้ายของระบบ (R5 Sec L5)
   if (!checked.ok) throw new AppError('VALIDATION', { fields: { displayName: checked.reason } });
   const displayName = checked.name;
   assertAcceptableNewPin(input.pin);

@@ -1,5 +1,5 @@
 // service: บัญชีของฉัน — U13 · R5_CONTRACT §2 ข้อ 1–2
-//  PATCH /api/me (self.update): ชื่อที่แสดงด้วยกติกาเดียวกับสมัคร (checkVisibleName 1–40) · 10 ครั้ง/วัน/ผู้ใช้ (นับเฉพาะที่เปลี่ยนจริง) · ไม่ audit
+//  PATCH /api/me (self.update): ชื่อที่แสดงด้วยกติกาเดียวกับสมัคร (checkDisplayName 1–40 + ห้ามป้ายของระบบ) · 10 ครั้ง/วัน/ผู้ใช้ (นับเฉพาะที่เปลี่ยนจริง) · ไม่ audit
 //  POST /api/me/delete (self.delete):
 //    authorize (ด่านบัญชี + super admin → 403) → ถือ admin กลุ่มที่ยังอยู่ → 409 ADMIN_TRANSFER_REQUIRED {groups} (ยังไม่แตะ PIN/throttle) →
 //    PIN ปัจจุบัน (จองช่อง IP + username ก่อน verify — ตัวนับชุดเดียวกับ login: ผิดนับ, ถูกล้าง) →
@@ -23,7 +23,7 @@ import type { DbOrTx } from '@/db/client';
 import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
 import { ACCOUNT_RATE_LIMITS } from '@/lib/shared/limits';
-import { checkVisibleName, sanitizeDisplayText } from '@/lib/shared/name-rules';
+import { checkDisplayName, sanitizeDisplayText } from '@/lib/shared/name-rules';
 import { takeUserSlot } from '../admin-input';
 import { inTx, serialized } from '../tx';
 import { asUser } from './group-common';
@@ -38,7 +38,7 @@ export async function updateMe(actor: Actor, input: UpdateMeInput, ctx: AuthCtx)
   authorize(actor, 'self.update', { type: 'none' });
   const me = asUser(actor);
   const { db, now } = ctx;
-  const checked = checkVisibleName(input.displayName, { min: 1, max: DISPLAY_NAME_MAX });
+  const checked = checkDisplayName(input.displayName, { min: 1, max: DISPLAY_NAME_MAX }); // + ห้ามป้ายของระบบ (R5 Sec L5)
   if (!checked.ok) throw new AppError('VALIDATION', { fields: { displayName: checked.reason } });
 
   const current = await findUserById(db, me.id);
