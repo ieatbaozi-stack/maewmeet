@@ -1372,7 +1372,7 @@
       "busy": "Busy time you add: dates and times, what you’re doing, and private notes.",
       "groups": "The groups you’re in and your role, plans (title, time, place and any coordinates), your replies to plans, and in-app notifications.",
       "security": "Security data: your sign-ins on each device (including browser details), a wrong-PIN counter, per-IP rate counters stored as a hash rather than the IP itself, PIN reset requests (time, short device name, country), and a log of important actions (the audit log).",
-      "cookies": "Only the cookies the app needs: your sign-in (lasts 60 days), language, theme, and a device cookie when you request a PIN reset."
+      "cookies": "Only the cookies the app needs: your sign-in (expires within 60 days of your last use), language, theme, and a device cookie when you request a PIN reset."
     },
     "see": {
       "title": "Who sees what",
@@ -1393,7 +1393,7 @@
       "title": "How long we keep it",
       "busy": "Busy time that ended more than 90 days ago is deleted automatically.",
       "notifications": "Notifications older than 90 days are deleted automatically.",
-      "sessions": "Sign-ins expire after 60 days.",
+      "sessions": "Sign-ins expire within 60 days of your last use.",
       "security": "PIN reset requests and the audit log are kept for security, with no deletion date yet.",
       "groups": "Groups and plans are kept until they’re deleted. A deleted group is hidden from everyone but not yet removed from the database.",
       "providers": "The app runs on outside hosting and database providers, so the data above is stored and processed by them."
