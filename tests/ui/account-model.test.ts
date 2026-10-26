@@ -12,6 +12,7 @@ import {
   renameLocalProblem,
   shortId,
   shownName,
+  shownUsername,
   transferGroupsOf,
   visibleMeta,
 } from '@/components/account/model';
@@ -26,11 +27,19 @@ const get = (tree: unknown, key: string): unknown => key.split('.').reduce<unkno
 const fail = (code: string, params: Record<string, unknown> = {}, status = 400) =>
   ({ ok: false, kind: 'api', status, error: apiErrorMessage({ error: { code, params } }), params }) as const;
 
-describe('shownName', () => {
-  it('ชื่อว่าง / มีแต่ช่องว่าง / username deleted-<id> / null → ป้ายบัญชีที่ถูกลบ', () => {
-    for (const v of ['', '   ', 'deleted-0f2c', null, undefined]) expect(shownName(v, 'DEL')).toBe('DEL');
+describe('shownName (displayName) / shownUsername (audit)', () => {
+  it('displayName: ว่าง / มีแต่ช่องว่าง / null → ป้ายบัญชีที่ถูกลบ', () => {
+    for (const v of ['', '   ', null, undefined]) expect(shownName(v, 'DEL')).toBe('DEL');
   });
-  it('ชื่อจริงคงเดิม', () => expect(shownName('ปาล์ม', 'DEL')).toBe('ปาล์ม'));
+  it('QA M1: ผู้ใช้ที่ยังอยู่ตั้งชื่อ deleted-totally-real → แสดงชื่อนั้นตรงตัว (ปลอมเป็นบัญชีที่ลบไม่ได้)', () => {
+    expect(shownName('deleted-totally-real', 'DEL')).toBe('deleted-totally-real');
+    expect(shownName('ปาล์ม', 'DEL')).toBe('ปาล์ม');
+  });
+  it('username: deleted-<id> / ว่าง → ป้าย · username จริงคงเดิม', () => {
+    expect(shownUsername('deleted-0f2c4a1e-1111-4222-8333-444455556666', 'DEL')).toBe('DEL');
+    expect(shownUsername('', 'DEL')).toBe('DEL');
+    expect(shownUsername('palm_99', 'DEL')).toBe('palm_99');
+  });
 });
 
 describe('transferGroupsOf (409 ADMIN_TRANSFER_REQUIRED)', () => {

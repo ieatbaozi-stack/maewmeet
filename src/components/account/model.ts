@@ -11,12 +11,21 @@ type Failure = Extract<RawResult<unknown>, { ok: false }>;
 export const DELETED_USERNAME_PREFIX = "deleted-";
 
 /**
- * ชื่อที่จะแสดง: ชื่อว่าง (บัญชีที่ถูกลบ → display_name = '') หรือ username แบบ deleted-<id> → ป้าย "บัญชีที่ถูกลบ"
- * ไม่ trim ชื่อจริง (ชื่อที่ผ่านกติกามีตัวอักษรที่มองเห็นเสมอ)
+ * ชื่อที่แสดง (displayName) → ป้าย "บัญชีที่ถูกลบ" **เฉพาะเมื่อว่าง** (เซิร์ฟเวอร์ล้าง display_name เป็น '' ตอนลบบัญชี)
+ * ไม่ดูคำนำหน้า `deleted-` — ผู้ใช้ตั้งชื่อที่แสดงขึ้นต้นแบบนั้นได้ จึงปลอมเป็นบัญชีที่ลบไม่ได้ (QA R5 M1)
  */
 export function shownName(name: string | null | undefined, deletedLabel: string): string {
-  if (typeof name !== "string" || name.trim() === "" || name.startsWith(DELETED_USERNAME_PREFIX)) return deletedLabel;
+  if (typeof name !== "string" || name.trim() === "") return deletedLabel;
   return name;
+}
+
+/**
+ * username (เช่น ผู้ทำใน audit) → ป้าย "บัญชีที่ถูกลบ" เมื่อเป็น `deleted-<id>` (repos/account.ts) หรือว่าง
+ * username จริงมี `-` ไม่ได้ (a–z 0–9 . _) จึงชนกับผู้ใช้จริงไม่ได้
+ */
+export function shownUsername(username: string | null | undefined, deletedLabel: string): string {
+  if (typeof username !== "string" || username.trim() === "" || username.startsWith(DELETED_USERNAME_PREFIX)) return deletedLabel;
+  return username;
 }
 
 export type GroupRef = { id: string; name: string };

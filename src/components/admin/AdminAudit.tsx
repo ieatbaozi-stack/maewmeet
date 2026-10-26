@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useId, useState, type FormEvent } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import "@/components/groups/groups.css";
-import { AUDIT_ID_KEYS, queryString, shortId, shownName, visibleMeta, type AuditMetaKey, type AuditMetaValue } from "@/components/account/model";
+import { AUDIT_ID_KEYS, queryString, shortId, shownUsername, visibleMeta, type AuditMetaKey, type AuditMetaValue } from "@/components/account/model";
 import { SelectField } from "@/components/groups/SelectField";
 import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
@@ -51,7 +51,7 @@ export function AdminAudit() {
     setApplied(next);
   }
 
-  const actorName = (a: { username: string } | null) => (a ? shownName(a.username, t("account.deletedName")) : t("adminAudit.system"));
+  const actorName = (a: { username: string } | null) => (a ? shownUsername(a.username, t("account.deletedName")) : t("adminAudit.system"));
   const when = (ms: number) => format.dateTime(ms, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const actionLabel = (action: string) => {
     const key = auditActionKey(action);
