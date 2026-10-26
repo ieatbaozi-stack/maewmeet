@@ -9,6 +9,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { MemberAvatar } from "@/components/groups/MemberAvatar";
 import { Icon } from "@/components/icons/Icon";
 import { Name, withNames } from "@/components/Name";
+import { shownName } from "@/components/account/model";
 import { OpenInMaps, PlaceMap } from "@/components/places/PlaceMap";
 import { hasCoords } from "@/components/places/map-model";
 import { Sheet } from "@/components/shell/Sheet";
@@ -134,7 +135,7 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
             <div>
               <b>
                 {a.cancelledBy
-                  ? withNames((n) => t("appointments.cancelled.banner", { name: n.name, when: a.cancelledAt !== null ? dateTime(a.cancelledAt) : "" }), { name: a.cancelledBy.displayName })
+                  ? withNames((n) => t("appointments.cancelled.banner", { name: n.name, when: a.cancelledAt !== null ? dateTime(a.cancelledAt) : "" }), { name: shownName(a.cancelledBy.displayName, t("account.deletedName")) })
                   : t("appointments.cancelled.bannerGone", { when: a.cancelledAt !== null ? dateTime(a.cancelledAt) : "" })}
               </b>
               <span>{t("appointments.cancelled.hint")}</span>
@@ -218,7 +219,7 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
                       <li key={p.userId}>
                         <MemberAvatar displayName={p.displayName} colorIndex={p.colorIndex} size="sm" />
                         <span className="nm">
-                          <Name>{p.displayName}</Name>
+                          <Name>{shownName(p.displayName, t("account.deletedName"))}</Name>
                           {p.userId === me.userId ? <span className="you">({t("group.members.you")})</span> : null}
                         </span>
                       </li>
@@ -265,7 +266,7 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
 
         <p className="appt-created appt-wide" data-testid="appt-created-by">
           {a.createdBy
-            ? withNames((n) => t("appointments.detail.createdBy", { name: n.name, date: format(a.createdAt, { locale, style: "date-medium", tz: a.tz }) }), { name: a.createdBy.displayName })
+            ? withNames((n) => t("appointments.detail.createdBy", { name: n.name, date: format(a.createdAt, { locale, style: "date-medium", tz: a.tz }) }), { name: shownName(a.createdBy.displayName, t("account.deletedName")) })
             : t("appointments.detail.createdByGone", { date: format(a.createdAt, { locale, style: "date-medium", tz: a.tz }) })}
         </p>
       </main>

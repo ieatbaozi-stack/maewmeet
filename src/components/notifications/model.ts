@@ -99,14 +99,22 @@ const str = (v: unknown): string | null => (typeof v === "string" && v.trim() !=
 const id = (v: unknown): string | null => (typeof v === "string" && ID.test(v) ? v : null);
 const ms = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
+/**
+ * ชื่อคนในแจ้งเตือน: บัญชีที่ถูกลบมีชื่อเป็น '' (repos/account.ts ล้างชื่อใน params ของแจ้งเตือนคนอื่น) → ป้าย "บัญชีที่ถูกลบ"
+ * ไม่มีป้ายให้ (deletedName ว่าง) หรือค่าไม่ใช่ string → null ตามเดิม
+ */
+const personName = (v: unknown, deletedName: string): string | null =>
+  typeof v === "string" && v.trim() === "" && deletedName !== "" ? deletedName : str(v);
+
 const UNKNOWN: NotificationView = { known: false, messageKey: "notifications.unknown", values: {}, icon: "info", tone: "plain", href: null };
 
 /**
  * แจ้งเตือนหนึ่งแถว → ข้อความ + ค่า ICU + ไอคอน + ปลายทาง
  * ชนิดไม่รู้จัก หรือ params ไม่ครบ/ผิดชนิด → notifications.unknown (ไม่เดา ไม่โชว์ค่าดิบ)
+ * ชื่อคนว่าง (บัญชีที่ถูกลบ) → deletedName (ป้าย "บัญชีที่ถูกลบ" ที่แปลแล้ว)
  * ปลายทาง: appointment.* → /appointments/<id> · invite.received → /groups · accepted|declined → /groups/<gid> · pin_reset.* → /me
  */
-export function notificationView(kind: string, params: Record<string, unknown>, locale: CalendarLocale): NotificationView {
+export function notificationView(kind: string, params: Record<string, unknown>, locale: CalendarLocale, deletedName = ""): NotificationView {
   switch (kind) {
     case "appointment.created": {
       const groupName = str(params.groupName);
@@ -125,7 +133,7 @@ export function notificationView(kind: string, params: Record<string, unknown>, 
     }
     case "group.invite.received": {
       const groupName = str(params.groupName);
-      const inviterName = str(params.inviterName);
+      const inviterName = personName(params.inviterName, deletedName);
       if (!groupName || !inviterName) return UNKNOWN;
       return {
         known: true,
@@ -139,7 +147,7 @@ export function notificationView(kind: string, params: Record<string, unknown>, 
     case "group.invite.accepted":
     case "group.invite.declined": {
       const groupName = str(params.groupName);
-      const inviteeName = str(params.inviteeName);
+      const inviteeName = personName(params.inviteeName, deletedName);
       const gid = id(params.groupId);
       if (!groupName || !inviteeName || !gid) return UNKNOWN;
       const accepted = kind === "group.invite.accepted";

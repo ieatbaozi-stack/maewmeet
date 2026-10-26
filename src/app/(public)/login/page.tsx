@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Aurora, Logo } from "@/components/brand";
@@ -38,6 +39,11 @@ export default async function LoginPage() {
           <h1>{t("login.title")}</h1>
         </div>
         <LoginForm reset={reset} />
+        <p className="link-row login-privacy">
+          <Link href="/privacy" data-testid="login-privacy">
+            {t("login.privacy")}
+          </Link>
+        </p>
       </main>
     </>
   );

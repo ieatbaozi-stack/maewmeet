@@ -292,7 +292,7 @@ function LoadingBlock() {
 
 function Row({ item, nowMs, locale, onOpen }: { item: NotificationItem; nowMs: number; locale: CalendarLocale; onOpen: (i: NotificationItem) => void }) {
   const t = useTranslations();
-  const view = notificationView(item.kind, item.params, locale);
+  const view = notificationView(item.kind, item.params, locale, t("account.deletedName"));
   const tl = timeLabel(item.createdAt, nowMs, locale);
   const isUnread = item.readAt === null;
   const className = `notif-row${isUnread ? " is-unread" : ""}`;
