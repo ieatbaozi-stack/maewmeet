@@ -44,6 +44,10 @@ describe('OPERATIONS I3 — SQL ลบบัญชีด้วยมือ', () 
     const g2 = await makeGroup(a, 'ก๊วนสอง');
     expect((await post(a.c, `/api/groups/${g2}/invites/direct`, { username: 'bob' })).status).toBe(201);
 
+    await h.rows(
+      "INSERT INTO pin_reset_request (id, user_id, status, device_token_hash, requester_ua, requester_country, requested_at, pending_expires_at) VALUES ('rq', ?, 'pending', 'x', 'iPhone · Safari', 'TH', ?, ?)",
+      [b.id, h.clock.now(), h.clock.now() + 86_400_000],
+    );
     const run = SQL.replaceAll('USER_ID', b.id);
     await h.db.$client.executeMultiple(run);
 
@@ -60,6 +64,7 @@ describe('OPERATIONS I3 — SQL ลบบัญชีด้วยมือ', () 
     expect(await h.count('notification WHERE user_id = ?', [b.id])).toBe(0);
     expect(await h.count("group_invite WHERE created_by = ? AND status = 'active'", [b.id])).toBe(0);
     expect(await h.count("group_invite WHERE invitee_user_id = ? AND status = 'active'", [b.id])).toBe(0);
+    expect(await h.count('pin_reset_request WHERE user_id = ? AND (requester_ua IS NOT NULL OR requester_country IS NOT NULL)', [b.id])).toBe(0);
     // นัดยังอยู่ · ผู้สร้างแสดงเป็น null (ไม่ใช่สมาชิกแล้ว)
     const view = await get<{ appointment: { createdBy: unknown } }>(a.c, `/api/appointments/${appt.id}`);
     expect(view.status).toBe(200);

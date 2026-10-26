@@ -415,6 +415,7 @@ UPDATE group_invite SET status = 'revoked', revoked_at = CAST(strftime('%s', 'no
  WHERE created_by = 'USER_ID' AND status = 'active' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
 UPDATE group_invite SET status = 'declined' WHERE invitee_user_id = 'USER_ID' AND kind = 'direct' AND status = 'active' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
 UPDATE pin_reset_request SET status = 'cancelled' WHERE user_id = 'USER_ID' AND status IN ('pending', 'approved') AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
+UPDATE pin_reset_request SET requester_ua = NULL, requester_country = NULL WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
 INSERT INTO audit_log (id, actor_id, action, target_type, target_id, group_id, meta, created_at)
  SELECT lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2) || '-' || substr('89ab', 1 + abs(random()) % 4, 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))), NULL, 'user.delete', 'user', 'USER_ID', NULL, NULL, CAST(strftime('%s', 'now') AS INTEGER) * 1000
   WHERE EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted') AND NOT EXISTS (SELECT 1 FROM audit_log WHERE action = 'user.delete' AND target_id = 'USER_ID');
