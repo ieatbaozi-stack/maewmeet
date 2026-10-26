@@ -8,7 +8,9 @@
 //   verify เสมอ (ไม่มีผู้ใช้/ไม่มี pin_hash = verify หลอกให้เวลาเท่ากัน) → ผิด: ตอบจากแถวที่จอง (นับไปแล้วตอนจอง) · ถูก: คืนช่อง IP + ล้างตัวนับ + session
 // ทุกกรณีที่ผิดตอบรหัสเดียว INVALID_CREDENTIALS + attemptsRemaining (username ไม่มี = PIN ผิด ทุกไบต์)
 import { z } from 'zod';
-import { findUserByUsernameNormalized, rehashUserPin, setMustChangePin, type UserRow } from '@/lib/data/repos/user';
+import type { Db } from '@/db/client';
+import { serialized } from '@/lib/data/tx';
+import { findUserById, findUserByUsernameNormalized, rehashUserPin, setMustChangePin, type UserRow } from '@/lib/data/repos/user';
 import { insertNotification } from '@/lib/data/repos/notification';
 import { cancelPendingPinResetOfUser, findUsableApprovedPinReset, markPinResetUsed, type PinResetRow } from '@/lib/data/repos/pin-reset-request';
 import { authorize } from '@/lib/rbac/can';
@@ -21,7 +23,7 @@ import { hashPin, verifyDummy, verifyPin } from '../pin';
 import { isPinFormat, normalizeUsername, RESET_PIN, USERNAME_MAX_INPUT } from '../pin-rules';
 import {
   clearResetCookie,
-  issueSession,
+  issueSessionIfActive,
   readResetDevice,
   sessionUserDto,
   type AuthCookie,
@@ -32,6 +34,7 @@ import { safeEqualHex, sha256Hex } from '../tokens';
 import {
   failedAttempt,
   releaseIpSlot,
+  type LoginAttempt,
   reserveIpSlot,
   reserveUsernameSlot,
   succeededAttempt,
@@ -53,6 +56,19 @@ type Credential =
   | { kind: 'normal'; userId: string }
   | { kind: 'reset'; userId: string; requestId: string };
 
+/** สถานะบัญชีเปลี่ยนระหว่าง verify PIN (ถูกระงับ/ลบ) — ไม่สร้าง session */
+class LoginRaceLost extends Error {}
+
+/**
+ * แพ้การแข่งกับการระงับ/ลบบัญชี: ตอบแบบเดียวกับกรณีปกติของสถานะนั้น — ระงับ → ACCOUNT_SUSPENDED · ลบ/อื่น ๆ → ความล้มเหลวของ login ปกติ
+ * (ไม่สร้าง session ไม่ล้างอะไรเพิ่ม)
+ */
+async function raceLost(db: Db, attempt: LoginAttempt, userId: string): Promise<AppError> {
+  const cur = await findUserById(db, userId);
+  if (cur?.status === 'suspended') return new AppError('ACCOUNT_SUSPENDED');
+  return serialized(db, () => failedAttempt(attempt));
+}
+
 export async function login(actor: Actor, input: LoginInput, ctx: AuthCtx): Promise<LoginResult> {
   authorize(actor, 'auth.login', { type: 'none' });
   const { db, now } = ctx;
@@ -72,7 +88,8 @@ export async function login(actor: Actor, input: LoginInput, ctx: AuthCtx): Prom
 
   // ── จองก่อน verify (S1): IP แล้ว username — ถูกปฏิเสธ = ไม่ verify เลย · ดู throttle.ts ──
   const throttleKey = usernameThrottleKey(usernameNormalized);
-  let attempt = await reserveIpSlot(db, ctx.req, ctx.appSecret, throttleKey, now);
+  // การเขียนตัวนับทั้งหมดผ่านคิว serialized (เหมือน services/account.ts) — ไม่ชนล็อกกับธุรกรรมที่กำลังเขียน (ระงับ/ลบบัญชี/โอน admin)
+  let attempt = await serialized(db, () => reserveIpSlot(db, ctx.req, ctx.appSecret, throttleKey, now));
 
   // เส้นทาง 123456: คำขอ reset ที่อนุมัติ + คุกกี้เครื่องตรง = ปัจจัยยืนยัน → ข้ามล็อก username ได้ (S3) แต่ยังกินโควตา IP
   // บัญชีไม่มีจริงก็ทำงานเท่ากัน (query/expire เดียวกันกับ user สมมติ) — ตอบเหมือนกัน
@@ -82,7 +99,10 @@ export async function login(actor: Actor, input: LoginInput, ctx: AuthCtx): Prom
     const device = readResetDevice(ctx.req, ctx.appSecret);
     if (live && found && device && safeEqualHex(sha256Hex(device.token), found.deviceTokenHash)) resetRequest = found;
   }
-  if (!resetRequest) attempt = await reserveUsernameSlot(attempt);
+  if (!resetRequest) {
+    const ip = attempt;
+    attempt = await serialized(db, () => reserveUsernameSlot(ip));
+  }
 
   // ── ตรวจ credential (ยังไม่มี side effect นอกจากที่จองไว้) ──
   let credential: Credential | null = null;
@@ -97,11 +117,11 @@ export async function login(actor: Actor, input: LoginInput, ctx: AuthCtx): Prom
     await verifyDummy(input.pin);
   }
 
-  if (!credential || !live) throw await failedAttempt(attempt);
+  if (!credential || !live) throw await serialized(db, () => failedAttempt(attempt));
 
   // credential ถูกต้อง: ระงับบัญชีบอกเฉพาะตอนนี้ (ไม่เปิดช่องไล่ชื่อ) · ผู้ถือ credential จริง → ไม่นับเป็นความผิด
   if (live.status === 'suspended') {
-    await succeededAttempt(attempt);
+    await serialized(db, () => succeededAttempt(attempt));
     throw new AppError('ACCOUNT_SUSPENDED');
   }
 
@@ -112,21 +132,24 @@ export async function login(actor: Actor, input: LoginInput, ctx: AuthCtx): Prom
   if (cred.kind === 'reset') {
     // S7: ใช้ reset = ธุรกรรมเดียว (ยึดสิทธิ์ approved→used + must_change_pin + session + ล้างตัวนับ) — สำเร็จพร้อมกันหรือไม่เลย
     // ใช้ได้ครั้งเดียว: UPDATE … WHERE status='approved' AND now < expires_at RETURNING — คนแพ้ได้ null (ไม่เขียนอะไร)
-    const issued = await db
-      .transaction(async (tx) => {
+    const issued = await serialized(db, () => db.transaction(async (tx) => {
         const used = await markPinResetUsed(tx, cred.requestId, now);
         if (!used) return null;
         await setMustChangePin(tx, live.id, true, now);
         await succeededAttempt(attempt, tx);
-        return issueSession(tx, live.id, ctx.req.headers.get('user-agent'), now);
-      })
+        const s = await issueSessionIfActive(tx, live.id, ctx.req.headers.get('user-agent'), now);
+        // บัญชีถูกลบ/ระงับระหว่าง verify → ยกเลิกทั้งธุรกรรม (คำขอ reset ไม่ถูกใช้)
+        if (!s) throw new LoginRaceLost();
+        return s;
+      }))
       .catch(async (e: unknown) => {
+        if (e instanceof LoginRaceLost) throw await raceLost(db, attempt, live.id);
         if (!isSqliteBusy(e)) throw e;
         // เขียนชนกัน: ธุรกรรม rollback ทั้งก้อน (ยังไม่ใช้คำขอ) → 409 ให้ลองใหม่ · คืนช่อง IP ที่จองไว้
         await releaseIpSlot(attempt).catch(() => undefined);
         throw new AppError('CONFLICT');
       });
-    if (!issued) throw await failedAttempt(attempt);
+    if (!issued) throw await serialized(db, () => failedAttempt(attempt));
     session = issued;
   } else {
     // ไม่ใช้ interactive transaction ในเส้นทางปกติ (ลดการชนกันของการเขียนพร้อมกัน)
@@ -142,8 +165,12 @@ export async function login(actor: Actor, input: LoginInput, ctx: AuthCtx): Prom
     if (cancelled) {
       await insertNotification(db, { id: newId(), userId: live.id, kind: 'pin_reset.cancelled_by_login' }, now);
     }
-    await succeededAttempt(attempt);
-    session = await issueSession(db, live.id, ctx.req.headers.get('user-agent'), now);
+    // สร้าง session เฉพาะเมื่อยัง active ในคำสั่งเดียว (แข่งกับลบบัญชี/ระงับที่ลบ session ไปแล้ว — R5 L1/L2)
+    // ผ่านคิว serialized เดียวกับธุรกรรมอื่นใน process (เหมือน services/account.ts) — ไม่ชนล็อกกับการระงับ/ลบที่กำลังเขียน
+    const issued = await serialized(db, () => issueSessionIfActive(db, live.id, ctx.req.headers.get('user-agent'), now));
+    if (!issued) throw await raceLost(db, attempt, live.id);
+    await serialized(db, () => succeededAttempt(attempt));
+    session = issued;
   }
 
   cookies.push(session.cookie);

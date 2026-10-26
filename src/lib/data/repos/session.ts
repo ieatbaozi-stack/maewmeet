@@ -1,6 +1,6 @@
 // repo: session — ADR 0002 §4 · `id` = SHA-256(token) hex (ผู้เรียก hash มาแล้ว ไม่มี token ดิบในไฟล์นี้)
 // อ่าน session = JOIN เดียวดึง status/is_admin/must_change_pin สดจาก DB ทุกครั้ง
-import { and, eq, gt, lte, ne } from 'drizzle-orm';
+import { and, eq, gt, lte, ne, sql } from 'drizzle-orm';
 import { session, user } from '@/db/schema';
 import type { DbOrTx } from '@/db/client';
 import { DAY_MS } from '@/lib/shared/clock';
@@ -44,7 +44,26 @@ export async function insertSession(
   return rows[0]!;
 }
 
-/** session ที่ยังไม่หมดอายุ (expires_at > now) + user สด · ไม่พบ/หมดอายุ → null */
+/**
+ * สร้าง session เฉพาะเมื่อบัญชียัง active — เงื่อนไขสถานะอยู่ใน INSERT … SELECT … WHERE EXISTS คำสั่งเดียว (Security R5 L1/L2)
+ * login ที่ verify PIN ช้า แข่งกับการลบบัญชี/การระงับที่ลบ session ไปแล้ว จึงสร้าง session ค้างไม่ได้ · ไม่ active → null
+ */
+export async function insertSessionIfUserActive(
+  db: DbOrTx,
+  input: { id: string; userId: string; userAgent?: string | null },
+  now: number,
+): Promise<SessionRow | null> {
+  const ua = input.userAgent ? input.userAgent.slice(0, SESSION_UA_MAX) : null;
+  const rows = await db.all<{ id: string }>(sql`
+    INSERT INTO session (id, user_id, created_at, expires_at, last_seen_at, user_agent)
+    SELECT ${input.id}, ${input.userId}, ${now}, ${now + SESSION_TTL_MS}, ${now}, ${ua}
+     WHERE EXISTS (SELECT 1 FROM user WHERE id = ${input.userId} AND status = 'active')
+    RETURNING id`);
+  if (rows.length !== 1) return null;
+  return { id: input.id, userId: input.userId, createdAt: now, expiresAt: now + SESSION_TTL_MS, lastSeenAt: now, userAgent: ua };
+}
+
+/** session ที่ยังไม่หมดอายุ (expires_at > now) + user สด · ไม่พบ/หมดอายุ/บัญชีถูกลบแล้ว → null (ถือเป็นผู้ไม่ได้ล็อกอิน — R5 L1) */
 export async function findSessionWithUser(db: DbOrTx, sessionId: string, now: number): Promise<SessionWithUser | null> {
   const rows = await db
     .select({
@@ -62,7 +81,7 @@ export async function findSessionWithUser(db: DbOrTx, sessionId: string, now: nu
     })
     .from(session)
     .innerJoin(user, eq(user.id, session.userId))
-    .where(and(eq(session.id, sessionId), gt(session.expiresAt, now)))
+    .where(and(eq(session.id, sessionId), gt(session.expiresAt, now), ne(user.status, 'deleted')))
     .limit(1);
   return rows[0] ?? null;
 }
