@@ -77,7 +77,11 @@ describe('allow-list ของ Turso URL — ตัวอย่าง placeholde
   });
 });
 
-describe('ความลับไม่อยู่ใน repo (working tree ที่ track + ทุก commit)', () => {
+// git log -p --all / อ่านทุกไฟล์ที่ track ช้าลงตามประวัติ — ตอนรันเต็มชุดบนเครื่อง CPU น้อยเกินงบ 5s ของ it() (QA R5 L7)
+// งบต่อเทสต์ของกลุ่มนี้ระบุชัด 120s · สิ่งที่ตรวจเหมือนเดิมทุกข้อ
+const GIT_SCAN_TIMEOUT_MS = 120_000;
+
+describe('ความลับไม่อยู่ใน repo (working tree ที่ track + ทุก commit)', { timeout: GIT_SCAN_TIMEOUT_MS }, () => {
   const PATTERNS: [string, RegExp][] = [
     ['JWT/Turso token', /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}/],
     ['Turso URL จริง', TURSO_REAL_URL],
