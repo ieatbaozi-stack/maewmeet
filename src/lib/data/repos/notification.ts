@@ -67,11 +67,12 @@ export async function insertNotificationRows(
 
 /**
  * แจ้งเตือนที่ผู้ใช้ "ควรเห็น": ชนิดที่เกี่ยวกับนัด (appointment.*) เห็นได้เฉพาะเมื่อยังเป็นสมาชิกของกลุ่มนั้นและกลุ่มยังไม่ถูกลบ
- * (ถูกลบออก/ออกเอง → ไม่เห็นชื่อนัดของกลุ่มเดิมอีก) · ชนิดอื่นเห็นเสมอ · ใช้ร่วมกันระหว่างรายการและจำนวนที่ยังไม่อ่าน
+ * (ถูกลบออก/ออกเอง → ไม่เห็นชื่อนัดของกลุ่มเดิมอีก · เกิดก่อน joined_at ปัจจุบัน = ของสมาชิกภาพรอบก่อน ซ่อนแม้กลับเข้ากลุ่มแล้ว) · ชนิดอื่นเห็นเสมอ · ใช้ร่วมกันระหว่างรายการและจำนวนที่ยังไม่อ่าน
  */
 const visibleToOwner: SQL = sql`(${notification.kind} NOT LIKE 'appointment.%' OR EXISTS (
   SELECT 1 FROM group_member gm INNER JOIN groups g ON g.id = gm.group_id
-  WHERE gm.user_id = ${notification.userId} AND g.deleted_at IS NULL AND gm.group_id = json_extract(${notification.params}, '$.groupId')))`;
+  WHERE gm.user_id = ${notification.userId} AND g.deleted_at IS NULL AND gm.group_id = json_extract(${notification.params}, '$.groupId')
+    AND ${notification.createdAt} >= gm.joined_at))`;
 
 export type NotificationCursor = { createdAt: number; id: string };
 
@@ -108,4 +109,27 @@ export async function markNotificationsReadByIds(db: DbOrTx, userId: string, ids
     .where(and(eq(notification.userId, userId), inArray(notification.id, [...ids]), isNull(notification.readAt)))
     .returning({ id: notification.id });
   return rows.length;
+}
+
+/**
+ * ผู้ใช้ (ใน userIds) ที่ยังรับ appointment.created ของกลุ่มนี้เพิ่มได้ = unread ที่ "เห็นได้" ของกลุ่มนั้น < max (ใช้ coalesce กันกระดิ่งท่วม)
+ * นับด้วยคำสั่งเดียว แล้วผู้เรียกเขียนทีเดียว — แข่งกันได้เกินเพดานไม่เกินจำนวนนัดที่สร้างพร้อมกัน ซึ่งถูก limiter ต่อผู้ใช้/ต่อกลุ่มจำกัดอยู่แล้ว
+ */
+export async function usersUnderUnreadCreatedCap(db: DbOrTx, userIds: readonly string[], groupId: string, max: number): Promise<Set<string>> {
+  if (userIds.length === 0) return new Set();
+  const rows = await db
+    .select({ userId: notification.userId, n: count() })
+    .from(notification)
+    .where(
+      and(
+        inArray(notification.userId, [...userIds]),
+        eq(notification.kind, 'appointment.created'),
+        isNull(notification.readAt),
+        sql`json_extract(${notification.params}, '$.groupId') = ${groupId}`,
+        visibleToOwner,
+      ),
+    )
+    .groupBy(notification.userId);
+  const full = new Set(rows.filter((r) => Number(r.n) >= max).map((r) => r.userId));
+  return new Set(userIds.filter((u) => !full.has(u)));
 }

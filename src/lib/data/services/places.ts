@@ -11,6 +11,7 @@ import { rateKey, type RateSpec } from '@/lib/auth/throttle';
 import { authorize } from '@/lib/rbac/can';
 import type { Actor } from '@/lib/rbac/types';
 import { DAY_MS, HOUR_MS, MINUTE_MS } from '@/lib/shared/clock';
+import { APPOINTMENT_PLACE_NAME_MAX } from '@/lib/shared/limits';
 import { getEnv } from '@/lib/shared/env';
 import { AppError } from '@/lib/shared/errors';
 import { hasForbiddenChars, sanitizeDisplayText } from '@/lib/shared/name-rules';
@@ -23,7 +24,9 @@ export const PLACE_SEARCH_LIMITS = {
   queryMin: 2,
   queryMax: 100,
   maxResults: 5,
-  nameMax: 160,
+  nameMax: APPOINTMENT_PLACE_NAME_MAX,
+  /** ผลว่างจากต้นทางแคชสั้น (ความผิดพลาดชั่วคราวของต้นทางไม่กลายเป็น "ไม่พบ" 30 วัน) */
+  emptyCacheTtlMs: HOUR_MS,
   cacheTtlMs: 30 * DAY_MS,
   /** ช่องห่างขั้นต่ำระหว่างการเรียก Nominatim ทั้งระบบ (นโยบาย: ≤ 1 req/s) */
   globalGapMs: 1000,
@@ -57,6 +60,11 @@ const coordNum = (v: unknown): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
+/** ชื่อสถานที่จากต้นทาง: ตัดตัวควบคุม/จัดรูป/bidi/zero-width, ยุบช่องว่าง, ตัดหัวท้าย, ≤ 120 code point (SEC L3) */
+export function cleanPlaceName(raw: string): string {
+  return [...sanitizeDisplayText(raw).replace(/\s+/gu, ' ')].slice(0, PLACE_SEARCH_LIMITS.nameMax).join('').trim();
+}
+
 /**
  * ผลจากต้นทาง (ไม่น่าเชื่อถือ) → รายการที่ปลอดภัย ≤ 5: ชื่อผ่าน sanitize + ตัด · พิกัดต้องอยู่ในช่วง · osmUrl สร้างเอง (https เท่านั้น)
  * ไม่ใช่อาร์เรย์/รายการเสีย → ข้าม (ไม่โยน)
@@ -73,7 +81,7 @@ export function sanitizePlaceResults(raw: unknown): PlaceResult[] {
     const lng = coordNum(o.lon ?? o.lng);
     if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180) continue;
     const label = typeof o.display_name === 'string' && o.display_name.trim() !== '' ? o.display_name : typeof o.name === 'string' ? o.name : '';
-    const name = [...sanitizeDisplayText(label)].slice(0, PLACE_SEARCH_LIMITS.nameMax).join('').trim();
+    const name = cleanPlaceName(label);
     if (name === '') continue;
     const osmId = typeof o.osm_id === 'number' ? o.osm_id : typeof o.osm_id === 'string' && /^\d{1,15}$/.test(o.osm_id) ? Number(o.osm_id) : NaN;
     const osmType = o.osm_type === 'node' || o.osm_type === 'way' || o.osm_type === 'relation' ? o.osm_type : null;
@@ -101,7 +109,7 @@ export function parseCachedPlaces(raw: unknown): PlaceResult[] {
     if (typeof o.name !== 'string' || typeof o.lat !== 'number' || typeof o.lng !== 'number' || typeof o.osmUrl !== 'string') continue;
     if (!Number.isFinite(o.lat) || !Number.isFinite(o.lng) || Math.abs(o.lat) > 90 || Math.abs(o.lng) > 180) continue;
     if (!o.osmUrl.startsWith('https://www.openstreetmap.org/')) continue;
-    const name = sanitizeDisplayText(o.name);
+    const name = cleanPlaceName(o.name);
     if (name !== '') out.push({ name, lat: o.lat, lng: o.lng, osmUrl: o.osmUrl });
   }
   return out;
@@ -171,6 +179,8 @@ async function fetchFromNominatim(query: string, locale: 'th' | 'en', baseUrl: s
   } catch {
     throw unavailable('upstream');
   }
+  // ต้นทางตอบ 200 แต่ไม่ใช่อาร์เรย์ (เช่น {"error":…}) = ความผิดพลาดของต้นทาง ไม่ใช่ "ไม่พบ" → 503 และไม่แคช (SEC L2/QA L4)
+  if (!Array.isArray(parsed)) throw unavailable('upstream');
   return sanitizePlaceResults(parsed);
 }
 
@@ -212,9 +222,16 @@ export async function searchPlaces(actor: Actor, input: PlaceSearchQuery, ctx: D
 
   // 3) ช่องห่างทั้งระบบ ≥ 1 วินาที ต่อการเรียก Nominatim
   const slot = await serialized(db, () => reserveCallSlot(db, PLACE_GLOBAL_SLOT_KEY, PLACE_SEARCH_LIMITS.globalGapMs, now));
-  if (!slot.admitted) throw limited(slot.retryAfterMs / 1000);
+  if (!slot.admitted) {
+    // ถูกช่องกลางปฏิเสธ = ไม่ได้เรียกต้นทางเลย → คืนโควตาส่วนตัว (SEC L1)
+    await serialized(db, () => refundBucket(db, rateKey(minute, me.id), minute.windowMs, now));
+    await serialized(db, () => refundBucket(db, rateKey(hour, me.id), hour.windowMs, now));
+    throw limited(slot.retryAfterMs / 1000);
+  }
 
   const results = await fetchFromNominatim(q, locale, baseUrl, contact);
-  await serialized(db, () => putPlaceCache(db, key, results, now));
+  // ผลว่าง → แคชสั้น (1 ชม.) โดยเลื่อน fetchedAt ย้อนให้หมดอายุเร็ว
+  const fetchedAt = results.length === 0 ? now - (PLACE_SEARCH_LIMITS.cacheTtlMs - PLACE_SEARCH_LIMITS.emptyCacheTtlMs) : now;
+  await serialized(db, () => putPlaceCache(db, key, results, fetchedAt));
   return { results };
 }

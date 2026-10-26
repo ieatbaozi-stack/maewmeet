@@ -18,9 +18,10 @@ describe('พิกัดล้วน / geo:', () => {
     ['13.7563,100.5018', 13.7563, 100.5018],
     ['13.7563, 100.5018', 13.7563, 100.5018],
     ['  -33.8688 151.2093 ', -33.8688, 151.2093],
-    ['0,0', 0, 0],
-    ['90,180', 90, 180],
-    ['-90,-180', -90, -180],
+    ['0, 0', 0, 0],
+    ['90, 180', 90, 180],
+    ['-90, -180', -90, -180],
+    ['13.75; 100.5', 13.75, 100.5],
   ])('%s', (raw, lat, lng) => {
     expect(ok(raw)).toEqual({ ok: true, source: 'coords', lat, lng, mapUrl: null });
   });
@@ -30,11 +31,11 @@ describe('พิกัดล้วน / geo:', () => {
     expect(ok('GEO:13.75,100.50,12;u=35?q=x')).toMatchObject({ source: 'geo', lat: 13.75, lng: 100.5 });
   });
 
-  it.each(['91,0', '-91,0', '0,181', '0,-181', '999,999', 'geo:91,0'])('นอกช่วง %s → INVALID_COORDINATES', (raw) => {
+  it.each(['91, 0', '-91, 0', '0, 181', '0, -181', '999, 999', 'geo:91,0'])('นอกช่วง %s → INVALID_COORDINATES', (raw) => {
     expect(reason(raw)).toBe('INVALID_COORDINATES');
   });
 
-  it.each(['13.7', 'NaN,NaN', 'Infinity,0', '1e2,1e2', '13.7,,100.5', 'a,b', '13.7;100.5', 'geo:abc', '0x10,0x10'])('ไม่ใช่พิกัด %s → ไม่ผ่าน', (raw) => {
+  it.each(['13.7', 'NaN,NaN', 'Infinity,0', '1e2,1e2', '13.7,,100.5', 'a,b', '13.7;100.5', '13,75', '13,7563 100,5018', '13.5,75', '0,0', 'geo:abc', '0x10,0x10'])('ไม่ใช่พิกัด %s → ไม่ผ่าน', (raw) => {
     expect(parseLocationInput(raw).ok).toBe(false);
   });
 });
@@ -117,7 +118,7 @@ describe('อินพุตอันตราย', () => {
     expect(reason('สยามพารากอน')).toBe('UNPARSEABLE');
     expect(reason('https://')).toBe('UNPARSEABLE');
     // WHATWG URL ยุบ https:///x เป็น https://x/ — ยังเป็น https ที่มี host จึงปลอดภัย และเก็บค่าที่ normalize แล้ว
-    expect(ok('https:///x')).toMatchObject({ source: 'link', mapUrl: 'https://x/' });
+    expect(ok('https:///x.example')).toMatchObject({ source: 'link', mapUrl: 'https://x.example/' });
   });
 
   it('parseMapUrl: ผ่านเฉพาะ https ที่ปลอดภัย · คืน URL ที่ normalize แล้ว', () => {
@@ -128,5 +129,49 @@ describe('อินพุตอันตราย', () => {
   it('ไม่ throw กับอินพุตแปลก ๆ (fuzz เล็ก)', () => {
     const junk = ['%', '%%%', 'https://%', 'https://[::1', 'https://a.com/%zz', '\ud800', 'https://a.com/\ud800', ':', 'https:', 'geo:', 'geo:,', '@', '#', '?', 'a'.repeat(5000)];
     for (const j of junk) expect(() => parseLocationInput(j)).not.toThrow();
+  });
+});
+
+describe('R4B hardening — SEC L4 โฮสต์ของ mapUrl / QA L3 ทศนิยมจุลภาค', () => {
+  it.each([
+    'https://127.0.0.1/',
+    'https://10.0.0.5/map',
+    'https://192.168.1.1:8443/x',
+    'https://[::1]/',
+    'https://[2001:db8::1]/',
+    'https://localhost/',
+    'https://LOCALHOST:3000/',
+    'https://app.localhost/',
+    'https://printer.local/',
+    'https://svc.internal/',
+    'https://intranet/',
+    'https://./',
+    'https://a..b/',
+    'https://example.com../',
+    'https://2130706433/',
+    'https://0x7f.1/',
+    'https://1.2.3/',
+  ])('ปฏิเสธ %s (parseMapUrl และ parseLocationInput)', (u) => {
+    expect(parseMapUrl(u)).toBeNull();
+    expect(parseLocationInput(u).ok).toBe(false);
+  });
+
+  it.each(['https://maps.app.goo.gl/AbCdEf123', 'https://www.google.com/maps/@13.75,100.5,15z', 'https://example.co.th/map', 'https://xn--l-7sbq6ba.com/', 'https://example.com./x', 'https://a.b/'])('ยังรับ %s', (u) => {
+    expect(parseMapUrl(u)).not.toBeNull();
+  });
+
+  it.each(['13,75', '13,7563', '100,5', '0,0', '13.5,75', '13,75.5', '13;75', '13 100', '13,7563 100,5018'])('ทศนิยมจุลภาค/กำกวม %s → ไม่ผ่าน (ไม่เงียบ ๆ เป็นพิกัด)', (raw) => {
+    expect(parseLocationInput(raw).ok).toBe(false);
+  });
+
+  it.each([
+    ['13, 75', 13, 75],
+    ['13; 75', 13, 75],
+    ['13.75,100.5', 13.75, 100.5],
+    ['13.75 100.5', 13.75, 100.5],
+    ['13.75, 100', 13.75, 100],
+    ['-33.8,151.2', -33.8, 151.2],
+  ])('ชัดเจน %s → พิกัด', (raw, lat, lng) => {
+    expect(ok(raw)).toMatchObject({ source: 'coords', lat, lng });
   });
 });

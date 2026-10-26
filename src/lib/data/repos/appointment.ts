@@ -10,6 +10,7 @@ import { appointment, appointmentRsvp, groupMember, groups, user } from '@/db/sc
 import type { DbOrTx } from '@/db/client';
 import { actorGuardClause, type ActorGuard } from './group-member';
 import type { GroupRole } from './group';
+import { DAY_MS } from '@/lib/shared/clock';
 
 export type AppointmentRow = typeof appointment.$inferSelect;
 export type RsvpResponse = (typeof appointmentRsvp.$inferSelect)['response'];
@@ -38,13 +39,19 @@ export async function countActiveFutureAppointments(db: DbOrTx, groupId: string,
   return Number(rows[0]?.n ?? 0);
 }
 
+/** นัดที่สร้างในกลุ่มภายใน 24 ชม.ล่าสุด รวมที่ยกเลิกแล้ว */
+export async function countCreatedLastDay(db: DbOrTx, groupId: string, now: number): Promise<number> {
+  const rows = await db.all<{ n: number }>(sql`SELECT count(*) AS n FROM appointment WHERE group_id = ${groupId} AND created_at > ${now - DAY_MS}`);
+  return Number(rows[0]?.n ?? 0);
+}
+
 /**
- * สร้างนัดถ้า: กลุ่มยังไม่ถูกลบ + ผู้สร้างยังถือ role เดิม (ActorGuard) + นัด active ที่ยังไม่จบในกลุ่ม < cap — คำสั่งเดียวอะตอมมิก
+ * สร้างนัดถ้า: กลุ่มยังไม่ถูกลบ + ผู้สร้างยังถือ role เดิม (ActorGuard) + นัด active ที่ยังไม่จบในกลุ่ม < cap + นัดที่สร้างใน 24 ชม.ล่าสุด (รวมที่ยกเลิก) < dailyCap — คำสั่งเดียวอะตอมมิก
  * คืน null = ถูกปฏิเสธ (ผู้เรียกวินิจฉัยต่อด้วยการอ่าน — ไม่มีผลต่อความปลอดภัย)
  */
 export async function insertAppointmentIfUnderCap(
   db: DbOrTx,
-  input: AppointmentWrite & { id: string; groupId: string; createdBy: string; cap: number },
+  input: AppointmentWrite & { id: string; groupId: string; createdBy: string; cap: number; dailyCap: number },
   guard: ActorGuard,
   now: number,
 ): Promise<AppointmentRow | null> {
@@ -56,6 +63,7 @@ export async function insertAppointmentIfUnderCap(
       AND EXISTS (SELECT 1 FROM user WHERE id = ${input.createdBy} AND status = 'active')
       AND ${actorGuardClause(input.groupId, guard)}
       AND (SELECT count(*) FROM appointment WHERE group_id = ${input.groupId} AND status = 'active' AND end_at > ${now}) < ${input.cap}
+      AND (SELECT count(*) FROM appointment WHERE group_id = ${input.groupId} AND created_at > ${now - DAY_MS}) < ${input.dailyCap}
     RETURNING id`);
   if (rows.length !== 1) return null;
   return findAppointmentById(db, input.id);
@@ -92,7 +100,7 @@ export type AppointmentPatch = Partial<Omit<AppointmentWrite, 'startAt' | 'endAt
   Partial<Pick<AppointmentWrite, 'startAt' | 'endAt' | 'tz' | 'localDate'>>;
 
 /**
- * แก้นัด (เฉพาะ active + กลุ่มยังอยู่ + ผู้แก้ยังถือ role เดิม) — คำสั่งเดียว
+ * แก้นัด (เฉพาะ active + ยังไม่จบ + กลุ่มยังอยู่ + ผู้แก้ยังถือ role เดิม) — คำสั่งเดียว
  * เพดาน: ถ้านัดเดิมไม่ถูกนับ (end_at <= now) แต่ค่าใหม่ถูกนับ (ย้ายเข้าอนาคต) ต้องมีที่ว่าง: นัดอื่นที่นับ < cap ·
  * นัดเดิมถูกนับอยู่แล้ว หรือค่าใหม่ไม่ถูกนับ ไม่เพิ่มจำนวน → ไม่ตรวจ
  * คืน null = ไม่มี/ไม่ active/กลุ่มถูกลบ/ผู้แก้ไม่ถือ role เดิม/เต็มเพดาน (ผู้เรียกวินิจฉัยต่อ)
@@ -125,6 +133,7 @@ export async function updateAppointmentGuarded(
         eq(appointment.id, input.id),
         eq(appointment.groupId, input.groupId),
         eq(appointment.status, 'active'),
+        gt(appointment.endAt, now), // นัดที่จบแล้วแก้ไม่ได้ (QA L1)
         groupAlive(input.groupId),
         actorGuardClause(input.groupId, guard),
         sql`(${appointment.endAt} > ${now} OR ${newEnd} <= ${now} OR (SELECT count(*) FROM appointment o WHERE o.group_id = ${input.groupId} AND o.status = 'active' AND o.end_at > ${now} AND o.id <> ${input.id}) < ${input.cap})`,
@@ -134,7 +143,7 @@ export async function updateAppointmentGuarded(
   return rows[0] ?? null;
 }
 
-/** ยกเลิก (เก็บแถว) — เฉพาะ active + กลุ่มยังอยู่ + ผู้ยกเลิกยังถือ role เดิม · คืน null = ไม่ผ่านเงื่อนไข */
+/** ยกเลิก (เก็บแถว) — เฉพาะ active + ยังไม่จบ + กลุ่มยังอยู่ + ผู้ยกเลิกยังถือ role เดิม · คืน null = ไม่ผ่านเงื่อนไข */
 export async function cancelAppointmentGuarded(
   db: DbOrTx,
   input: { id: string; groupId: string; cancelledBy: string },
@@ -149,6 +158,7 @@ export async function cancelAppointmentGuarded(
         eq(appointment.id, input.id),
         eq(appointment.groupId, input.groupId),
         eq(appointment.status, 'active'),
+        gt(appointment.endAt, now), // นัดที่จบแล้วยกเลิกไม่ได้ (QA L1)
         groupAlive(input.groupId),
         actorGuardClause(input.groupId, guard),
       ),
@@ -233,14 +243,18 @@ export async function memberCountsByGroup(db: DbOrTx, groupIds: string[]): Promi
 // ───────── RSVP ─────────
 export type RsvpRow = { appointmentId: string; userId: string; response: RsvpResponse; displayName: string };
 
-/** คำตอบของ "สมาชิกปัจจุบัน" ของกลุ่มที่นัดสังกัดเท่านั้น (คนที่ออก/ถูกลบไม่นับ ไม่แสดง) */
+/** คำตอบของ "สมาชิกปัจจุบัน" ของกลุ่มที่นัดสังกัดเท่านั้น (คนที่ออก/ถูกลบไม่นับ ไม่แสดง · คำตอบก่อน joined_at ปัจจุบันไม่นับ) — counts/members/mine/home ทุกที่มาจากฟังก์ชันนี้ */
 export async function listCurrentRsvps(db: DbOrTx, appointmentIds: string[]): Promise<RsvpRow[]> {
   if (appointmentIds.length === 0) return [];
   return db
     .select({ appointmentId: appointmentRsvp.appointmentId, userId: appointmentRsvp.userId, response: appointmentRsvp.response, displayName: user.displayName })
     .from(appointmentRsvp)
     .innerJoin(appointment, eq(appointment.id, appointmentRsvp.appointmentId))
-    .innerJoin(groupMember, and(eq(groupMember.groupId, appointment.groupId), eq(groupMember.userId, appointmentRsvp.userId)))
+    // updated_at >= joined_at: คำตอบที่ให้ไว้ก่อนเข้ากลุ่มรอบปัจจุบัน (ออกแล้วกลับมา) ไม่นับ/ไม่แสดง/ไม่เป็น `mine` — ไม่ลบแถวตอนออก (QA M1)
+    .innerJoin(
+      groupMember,
+      and(eq(groupMember.groupId, appointment.groupId), eq(groupMember.userId, appointmentRsvp.userId), sql`${appointmentRsvp.updatedAt} >= ${groupMember.joinedAt}`),
+    )
     .innerJoin(user, eq(user.id, appointmentRsvp.userId))
     .where(inArray(appointmentRsvp.appointmentId, appointmentIds))
     .orderBy(asc(appointmentRsvp.updatedAt), asc(appointmentRsvp.userId));

@@ -12,7 +12,22 @@ export const LOCATION_INPUT_MAX = 2000;
 const BAD_CHARS = /[\u0000-\u0020\u007f-\u009f\u00ad\u061c\u1680\u180e\u2000-\u200f\u2028-\u202f\u205f-\u206f\u3000\ufeff\\]/u;
 
 /**
- * ลิงก์แผนที่ที่เก็บได้: https เท่านั้น · ไม่มี credentials · ไม่มี host ว่าง · ≤ 500 ตัวอักษร (ทั้งที่รับมาและหลัง normalize)
+ * โฮสต์ที่ "ดูเหมือนเว็บสาธารณะ": ไม่ใช่ IP literal (v4/v6, รวมรูปเลขฐาน/จำนวนเต็มที่ URL แปลงเป็น v4), ไม่ใช่ localhost/.localhost/.local/.internal,
+ * ไม่ใช่ชื่อป้ายเดียว (`intranet`), ไม่มีป้ายว่าง (`.`, `a..b`) และ TLD ไม่ใช่ตัวเลขล้วน — กันลิงก์หลอกในนัด (SEC L4) · ไม่ resolve DNS
+ */
+export function isPublicHostname(hostname: string): boolean {
+  let h = hostname.toLowerCase();
+  if (h.endsWith('.')) h = h.slice(0, -1);
+  if (h === '' || h.startsWith('[') || h.includes(':')) return false;
+  const labels = h.split('.');
+  if (labels.length < 2 || labels.some((l) => l === '')) return false;
+  if (/^\d+$/.test(labels[labels.length - 1]!)) return false;
+  if (h === 'localhost' || /\.(?:localhost|local|internal|home\.arpa)$/.test(h)) return false;
+  return true;
+}
+
+/**
+ * ลิงก์แผนที่ที่เก็บได้: https เท่านั้น · ไม่มี credentials · host ต้องเป็นชื่อโดเมนสาธารณะ (isPublicHostname) · ≤ 500 ตัวอักษร (ทั้งที่รับมาและหลัง normalize)
  * คืน URL แบบ normalize (href) หรือ null ถ้าไม่ผ่าน — ไม่โยน
  */
 export function parseMapUrl(raw: unknown): string | null {
@@ -26,7 +41,7 @@ export function parseMapUrl(raw: unknown): string | null {
   } catch {
     return null;
   }
-  if (u.protocol !== 'https:' || u.username !== '' || u.password !== '' || u.hostname === '') return null;
+  if (u.protocol !== 'https:' || u.username !== '' || u.password !== '' || !isPublicHostname(u.hostname)) return null;
   const href = u.href;
   return href.length > APPOINTMENT_MAP_URL_MAX ? null : href;
 }
@@ -47,7 +62,9 @@ export type ParsedLocation =
   | { ok: false; reason: LocationProblem };
 
 const NUM = String.raw`-?\d{1,3}(?:\.\d{1,15})?`;
-const PLAIN_COORDS = new RegExp(String.raw`^(${NUM})\s*[,\s]\s*(${NUM})$`);
+// พิกัดล้วน: ต้องไม่กำกวมกับทศนิยมจุลภาค (`13,75`) — ยอมรับเมื่อตัวเลขทั้งสองมีจุดทศนิยม หรือคั่นด้วย `, ` / `; ` (มีช่องว่างตามหลัง) — `13,75` ถูกปฏิเสธ (อาจเป็นทศนิยมจุลภาค)
+const PLAIN_COORDS = new RegExp(String.raw`^(${NUM})(\s*,\s*|;\s+|\s+)(${NUM})$`);
+const plainCoordsUnambiguous = (a: string, sep: string, b: string): boolean => (a.includes('.') && b.includes('.')) || /^(?:\s*,\s+|;\s+)/.test(sep);
 const GEO_URI = new RegExp(String.raw`^geo:(${NUM}),(${NUM})(?:,-?\d+(?:\.\d+)?)?(?:;[^?]*)?(?:\?.*)?$`, 'i');
 const PAIR = new RegExp(String.raw`^(${NUM})\s*,\s*(${NUM})$`);
 const PIN_3D4D = /!3d(-?\d{1,3}(?:\.\d{1,15})?)!4d(-?\d{1,3}(?:\.\d{1,15})?)/;
@@ -127,8 +144,8 @@ export function parseLocationInput(raw: unknown): ParsedLocation {
   if (s.length > LOCATION_INPUT_MAX) return { ok: false, reason: 'TOO_LONG' };
 
   const plain = PLAIN_COORDS.exec(s);
-  if (plain) {
-    const c = coords(plain[1], plain[2]);
+  if (plain && plainCoordsUnambiguous(plain[1]!, plain[2]!, plain[3]!)) {
+    const c = coords(plain[1], plain[3]);
     return c === null || c === 'invalid' ? { ok: false, reason: 'INVALID_COORDINATES' } : { ok: true, source: 'coords', lat: c.lat, lng: c.lng, mapUrl: null };
   }
 

@@ -12,6 +12,7 @@ import { listMemberIds, listMembers } from '@/lib/data/repos/group-member';
 import {
   cancelAppointmentGuarded,
   countActiveFutureAppointments,
+  countCreatedLastDay,
   currentMemberNames,
   groupNames,
   insertAppointmentIfUnderCap,
@@ -28,6 +29,8 @@ import {
   type AppointmentWrite,
 } from '@/lib/data/repos/appointment';
 import { listSharedBusyInGroup, type SharedBusyRow } from '@/lib/data/repos/busy';
+import { rateKey, type RateSpec } from '@/lib/auth/throttle';
+import { refundBucket, reserveBucket } from '@/lib/data/repos/rate-limit-bucket';
 import { authorize, can } from '@/lib/rbac/can';
 import type { Actor, Allow, GroupCtx, UserActor } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
@@ -38,6 +41,8 @@ import {
   APPOINTMENT_LIST_MAX,
   APPOINTMENT_MAX_ACTIVE_PER_GROUP,
   APPOINTMENT_MAX_BACKDATE_MS,
+  APPOINTMENT_MAX_CREATED_PER_GROUP_PER_DAY,
+  APPOINTMENT_WRITE_RATE_LIMITS,
   APPOINTMENT_MAX_SPAN_DAYS,
   APPOINTMENT_PLACE_NAME_MAX,
   APPOINTMENT_TITLE_MAX,
@@ -57,7 +62,7 @@ import {
   type OverlapDto,
 } from '../serializers/appointments';
 import { compareBusyRows, toBusyForViewers } from '../serializers/busy';
-import { inTx } from '../tx';
+import { inTx, serialized } from '../tx';
 import { asUser, audit, auditRead } from './group-common';
 import { AVAILABILITY_FETCH_MARGIN_MS } from './availability';
 import { busyInputError } from './busy';
@@ -179,11 +184,14 @@ function timeError(e: BusyInputError): AppError {
 type ScheduleInput = { startDate: string; startTime: string; endDate: string; endTime: string };
 type Schedule = Pick<AppointmentWrite, 'startAt' | 'endAt' | 'tz' | 'localDate'>;
 
-/** ช่วงเวลา (ใน tz กลุ่ม): ลงตัว 30 นาที · end > start · ข้ามเที่ยงคืน/เดือน/ปีได้ · ยาวไม่เกิน 62 วัน · เริ่มย้อนหลังได้ไม่เกิน 1 ชม. */
-function scheduleOf(v: ScheduleInput, tz: string, now: number): Schedule {
+/**
+ * ช่วงเวลา (ใน tz กลุ่ม): ลงตัว 30 นาที · end > start · ข้ามเที่ยงคืน/เดือน/ปีได้ · ยาวไม่เกิน 62 วัน · เริ่มย้อนหลังได้ไม่เกิน 1 ชม.
+ * `currentStartAt` (แก้นัดเดิม): ตรวจย้อนหลังเฉพาะเมื่อเวลาเริ่ม "เปลี่ยนจริง" — ขยาย/แก้เวลาจบของนัดที่กำลังเกิดอยู่ได้ (QA M2) · end > start เท่านั้น ไม่บังคับ end > now
+ */
+function scheduleOf(v: ScheduleInput, tz: string, now: number, currentStartAt?: number): Schedule {
   const r = normalizeBusyInput({ kind: 'timed', startDate: v.startDate, startTime: v.startTime, endDate: v.endDate, endTime: v.endTime, tz }, { now });
   if (!r.ok) throw timeError(r.error);
-  if (r.value.startAt < now - APPOINTMENT_MAX_BACKDATE_MS) throw new AppError('VALIDATION', { fields: { startTime: 'IN_PAST' } });
+  if (r.value.startAt !== currentStartAt && r.value.startAt < now - APPOINTMENT_MAX_BACKDATE_MS) throw new AppError('VALIDATION', { fields: { startTime: 'IN_PAST' } });
   return { startAt: r.value.startAt, endAt: r.value.endAt, tz, localDate: r.value.localStartDate };
 }
 
@@ -196,7 +204,7 @@ function newFields(v: CreateAppointmentInput, tz: string, now: number): Appointm
   return { title, description, placeName, lat, lng, mapUrl, ...scheduleOf(v, tz, now) };
 }
 
-function patchOf(v: UpdateAppointmentInput, tz: string, now: number): AppointmentPatch {
+function patchOf(v: UpdateAppointmentInput, tz: string, now: number, currentStartAt: number): AppointmentPatch {
   const patch: AppointmentPatch = {};
   if (v.title !== undefined) patch.title = titleOf(v.title);
   if (v.description !== undefined) patch.description = descriptionOf(v.description);
@@ -207,7 +215,7 @@ function patchOf(v: UpdateAppointmentInput, tz: string, now: number): Appointmen
   }
   if (v.mapUrl !== undefined) patch.mapUrl = linkOf(v.mapUrl);
   if (SCHEDULE_KEYS.some((k) => v[k] !== undefined)) {
-    Object.assign(patch, scheduleOf({ startDate: v.startDate!, startTime: v.startTime!, endDate: v.endDate!, endTime: v.endTime! }, tz, now));
+    Object.assign(patch, scheduleOf({ startDate: v.startDate!, startTime: v.startTime!, endDate: v.endDate!, endTime: v.endTime! }, tz, now, currentStartAt));
   }
   return patch;
 }
@@ -289,8 +297,8 @@ async function toDetailDto(db: Reader, actor: UserActor, now: number, row: Appoi
     row,
     { viewerId: actor.id, now, groupName, memberNames: new Map(members.map((m) => [m.userId, m.displayName])), memberCount: members.length, rsvps },
     {
-      canEdit: row.status === 'active' && can(actor, 'appointment.update', res).allow,
-      canCancel: row.status === 'active' && can(actor, 'appointment.cancel', res).allow,
+      canEdit: open && can(actor, 'appointment.update', res).allow,
+      canCancel: open && can(actor, 'appointment.cancel', res).allow,
       canRsvp: open && can(actor, 'appointment.rsvp', res).allow,
     },
   );
@@ -330,6 +338,22 @@ async function overlapOrUnknown(db: Reader, row: AppointmentRow): Promise<Overla
   }
 }
 
+/**
+ * limiter เขียนต่อผู้ใช้ (SEC M1) — จองทีละถังด้วย UPSERT อะตอมมิก; ถังใดเต็ม → คืนถังที่จองไปแล้ว แล้ว RATE_LIMITED + Retry-After (ถังที่เต็มช้าสุดเป็นตัวกำหนด)
+ * เรียกหลัง authorize + ตรวจ input/สถานะแล้ว (คำขอที่ถูกปฏิเสธเพราะสิทธิ์/ไม่พบ ไม่กินโควตา และไม่แยกรหัสจาก NOT_FOUND)
+ */
+async function takeWriteSlots(db: Parameters<typeof serialized>[0], userId: string, specs: readonly RateSpec[], now: number): Promise<void> {
+  const taken: RateSpec[] = [];
+  for (const spec of specs) {
+    const slot = await serialized(db, () => reserveBucket(db, rateKey(spec, userId), spec.windowMs, spec.limit, now));
+    if (!slot.admitted) {
+      for (const t of taken) await serialized(db, () => refundBucket(db, rateKey(t, userId), t.windowMs, now));
+      throw new AppError('RATE_LIMITED', undefined, { retryAfterSec: Math.max(1, Math.ceil((slot.windowEnd - now) / 1000)) });
+    }
+    taken.push(spec);
+  }
+}
+
 const activeGuard = (me: UserActor, group: GroupCtx) => ({ actorId: me.id, actorRole: group.actorRole });
 
 /**
@@ -341,6 +365,7 @@ async function whyWriteRejected(db: Reader, actor: UserActor, id: string, before
   if (!again.appointment || again.group.deleted) return new AppError('NOT_FOUND');
   if (again.group.actorRole === null && !actor.isSuperAdmin) return new AppError('NOT_FOUND');
   if (again.appointment.status === 'cancelled') return new AppError('APPOINTMENT_CANCELLED');
+  if (again.appointment.endAt <= now) return new AppError('APPOINTMENT_PAST');
   if (again.group.actorRole !== before.actorRole) return new AppError('CONFLICT');
   return (await countActiveFutureAppointments(db, again.appointment.groupId, now)) >= APPOINTMENT_MAX_ACTIVE_PER_GROUP
     ? new AppError('LIMIT_REACHED', { limit: 'appointments', max: APPOINTMENT_MAX_ACTIVE_PER_GROUP })
@@ -363,11 +388,12 @@ export async function createAppointment(actor: Actor, groupId: string, input: Cr
   if (!groupRow || groupRow.deletedAt !== null) throw new AppError('NOT_FOUND');
   const fields = newFields(input, groupRow.tz, now);
 
+  await takeWriteSlots(db, me.id, [APPOINTMENT_WRITE_RATE_LIMITS.createShort, APPOINTMENT_WRITE_RATE_LIMITS.createDay], now);
   const id = newId();
   const row = await inTx(db, async (tx) => {
     const created = await insertAppointmentIfUnderCap(
       tx,
-      { ...fields, id, groupId, createdBy: me.id, cap: APPOINTMENT_MAX_ACTIVE_PER_GROUP },
+      { ...fields, id, groupId, createdBy: me.id, cap: APPOINTMENT_MAX_ACTIVE_PER_GROUP, dailyCap: APPOINTMENT_MAX_CREATED_PER_GROUP_PER_DAY },
       activeGuard(me, group),
       now,
     );
@@ -390,8 +416,11 @@ async function whyCreateRejected(db: Reader, actor: UserActor, groupId: string, 
   const again = await loadGroupCtx(db, actor, groupId);
   if (again.deleted || (again.actorRole === null && !actor.isSuperAdmin)) return new AppError('NOT_FOUND');
   if (again.actorRole !== before.actorRole) return new AppError('CONFLICT');
-  return (await countActiveFutureAppointments(db, groupId, now)) >= APPOINTMENT_MAX_ACTIVE_PER_GROUP
-    ? new AppError('LIMIT_REACHED', { limit: 'appointments', max: APPOINTMENT_MAX_ACTIVE_PER_GROUP })
+  if ((await countActiveFutureAppointments(db, groupId, now)) >= APPOINTMENT_MAX_ACTIVE_PER_GROUP) {
+    return new AppError('LIMIT_REACHED', { limit: 'appointments', max: APPOINTMENT_MAX_ACTIVE_PER_GROUP });
+  }
+  return (await countCreatedLastDay(db, groupId, now)) >= APPOINTMENT_MAX_CREATED_PER_GROUP_PER_DAY
+    ? new AppError('LIMIT_REACHED', { limit: 'appointmentsPerDay', max: APPOINTMENT_MAX_CREATED_PER_GROUP_PER_DAY })
     : new AppError('CONFLICT');
 }
 
@@ -460,7 +489,9 @@ export async function updateAppointment(actor: Actor, id: string, input: UpdateA
   if (current.status === 'cancelled') throw new AppError('APPOINTMENT_CANCELLED');
   const groupRow = await findGroupById(db, current.groupId);
   if (!groupRow || groupRow.deletedAt !== null) throw new AppError('NOT_FOUND');
-  const patch = patchOf(input, groupRow.tz, now);
+  if (current.endAt <= now) throw new AppError('APPOINTMENT_PAST'); // จบแล้วแก้ไม่ได้ (QA L1) — สอดคล้อง UI ที่ซ่อนปุ่ม
+  const patch = patchOf(input, groupRow.tz, now, current.startAt);
+  await takeWriteSlots(db, me.id, [APPOINTMENT_WRITE_RATE_LIMITS.update], now);
 
   const row = await inTx(db, async (tx) => {
     const updated = await updateAppointmentGuarded(
@@ -484,6 +515,8 @@ export async function cancelAppointment(actor: Actor, id: string, ctx: DataCtx):
   const current = c.appointment!;
   const { db, now } = ctx;
   if (current.status === 'cancelled') throw new AppError('APPOINTMENT_CANCELLED');
+  if (current.endAt <= now) throw new AppError('APPOINTMENT_PAST'); // จบแล้วยกเลิกไม่ได้ (QA L1)
+  await takeWriteSlots(db, me.id, [APPOINTMENT_WRITE_RATE_LIMITS.cancel], now);
 
   const row = await inTx(db, async (tx) => {
     const cancelled = await cancelAppointmentGuarded(tx, { id, groupId: current.groupId, cancelledBy: me.id }, activeGuard(me, c.group), now);
@@ -503,6 +536,7 @@ export async function setRsvp(actor: Actor, id: string, input: RsvpInput, ctx: D
   const { db, now } = ctx;
   if (current.status === 'cancelled') throw new AppError('APPOINTMENT_CANCELLED');
   if (current.endAt <= now) throw new AppError('APPOINTMENT_PAST');
+  await takeWriteSlots(db, me.id, [APPOINTMENT_WRITE_RATE_LIMITS.rsvp], now);
 
   await inTx(db, async (tx) => {
     const ok = await upsertRsvpIfOpen(tx, { appointmentId: id, userId: me.id, response: input.response }, now);

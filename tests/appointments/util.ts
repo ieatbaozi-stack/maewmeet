@@ -1,7 +1,7 @@
 // เครื่องมือเทสต์นัด/แจ้งเตือน (R4B) — ต่อจาก tests/groups/harness
 import { expect } from 'vitest';
 import { newId } from '@/lib/shared/id';
-import { call, makeGroup, join, person, post, type Harness, type Person, type Res } from '../groups/harness';
+import { DAY, call, makeGroup, join, person, post, type Harness, type Person, type Res } from '../groups/harness';
 
 export { Client, call, get, join, makeGroup, patch, person, post, setupHarness, DAY, HOUR, MIN } from '../groups/harness';
 export type { Harness, Person, Res };
@@ -68,7 +68,7 @@ export async function world(h: Harness): Promise<World> {
   return { a, m, b, c, o, boss, gid };
 }
 
-/** แทรกนัด active ตรง ๆ ผ่าน SQL (เลี่ยงยิง API ร้อยครั้ง) — startAt เรียงต่อกันครั้งละชั่วโมงนับจาก base */
+/** แทรกนัด active ตรง ๆ (created_at = 3 วันก่อน base เพื่อไม่ชนเพดานสร้างต่อกลุ่มต่อวัน) ผ่าน SQL (เลี่ยงยิง API ร้อยครั้ง) — startAt เรียงต่อกันครั้งละชั่วโมงนับจาก base */
 export async function seedAppointments(h: Harness, gid: string, createdBy: string, n: number, base: number, tz = 'Asia/Bangkok'): Promise<string[]> {
   const ids: string[] = [];
   for (let i = 0; i < n; i++) {
@@ -77,7 +77,7 @@ export async function seedAppointments(h: Harness, gid: string, createdBy: strin
     await h.rows(
       `INSERT INTO appointment (id, group_id, title, start_at, end_at, tz, local_date, status, created_by, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, '2026-11-01', 'active', ?, ?, ?)`,
-      [id, gid, `seed ${i}`, base + i * 3_600_000, base + i * 3_600_000 + 1_800_000, tz, createdBy, base, base],
+      [id, gid, `seed ${i}`, base + i * 3_600_000, base + i * 3_600_000 + 1_800_000, tz, createdBy, base - 3 * DAY, base - 3 * DAY], // created_at เก่า: ไม่นับเพดาน 'สร้างต่อวัน'
     );
   }
   return ids;

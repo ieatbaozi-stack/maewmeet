@@ -1,5 +1,5 @@
 // เพดานของกลุ่ม/คำเชิญ — R2_CONTRACT §3 ข้อ 2–3, 5 · ปรับได้ที่นี่ที่เดียว (ทุกด่านอ่านจากค่าเหล่านี้)
-import { DAY_MS } from './clock';
+import { DAY_MS, MINUTE_MS } from './clock';
 
 export const GROUP_LIMITS = {
   /** กลุ่มที่ผู้ใช้หนึ่งคน "สร้าง" ได้ (นับเฉพาะที่ยังไม่ถูกลบ) */
@@ -49,6 +49,7 @@ export type LimitKind =
   | 'busySpan'
   | 'busyBackdate'
   | 'appointments'
+  | 'appointmentsPerDay'
   | 'appointmentSpan';
 
 // ───────── นัด / แจ้งเตือน / สถานที่ — R4B_CONTRACT §2 ─────────
@@ -68,3 +69,16 @@ export const NOTIFICATION_LIST_DEFAULT = 20;
 export const NOTIFICATION_LIST_MAX = 50;
 /** POST /api/me/notifications/read {ids} — จำนวน id สูงสุดต่อคำขอ */
 export const NOTIFICATION_READ_IDS_MAX = 100;
+
+/** นัดที่ "สร้าง" ในกลุ่มภายใน 24 ชม.ล่าสุด (rolling) — นับรวมนัดที่ยกเลิกแล้ว กันวน create/cancel · เกิน → LIMIT_REACHED { limit: 'appointmentsPerDay', max } (R4B SEC M1) */
+export const APPOINTMENT_MAX_CREATED_PER_GROUP_PER_DAY = 30;
+/** แจ้งเตือน appointment.created ที่ยังไม่อ่านต่อผู้ใช้ต่อกลุ่ม — ครบแล้วไม่เขียนเพิ่ม (coalesce; ผู้ใช้เห็น 20+ อยู่แล้ว) · นับเฉพาะที่เห็นได้ */
+export const APPOINTMENT_NOTIFY_UNREAD_PER_GROUP_MAX = 20;
+/** limiter เขียนต่อผู้ใช้ (ทุกกลุ่มรวมกัน) — fixed window ผ่าน rate_limit_bucket · เกิน → RATE_LIMITED + Retry-After */
+export const APPOINTMENT_WRITE_RATE_LIMITS = {
+  createShort: { prefix: 'appt:create:s', limit: 10, windowMs: 10 * MINUTE_MS },
+  createDay: { prefix: 'appt:create:d', limit: 30, windowMs: DAY_MS },
+  update: { prefix: 'appt:update', limit: 60, windowMs: 10 * MINUTE_MS },
+  cancel: { prefix: 'appt:cancel', limit: 60, windowMs: 10 * MINUTE_MS },
+  rsvp: { prefix: 'appt:rsvp', limit: 120, windowMs: 10 * MINUTE_MS },
+} as const;
