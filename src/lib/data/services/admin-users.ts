@@ -2,7 +2,7 @@
 //  - รายการ: ค้น username (prefix) / ชื่อที่แสดง (contains) · หน้าละ 30 · cursor (createdAt, id) · ไม่คืนบัญชีที่ลบแล้ว
 //  - suspend: active → suspended + ลบ session ทั้งหมด (เด้งออกทันที) + audit ในธุรกรรมเดียว · ระงับตัวเอง/super admin คนอื่น → 403 FORBIDDEN
 //    unsuspend: suspended → active + audit · ทั้งคู่ใช้ action admin.user.suspend · ทำซ้ำ = สำเร็จแบบ idempotent (changed: false, ไม่ audit)
-//  - unlock: ล้าง login_throttle ของ username นั้น (ไม่แตะ PIN/สถานะ) + audit
+//  - unlock: ล้าง login_throttle ของ username นั้น (ไม่แตะ PIN/สถานะ) + audit · unsuspend/unlock super admin คนอื่น → 403 FORBIDDEN (R5 Sec L3)
 //  - บัญชีที่ลบแล้ว/ไม่มี → 404 · ทุกการเขียนผ่าน limiter 60 ครั้ง/10 นาที/ผู้ใช้
 import { z } from 'zod';
 import { suspendUserGuarded, unsuspendUserGuarded, listUsersForAdmin } from '@/lib/data/repos/admin-users';
@@ -78,6 +78,8 @@ export async function unsuspendUser(actor: Actor, userId: string, ctx: DataCtx):
   await takeUserSlot(db, ADMIN_RATE_LIMITS.write, me.id, now);
   return inTx(db, async (tx) => {
     const target = await liveTarget(tx, userId);
+    // R5 Sec L3: สมมาตรกับ suspend — super admin คนอื่นคืนสถานะจากแอปไม่ได้ (การระงับ/คืน SA เป็นการตัดสินของ boss/ops ทาง SQL)
+    if (target.isAdmin && target.id !== me.id) throw new AppError('FORBIDDEN');
     if (target.status === 'active') return { user: { id: target.id, status: 'active' as const, changed: false } };
     if (!(await unsuspendUserGuarded(tx, target.id, now))) throw new AppError('CONFLICT');
     await auditUser(tx, me, 'admin.user.suspend', target.id, { state: 'active' }, now);
@@ -92,6 +94,8 @@ export async function unlockUser(actor: Actor, userId: string, ctx: DataCtx): Pr
   await takeUserSlot(db, ADMIN_RATE_LIMITS.write, me.id, now);
   return inTx(db, async (tx) => {
     const target = await liveTarget(tx, userId);
+    // R5 Sec L3: ปลดล็อก super admin คนอื่นไม่ได้ (ตัวเองได้)
+    if (target.isAdmin && target.id !== me.id) throw new AppError('FORBIDDEN');
     const key = usernameThrottleKey(target.usernameNormalized);
     const wasLocked = lockRemainingSec(await getLoginThrottle(tx, key), now) > 0;
     await resetLoginThrottle(tx, key, now);
