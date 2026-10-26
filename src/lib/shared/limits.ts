@@ -82,3 +82,25 @@ export const APPOINTMENT_WRITE_RATE_LIMITS = {
   cancel: { prefix: 'appt:cancel', limit: 60, windowMs: 10 * MINUTE_MS },
   rsvp: { prefix: 'appt:rsvp', limit: 120, windowMs: 10 * MINUTE_MS },
 } as const;
+
+// ───────── บัญชีของฉัน / หน้า super admin — R5_CONTRACT §2 ─────────
+/** limiter ต่อผู้ใช้ (fixed window ผ่าน rate_limit_bucket) · เกิน → RATE_LIMITED + Retry-After */
+export const ACCOUNT_RATE_LIMITS = {
+  /** PATCH /api/me — เปลี่ยนชื่อที่แสดง 10 ครั้ง/วัน/ผู้ใช้ (นับเฉพาะที่เปลี่ยนจริง) */
+  rename: { prefix: 'me:rename', limit: 10, windowMs: DAY_MS },
+} as const;
+
+export const ADMIN_RATE_LIMITS = {
+  /** ทุก endpoint admin ที่เขียน (suspend / unsuspend / unlock) — 60 ครั้ง/10 นาที/ผู้ใช้ */
+  write: { prefix: 'admin:write', limit: 60, windowMs: 10 * MINUTE_MS },
+} as const;
+
+/** หน้าละกี่แถวของรายการผู้ใช้/กลุ่มในหน้า admin */
+export const ADMIN_PAGE_SIZE = 30;
+/** ความยาวสูงสุดของคำค้น q (code point หลัง NFKC + trim) */
+export const ADMIN_QUERY_MAX = 40;
+/** audit log: ดีฟอลต์/สูงสุดต่อหน้า */
+export const AUDIT_LIST_DEFAULT = 50;
+export const AUDIT_LIST_MAX = 100;
+/** การเปิดดู audit เขียน `admin.audit.view` ไม่เกิน 1 แถว/ช่วงนี้/ผู้ใช้ (กัน audit บวมจากการรีเฟรช) */
+export const AUDIT_VIEW_LOG_INTERVAL_MS = 10 * MINUTE_MS;

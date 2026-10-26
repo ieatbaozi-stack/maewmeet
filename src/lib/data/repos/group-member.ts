@@ -80,7 +80,7 @@ export async function insertAdminMember(db: DbOrTx, groupId: string, userId: str
 export type JoinResult = 'inserted' | 'already' | 'full' | 'gone';
 
 /**
- * เพิ่มสมาชิก role member ถ้า: กลุ่มยังไม่ถูกลบ + ยังไม่เป็นสมาชิก + จำนวนสมาชิก < cap — คำสั่งเดียวอะตอมมิก
+ * เพิ่มสมาชิก role member ถ้า: กลุ่มยังไม่ถูกลบ + ผู้ใช้ยัง active (R5: แข่งกับการลบบัญชี) + ยังไม่เป็นสมาชิก + จำนวนสมาชิก < cap — คำสั่งเดียวอะตอมมิก
  * ไม่ได้แถว → วินิจฉัยสาเหตุด้วยการอ่านต่อ (การอ่านนี้ไม่มีผลต่อความปลอดภัย: การเขียนถูกปฏิเสธไปแล้ว)
  */
 export async function insertMemberIfRoom(
@@ -92,6 +92,7 @@ export async function insertMemberIfRoom(
     INSERT INTO group_member (group_id, user_id, role, joined_at)
     SELECT ${input.groupId}, ${input.userId}, 'member', ${now}
     WHERE EXISTS (SELECT 1 FROM groups WHERE id = ${input.groupId} AND deleted_at IS NULL)
+      AND EXISTS (SELECT 1 FROM "user" WHERE id = ${input.userId} AND status = 'active')
       AND NOT EXISTS (SELECT 1 FROM group_member WHERE group_id = ${input.groupId} AND user_id = ${input.userId})
       AND (SELECT count(*) FROM group_member WHERE group_id = ${input.groupId}) < ${input.cap}
     RETURNING user_id`);

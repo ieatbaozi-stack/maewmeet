@@ -281,7 +281,7 @@ export async function closeDirectInvite(
 // ───────── ใช้โค้ด ─────────
 
 /**
- * เข้ากลุ่มด้วยโค้ด — INSERT … SELECT เดียว: โค้ดต้อง active + ไม่หมดอายุ + กลุ่มยังอยู่ + ผู้ใช้ยังไม่เป็นสมาชิก + สมาชิก < cap
+ * เข้ากลุ่มด้วยโค้ด — INSERT … SELECT เดียว: โค้ดต้อง active + ไม่หมดอายุ + กลุ่มยังอยู่ + ผู้ใช้ยัง active (R5: แข่งกับการลบบัญชี) + ยังไม่เป็นสมาชิก + สมาชิก < cap
  * (เงื่อนไขของโค้ดอยู่ในคำสั่งเดียวกับการเพิ่มสมาชิก — โค้ดที่เพิกถอน/ลบกลุ่มไปแล้วเข้าไม่ได้แม้แข่งกัน)
  * คืน groupId ที่เข้า หรือ null (ผู้เรียกวินิจฉัย: ไม่ถูกต้อง / เป็นสมาชิกอยู่แล้ว / เต็ม)
  */
@@ -296,6 +296,7 @@ export async function joinGroupWithCode(
       FROM group_invite i JOIN groups g ON g.id = i.group_id
      WHERE i.code_hash = ${input.codeHash} AND i.kind = 'code' AND i.status = 'active' AND i.expires_at > ${now}
        AND g.deleted_at IS NULL
+       AND EXISTS (SELECT 1 FROM "user" u WHERE u.id = ${input.userId} AND u.status = 'active')
        AND NOT EXISTS (SELECT 1 FROM group_member m WHERE m.group_id = i.group_id AND m.user_id = ${input.userId})
        AND (SELECT count(*) FROM group_member m WHERE m.group_id = i.group_id) < ${input.cap}
     RETURNING group_id`);
