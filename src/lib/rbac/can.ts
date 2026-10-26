@@ -162,7 +162,11 @@ const RULES: Rules = {
   'self.read': anyUser,
   'self.update': anyUser,
   'self.session.revokeAll': anyUser,
-  'self.delete': (_actor, r) => (r.holdsGroupAdmin ? deny('ADMIN_TRANSFER_REQUIRED') : ALLOW),
+  // R5_CONTRACT §2 ข้อ 2: super admin ลบบัญชีตัวเองผ่านแอปไม่ได้ (FORBIDDEN — กันระบบไม่มี SA; ทำผ่าน SQL) · ตัดสินก่อนกฎ D8
+  'self.delete': (actor, r) => {
+    if (actor.isSuperAdmin) return deny('FORBIDDEN');
+    return r.holdsGroupAdmin ? deny('ADMIN_TRANSFER_REQUIRED') : ALLOW;
+  },
 
   'group.create': anyUser,
   'group.list.mine': anyUser,
@@ -205,6 +209,7 @@ const RULES: Rules = {
   'admin.user.suspend': superAdminAction('admin.user.suspend'),
   'admin.user.unlock': superAdminAction('admin.user.unlock'),
   'admin.group.list': superAdminAction('admin.group.list'),
+  'admin.group.view': superAdminAction('admin.group.view'),
   'admin.audit.view': superAdminAction('admin.audit.view'),
 
   'notification.list.own': ownerOnly,

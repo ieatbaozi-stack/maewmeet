@@ -68,6 +68,7 @@ export const ACTIONS = [
   'admin.user.suspend',
   'admin.user.unlock',
   'admin.group.list',
+  'admin.group.view',
   'admin.audit.view',
 
   // ── อื่น ๆ ──
@@ -103,6 +104,7 @@ export const SUPER_ADMIN_ONLY = [
   'admin.user.suspend',
   'admin.user.unlock',
   'admin.group.list',
+  'admin.group.view',
   'admin.audit.view',
 ] as const satisfies readonly Action[];
 
@@ -111,11 +113,13 @@ export const SUPER_ADMIN_ONLY = [
  * (PRD §3 กติกาเสริม "ทุกการกระทำของ super admin ต่อกลุ่ม/ผู้ใช้อื่น ลง audit log")
  * action ดูรายการ (list/view) ไม่ติดธง ยกเว้น `admin.audit.view` — การเปิดดู audit เป็นเรื่องอ่อนไหว
  * (R1_CONTRACT §3 ข้อ 4, Lead ตัดสิน)
+ * R5: `admin.group.view` (เปิดรายละเอียดกลุ่มจากหน้า admin — R5_CONTRACT §2 ข้อ 3) ติดธงเช่นกัน — service เขียน `admin.group.view` ทุกครั้ง
  */
 export const SUPER_ADMIN_AUDITED = [
   'pinReset.decide',
   'admin.user.suspend',
   'admin.user.unlock',
+  'admin.group.view',
   'admin.audit.view',
 ] as const satisfies readonly (typeof SUPER_ADMIN_ONLY)[number][];
 
@@ -191,6 +195,7 @@ export const ACTION_RESOURCE = {
   'admin.user.suspend': ['none'],
   'admin.user.unlock': ['none'],
   'admin.group.list': ['none'],
+  'admin.group.view': ['none'],
   'admin.audit.view': ['none'],
 
   'notification.list.own': ['ownedByUser'],

@@ -88,11 +88,11 @@ export const MATRIX = {
   'self.update': { ref: 'ADR0003 ผู้ใช้ทุกคน (U13 U14 U15)', resource: 'none', cases: { any: ANY_USER } },
   'self.session.revokeAll': { ref: 'ADR0003 ผู้ใช้ทุกคน (U1 U13)', resource: 'none', cases: { any: ANY_USER } },
   'self.delete': {
-    ref: 'ADR0003 + U13: ต้องโอน admin ของทุกกลุ่มก่อน',
+    ref: 'ADR0003 + U13: ต้องโอน admin ของทุกกลุ่มก่อน · R5 §2 ข้อ 2: super admin ลบตัวเองผ่านแอปไม่ได้ (403)',
     resource: 'self',
     cases: {
-      noGroupAdmin: ANY_USER,
-      holdsGroupAdmin: r(ATR, ATR, ATR, ATR, ATR, ATR, AUTH),
+      noGroupAdmin: r(FB, FB, OK, OK, OK, OK, AUTH),
+      holdsGroupAdmin: r(FB, FB, ATR, ATR, ATR, ATR, AUTH),
     },
   },
 
@@ -223,6 +223,7 @@ export const MATRIX = {
   'admin.user.suspend': { ref: '§3 หน้า super admin', resource: 'none', cases: { any: SA_ONLY } },
   'admin.user.unlock': { ref: '§3 หน้า super admin', resource: 'none', cases: { any: SA_ONLY } },
   'admin.group.list': { ref: '§3 หน้า super admin', resource: 'none', cases: { any: SA_ONLY } },
+  'admin.group.view': { ref: '§3 หน้า super admin · R5 §2 ข้อ 3 (รายละเอียดกลุ่ม + audit)', resource: 'none', cases: { any: SA_ONLY } },
   'admin.audit.view': { ref: '§3 หน้า super admin', resource: 'none', cases: { any: SA_ONLY } },
 
   // ───────── อื่น ๆ ─────────
@@ -250,6 +251,7 @@ export const EXPECT_SA_AUDITED_SA_ONLY: readonly Action[] = [
   'pinReset.decide',
   'admin.user.suspend',
   'admin.user.unlock',
+  'admin.group.view',
   'admin.audit.view',
 ];
 
