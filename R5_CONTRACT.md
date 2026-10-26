@@ -80,3 +80,15 @@
 3. ไม่มีปุ่มกู้กลุ่มที่ลบ
 4. ข้อความ `/privacy` ร่างโดยทีม ไม่ใช่คำปรึกษากฎหมาย — boss ต้องอ่านก่อนเปิดให้คนนอกใช้
 5. deploy จริง (Turso + Vercel) และติด tag v0.1.0–v0.7.0 ทำหลัง R5 — Lead สอนทีละขั้น
+
+## 8. Errata (บันทึกหลังทำจริง — Lead ตรวจ/รับรอง)
+1. **`ACCOUNT_SUSPENDED` เป็น HTTP 401 ทั้งระบบ** (`ERROR_HTTP_STATUS` ใน `src/lib/shared/errors.ts` ตั้งแต่ R0 — ARCHITECTURE §2) ไม่ใช่ 403 อย่างที่ R5-3 เขียน · เทสต์เมทริกซ์ยืนยัน 401 + code `ACCOUNT_SUSPENDED` แม้เป็น SA · ไม่เปลี่ยนรหัสเพื่อไม่ทำให้ R1–R4B ถอยหลัง
+2. การตัดสินของ backend (Auth & Access + Platform) ที่ §2 ข้อ 3 เปิดไว้ให้เลือก:
+   - ระงับตัวเอง / super admin คนอื่น → **403 `FORBIDDEN`** (ไม่ใช่ 409 `CONFLICT`)
+   - suspend ที่ถูกระงับอยู่แล้ว / unsuspend ที่ active อยู่แล้ว → **200 idempotent** `{changed:false}` และไม่เขียน audit
+   - นัดที่ผู้ใช้ที่ลบบัญชีสร้าง: API คืน **`createdBy: null`** (serializer คืนชื่อเฉพาะสมาชิกปัจจุบัน) — แยกไม่ได้ว่า "ออกจากกลุ่ม" หรือ "ลบบัญชี" จึงใช้ข้อความ "สร้างโดยอดีตสมาชิกหรือบัญชีที่ถูกลบ" · ชื่อในแจ้งเตือนของคนอื่นถูกล้างเป็น `''` → UI แสดง "บัญชีที่ถูกลบ"
+   - `GET /api/admin/groups/:gid` คืน **`userId`** ของสมาชิกด้วย (นอกเหนือ username/displayName/role/joinedAt) — ใช้เป็นค่า `toUserId` ของการโอน admin จากหน้า admin
+   - action ใหม่ `admin.group.view` (SA-only, audit ทุกครั้งที่เปิดรายละเอียด) แยกจาก `admin.group.list` — บันทึกใน ADR 0003 Addendum R5
+3. หน้าเว็บ: ป้าย action ของ audit ใน `messages/*.json` ใช้คีย์ที่แทน `.` ด้วย `_` (next-intl ห้ามจุดในชื่อคีย์) เช่น `adminAudit.actions.admin_user_suspend`
+4. Follow-up ที่ทำในรอบนี้: `src/lib/auth/services/pin-change.ts` เขียนตัวนับ PIN ผ่าน `serialized()` แล้ว (เหมือน `services/account.ts`) + เทสต์ `tests/auth/pin-change-concurrency.test.ts`
+
