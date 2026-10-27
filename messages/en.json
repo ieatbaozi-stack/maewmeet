@@ -36,7 +36,7 @@
       "long": "Too many tries. Try again in {hours} h {minutes} min."
     },
     "resetBanner": {
-      "pending": "Reset request sent. Waiting for an app admin to approve it.",
+      "pending": "Reset request sent. Waiting for a system admin to approve it.",
       "approved": "Your reset was approved. Use the PIN 123456 on this device until {expires}.",
       "action": "See status"
     },
@@ -316,7 +316,7 @@
     "displayNameHint": "Friends in your groups see this name. Up to 40 characters, any language.",
     "pin": "Choose a 6-digit PIN",
     "pinConfirm": "Enter the PIN again",
-    "pinRemember": "Keep your PIN somewhere safe. There’s no email to recover it, so if you forget it an app admin has to approve a reset.",
+    "pinRemember": "Keep your PIN somewhere safe. There’s no email to recover it, so if you forget it a system admin has to approve a reset.",
     "submit": "Create account",
     "submitting": "Creating your account…",
     "haveAccount": "Already have an account?",
@@ -335,7 +335,7 @@
   },
   "forgot": {
     "title": "Forgot your PIN?",
-    "intro": "Tell us your username. An app admin will check the request and let you set a new PIN.",
+    "intro": "Tell us your username. A system admin will check the request and let you set a new PIN.",
     "username": "Username",
     "submit": "Send request",
     "submitting": "Sending…",
@@ -343,7 +343,7 @@
     "deviceNote": "Once it’s approved, sign in from this device. If you switch devices or clear your browser data, this request won’t work and you’ll need to send a new one.",
     "pending": {
       "title": "Request sent",
-      "body": "An app admin will review it, which can take a little while. If you remember your PIN in the meantime, just sign in as usual and the request is cancelled for you.",
+      "body": "A system admin will review it, which can take a little while. If you remember your PIN in the meantime, just sign in as usual and the request is cancelled for you.",
       "hint": "You can close this page and check back on the sign-in screen.",
       "expiry": "If nobody answers within 7 days, the request expires and you can send a new one."
     },
@@ -372,7 +372,7 @@
     "doneOthers": "Any other devices you were signed in on have been signed out."
   },
   "adminResets": {
-    "eyebrow": "App admin",
+    "eyebrow": "System admin",
     "title": "PIN reset requests",
     "tabPending": "Waiting {count}",
     "tabAll": "All",
@@ -429,7 +429,7 @@
       "body": "You’ll need to sign in again on every device, this one included. Your current PIN still works.",
       "confirm": "Sign out everywhere"
     },
-    "admin": "App admin",
+    "admin": "System admin",
     "adminResets": "PIN reset requests",
     "adminResetsBadge": "{count} waiting",
     "pin": {
@@ -446,7 +446,7 @@
     "privacy": "Privacy",
     "deleteAccount": "Delete account",
     "deleteAccountHint": "This can’t be undone.",
-    "adminHub": "App admin console"
+    "adminHub": "System admin console"
   },
   "roles": {
     "admin": "Admin",
@@ -656,7 +656,7 @@
   },
   "notifications": {
     "pin_reset": {
-      "approved": "An app admin approved your PIN reset request (valid until {expiresAt}).",
+      "approved": "A system admin approved your PIN reset request (valid until {expiresAt}).",
       "cancelled_by_login": "Your PIN reset request was cancelled because you signed in with your current PIN. If you didn’t send it, change your PIN in the Me tab."
     },
     "group": {
@@ -712,7 +712,7 @@
     "UNKNOWN": "Something went wrong on our side. Try again in a moment.",
     "AUTH_MAINTENANCE": "Sign-in and sign-up are paused for maintenance. Your data is safe, and this won’t count as a wrong PIN. Try again later.",
     "AUTH_REQUIRED": "Sign in to continue.",
-    "ACCOUNT_SUSPENDED": "This account is suspended. If you think that’s a mistake, contact the app admin.",
+    "ACCOUNT_SUSPENDED": "This account is suspended. If you think that’s a mistake, contact the system admin.",
     "PIN_CHANGE_REQUIRED": "Set a new PIN to continue.",
     "INVALID_CREDENTIALS": "Wrong username or PIN.{attemptsRemaining, plural, =0 {} =1 { One try left before a short lock.} other { # tries left.}}",
     "LOGIN_LOCKED": "Too many tries. Try again in {retryAfterMin, plural, one {# minute} other {# minutes}}.",
@@ -1152,13 +1152,13 @@
       "transferTitle": "Hand over your groups first",
       "transferBody": "You’re still the admin of the groups below. Make someone else the admin, or delete the group, then come back. Nothing has been deleted.",
       "transferLink": "Open settings for {group}",
-      "superAdmin": "App admins can’t delete their own account in the app, so the app always has an admin. It has to be done in the database, following the operations guide."
+      "superAdmin": "System admins can’t delete their own account in the app, so the app always has a system admin. It has to be done in the database, following the operations guide."
     }
   },
   "admin": {
-    "eyebrow": "App admin",
-    "title": "App admin console",
-    "lead": "Everything an app admin does to someone else’s account or group is recorded in the audit log.",
+    "eyebrow": "System admin",
+    "title": "System admin console",
+    "lead": "Everything a system admin does to someone else’s account or group is recorded in the audit log.",
     "resets": "PIN reset requests",
     "resetsHint": "Approve or reject requests from people who forgot their PIN",
     "users": "Users",
@@ -1167,7 +1167,7 @@
     "groupsHint": "See members, hand over group admin or delete a group",
     "audit": "Audit log",
     "auditHint": "See who did what, and when",
-    "back": "Back to app admin console",
+    "back": "Back to system admin console",
     "loadMore": "Load more",
     "loadingMore": "Loading…",
     "search": "Search",
@@ -1189,7 +1189,7 @@
       "suspended": "Suspended",
       "deleted": "Deleted"
     },
-    "superAdmin": "App admin",
+    "superAdmin": "System admin",
     "locked": "Locked",
     "lockedUntil": "Locked until {when}",
     "openReset": "PIN reset requested",
@@ -1220,7 +1220,7 @@
     "unsuspended": "{username} is no longer suspended",
     "unlocked": "{username} is unlocked",
     "unchanged": "{username} was already in that state",
-    "forbidden": "You can’t do that to yourself or to another app admin."
+    "forbidden": "You can’t do that to yourself or to another system admin."
   },
   "adminGroups": {
     "title": "Groups",
@@ -1328,7 +1328,7 @@
       "user_delete": "Deleted their account",
       "admin_user_suspend": "Suspended or unsuspended an account",
       "admin_user_unlock": "Unlocked an account",
-      "admin_group_view": "App admin viewed group details",
+      "admin_group_view": "System admin viewed group details",
       "admin_audit_view": "Viewed the audit log"
     },
     "targetTypes": {
@@ -1342,7 +1342,7 @@
     "meta": {
       "decision": "Decision",
       "targetUserId": "Target user",
-      "asSuperAdmin": "Used app admin rights",
+      "asSuperAdmin": "Used system admin rights",
       "fields": "Fields changed",
       "fromUserId": "From",
       "toUserId": "To",
@@ -1382,7 +1382,7 @@
       "note": "Private notes are never sent to anyone but you.",
       "outsiders": "People who aren’t in a group with you can’t see your busy time at all.",
       "groups": "Group members see your display name, your role, the group’s plans and replies to them.",
-      "superAdmin": "App admins see usernames, display names, group memberships and counts so they can run the app, suspend or unlock accounts and approve PIN resets. An app admin can also open any group the way a member can (calendar, free days, plans with their title, time and place, invites) and manage it (edit or cancel plans, remove members, hand over group admin, delete the group). Every one of these is recorded in the audit log. App admins never see private notes, or what you’re doing for entries set to “Details hidden”."
+      "superAdmin": "System admins see usernames, display names, group memberships and counts so they can run the app, suspend or unlock accounts and approve PIN resets. A system admin can also open any group the way a member can (calendar, free days, plans with their title, time and place, invites) and manage it (edit or cancel plans, remove members, hand over group admin, delete the group). Every one of these is recorded in the audit log. System admins never see private notes, or what you’re doing for entries set to “Details hidden”."
     },
     "places": {
       "title": "Place search and maps",
@@ -1396,7 +1396,7 @@
       "notifications": "Notifications older than 90 days are deleted automatically.",
       "sessions": "Sign-ins expire within 60 days of your last use.",
       "security": "PIN reset requests and the audit log are kept for security, with no deletion date yet.",
-      "groups": "Groups and plans are kept until they’re deleted. A deleted group is hidden from its members, but app admins can still see its name and member list, and it isn’t removed from the database yet.",
+      "groups": "Groups and plans are kept until they’re deleted. A deleted group is hidden from its members, but system admins can still see its name and member list, and it isn’t removed from the database yet.",
       "providers": "The app runs on outside hosting and database providers, so the data above is stored and processed by them."
     },
     "delete": {
@@ -1408,7 +1408,7 @@
     },
     "contact": {
       "title": "Contact",
-      "body": "Questions, or want more removed than the delete button does? Reach an app admin through one of your groups, or ask whoever invited you to the app."
+      "body": "Questions, or want more removed than the delete button does? Reach a system admin through one of your groups, or ask whoever invited you to the app."
     }
   }
 }
