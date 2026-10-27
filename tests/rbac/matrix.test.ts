@@ -378,6 +378,19 @@ describe('กรณีขอบ', () => {
       status: 409,
     });
   });
+
+  it('R5 §2 ข้อ 2: super admin ลบบัญชีตัวเองผ่านแอปไม่ได้ (403) ไม่ว่าจะถือ admin กลุ่มหรือไม่ — FORBIDDEN มาก่อน D8', () => {
+    for (const holdsGroupAdmin of [false, true]) {
+      expect(can(sa(), 'self.delete', { type: 'self', holdsGroupAdmin })).toEqual({ allow: false, code: 'FORBIDDEN', status: 403 });
+    }
+    // ด่านบัญชียังมาก่อน: SA ที่ต้องเปลี่ยน PIN → PIN_CHANGE_REQUIRED
+    expect(can({ ...sa(), mustChangePin: true }, 'self.delete', { type: 'self', holdsGroupAdmin: false })).toMatchObject({ code: 'PIN_CHANGE_REQUIRED' });
+  });
+
+  it('R5: admin.group.view เป็น SA-only และติดธง audit', () => {
+    expect(can(sa(), 'admin.group.view', { type: 'none' })).toEqual({ allow: true, auditAsSuperAdmin: true });
+    expect(can(user('u'), 'admin.group.view', { type: 'none' })).toEqual({ allow: false, code: 'FORBIDDEN', status: 403 });
+  });
 });
 
 // ─────────────────────────── 4b. R2-1 กฎข้ามช่องของ group/member/invite ───────────────────────────

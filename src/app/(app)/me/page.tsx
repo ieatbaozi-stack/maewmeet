@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { getLocale, getTranslations } from "next-intl/server";
 import { pageRequest, requireUser } from "@/app/_lib/session";
+import { AccountSection } from "@/components/account/AccountSection";
 import { AccountActions } from "@/components/auth/AccountActions";
 import { Aurora } from "@/components/brand";
 import { Icon } from "@/components/icons/Icon";
@@ -32,7 +33,7 @@ async function pendingResetCount(): Promise<number | null> {
   }
 }
 
-/** ฉัน (UX W10 / F8) — บัญชี · การแสดงผล · ความปลอดภัย (เปลี่ยน PIN, ออกจากระบบ) · ผู้ดูแลระบบ (เฉพาะ super admin) */
+/** ฉัน (UX W10 / F8) — บัญชี (ชื่อ, ความเป็นส่วนตัว, ลบบัญชี — R5) · การแสดงผล · ความปลอดภัย (เปลี่ยน PIN, ออกจากระบบ) · ผู้ดูแลระบบ (เฉพาะ super admin) */
 export default async function MePage() {
   const user = await requireUser();
   const locale = parseLocale(await getLocale());
@@ -48,6 +49,7 @@ export default async function MePage() {
           <p className="account-name"><Name>{user.displayName}</Name></p>
           <p className="muted">{t("signedInAs", { username: user.username })}</p>
         </section>
+        <AccountSection displayName={user.displayName} isSuperAdmin={user.isAdmin} />
         <PrefsSettings current={{ locale, theme }} />
         <AccountActions />
         {user.isAdmin ? (
@@ -55,6 +57,10 @@ export default async function MePage() {
             <h2 className="h-section" id="me-admin">
               {t("admin")}
             </h2>
+            <Link className="menu-row" href="/admin" data-testid="me-admin-hub">
+              <span>{t("adminHub")}</span>
+              <Icon name="chevron-right" />
+            </Link>
             <Link className="menu-row" href="/admin/pin-resets">
               <span>{t("adminResets")}</span>
               {pending ? <span className="tag tag-wait">{t("adminResetsBadge", { count: pending })}</span> : null}

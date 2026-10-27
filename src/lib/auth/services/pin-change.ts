@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { cancelPendingPinResetOfUser } from '@/lib/data/repos/pin-reset-request';
 import { findUserById, setUserPin } from '@/lib/data/repos/user';
+import { serialized } from '@/lib/data/tx';
 import { authorize } from '@/lib/rbac/can';
 import type { Actor } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
@@ -45,20 +46,23 @@ export async function changePin(
     const pepper = me.pinHash ? pepperOfVersion(pepperCtx, me.pinPepperVersion) : null;
     if (me.pinHash && !pepper) throw new AppError('AUTH_MAINTENANCE'); // ก่อนจอง — ไม่นับ (เหมือน login)
     // จองก่อน verify (S1): IP แล้ว username — เต็ม/ล็อก = ไม่ verify · ใช้ตัวนับชุดเดียวกับ login
-    const attempt = await reserveUsernameSlot(await reserveIpSlot(db, ctx.req, ctx.appSecret, key, now));
-    const ok = me.pinHash && pepper ? await verifyPin(input.currentPin, me.pinHash, pepper.secret) : await verifyDummy(input.currentPin);
-    if (!ok) throw await failedAttempt(attempt);
-    await succeededAttempt(attempt);
+    // การเขียนตัวนับผ่านคิว serialized เดียวกับธุรกรรมอื่นใน process (เหมือน services/account.ts) — ไม่ชนล็อกกับธุรกรรมที่กำลังเขียน
+    // (เช่น โอน admin/ลบบัญชีพร้อมกัน) จน SQLITE_BUSY → 500 · verify (argon2) อยู่นอกคิว ไม่บล็อกงานอื่น
+    const currentPin = input.currentPin;
+    const attempt = await serialized(db, async () => reserveUsernameSlot(await reserveIpSlot(db, ctx.req, ctx.appSecret, key, now)));
+    const ok = me.pinHash && pepper ? await verifyPin(currentPin, me.pinHash, pepper.secret) : await verifyDummy(currentPin);
+    if (!ok) throw await serialized(db, () => failedAttempt(attempt));
+    await serialized(db, () => succeededAttempt(attempt));
   }
 
   const cur = currentPepper(pepperCtx);
   const pinHash = await hashPin(input.newPin, cur);
   const keepSessionId = readSessionId(ctx.req);
-  const revoked = await db.transaction(async (tx) => {
+  const revoked = await serialized(db, () => db.transaction(async (tx) => {
     await setUserPin(tx, userId, { pinHash, pinPepperVersion: cur.version, mustChangePin: false }, now);
     await cancelPendingPinResetOfUser(tx, userId, now);
     // ไม่มี cookie (เรียกด้วยวิธีอื่น) → ลบหมดทุกเครื่อง ปลอดภัยกว่าเหลือ session ที่ไม่รู้จัก
     return keepSessionId ? revokeOtherSessions(tx, userId, keepSessionId) : revokeAllSessions(tx, userId);
-  });
+  }));
   return { mustChangePin: false, otherSessionsRevoked: revoked };
 }

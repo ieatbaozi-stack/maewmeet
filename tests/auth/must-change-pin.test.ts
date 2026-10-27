@@ -47,6 +47,9 @@ const SAMPLE_BODY: Record<string, unknown> = {
   'PATCH /api/appointments/:id': { title: 'x' },
   'PUT /api/appointments/:id/rsvp': { response: 'going' },
   'POST /api/me/notifications/read': { all: true },
+  // R5 (Platform): บัญชีของฉัน — body ผ่าน zod ก่อน actor
+  'PATCH /api/me': { displayName: 'x' },
+  'POST /api/me/delete': { pin: '482915' },
 };
 
 const concretePath = (e: ManifestEntry) => e.path.replace(/:\w+/g, UUID);

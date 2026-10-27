@@ -132,7 +132,7 @@
 .appt-place-sub { font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
 .appt-actions { display: grid; gap: var(--space-2); margin-top: var(--space-3); }
 .appt-actions .btn { width: 100%; }
-.appt-created { font-size: var(--text-sm); color: var(--ink-muted); }
+.appt-created { font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; min-width: 0; }
 
 /* รายชื่อตามคำตอบ */
 .rsvp-groups { display: grid; gap: var(--space-4); margin-top: var(--space-3); }

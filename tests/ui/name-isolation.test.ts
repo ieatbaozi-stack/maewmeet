@@ -30,6 +30,12 @@ const SITES: [string, RegExp[]][] = [
   ['src/app/(app)/me/page.tsx', [/<Name>\{user\.displayName\}<\/Name>/]],
   ['src/app/(app)/groups/[gid]/page.tsx', [/<Name>\{group\.name\}<\/Name>/]],
   ['src/app/(app)/groups/[gid]/settings/page.tsx', [/<Name>\{group\.name\}<\/Name>/]],
+  // R5
+  ['src/components/admin/AdminUsers.tsx', [/<Name>\{u\.displayName \|\| t\("account\.deletedName"\)\}<\/Name>/, /<Name>\{u\.username\}<\/Name>/]],
+  ['src/components/admin/AdminGroups.tsx', [/<Name>\{g\.name\}<\/Name>/, /withNames\(/]],
+  ['src/components/admin/AdminGroupDetail.tsx', [/<Name>\{g\.name\}<\/Name>/, /<Name>\{shownName\(m\.displayName, deleted\)\}<\/Name>/, /<Name>\{m\.username\}<\/Name>/]],
+  ['src/components/admin/AdminAudit.tsx', [/<Name>\{actorName\(e\.actor\)\}<\/Name>/]],
+  ['src/components/account/DeleteAccountSheet.tsx', [/<Name>\{g\.name\}<\/Name>/]],
 ];
 describe('จุดแสดงชื่อผู้ใช้ครอบ bdi', () => {
   for (const [file, pats] of SITES) {

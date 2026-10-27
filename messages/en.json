@@ -36,10 +36,11 @@
       "long": "Too many tries. Try again in {hours} h {minutes} min."
     },
     "resetBanner": {
-      "pending": "Reset request sent. Waiting for an admin to approve it.",
+      "pending": "Reset request sent. Waiting for a system admin to approve it.",
       "approved": "Your reset was approved. Use the PIN 123456 on this device until {expires}.",
       "action": "See status"
-    }
+    },
+    "privacy": "Privacy"
   },
   "empty": {
     "home": {
@@ -315,7 +316,7 @@
     "displayNameHint": "Friends in your groups see this name. Up to 40 characters, any language.",
     "pin": "Choose a 6-digit PIN",
     "pinConfirm": "Enter the PIN again",
-    "pinRemember": "Keep your PIN somewhere safe. There’s no email to recover it, so if you forget it an admin has to approve a reset.",
+    "pinRemember": "Keep your PIN somewhere safe. There’s no email to recover it, so if you forget it a system admin has to approve a reset.",
     "submit": "Create account",
     "submitting": "Creating your account…",
     "haveAccount": "Already have an account?",
@@ -334,7 +335,7 @@
   },
   "forgot": {
     "title": "Forgot your PIN?",
-    "intro": "Tell us your username. An admin will check the request and let you set a new PIN.",
+    "intro": "Tell us your username. A system admin will check the request and let you set a new PIN.",
     "username": "Username",
     "submit": "Send request",
     "submitting": "Sending…",
@@ -342,7 +343,7 @@
     "deviceNote": "Once it’s approved, sign in from this device. If you switch devices or clear your browser data, this request won’t work and you’ll need to send a new one.",
     "pending": {
       "title": "Request sent",
-      "body": "An admin will review it, which can take a little while. If you remember your PIN in the meantime, just sign in as usual and the request is cancelled for you.",
+      "body": "A system admin will review it, which can take a little while. If you remember your PIN in the meantime, just sign in as usual and the request is cancelled for you.",
       "hint": "You can close this page and check back on the sign-in screen.",
       "expiry": "If nobody answers within 7 days, the request expires and you can send a new one."
     },
@@ -371,7 +372,7 @@
     "doneOthers": "Any other devices you were signed in on have been signed out."
   },
   "adminResets": {
-    "eyebrow": "Admin",
+    "eyebrow": "System admin",
     "title": "PIN reset requests",
     "tabPending": "Waiting {count}",
     "tabAll": "All",
@@ -428,7 +429,7 @@
       "body": "You’ll need to sign in again on every device, this one included. Your current PIN still works.",
       "confirm": "Sign out everywhere"
     },
-    "admin": "Admin",
+    "admin": "System admin",
     "adminResets": "PIN reset requests",
     "adminResetsBadge": "{count} waiting",
     "pin": {
@@ -439,7 +440,13 @@
       "submit": "Change PIN",
       "saving": "Saving…",
       "done": "PIN changed. Your other devices have been signed out."
-    }
+    },
+    "account": "Account",
+    "rename": "Change display name",
+    "privacy": "Privacy",
+    "deleteAccount": "Delete account",
+    "deleteAccountHint": "This can’t be undone.",
+    "adminHub": "System admin console"
   },
   "roles": {
     "admin": "Admin",
@@ -649,7 +656,7 @@
   },
   "notifications": {
     "pin_reset": {
-      "approved": "An admin approved your PIN reset request (valid until {expiresAt}).",
+      "approved": "A system admin approved your PIN reset request (valid until {expiresAt}).",
       "cancelled_by_login": "Your PIN reset request was cancelled because you signed in with your current PIN. If you didn’t send it, change your PIN in the Me tab."
     },
     "group": {
@@ -705,7 +712,7 @@
     "UNKNOWN": "Something went wrong on our side. Try again in a moment.",
     "AUTH_MAINTENANCE": "Sign-in and sign-up are paused for maintenance. Your data is safe, and this won’t count as a wrong PIN. Try again later.",
     "AUTH_REQUIRED": "Sign in to continue.",
-    "ACCOUNT_SUSPENDED": "This account is suspended. If you think that’s a mistake, contact the app admin.",
+    "ACCOUNT_SUSPENDED": "This account is suspended. If you think that’s a mistake, contact the system admin.",
     "PIN_CHANGE_REQUIRED": "Set a new PIN to continue.",
     "INVALID_CREDENTIALS": "Wrong username or PIN.{attemptsRemaining, plural, =0 {} =1 { One try left before a short lock.} other { # tries left.}}",
     "LOGIN_LOCKED": "Too many tries. Try again in {retryAfterMin, plural, one {# minute} other {# minutes}}.",
@@ -950,7 +957,7 @@
       "description": "Details",
       "place": "Place",
       "createdBy": "Created by {name} · {date}",
-      "createdByGone": "Created by a former member · {date}",
+      "createdByGone": "Created by a former member or deleted account · {date}",
       "manage": "Manage this plan",
       "cancelAction": "Cancel this plan",
       "noPermission": "Only the person who made this plan and the group’s admins can edit or cancel it.",
@@ -1105,6 +1112,303 @@
         "body": "You can still open it in your maps app, or use the name and coordinates below."
       },
       "attribution": "© OpenStreetMap contributors"
+    }
+  },
+  "account": {
+    "deletedName": "Deleted account",
+    "rename": {
+      "title": "Change display name",
+      "label": "Display name",
+      "hint": "Friends in all your groups see the new name right away. Up to {max} characters, {perDay} changes a day.",
+      "save": "Save name",
+      "saving": "Saving…",
+      "done": "Display name updated",
+      "invalid": "{reason, select, TOO_SHORT {Enter at least 1 character.} TOO_LONG {Names can be up to {max} characters.} RESERVED {That name is used by the app itself. Pick another one.} other {This name has characters we can’t use. Try typing it instead of pasting.}}",
+      "rateLimited": "You’ve changed your name {perDay} times today. Try again tomorrow."
+    },
+    "delete": {
+      "title": "Delete account",
+      "lead": "This can’t be undone, and you won’t be able to sign in with this account again.",
+      "goneTitle": "What goes away",
+      "gone": {
+        "sessions": "Your sign-ins on every device",
+        "groups": "Your membership in every group",
+        "busy": "All your busy time, including private notes",
+        "rsvp": "Your plan replies and your notifications",
+        "invites": "Invites you created that nobody has used (they’re revoked)",
+        "name": "Your display name and PIN (your username becomes free for someone else)",
+        "resets": "Pending PIN reset requests (they’re cancelled), and the device and country details of every request"
+      },
+      "keepTitle": "What stays",
+      "keep": {
+        "appointments": "Plans you created stay for your friends, shown as created by “a former member or deleted account”",
+        "audit": "The system’s security log, plus the status and time of invites and PIN reset requests (linked to the account by ID only, without your name or PIN)"
+      },
+      "continue": "Continue to PIN",
+      "pinTitle": "Enter your PIN to delete your account",
+      "pinHint": "Wrong PINs count toward the sign-in limit.",
+      "deleting": "Deleting your account…",
+      "back": "Back",
+      "transferTitle": "Hand over your groups first",
+      "transferBody": "You’re still the admin of the groups below. Make someone else the admin, or delete the group, then come back. Nothing has been deleted.",
+      "transferLink": "Open settings for {group}",
+      "superAdmin": "System admins can’t delete their own account in the app, so the app always has a system admin. It has to be done in the database, following the operations guide."
+    }
+  },
+  "admin": {
+    "eyebrow": "System admin",
+    "title": "System admin console",
+    "lead": "Everything a system admin does to someone else’s account or group is recorded in the audit log.",
+    "resets": "PIN reset requests",
+    "resetsHint": "Approve or reject requests from people who forgot their PIN",
+    "users": "Users",
+    "usersHint": "Search, suspend or unlock accounts",
+    "groups": "Groups",
+    "groupsHint": "See members, hand over group admin or delete a group",
+    "audit": "Audit log",
+    "auditHint": "See who did what, and when",
+    "back": "Back to system admin console",
+    "loadMore": "Load more",
+    "loadingMore": "Loading…",
+    "search": "Search",
+    "clear": "Clear search",
+    "end": "That’s everything",
+    "you": "You"
+  },
+  "adminUsers": {
+    "title": "Users",
+    "searchLabel": "Search by username or display name",
+    "searchHint": "Usernames match from the start, display names match anywhere. Up to {max} characters.",
+    "count": "{count, plural, one {Showing 1 person} other {Showing # people}}",
+    "empty": {
+      "title": "No users found",
+      "body": "Try another search, or clear it to see everyone."
+    },
+    "status": {
+      "active": "Active",
+      "suspended": "Suspended",
+      "deleted": "Deleted"
+    },
+    "superAdmin": "System admin",
+    "locked": "Locked",
+    "lockedUntil": "Locked until {when}",
+    "openReset": "PIN reset requested",
+    "groupCount": "{count, plural, =0 {In no groups} one {In 1 group} other {In # groups}}",
+    "joined": "Joined {date}",
+    "suspend": "Suspend",
+    "unsuspend": "Unsuspend",
+    "unlock": "Unlock",
+    "suspendFor": "Suspend {username}",
+    "unsuspendFor": "Unsuspend {username}",
+    "unlockFor": "Unlock {username}",
+    "suspendSheet": {
+      "title": "Suspend {username}?",
+      "body": "They’ll be signed out on every device right away and can’t sign in until you unsuspend them. They stay in their groups, nothing they added is deleted, and friends still see their name.",
+      "confirm": "Suspend account"
+    },
+    "unsuspendSheet": {
+      "title": "Unsuspend {username}?",
+      "body": "They can sign in with their current PIN again and pick up where they left off in their groups.",
+      "confirm": "Unsuspend"
+    },
+    "unlockSheet": {
+      "title": "Unlock {username}?",
+      "body": "Clears the wrong-PIN counter for this account so they can try signing in right away. Their PIN and account status don’t change. If they forgot their PIN, they should request a reset instead.",
+      "confirm": "Unlock"
+    },
+    "suspended": "{username} is suspended",
+    "unsuspended": "{username} is no longer suspended",
+    "unlocked": "{username} is unlocked",
+    "unchanged": "{username} was already in that state",
+    "forbidden": "You can’t do that to yourself or to another system admin."
+  },
+  "adminGroups": {
+    "title": "Groups",
+    "searchLabel": "Search by group name",
+    "filter": "Group status",
+    "status": {
+      "active": "Active",
+      "deleted": "Deleted",
+      "all": "All"
+    },
+    "empty": {
+      "title": "No groups found",
+      "body": "Try another search or a different status."
+    },
+    "admin": "Group admin {username}",
+    "noAdmin": "No group admin",
+    "members": "{count, plural, one {1 member} other {# members}}",
+    "created": "Created {date}",
+    "deletedAt": "Deleted {date}",
+    "openAria": "Open details for {group}"
+  },
+  "adminGroup": {
+    "title": "Group details",
+    "privacyNote": "This page only shows names, roles and counts — no busy time or plan details. Opening it is recorded in the audit log.",
+    "tz": "Time zone {tz}",
+    "openAppointments": "{count, plural, =0 {No upcoming plans} one {1 upcoming plan} other {# upcoming plans}}",
+    "membersTitle": "Members",
+    "joined": "Joined {date}",
+    "deletedBanner": "This group was deleted on {date}. Members can’t see it any more, and it can’t be restored.",
+    "transfer": {
+      "title": "Hand over group admin",
+      "body": "Use this when the group admin can’t be reached or asks for help. The current admin becomes a moderator.",
+      "pick": "New group admin",
+      "none": "There’s nobody else to hand over to.",
+      "cta": "Hand over group admin",
+      "confirm": {
+        "title": "Make {name} the group admin?",
+        "body": "{name} will be able to manage everything, including deleting the group. The current admin becomes a moderator. This is recorded as done by you.",
+        "confirm": "Make {name} group admin"
+      },
+      "done": "{name} is now the group admin"
+    },
+    "delete": {
+      "title": "Delete group",
+      "body": "This can’t be undone. No member will see this group, its calendar or its plans again.",
+      "cta": "Delete group",
+      "confirm": {
+        "title": "Delete {group}?",
+        "body": "{count, plural, one {The 1 member} other {All # members}} will lose access to this group. All of its plans disappear from the app, unused invites stop working, and it can’t be restored. This is recorded as done by you.",
+        "typeLabel": "Type the group name to confirm",
+        "typeHint": "Type “{group}” exactly",
+        "confirm": "Delete group for good"
+      },
+      "done": "{group} has been deleted"
+    }
+  },
+  "adminAudit": {
+    "title": "Audit log",
+    "lead": "Newest first. Only the details needed for review are shown.",
+    "filters": "Filters",
+    "action": "Action",
+    "anyAction": "Any action",
+    "targetType": "Target type",
+    "anyTarget": "Any type",
+    "targetId": "Target ID",
+    "targetIdHint": "Paste the ID of a user, group or item.",
+    "actorFilter": "Only actions by {actor}",
+    "clearActor": "Stop filtering by person",
+    "apply": "Filter",
+    "reset": "Clear filters",
+    "byActor": "Only show what {actor} did",
+    "system": "System",
+    "target": "{type}: {id}",
+    "group": "Group",
+    "openGroup": "Open group",
+    "empty": {
+      "title": "Nothing here",
+      "body": "No entries match these filters yet."
+    },
+    "unknownAction": "Other action ({code})",
+    "actions": {
+      "pinReset_decide": "Approved or rejected a PIN reset",
+      "script_adminResetPin": "Reset a PIN with the script",
+      "group_create": "Created a group",
+      "group_view": "Viewed a group",
+      "group_update": "Edited a group",
+      "group_delete": "Deleted a group",
+      "group_leave": "Left a group",
+      "group_transferAdmin": "Handed over group admin",
+      "group_calendar_view": "Viewed the group calendar",
+      "group_availability_view": "Viewed the group’s free days",
+      "member_remove": "Removed a member",
+      "member_setRole": "Changed a member’s role",
+      "invite_code_create": "Created an invite code",
+      "invite_direct_create": "Invited by username",
+      "invite_list": "Viewed invites",
+      "invite_revoke": "Revoked an invite",
+      "invite_code_redeem": "Joined with a code",
+      "invite_direct_respond": "Answered an invite",
+      "appointment_create": "Created a plan",
+      "appointment_update": "Edited a plan",
+      "appointment_cancel": "Cancelled a plan",
+      "appointment_view": "Viewed plans",
+      "appointment_check": "Checked for overlapping plans",
+      "user_delete": "Deleted their account",
+      "admin_user_suspend": "Suspended or unsuspended an account",
+      "admin_user_unlock": "Unlocked an account",
+      "admin_group_view": "System admin viewed group details",
+      "admin_audit_view": "Viewed the audit log"
+    },
+    "targetTypes": {
+      "user": "User",
+      "group": "Group",
+      "member": "Member",
+      "invite": "Invite",
+      "appointment": "Plan",
+      "pin_reset": "PIN reset request"
+    },
+    "meta": {
+      "decision": "Decision",
+      "targetUserId": "Target user",
+      "asSuperAdmin": "Used system admin rights",
+      "fields": "Fields changed",
+      "fromUserId": "From",
+      "toUserId": "To",
+      "from": "From",
+      "to": "To",
+      "targetRole": "Target’s role",
+      "inviteId": "Invite",
+      "inviteeUserId": "Invitee",
+      "kind": "Kind",
+      "appointmentId": "Plan",
+      "scope": "Scope",
+      "state": "New status",
+      "wasLocked": "Was locked",
+      "filtered": "Filtered"
+    },
+    "value": "{value, select, true {Yes} false {No} approved {Approved} approve {Approved} rejected {Rejected} reject {Rejected} accepted {Accepted} declined {Declined} active {Active} suspended {Suspended} admin {Group admin} moderator {Moderator} member {Member} code {Code} direct {Direct} other {{value}}}"
+  },
+  "privacy": {
+    "eyebrow": "maewmeet",
+    "title": "Privacy",
+    "draft": "Drafted by the development team from how the app actually works. This isn’t legal advice, and the app owner must read and approve it before the app is opened to the public.",
+    "updated": "Last drafted 26 Oct 2026",
+    "back": "Back",
+    "intro": "maewmeet is an app for making plans with friends. It keeps only what it needs to work, shows no ads, and never sells or shares your data for marketing.",
+    "collect": {
+      "title": "What we keep",
+      "account": "Your account: username, display name and PIN. The PIN is stored as a hash, so it can’t be turned back into the digits. We don’t ask for an email or phone number.",
+      "busy": "Busy time you add: dates and times, what you’re doing, and private notes.",
+      "groups": "The groups you’re in and your role, plans (title, time, place and any coordinates), your replies to plans, and in-app notifications.",
+      "security": "Security data: your sign-ins on each device (including browser details), a wrong-PIN counter, per-IP rate counters stored as a hash rather than the IP itself, PIN reset requests (time, short device name, country), and a log of important actions (the audit log).",
+      "cookies": "Only the cookies the app needs: your sign-in (expires within 60 days of your last use), language, theme, and a device cookie when you request a PIN reset."
+    },
+    "see": {
+      "title": "Who sees what",
+      "owner": "You see all of your own busy time.",
+      "members": "People in a group with you see when you’re busy, and what you’re doing only for entries you haven’t set to “Details hidden”. Hidden entries just show that you’re busy.",
+      "note": "Private notes are never sent to anyone but you.",
+      "outsiders": "People who aren’t in a group with you can’t see your busy time at all.",
+      "groups": "Group members see your display name, your role, the group’s plans and replies to them.",
+      "superAdmin": "System admins see usernames, display names, group memberships and counts so they can run the app, suspend or unlock accounts and approve PIN resets. A system admin can also open any group the way a member can (calendar, free days, plans with their title, time and place, invites) and manage it (edit or cancel plans, remove members, hand over group admin, delete the group). Every one of these is recorded in the audit log. System admins never see private notes, or what you’re doing for entries set to “Details hidden”."
+    },
+    "places": {
+      "title": "Place search and maps",
+      "search": "When you search for a place, what you type is sent to OpenStreetMap (Nominatim) through our server, so Nominatim sees our server, not your IP. Results are kept for 30 days to avoid repeat lookups and aren’t linked to any account.",
+      "tiles": "Maps on a plan load map images from OpenStreetMap directly from your device, so OpenStreetMap sees your IP and the area you’re viewing.",
+      "noTracking": "No ads, and no third-party trackers or analytics."
+    },
+    "retention": {
+      "title": "How long we keep it",
+      "busy": "Busy time that ended more than 90 days ago is deleted automatically.",
+      "notifications": "Notifications older than 90 days are deleted automatically.",
+      "sessions": "Sign-ins expire within 60 days of your last use.",
+      "security": "PIN reset requests and the audit log are kept for security, with no deletion date yet.",
+      "groups": "Groups and plans are kept until they’re deleted. A deleted group is hidden from its members, but system admins can still see its name and member list, and it isn’t removed from the database yet.",
+      "providers": "The app runs on outside hosting and database providers, so the data above is stored and processed by them."
+    },
+    "delete": {
+      "title": "Deleting your account",
+      "how": "You can do it yourself in the Me tab → “Delete account”, with your PIN. If you’re a group admin, hand over admin or delete the group first.",
+      "removed": "Removed or cleared: sign-ins on every device, membership in every group, all your busy time, your plan replies, your notifications, your PIN and display name, and the device and country details of your PIN reset requests. Invites you created and pending PIN reset requests are cancelled. Your old username becomes free for others to use.",
+      "kept": "Kept: plans you created (shown as created by “a former member or deleted account”), the audit log, invite and PIN reset rows reduced to their status, time and account ID, and the account record itself, marked as deleted with no name or PIN.",
+      "noRestore": "Deleted accounts can’t be restored."
+    },
+    "contact": {
+      "title": "Contact",
+      "body": "Questions, or want more removed than the delete button does? Reach a system admin through one of your groups, or ask whoever invited you to the app."
     }
   }
 }

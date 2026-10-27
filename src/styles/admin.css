@@ -1,0 +1,115 @@
+/*
+ * R5 — หน้าผู้ดูแลระบบ (/admin/**), ส่วนบัญชีของแท็บ ฉัน (เปลี่ยนชื่อ/ลบบัญชี) และประกาศความเป็นส่วนตัว (/privacy)
+ * เจ้าของ: Front-end (#6) · ค่าทั้งหมดมาจาก tokens.css (ห้าม hex/px — .github/scripts/check-style-literals.sh)
+ * คู่สีที่ใช้ผ่าน docs/design/tools/contrast.mjs แล้วทั้งสองธีม: ink/ink-muted บน surface/bg · danger-ink บน surface/danger-soft ·
+ * free-ink บน free · warn-ink บน warn · accent-ink บน surface · accent-soft-ink บน accent-soft
+ * มือถือก่อน: การ์ดซ้อนแนวตั้ง · ≥ 48em (iPad) จัดข้อเท็จจริงเป็นแถวและปุ่มไปทางขวา
+ */
+@layer components {
+  /* ---------- ปุ่ม/ป้ายเพิ่มเติม ---------- */
+  .btn-danger-outline { background: var(--surface); color: var(--danger-ink); border-color: var(--danger-ink); }
+  .btn-danger-outline:disabled { color: var(--ink-muted); border-color: var(--line-control); }
+  .tag-ok { background: var(--free); color: var(--free-ink); }
+  .tag-bad { background: var(--danger-soft); color: var(--danger-ink); }
+
+  /* ---------- หัวหน้า admin ---------- */
+  .admin-lead { margin-top: var(--space-1); font-size: var(--text-sm); color: var(--ink-muted); max-width: 60ch; }
+  .admin-back {
+    display: inline-flex; align-items: center; gap: var(--space-1); min-height: var(--tap);
+    color: var(--ink-muted); font-size: var(--text-sm); font-weight: var(--weight-medium); text-decoration: none;
+  }
+
+  /* ---------- หน้าแรก admin ---------- */
+  .admin-hub { display: grid; gap: var(--space-2); }
+  .hub-card {
+    display: flex; align-items: center; gap: var(--space-3); min-height: var(--tap-lg);
+    padding: var(--space-3) var(--space-4); background: var(--surface); border: var(--border) solid var(--line);
+    border-radius: var(--radius-sm); color: var(--ink); text-decoration: none;
+  }
+  .hub-ico { display: inline-grid; place-items: center; width: var(--tap); height: var(--tap); flex: none; border-radius: var(--radius-full); background: var(--accent-soft); color: var(--accent-soft-ink); }
+  .hub-text { flex: 1; min-width: 0; display: grid; gap: var(--space-1); }
+  .hub-title { font-weight: var(--weight-semibold); }
+  .hub-hint { font-size: var(--text-sm); color: var(--ink-muted); }
+  .hub-card > .icon:last-child { color: var(--ink-muted); }
+
+  /* ---------- ค้นหา / ตัวกรอง ---------- */
+  .admin-search { display: grid; gap: var(--space-2); }
+  .admin-search-row { display: flex; gap: var(--space-2); align-items: stretch; }
+  .admin-search-row .input { flex: 1; min-width: 0; padding-right: 0; }
+  .admin-search-row .input .icon { color: var(--ink-muted); }
+  .admin-search-row .btn { min-height: var(--tap-lg); }
+  .admin-search input[type="search"]::-webkit-search-cancel-button { display: none; }
+  .admin-filters { background: var(--surface); border: var(--border) solid var(--line); border-radius: var(--radius-sm); padding: var(--space-4); }
+  .admin-filters .field:first-of-type { margin-top: var(--space-3); }
+  .admin-filter-actions { margin-top: var(--space-4); display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+  .admin-chip-row { margin-top: var(--space-3); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+  .admin-chip-row .tag { white-space: normal; overflow-wrap: anywhere; }
+
+  /* ---------- การ์ด (แทนตาราง ทุกขนาดจอ ≤ 48em) ---------- */
+  .admin-cards { margin-top: var(--space-3); display: grid; gap: var(--space-3); }
+  .admin-card { display: block; background: var(--surface); border: var(--border) solid var(--line); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); color: var(--ink); }
+  .admin-card-link { text-decoration: none; min-height: var(--tap-lg); }
+  .admin-card-top { display: flex; align-items: flex-start; gap: var(--space-3); }
+  .admin-card-top > .icon { color: var(--ink-muted); margin-top: var(--space-1); }
+  .admin-card-name { flex: 1; min-width: 0; display: grid; gap: var(--space-1); }
+  .admin-card-title { font-weight: var(--weight-semibold); font-size: var(--text-md); line-height: var(--leading-heading); overflow-wrap: anywhere; }
+  .admin-card-sub { font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
+  .admin-card-meta { margin-top: var(--space-1); font-size: var(--text-sm); color: var(--ink-muted); }
+  .admin-facts { margin-top: var(--space-2); display: grid; gap: var(--space-1); font-size: var(--text-sm); color: var(--ink); }
+  .admin-facts li { display: flex; gap: var(--space-2); align-items: center; min-width: 0; overflow-wrap: anywhere; }
+  .admin-facts .icon { color: var(--ink-muted); }
+  .admin-facts li.is-warn, .admin-facts li.is-warn .icon { color: var(--danger-ink); }
+  .admin-facts .link-btn { min-height: var(--tap); min-width: var(--tap); font-size: var(--text-sm); }
+  .admin-card-actions { margin-top: var(--space-3); display: grid; grid-template-columns: repeat(auto-fit, minmax(calc(var(--space-7) * 3), 1fr)); gap: var(--space-2); }
+  .admin-banner { margin-top: var(--space-3); }
+  .admin-more { margin-top: var(--space-3); display: grid; gap: var(--space-2); justify-items: center; }
+  .admin-end { font-size: var(--text-sm); }
+
+  /* audit */
+  .audit-meta { margin: var(--space-2) 0 0; display: grid; gap: var(--space-1); font-size: var(--text-sm); }
+  .audit-meta > div { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .audit-meta dt { color: var(--ink-muted); }
+  .audit-meta dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .audit-actor { text-align: left; overflow-wrap: anywhere; }
+  .audit-target { overflow-wrap: anywhere; }
+
+  /* ---------- แท็บ ฉัน: sheet ลบบัญชี ---------- */
+  .acct-lead { font-weight: var(--weight-medium); }
+  .acct-sub { margin-top: var(--space-4); font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-muted); }
+  .acct-list { margin-top: var(--space-2); display: grid; gap: var(--space-2); font-size: var(--text-sm); }
+  .acct-list li { display: flex; gap: var(--space-2); align-items: flex-start; }
+  .acct-list .icon { margin-top: var(--space-1); color: var(--free-ink); }
+  .acct-list.is-gone .icon { color: var(--danger-ink); }
+  .acct-groups { margin-top: var(--space-3); display: grid; gap: var(--space-1); }
+  .acct-groups .menu-row { padding: 0 var(--space-2); border: var(--border) solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+
+  /* ---------- /privacy ---------- */
+  .legal {
+    position: relative; z-index: var(--z-content); min-height: 100dvh;
+    padding: var(--space-2) var(--gutter) var(--space-7); max-width: calc(var(--content-max) + var(--gutter) * 2); margin: 0 auto;
+    display: grid; gap: var(--space-4); align-content: start;
+  }
+  .legal-back { display: inline-flex; align-items: center; gap: var(--space-1); min-height: var(--tap); min-width: var(--tap); color: var(--ink); font-weight: var(--weight-medium); text-decoration: underline; text-underline-offset: var(--space-1); }
+  .legal-head { display: grid; gap: var(--space-2); justify-items: start; }
+  .legal-head h1 { font-size: var(--text-2xl); font-weight: var(--weight-semibold); line-height: var(--leading-heading); }
+  .legal-intro { font-size: var(--text-md); }
+  .legal-sec { background: var(--surface); border: var(--border) solid var(--line); border-radius: var(--radius-sm); padding: var(--space-4); display: grid; gap: var(--space-2); }
+  .legal-sec h2 { font-size: var(--text-lg); font-weight: var(--weight-semibold); line-height: var(--leading-heading); }
+  .legal-sec ul { display: grid; gap: var(--space-2); padding-left: var(--space-4); list-style: disc; }
+  .legal-sec li, .legal-sec p { overflow-wrap: anywhere; }
+  .login-privacy { margin-top: var(--space-2); }
+
+  @media (min-width: 48em) {
+    .admin-cards { gap: var(--space-2); }
+    .admin-card:not(.admin-card-link):has(.admin-card-actions) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--space-4); align-items: center; }
+    .admin-card:has(.admin-card-actions) > .admin-card-top,
+    .admin-card:has(.admin-card-actions) > .admin-facts { grid-column: 1; }
+    .admin-card-actions { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; min-width: calc(var(--space-7) * 4); grid-template-columns: 1fr; }
+    .admin-facts { grid-template-columns: repeat(auto-fill, minmax(calc(var(--space-7) * 4), auto)); column-gap: var(--space-5); }
+    .admin-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--space-3); }
+    .admin-filters > .sub-h, .admin-filters > .admin-chip-row, .admin-filters > .admin-filter-actions { grid-column: 1 / -1; }
+    .admin-filters .field { margin-top: var(--space-3); }
+    .admin-filter-actions { grid-template-columns: repeat(2, max-content); }
+    .admin-hub { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+}

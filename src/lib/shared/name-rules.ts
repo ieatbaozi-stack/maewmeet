@@ -102,3 +102,29 @@ export function sanitizeDisplayText(raw: string): string {
   if (out[out.length - 1] === ' ') out.pop();
   return out.join('');
 }
+
+// ───────── ชื่อที่แสดงที่สงวนไว้ (Security R5 L5) ─────────
+/**
+ * ป้ายที่ UI ใช้แทนบัญชีที่ถูกลบ (`account.deletedName` ใน messages/th.json และ en.json — เทสต์ยืนยันว่าตรงกัน)
+ * ผู้ใช้ตั้งชื่อที่แสดงเป็นป้ายนี้ไม่ได้ ทั้งตอนสมัครและเปลี่ยนชื่อ — กันปลอมตัวเป็น "บัญชีที่ถูกลบ" ในรายชื่อสมาชิก/RSVP
+ */
+export const RESERVED_DISPLAY_NAMES: readonly string[] = Object.freeze(['บัญชีที่ถูกลบ', 'Deleted account']);
+
+/** รูปเปรียบเทียบ: NFKC + ตัวพิมพ์เล็ก + ตัดทุกอย่างที่ไม่ใช่ตัวอักษร/ตัวเลข/เครื่องหมายผสม (ช่องว่าง วรรคตอน สัญลักษณ์) */
+const reservedKey = (s: string): string => s.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}\p{M}]/gu, '');
+const RESERVED_KEYS = new Set(RESERVED_DISPLAY_NAMES.map(reservedKey));
+
+/** ชื่อนี้ (หลังทำให้เป็นรูปเดียวกัน) ตรงกับป้ายของระบบหรือไม่ — "DELETED  ACCOUNT", "deleted-account!", "บัญชี ที่ถูกลบ" ก็นับ */
+export function isReservedDisplayName(name: string): boolean {
+  return RESERVED_KEYS.has(reservedKey(name));
+}
+
+/** กติกาชื่อที่แสดง (สมัคร/เปลี่ยนชื่อ) = checkVisibleName + ห้ามป้ายของระบบ (reason RESERVED) */
+export function checkDisplayName(
+  raw: string,
+  limits: { min: number; max: number },
+): { ok: true; name: string } | { ok: false; reason: NameProblem | 'RESERVED' } {
+  const r = checkVisibleName(raw, limits);
+  if (r.ok && isReservedDisplayName(r.name)) return { ok: false, reason: 'RESERVED' };
+  return r;
+}

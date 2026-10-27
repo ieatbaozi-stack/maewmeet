@@ -10,6 +10,7 @@ import {
   deleteSession,
   findSessionWithUser,
   insertSession,
+  insertSessionIfUserActive,
   SESSION_TTL_MS,
   touchSession,
   type SessionWithUser,
@@ -93,6 +94,14 @@ export async function issueSession(
   const sessionId = sha256Hex(token);
   const row = await insertSession(db, { id: sessionId, userId, userAgent }, now);
   return { token, sessionId, expiresAt: row.expiresAt, cookie: sessionCookie(token) };
+}
+
+/** เหมือน issueSession แต่สร้างเฉพาะเมื่อบัญชียัง active (เงื่อนไขในคำสั่ง INSERT เดียว) · ไม่ active → null (R5 L1/L2) */
+export async function issueSessionIfActive(db: DbOrTx, userId: string, userAgent: string | null, now: number): Promise<SessionIssue | null> {
+  const token = newSessionToken();
+  const sessionId = sha256Hex(token);
+  const row = await insertSessionIfUserActive(db, { id: sessionId, userId, userAgent }, now);
+  return row ? { token, sessionId, expiresAt: row.expiresAt, cookie: sessionCookie(token) } : null;
 }
 
 export const logoutSession = deleteSession;

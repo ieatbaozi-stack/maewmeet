@@ -352,6 +352,79 @@ document.cookie = "__Host-mm_reset=ค่า_cookie; path=/; Secure"
 
 ---
 
+## I. super admin และบัญชีผู้ใช้ (ตั้งแต่ R5)
+> คำสั่ง `turso` รันใน WSL (A5) · แทน `maewmeet-prod` ด้วยชื่อฐานจริง · ข้อความที่ติด **(ตรวจกับหน้าจอจริง)** ยังไม่เคยกดตามจริงบนเครื่อง boss — ถ้าไม่ตรงให้หยุดถาม Lead
+> R5 เพิ่มหน้า `/admin` (ผู้ใช้ · กลุ่ม · audit log) — งานประจำทำในหน้าเว็บได้หมด ส่วนนี้คือเรื่องที่**ตั้งใจไม่ให้ทำในแอป**
+
+### I1 ตั้ง super admin (เพิ่ม/ถอน)
+เหมือน H1 ทุกข้อ: ไม่มีหน้าเว็บหรือสคริปต์ใดยกใครเป็น super admin ได้ — ใช้ SQL บรรทัดเดียวหลังผู้นั้นสมัครบัญชีธรรมดาแล้ว
+```bash
+turso db shell maewmeet-prod "UPDATE user SET is_admin = 1 WHERE username_normalized = lower('ชื่อผู้ใช้') AND status = 'active';"
+turso db shell maewmeet-prod "SELECT username, is_admin, status FROM user WHERE is_admin = 1;"
+```
+- ผลที่ควรเห็นจากคำสั่งที่สอง: มีเฉพาะชื่อที่ boss ตั้งใจ · มีผลทันที (แอปอ่านสิทธิ์จาก DB ทุก request) ไม่ต้องล็อกอินใหม่
+- แนะนำให้มี super admin **อย่างน้อย 2 คน** (คนที่ไว้ใจ) — เพื่อให้ I2 ทำได้โดยไม่ต้องใช้ทางฉุกเฉิน
+- ถอนสิทธิ์: เปลี่ยน `1` เป็น `0` · **ห้ามถอนคนสุดท้าย** (ระบบจะไม่มีใครอนุมัติ reset PIN ได้)
+- super admin ระงับ (suspend) กันเองในแอปไม่ได้ และลบบัญชีตัวเองในแอปไม่ได้ (ตั้งใจ — ADR 0003 §R5)
+
+### I2 super admin ลืม PIN
+1. **มี super admin คนอื่น (ทางปกติ)**: คนที่ลืมกด "ลืม PIN" ที่ `/forgot` บนเครื่องของตัวเอง → super admin อีกคนอนุมัติที่ `/admin/pin-resets` (ยืนยันตัวตนนอกแอปก่อน) → ใช้ PIN `123456` บนเครื่องเดิมภายใน 24 ชม. → ตั้ง PIN ใหม่ — เหมือนผู้ใช้ทั่วไปทุกข้อ
+2. **มี super admin คนเดียว (ทางฉุกเฉิน)**: ใช้ `scripts/admin-reset-pin.ts` ตาม **H4.2–H4.4** โดย**ข้าม H4.1** (pepper ไม่ได้หาย — ไม่ต้องสร้างค่าใหม่ ไม่แตะ Vercel)
+   - หน้าต่าง PowerShell นั้นต้อง**ไม่มี** `PIN_PEPPER_*` (สคริปต์ปฏิเสธถ้า pepper ในเครื่องตรงกับฐาน — กันการใช้ผิดที่) · แฟลก `--confirm-pepper-lost` ยังต้องใส่ (ความหมายจริง = "ยอมรับว่าใช้ทางฉุกเฉิน")
+   - ผล: PIN เดิมของบัญชีนั้นใช้ไม่ได้ทันที ได้ cookie ผูกเครื่อง 24 ชม. → login ด้วย `123456` บนเครื่องที่ใส่ cookie → ตั้ง PIN ใหม่ · ผู้ใช้คนอื่นไม่โดนผลกระทบ · มีแถว `script.adminResetPin` ใน audit log
+   - หลังกู้: ทำ I1 เพิ่ม super admin คนที่สองไว้ จะได้ไม่ต้องใช้ทางนี้อีก
+
+### I3 ลบบัญชีด้วยมือ (OPS — ใช้เมื่อผู้ใช้ลบเองในแอปไม่ได้เท่านั้น)
+ทางปกติคือผู้ใช้ลบเองที่แท็บ "ฉัน" → "ลบบัญชี" (ต้องใส่ PIN · ถ้าเป็นผู้ดูแลกลุ่มต้องโอนก่อน) · ทำด้วยมือเฉพาะกรณีเหล่านี้:
+- **ลบบัญชี super admin**: ทำ I1 ถอน `is_admin` ของบัญชีนั้นก่อน (ต้องเหลือ super admin อย่างน้อย 1 คน) แล้วให้เจ้าของลบเองในแอป — **ไม่ต้องใช้ SQL ข้างล่าง**
+- **เจ้าของขอให้ลบแต่เข้าแอปไม่ได้** (ลืม PIN และไม่อยากกู้): ยืนยันตัวตนนอกแอปก่อน แล้วทำขั้นตอนด้านล่าง
+- **บัญชีที่ต้องเอาออกเพราะใช้ผิด**: ใช้ "ระงับ" ที่ `/admin/users` ก่อนเสมอ (ย้อนได้) · ลบด้วยมือเฉพาะเมื่อ boss ตัดสินแล้ว
+
+☐ **I3.1** หา id และตรวจว่าไม่ได้เป็นผู้ดูแลกลุ่มใด (ต้องได้ **0 แถว** จากคำสั่งที่สอง — ถ้าไม่ใช่ ให้โอนผู้ดูแลกลุ่มนั้นที่ `/admin/groups` → กลุ่ม → "โอนความเป็นผู้ดูแล" ก่อน):
+```bash
+turso db shell maewmeet-prod "SELECT id, username, status, is_admin FROM user WHERE username_normalized = lower('ชื่อผู้ใช้');"
+turso db shell maewmeet-prod "SELECT g.id, g.name FROM group_member gm JOIN groups g ON g.id = gm.group_id WHERE gm.user_id = 'USER_ID' AND gm.role = 'admin' AND g.deleted_at IS NULL;"
+```
+ต้องเห็น `status` = `active` หรือ `suspended` (บัญชีที่ระงับไว้ลบได้เลย ไม่ต้องยกเลิกระงับก่อน) และ `is_admin = 0` (ถ้า `is_admin = 1` → ทางแรกของ I3 แทน)
+
+☐ **I3.2** สร้างไฟล์ `delete-user.sql` ในเครื่อง (แทน `USER_ID` **ทุกที่** ด้วย id จาก I3.1 — ใน editor ใช้ Find/Replace) — ทำแบบเดียวกับ `POST /api/me/delete` ทุกข้อ (`src/lib/data/repos/account.ts`) ในธุรกรรมเดียว · รันซ้ำได้ไม่เกิดผลซ้ำ (id ของแถว audit ต้องเป็นรูป UUID — cursor ของหน้า audit ตรวจรูปนี้) · ทดสอบแล้วด้วย `tests/ops/manual-delete-sql.test.ts`:
+```sql
+BEGIN;
+-- 1) ด่าน: ลบได้เฉพาะบัญชี active หรือถูกระงับ · ไม่ใช่ super admin · ไม่ถือผู้ดูแลกลุ่มที่ยังอยู่ (ไม่ตรง = ไม่มีอะไรเปลี่ยน ทุกคำสั่งข้างล่างไม่ได้แถว)
+DELETE FROM login_throttle WHERE key = 'u:' || (SELECT username_normalized FROM user WHERE id = 'USER_ID' AND status IN ('active', 'suspended') AND is_admin = 0
+   AND NOT EXISTS (SELECT 1 FROM group_member gm JOIN groups g ON g.id = gm.group_id WHERE gm.user_id = 'USER_ID' AND gm.role = 'admin' AND g.deleted_at IS NULL));
+UPDATE user SET status = 'deleted', deleted_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000, updated_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000,
+       pin_hash = NULL, must_change_pin = 0, display_name = '', line_user_id = NULL,
+       username = 'deleted-' || id, username_normalized = 'deleted-' || id
+ WHERE id = 'USER_ID' AND status IN ('active', 'suspended') AND is_admin = 0
+   AND NOT EXISTS (SELECT 1 FROM group_member gm JOIN groups g ON g.id = gm.group_id WHERE gm.user_id = 'USER_ID' AND gm.role = 'admin' AND g.deleted_at IS NULL);
+-- 2) ร่องรอย (ทุกคำสั่งทำเฉพาะเมื่อขั้น 1 สำเร็จ)
+UPDATE notification SET params = json_set(params, '$.inviterName', '')
+ WHERE kind = 'group.invite.received' AND user_id <> 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted')
+   AND json_extract(params, '$.inviteId') IN (SELECT id FROM group_invite WHERE created_by = 'USER_ID');
+UPDATE notification SET params = json_set(params, '$.inviteeName', '')
+ WHERE kind IN ('group.invite.accepted', 'group.invite.declined') AND user_id <> 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted')
+   AND json_extract(params, '$.inviteId') IN (SELECT id FROM group_invite WHERE invitee_user_id = 'USER_ID');
+DELETE FROM session WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
+DELETE FROM group_member WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
+DELETE FROM busy_block WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
+DELETE FROM appointment_rsvp WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
+DELETE FROM notification_outbox WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
+DELETE FROM notification WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
+UPDATE group_invite SET status = 'revoked', revoked_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000, revoked_by = 'USER_ID'
+ WHERE created_by = 'USER_ID' AND status = 'active' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
+UPDATE group_invite SET status = 'declined' WHERE invitee_user_id = 'USER_ID' AND kind = 'direct' AND status = 'active' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
+UPDATE pin_reset_request SET status = 'cancelled' WHERE user_id = 'USER_ID' AND status IN ('pending', 'approved') AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
+UPDATE pin_reset_request SET requester_ua = NULL, requester_country = NULL WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
+INSERT INTO audit_log (id, actor_id, action, target_type, target_id, group_id, meta, created_at)
+ SELECT lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2) || '-' || substr('89ab', 1 + abs(random()) % 4, 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))), NULL, 'user.delete', 'user', 'USER_ID', NULL, NULL, CAST(strftime('%s', 'now') AS INTEGER) * 1000
+  WHERE EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted') AND NOT EXISTS (SELECT 1 FROM audit_log WHERE action = 'user.delete' AND target_id = 'USER_ID');
+COMMIT;
+```
+☐ **I3.3** รัน: `turso db shell maewmeet-prod < delete-user.sql` → ผลที่ควรเห็น: จบเงียบ ๆ ไม่มี error (ถ้ามี error ธุรกรรมจะไม่ถูกบันทึก — อ่านข้อความ แล้วแจ้ง Lead อย่าแก้สุ่ม) · ลบไฟล์ `delete-user.sql` ทิ้ง
+☐ **I3.4** ตรวจ: `turso db shell maewmeet-prod "SELECT username, status, display_name, pin_hash IS NULL FROM user WHERE id = 'USER_ID';"` ต้องได้ `deleted-<id> | deleted | (ว่าง) | 1` · ใน `/admin/audit` กรอง "รหัสเป้าหมาย" = USER_ID ต้องเห็น "ลบบัญชีตัวเอง" โดยผู้ทำ = "ระบบ"
+- สิ่งที่ยังอยู่ (เหมือนลบในแอป): นัดที่ผู้นั้นสร้าง (ผู้สร้างแสดงเป็น "บัญชีที่ถูกลบ") · audit log เดิม · แถว `user` ที่ไม่มีชื่อ/PIN · **ไม่มีการกู้คืน** และไม่มี hard purge ใน R5
+
 ## ภาคผนวก: ตารางสรุปตัวแปร env
 อ้างอิงเต็มใน `.env.example` (ARCHITECTURE §7) · ที่มาของกติกาเข้ม/ผ่อน: `src/lib/shared/env.ts`
 | ตัวแปร | ต้องมีเมื่อ | ถ้าขาด |
