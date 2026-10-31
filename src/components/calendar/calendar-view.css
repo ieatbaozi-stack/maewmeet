@@ -15,8 +15,8 @@
 .group-switch .name { font-size: var(--text-xl); font-weight: var(--weight-semibold); line-height: var(--leading-heading); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .group-switch .icon { flex: none; }
 
-/* เนื้อหา: เว้นท้ายหน้าไม่ให้ FAB ทับคำอธิบาย/ปุ่มสุดท้าย (UX open item) */
-.cal-main { padding-bottom: calc(var(--tap-lg) + var(--space-7)); }
+/* เนื้อหา: เว้นท้ายหน้าไม่ให้ปุ่มลอยทับคำอธิบาย/ปุ่มสุดท้าย (UX open item · R6B: ระยะลอยของ .fab-row + ความสูงปุ่ม + ช่องหายใจ) */
+.cal-main { padding-bottom: calc(var(--space-4) + var(--tap-lg) + var(--space-7)); }
 .cal-main > .toast { margin-top: var(--space-3); margin-bottom: 0; }
 .cal-main > .alert { margin-top: var(--space-3); }
 .cal-main > .empty { margin-top: var(--space-4); }
@@ -25,12 +25,30 @@
 .cal-legend { margin-top: var(--space-2); }
 .cal-legend .sub-h { margin-top: var(--space-3); }
 
-/* ปุ่มลอย "ลงวันไม่ว่าง" (มือถือ) — เหนือแถบแท็บ */
-.fab {
-  position: fixed; z-index: var(--z-fab); right: var(--gutter);
+/* ปุ่มลอย (มือถือ) — เหนือแถบแท็บ ขวาล่าง เรียงแนวนอน: "สร้างนัด" (รอง) · "ลงวันไม่ว่าง" (หลัก ชิดขวาสุด ใต้นิ้วโป้ง) — R6B F3ค
+   แถวกว้างเต็มระหว่าง gutter แต่ไม่รับการแตะเอง (pointer-events) เพื่อไม่บังเนื้อหาข้างปุ่ม */
+.fab-row {
+  position: fixed; z-index: var(--z-fab); left: var(--gutter); right: var(--gutter);
   bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + var(--space-4));
+  display: flex; justify-content: flex-end; align-items: center; gap: var(--space-2);
+  pointer-events: none;
+}
+.fab-row > * { pointer-events: auto; }
+.fab {
+  flex: 0 1 auto; min-width: 0; white-space: nowrap;
   box-shadow: var(--shadow-pop); min-height: var(--tap-lg); border-radius: var(--radius-lg);
 }
+.fab > span { overflow: hidden; text-overflow: ellipsis; }
+/* จอแคบกว่า 375 (เช่น 320/360): ปุ่มรองเหลือไอคอน — ข้อความยังอยู่เป็นชื่อปุ่มสำหรับ screen reader (แบบ .sr-only) */
+@media (max-width: 23.4em) {
+  .fab-appt { flex: none; width: var(--tap-lg); padding: 0; }
+  .fab-appt > span { position: absolute; width: var(--border); height: var(--border); overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+
+/* แถบมุมมอง: "ว่างตรงกัน" เด่นกว่าแท็บอื่น (R6B F3ข) — ไอคอนนำ + พื้น/ตัวอักษรสี "ว่าง" เมื่อยังไม่ได้เลือก
+   เลือกอยู่ = สไตล์ "เลือกแล้ว" ของ .segmented เหมือนแท็บอื่น · คอลัมน์ของแท็บนี้กว้างอย่างน้อยเท่าเนื้อหา (ไอคอน+ข้อความ) ไม่ล้นที่ 375 */
+.segmented.cols-4.cal-views { grid-template-columns: minmax(0, 1fr) minmax(max-content, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
+.cal-views button[data-emphasis="true"]:not([aria-pressed="true"]) { background: var(--free); color: var(--free-ink); font-weight: var(--weight-semibold); }
 .wide-only { display: none; }
 @media (min-width: 48em) {
   .wide-only { display: inline-flex; }
