@@ -12,13 +12,14 @@
 - PowerShell: ให้คำสั่งทีละบรรทัด ; บอกตรงๆ เมื่อขั้น UI ยังไม่ได้ยืนยันกับหน้าจอจริง
 
 ## กฎที่ต้องตกลงใหม่เมื่อทำใน Claude Code
-- `CLAUDE.md` ข้อ 10 เดิม: agent ห้าม push, ส่งเป็น git bundle — **ไม่ตรงกับวิธีใหม่** ให้ boss ตัดสินใจ (แนะนำ: ทำบน branch, เปิด PR, boss merge เอง, agent ไม่ push เข้า main, ไม่ออกรุ่นเอง)
+- ✅ ตัดสินแล้ว (2026-11-01, PR #10): `CLAUDE.md` ข้อ 10 ใหม่ — agent ทำบน branch, push เฉพาะ branch, เปิด PR แล้วหยุด · ห้าม push `main` / merge เอง / ออกรุ่นเอง · boss ตรวจและกด Merge เอง
 - ข้ออื่นยังใช้: ไม่มีโค้ดโดยไม่มีเทสต์, สิทธิ์ตรวจที่เซิร์ฟเวอร์, schema เปลี่ยนด้วย migration เท่านั้น, วันที่ใช้ lib กลาง (Asia/Bangkok)
 - ออกรุ่น: boss รัน `npx tsx scripts/release.ts <เลข>` เอง แล้ว push main + tag
 
 ## งานตั้งค่าที่ boss ทำเอง (ไม่ใช่โค้ด)
 - ✅ ทำแล้ว (2026-11-01): ฐาน Turso อยู่ญี่ปุ่น และ boss ตั้ง Vercel Function Region เป็นญี่ปุ่น (hnd1) แล้ว Redeploy → เร็วขึ้น "เล็กน้อย" (ยังไม่มีตัวเลขวัดก่อน-หลัง) ความช้าที่เหลือต้องแก้ที่โค้ด ดู F2
-- ค้างตรวจ: preview build ผ่านไหม, โควตา artifact ของ GitHub Actions, tag v0.7.0 อยู่บน GitHub ไหม
+- ✅ ตรวจแล้ว (2026-11-01): tag v0.7.0 อยู่บน GitHub ; preview build ของ Vercel ผ่าน (PR #9 Ready, ci 11 checks เขียว) → ตัวแปร Preview ใช้ได้
+- 🔄 PR #10 (2026-11-01) — **CI-1**: run เขียวไม่อัปโหลด artifact · ล้ม = `playwright-report/` 2 วัน · ภาพครบชุดเฉพาะรันมือ `screenshots=true` 1 วัน · เกต R0-12 แก้ตาม (boss เห็นชอบ) · หลัง merge boss ตรวจ Billing → Actions · ต้นเรื่องเดิม: Actions storage ฟรี 0.5 GB เต็ม เพราะ artifact Playwright 4 shard ต่อ run รวม ~600 MB (80.8/135/164/232 MB) boss ลบ run เก่าแล้วแต่ PR #9 สร้างใหม่อีก → แก้ `ci.yml`: อัปโหลดเฉพาะตอนเทสต์ล้ม (`if: failure()`), `retention-days: 1–3`, ลดขนาดรายงาน (ไม่เก็บ trace/video ทุกเทสต์), ตรวจโควตา compute ด้วย (ใช้ $7.76/$12 ของเดือน ต.ค. ; e2e 4 shard ต่อ run ใช้นาทีมาก) ; ตรวจผลที่หน้า GitHub Settings → Billing → Actions
 
 ## รายการงาน (ยังไม่มี contract — ทำ contract/สรุปขอบเขตให้ boss เห็นชอบก่อนลงมือ ตามกฎข้อ 1)
 
