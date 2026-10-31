@@ -37,6 +37,12 @@ describe('ci.yml: artifact ของ e2e (CI-1)', () => {
     expect(onFailure).not.toMatch(/test-results/);
   });
 
+  it('ภาพหน้าจอครบชุด (test-results/) อัปโหลดเฉพาะรันมือ screenshots=true และไม่อัปโหลดเมื่อถูกยกเลิก', () => {
+    const shots = uploadSteps.find((s) => field(s, 'path') === 'test-results/');
+    expect(shots).toBeDefined();
+    expect(field(shots!, 'if')).toBe("${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.screenshots }}");
+  });
+
   it('retention-days ของทุก artifact อยู่ระหว่าง 1–3 วัน', () => {
     for (const step of uploadSteps) {
       const days = Number(field(step, 'retention-days'));
