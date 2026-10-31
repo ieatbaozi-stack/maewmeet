@@ -21,7 +21,7 @@
 |---|---|
 | Front-end (#6) | `src/components/home/HomeView.tsx`, `src/components/home/model.ts` (helper ล้วน), `src/styles/appointments.css` |
 | UX & Brand (#4) | `messages/th.json`, `messages/en.json` (`home.row.aria` เท่านั้น) |
-| TEST (#11) | `tests/ui/home-model.test.ts`, `tests/e2e/appt-layout.spec.ts` |
+| TEST (#11) | `tests/ui/home-model.test.ts`, `tests/ui/home-notifications-messages.test.ts` (ส่ง `{countdown}` ให้ `home.row.aria`), `tests/e2e/appt-layout.spec.ts` |
 | Release (#15) | `CHANGELOG.md` (Unreleased) |
 | QA | ตรวจอิสระ (agent แยก) |
 
