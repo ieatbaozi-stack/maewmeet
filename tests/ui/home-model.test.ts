@@ -1,6 +1,6 @@
 // view-model ของหน้าหลัก (R4B U11): เลือกป้ายนับถอยหลัง · แยกนัดถัดไป/ที่เหลือ · จัดรูปวัน-เวลาใน tz นัด · สถานที่/ลิงก์ปลอดภัย
 import { describe, expect, it } from 'vitest';
-import { parseLocalDateTime } from '@/lib/calendar';
+import { daysUntil, parseLocalDateTime } from '@/lib/calendar';
 import { weekdayShort } from '@/components/shell/weekday';
 import {
   HOME_LIMIT,
@@ -9,6 +9,8 @@ import {
   longDateLabel,
   maybeTruncated,
   placeView,
+  rowCountdown,
+  rsvpCountItems,
   shortDateLabel,
   splitHome,
   timeRange,
@@ -165,5 +167,49 @@ describe('weekdayShort — ผลเหมือนกันทุกเอน�
     const ms = Date.UTC(2026, 9, 24, 23, 30);
     expect(weekdayShort(ms, { locale: 'en', tz: 'Asia/Bangkok' })).toBe('Sun');
     expect(weekdayShort(ms, { locale: 'en', tz: 'UTC' })).toBe('Sat');
+  });
+});
+
+describe('rowCountdown — ป้ายท้ายชื่อในรายการนัดถัดๆ ไป (R6A F4)', () => {
+  const a = appt('a'); // 2026-10-24 18:00–21:00 Asia/Bangkok
+  const label = (nowMs: number, x: HomeAppointment = a) => rowCountdown({ ...x, daysUntil: daysUntil(nowMs, x.startAt, x.tz) }, nowMs);
+
+  it('อีก N วัน / พรุ่งนี้ / วันนี้ จาก daysUntil ของ lib กลาง', () => {
+    expect(label(at('2026-10-20', '09:00'))).toEqual({ kind: 'days', days: 4 });
+    expect(label(at('2026-10-23', '18:00'))).toEqual({ kind: 'tomorrow', days: 1 });
+    expect(label(at('2026-10-24', '08:00'))).toEqual({ kind: 'today', days: 0 });
+  });
+  it('ขอบเที่ยงคืนเวลาไทย: 23:59 วันก่อน = พรุ่งนี้ · 00:00 = วันนี้ (ไม่ใช่เที่ยงคืน UTC)', () => {
+    expect(label(at('2026-10-23', '23:59'))).toEqual({ kind: 'tomorrow', days: 1 });
+    expect(label(at('2026-10-24', '00:00'))).toEqual({ kind: 'today', days: 0 });
+    // 06:59 ไทย = 23:59 UTC วันก่อน — ต้องยังเป็นวันนี้ตามเวลาไทย
+    expect(label(at('2026-10-24', '06:59'))).toEqual({ kind: 'today', days: 0 });
+  });
+  it('กำลังจัดอยู่ มาก่อนวันเสมอ · days = 0', () => {
+    expect(label(at('2026-10-24', '19:00'))).toEqual({ kind: 'ongoing', days: 0 });
+  });
+  it('นัดข้ามคืนที่เริ่มแล้ว (ต่อถึงพรุ่งนี้) = กำลังจัดอยู่', () => {
+    const night = appt('n', { startAt: at('2026-10-24', '22:00'), endAt: at('2026-10-25', '02:00') });
+    expect(label(at('2026-10-25', '01:00'), night)).toEqual({ kind: 'ongoing', days: 0 });
+    expect(label(at('2026-10-24', '21:00'), night)).toEqual({ kind: 'today', days: 0 });
+  });
+  it('daysUntil ติดลบที่ไม่ได้กำลังจัด → วันนี้ (ไม่ขึ้น "อีก -1 วัน")', () => {
+    expect(rowCountdown({ ...a, daysUntil: -1 }, a.endAt + 1)).toEqual({ kind: 'today', days: 0 });
+  });
+});
+
+describe('rsvpCountItems — ชิปจำนวนบนการ์ด (R6A B1)', () => {
+  const c = (going: number, maybe: number, not_going: number, noResponse: number) => ({ going, maybe, not_going, noResponse });
+  it('ไม่ไป > 0 → แสดง "ไม่ไป" · ลำดับ ไป → อาจไป → ไม่ไป → ยังไม่ตอบ (ตรงหน้ารายละเอียด)', () => {
+    expect(rsvpCountItems(c(2, 1, 3, 4))).toEqual([
+      { answer: 'going', count: 2 },
+      { answer: 'maybe', count: 1 },
+      { answer: 'not_going', count: 3 },
+      { answer: 'none', count: 4 },
+    ]);
+  });
+  it('ค่า 0 ซ่อน ยกเว้น "ไป" ที่แสดงเสมอ', () => {
+    expect(rsvpCountItems(c(0, 0, 0, 0))).toEqual([{ answer: 'going', count: 0 }]);
+    expect(rsvpCountItems(c(1, 0, 1, 0)).map((x) => x.answer)).toEqual(['going', 'not_going']);
   });
 });

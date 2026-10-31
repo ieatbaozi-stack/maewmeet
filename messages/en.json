@@ -862,7 +862,7 @@
     },
     "moreNote": "Showing the first {count}. You’ll find the rest on each group’s page.",
     "row": {
-      "aria": "{title}, {when}, {group}{state, select, cancelled {, cancelled} going {, you’re going} maybe {, you’re a maybe} not_going {, you can’t go} other {, no reply yet}}"
+      "aria": "{title}, {countdown}, {when}, {group}{state, select, cancelled {, cancelled} going {, you’re going} maybe {, you’re a maybe} not_going {, you can’t go} other {, no reply yet}}"
     },
     "loading": "Loading your plans…",
     "error": {

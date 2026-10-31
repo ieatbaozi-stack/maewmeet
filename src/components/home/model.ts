@@ -68,6 +68,26 @@ export function countdownKind(a: Pick<HomeAppointment, "daysUntil" | "startAt" |
   return "days";
 }
 
+/** ป้ายนับถอยหลังของแถว "นัดถัดๆ ไป" (R6A F4): kind + จำนวนวันที่ไม่ติดลบ (สำหรับ home.countdown.aria) */
+export function rowCountdown(a: Pick<HomeAppointment, "daysUntil" | "startAt" | "endAt">, nowMs: number): { kind: CountdownKind; days: number } {
+  const kind = countdownKind(a, nowMs);
+  return { kind, days: kind === "today" || kind === "ongoing" ? 0 : kind === "tomorrow" ? 1 : a.daysUntil };
+}
+
+// ───────── จำนวน RSVP บนการ์ด ─────────
+export type CountAnswer = RsvpAnswer | "none";
+
+/** ชิปจำนวนบนการ์ดนัดถัดไป (R6A B1): ไป แสดงเสมอ · อาจไป/ไม่ไป/ยังไม่ตอบ แสดงเมื่อ > 0 · ลำดับเดียวกับหน้ารายละเอียดนัด */
+export function rsvpCountItems(c: RsvpCounts): { answer: CountAnswer; count: number }[] {
+  const all: { answer: CountAnswer; count: number }[] = [
+    { answer: "going", count: c.going },
+    { answer: "maybe", count: c.maybe },
+    { answer: "not_going", count: c.not_going },
+    { answer: "none", count: c.noResponse },
+  ];
+  return all.filter((x) => x.answer === "going" || x.count > 0);
+}
+
 // ───────── วัน-เวลา ─────────
 const safeTz = (tz: string): string => (isValidTimeZone(tz) ? tz : DEFAULT_TZ);
 

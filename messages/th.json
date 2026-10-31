@@ -862,7 +862,7 @@
     },
     "moreNote": "แสดง {count} นัดแรก ที่เหลือดูได้ในหน้ากลุ่ม",
     "row": {
-      "aria": "{title}, {when}, กลุ่ม {group}{state, select, cancelled {, ยกเลิกแล้ว} going {, คุณไป} maybe {, คุณอาจไป} not_going {, คุณไม่ไป} other {, ยังไม่ได้ตอบ}}"
+      "aria": "{title}, {countdown}, {when}, กลุ่ม {group}{state, select, cancelled {, ยกเลิกแล้ว} going {, คุณไป} maybe {, คุณอาจไป} not_going {, คุณไม่ไป} other {, ยังไม่ได้ตอบ}}"
     },
     "loading": "กำลังโหลดนัดของคุณ…",
     "error": {
