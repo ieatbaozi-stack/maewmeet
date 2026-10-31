@@ -75,7 +75,7 @@ Stories ที่แตะ: U14, U15 (โครงและกลไก) · §3 
 | R0-9 | i18n | ทุกคีย์ใน `th.json` มีใน `en.json` และกลับกัน (เทสต์) · ทุก ErrorCode มี `errors.<CODE>` ทั้งสองภาษา (เทสต์) · ไม่มีข้อความไทย/อังกฤษ hard-code ใน `src/app/**`, `src/components/**` (lint/เทสต์) |
 | R0-10 | ธีม | E2E: ตั้ง `mm_theme=dark` แล้ว HTML แรกจากเซิร์ฟเวอร์มี `data-theme="dark"` (ไม่ต้องรอ JS) · `system` ตามค่า emulate ของ Playwright · สลับในหน้า "ฉัน"/หน้า login แล้วคงอยู่หลังรีโหลด |
 | R0-11 | aurora | มีเลเยอร์ `filter` เดียว · ≤ 4 ก้อน · `prefers-reduced-motion` → animation หยุด (E2E วัด) · หยุดเมื่อแท็บไม่ active · ไม่มีสคริปต์ภายนอก |
-| R0-12 | E2E มือถือ | `npm run test:e2e` → shell ทุกแท็บ × 375/390/768 × th/en × light/dark: ไม่มี horizontal scroll, ปุ่มแตะ ≥ 44px, ภาพหน้าจอเก็บเป็น artifact ของ CI |
+| R0-12 | E2E มือถือ | `npm run test:e2e` → shell ทุกแท็บ × 375/390/768 × th/en × light/dark: ไม่มี horizontal scroll, ปุ่มแตะ ≥ 44px, ภาพหน้าจอเก็บเป็น artifact ของ CI · **แก้ไข 2026-11-01 (CI-1, boss เห็นชอบ):** run ปกติไม่เก็บภาพแล้ว (โควตา storage) → หลักฐานภาพ = สั่ง Actions → ci → Run workflow ติ๊ก `screenshots` (เก็บ 1 วัน) · เทสต์ล้มเก็บ `playwright-report/` 2 วัน |
 | R0-13 | คอนทราสต์ | `node docs/design/tools/contrast.mjs` → exit 0 (รวมคู่บน aurora) เป็น job ใน CI |
 | R0-14 | CI | workflow `ci.yml` รันข้อ 1–13 บน PR และ main · เขียวบน branch สะอาด (Lead รันซ้ำเอง) |
 | R0-15 | keep-alive workflow | `keepalive.yml` มี `schedule: '17 */12 * * *'` + `workflow_dispatch` · ล้มเมื่อ health ≠ 2xx หรือ heartbeat vercel-cron > 48 ชม. (OPS ทดสอบกับ server จำลองในเครื่อง — ทดสอบจริงหลัง deploy) |

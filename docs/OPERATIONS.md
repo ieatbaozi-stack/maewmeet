@@ -31,7 +31,7 @@ node -v
 ```
 ควรเห็น `v24.` ตามด้วยเลขใด ๆ (ต้อง ≥ 24.7 — แอปใช้ `crypto.argon2`)
 
-☐ **A2** ติดตั้ง Git for Windows (<https://git-scm.com>) แล้ว clone repo (หลังจาก push จาก bundle แล้ว):
+☐ **A2** ติดตั้ง Git for Windows (<https://git-scm.com>) แล้ว clone repo:
 ```powershell
 cd $HOME
 git clone https://github.com/ieatbaozi-stack/maewmeet.git
@@ -178,7 +178,7 @@ workflow `keepalive` ยิงแอปทุก 12 ชม. (นาที 17 ข
 ☐ **E4** repo → **Actions** → ถ้าเห็นปุ่มเปิดใช้ workflow ให้กดเปิด · ต้องเห็น `ci` และ `keepalive` ในรายการ
 
 > **เงื่อนไขของ GitHub ที่ต้องรู้** (ตรวจแล้วจากเอกสาร GitHub):
-> - อีเมลของ workflow แบบตั้งเวลาส่งถึง **คนที่สร้าง workflow** (หรือคนล่าสุดที่แก้บรรทัด `cron` / คนที่เปิดใช้ใหม่) → ไฟล์ต้องถูก push จากบัญชีของ boss (ตามวิธีส่งงานแบบ bundle อยู่แล้ว) · ถ้าเคยกด Disable แล้วเปิดใหม่ คนที่กดเปิดจะเป็นผู้รับ
+> - อีเมลของ workflow แบบตั้งเวลาส่งถึง **คนที่สร้าง workflow** (หรือคนล่าสุดที่แก้บรรทัด `cron` / คนที่เปิดใช้ใหม่) → ไฟล์ต้องเข้า `main` ด้วยบัญชีของ boss (ตามกฎ 10: agent push branch ด้วย credential ของ boss บนเครื่อง boss แล้ว boss กด Merge PR เอง) · ถ้าวันหนึ่ง agent/คนอื่นใช้บัญชีอื่น push branch ที่แก้บรรทัด `cron` ของ `keepalive.yml` ผู้รับอีเมลอาจเปลี่ยน → ตรวจ E2–E3 ใหม่ · ถ้าเคยกด Disable แล้วเปิดใหม่ คนที่กดเปิดจะเป็นผู้รับ
 > - repo ต้องเป็น **private** — repo สาธารณะที่ไม่มีความเคลื่อนไหว 60 วัน GitHub จะปิด workflow ตั้งเวลาเอง
 > - ก่อนตั้ง E1 workflow จะ "ข้าม" พร้อมคำเตือนสีเหลือง (ไม่ล้ม ไม่ส่งอีเมล)
 

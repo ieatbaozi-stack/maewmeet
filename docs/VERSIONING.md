@@ -1,7 +1,7 @@
 # VERSIONING — การนับเวอร์ชันและการออกรุ่นของ maewmeet
 
 > เจ้าของ: Release engineer (#15) · อ้างอิง: [PROCESS.md](../PROCESS.md) ข้อ 7 · [CLAUDE.md](../CLAUDE.md) กฎ 10 · [CHANGELOG.md](../CHANGELOG.md)
-> สคริปต์: `scripts/release.ts` · คนรัน release: **boss เท่านั้น** (agent เสนอเลข ไม่ออกรุ่นเอง ไม่ push)
+> สคริปต์: `scripts/release.ts` · คนรัน release: **boss เท่านั้น** (agent เสนอเลข ไม่ออกรุ่นเอง ไม่ push `main`/tag — push ได้เฉพาะ branch ของ PR ตามกฎ 10 · release ทำหลัง boss merge PR แล้ว)
 
 ## 1. รูปแบบเวอร์ชัน
 - ใช้ [Semantic Versioning 2.0.0](https://semver.org/lang/th/) รูปแบบ `MAJOR.MINOR.PATCH` (เช่น `0.1.0`)
