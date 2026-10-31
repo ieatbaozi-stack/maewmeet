@@ -43,6 +43,7 @@ for (const { locale, theme } of COMBOS) {
     const cancelId = await createApptApi(b.context.request, gid, { title: 'นัดที่ยกเลิก', ...slot(daysAhead(4)) });
     await cancelApptApi(b.context.request, cancelId);
     expect((await call(b.context.request, 'PUT', `/api/appointments/${nextId}/rsvp`, { response: 'going' })).status).toBe(200);
+    expect((await call(a.context.request, 'PUT', `/api/appointments/${nextId}/rsvp`, { response: 'not_going' })).status).toBe(200); // R6A B1
     const year = locale === 'th' ? buddhistYear(d3.slice(0, 7)) : Number(d3.slice(0, 4));
 
     // ───── หน้าหลัก: การ์ดนัดถัดไป + นัดถัดๆ ไปหลายรายการ (+ ป้ายกระดิ่ง "9+") ─────
@@ -50,6 +51,21 @@ for (const { locale, theme } of COMBOS) {
     await expect(b.page.getByTestId('home-next-card')).toContainText(String(year));
     await expect(b.page.getByTestId('home-row').first()).toBeVisible();
     expect(await b.page.getByTestId('home-row').count()).toBeGreaterThanOrEqual(5);
+    // R6A B1: A ตอบไม่ไป → การ์ดของ B แสดง "ไม่ไป 1" · ไม่มีใครอาจไป → ไม่แสดง
+    await expect(b.page.getByTestId('home-count-going')).toHaveText(T('appointments.rsvp.summary.going', { count: 1 }));
+    await expect(b.page.getByTestId('home-count-not_going')).toHaveText(T('appointments.rsvp.summary.notGoing', { count: 1 }));
+    await expect(b.page.getByTestId('home-count-maybe')).toHaveCount(0);
+    // R6A F4: แถวชื่อ 80 ตัว (อีก 5 วัน) — ป้ายนับถอยหลังเห็นเต็ม ไม่ถูกตัด · aria ของแถวมีนับถอยหลังด้วย
+    const longRow = b.page.locator(`[data-testid="home-row"][data-appt-id="${longId}"]`);
+    const longCd = longRow.getByTestId('home-row-countdown');
+    await expect(longCd).toHaveText(`· ${T('home.countdown.aria', { days: 5 })}`);
+    await expect(longRow).toHaveAttribute('aria-label', new RegExp(T('home.countdown.aria', { days: 5 })));
+    const fits = await longCd.evaluate((el) => {
+      const row = el.closest('[data-testid="home-row"]')!.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      return el.scrollWidth <= el.clientWidth && r.right <= row.right && r.width > 0;
+    });
+    expect(fits, 'ป้ายนับถอยหลังอยู่ในแถวเต็ม ๆ').toBe(true);
     await expect(bellBadge(b.page)).toHaveText('9+');
     await check('home-many');
 

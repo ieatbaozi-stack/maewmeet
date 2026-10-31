@@ -17,6 +17,8 @@ import {
   longDateLabel,
   maybeTruncated,
   placeView,
+  rowCountdown,
+  rsvpCountItems,
   rsvpErrorKey,
   rsvpReducer,
   shortDateLabel,
@@ -41,6 +43,14 @@ const ANSWER_ICON: Record<RsvpAnswer | "none", IconName> = {
   maybe: "circle-help",
   not_going: "circle-x",
   none: "circle-dashed",
+};
+
+/** คีย์ข้อความจำนวนต่อคำตอบ (appointments.rsvp.summary.*) — ชุดเดียวกับหน้ารายละเอียดนัด */
+const COUNT_KEY: Record<RsvpAnswer | "none", string> = {
+  going: "going",
+  maybe: "maybe",
+  not_going: "notGoing",
+  none: "noReply",
 };
 
 export function HomeView({ initial, initialNowMs }: HomeViewProps) {
@@ -203,7 +213,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
           <ul className="appt-rows">
             {later.map((a) => (
               <li key={a.id}>
-                <Row a={a} rsvp={rsvp} locale={locale} />
+                <Row a={a} rsvp={rsvp} nowMs={nowMs} locale={locale} />
               </li>
             ))}
           </ul>
@@ -264,7 +274,6 @@ function NextCard({
   const place = placeView(a);
   const entry = rsvp[a.id];
   const summary = displayRsvp(a, rsvp);
-  const { going, maybe, noResponse } = summary.counts;
   const saving = entry?.saving ?? null;
   const errorText = entry?.error ? (entry.error === "generic" ? t("appointments.rsvp.error") : t(entry.error)) : null;
 
@@ -335,22 +344,12 @@ function NextCard({
         </ul>
         <div className="appt-who">
           <p className="rsvp-counts" data-testid="home-counts">
-            <span className="rsvp-count" data-answer="going" data-testid="home-count-going">
-              <Icon name="circle-check" size="sm" />
-              <span>{t("appointments.rsvp.summary.going", { count: going })}</span>
-            </span>
-            {maybe > 0 ? (
-              <span className="rsvp-count" data-answer="maybe">
-                <Icon name="circle-help" size="sm" />
-                <span>{t("appointments.rsvp.summary.maybe", { count: maybe })}</span>
+            {rsvpCountItems(summary.counts).map(({ answer, count }) => (
+              <span className="rsvp-count" data-answer={answer} data-testid={`home-count-${answer}`} key={answer}>
+                <Icon name={ANSWER_ICON[answer]} size="sm" />
+                <span>{t(`appointments.rsvp.summary.${COUNT_KEY[answer]}`, { count })}</span>
               </span>
-            ) : null}
-            {noResponse > 0 ? (
-              <span className="rsvp-count" data-answer="none">
-                <Icon name="circle-dashed" size="sm" />
-                <span>{t("appointments.rsvp.summary.noReply", { count: noResponse })}</span>
-              </span>
-            ) : null}
+            ))}
           </p>
         </div>
         <div className="rsvp">
@@ -394,18 +393,20 @@ function NextCard({
   );
 }
 
-function Row({ a, rsvp, locale }: { a: HomeAppointment; rsvp: RsvpState; locale: CalendarLocale }) {
+function Row({ a, rsvp, nowMs, locale }: { a: HomeAppointment; rsvp: RsvpState; nowMs: number; locale: CalendarLocale }) {
   const t = useTranslations();
   const { day, date } = dateBox(a);
   const mine = displayRsvp(a, rsvp).mine;
   const state = mine ?? "none";
   const r = timeRange(a, locale);
   const timeText = r.kind === "overnight" ? t("appointments.when.overnight", { start: r.start, end: r.end }) : r.text;
+  const cd = rowCountdown(a, nowMs);
+  const countdown = cd.kind === "ongoing" ? t("appointments.status.ongoing") : t("home.countdown.aria", { days: cd.days });
   return (
     <Link
       className="appt-row"
       href={`/appointments/${encodeURIComponent(a.id)}`}
-      aria-label={t("home.row.aria", { title: a.title, when: `${shortDateLabel(a, locale)} ${timeText}`, group: a.groupName, state })}
+      aria-label={t("home.row.aria", { title: a.title, countdown, when: `${shortDateLabel(a, locale)} ${timeText}`, group: a.groupName, state })}
       data-testid="home-row"
       data-appt-id={a.id}
     >
@@ -414,8 +415,13 @@ function Row({ a, rsvp, locale }: { a: HomeAppointment; rsvp: RsvpState; locale:
         <span className="m">{monthOnly(date, locale)}</span>
       </span>
       <span className="appt-row-main" aria-hidden="true">
-        <span className="appt-row-title">
-          <bdi>{a.title}</bdi>
+        <span className="appt-row-head">
+          <span className="appt-row-title">
+            <bdi>{a.title}</bdi>
+          </span>
+          <span className="appt-row-countdown" data-kind={cd.kind} data-testid="home-row-countdown">
+            · {countdown}
+          </span>
         </span>
         <span className="appt-row-meta">
           {shortDateLabel(a, locale)} · <span className="num">{timeText}</span>

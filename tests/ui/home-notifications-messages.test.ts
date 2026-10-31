@@ -57,9 +57,18 @@ describe('ICU ของหน้าหลัก', () => {
   });
   it('แถว aria: สถานะคำตอบของฉัน', () => {
     const v = { title: 'T', when: 'Sat 24 Oct 18:00', group: 'G' };
-    expect(fmt('en', 'home.row.aria', { ...v, state: 'none' })).toContain('no reply yet');
-    expect(fmt('en', 'home.row.aria', { ...v, state: 'going' })).toContain('going');
-    expect(fmt('th', 'home.row.aria', { ...v, state: 'maybe' })).toContain('อาจไป');
+    expect(fmt('en', 'home.row.aria', { ...v, countdown: 'In 4 days', state: 'none' })).toContain('no reply yet');
+    expect(fmt('en', 'home.row.aria', { ...v, countdown: 'In 4 days', state: 'going' })).toContain('going');
+    expect(fmt('th', 'home.row.aria', { ...v, countdown: 'อีก 4 วัน', state: 'maybe' })).toContain('อาจไป');
+  });
+  it('แถว aria มีนับถอยหลัง (R6A F4) ทั้ง th/en', () => {
+    const v = { title: 'T', when: 'W', group: 'G', state: 'none' };
+    expect(fmt('th', 'home.row.aria', { ...v, countdown: fmt('th', 'home.countdown.aria', { days: 2 }) })).toBe('T, อีก 2 วัน, W, กลุ่ม G, ยังไม่ได้ตอบ');
+    expect(fmt('en', 'home.row.aria', { ...v, countdown: fmt('en', 'home.countdown.aria', { days: 1 }) })).toBe('T, Tomorrow, W, G, no reply yet');
+  });
+  it('จำนวน "ไม่ไป" บนการ์ด (R6A B1) ทั้ง th/en', () => {
+    expect(fmt('th', 'appointments.rsvp.summary.notGoing', { count: 2 })).toBe('ไม่ไป 2');
+    expect(fmt('en', 'appointments.rsvp.summary.notGoing', { count: 2 })).toBe('2 can’t go');
   });
   it('moreNote และกระดิ่ง', () => {
     expect(fmt('en', 'home.moreNote', { count: 20 })).toContain('20');
