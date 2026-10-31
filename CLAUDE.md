@@ -17,7 +17,7 @@
 7. **ความลับอยู่ใน env เท่านั้น** (`.env.example` ไม่มีค่าจริง) · ห้าม log PIN/token/hash
 8. **Schema เปลี่ยนด้วย migration แบบมีเวอร์ชันเท่านั้น** · ห้ามเดาข้อมูลในฐานจริง
 9. **เวลา/วันที่**: เก็บ UTC + วันที่ท้องถิ่นแยก (ดีฟอลต์ Asia/Bangkok) ห้ามคำนวณวันด้วย string/`new Date()` มั่ว ใช้ lib กลางของ Calendar & Time role
-10. **ไม่ออกรุ่นเอง** — agent เสนอเลขเวอร์ชัน boss เป็นคนรัน release (tag) · **push**: agent ห้าม push · Lead ส่งงานเป็น git bundle (`maewmeet-<รอบ>.bundle`) เข้าโฟลเดอร์ boss หลังผ่านเกตครบและผู้ตรวจอิสระยืนยัน → boss `git pull` + `git push` เอง (boss เลือก 2026-10-16 19:03)
+10. **ส่งงานเป็น PR · ไม่ merge เอง · ไม่ออกรุ่นเอง** — agent ทำงานบน branch แยก (ห้ามทำ/commit บน `main`) → push **เฉพาะ branch นั้น** → เปิด PR เข้า `main` แล้ว**หยุด** · ห้าม push เข้า `main` · ห้าม merge PR เอง · ห้ามสร้าง tag/release — boss ตรวจและกด Merge เอง · boss รัน release (`npx tsx scripts/release.ts <เลข>`) + push tag เอง (agent เสนอเลขเวอร์ชันได้) · คำอธิบาย PR ต้องมีสรุปสั้นๆ: เปลี่ยนอะไร · ผลเทสต์จริง (คำสั่ง + ผลลัพธ์) · ผลตรวจจากผู้ตรวจอิสระ (กฎข้อ 5) (boss เลือก 2026-11-01 แทนวิธี git bundle เดิม)
 
 ## เมื่อไม่แน่ใจ
 - ความต้องการกำกวม/ขัดกัน → หยุด ถาม Lead (Lead ถาม boss) อย่าเดาแล้วทำต่อ

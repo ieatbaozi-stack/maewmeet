@@ -9,7 +9,7 @@
 #   R0-4 migration ................ test (drizzle-kit check + drizzle-kit migrate บน DB ว่าง ×2 + เทสต์ schema/constraint)
 #   R0-5 env ...................... lint (check-env-example.sh) · test (env.test)
 #   R0-6..R0-11 ................... test (Vitest) · e2e (ธีม/aurora)
-#   R0-12 E2E มือถือ + ภาพหน้าจอ ... e2e (upload-artifact)
+#   R0-12 E2E มือถือ + ภาพหน้าจอ ... e2e (upload-artifact: รายงานเฉพาะเมื่อล้ม · ภาพหน้าจอครบชุดเมื่อสั่งรันมือ screenshots=true)
 #   R0-13 คอนทราสต์ ................ contrast
 #   R0-16 header จริง .............. e2e (เทสต์ของ TEST) · config → test (tests/ops/headers.test.ts)
 
@@ -20,6 +20,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      screenshots:
+        description: 'อัปโหลดภาพหน้าจอ e2e ครบชุด (test-results/ ~600 MB ต่อ run) เป็นหลักฐาน R0-12 · เก็บ 1 วัน'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -163,14 +168,24 @@ jobs:
         env:
           SHARD: ${{ matrix.shard }}
         run: npm run test:e2e -- --shard="$SHARD/4"
-      - name: เก็บรายงาน + ภาพหน้าจอ
-        if: ${{ !cancelled() }}
+      # CI-1: Actions storage ฟรีมี 0.5 GB · test-results/ มีภาพหน้าจอเต็มหน้าทุกหน้า×ภาษา×ธีม×จอ (~600 MB ต่อ run)
+      # → run ที่เขียวไม่อัปโหลดอะไร · เทสต์ล้ม = อัปโหลดเฉพาะ playwright-report/ (ภาพ + trace ของเทสต์ที่ล้มแนบอยู่ในนั้นแล้ว
+      #   ตาม screenshot: only-on-failure / trace: retain-on-failure ใน playwright.config.ts)
+      - name: เก็บรายงาน Playwright (เฉพาะเมื่อเทสต์ล้ม)
+        if: ${{ failure() }}
         continue-on-error: true   # โควตา artifact เต็มไม่ควรทำให้ job แดง (ผลเทสต์จริงอยู่ที่ขั้น test:e2e)
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-${{ github.run_id }}-${{ github.run_attempt }}-shard${{ matrix.shard }}
-          path: |
-            playwright-report/
-            test-results/
+          name: playwright-report-${{ github.run_id }}-${{ github.run_attempt }}-shard${{ matrix.shard }}
+          path: playwright-report/
           if-no-files-found: warn
-          retention-days: 3
+          retention-days: 2
+      - name: เก็บภาพหน้าจอครบชุด (เฉพาะรันมือ screenshots=true)
+        if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.screenshots }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-screenshots-${{ github.run_id }}-${{ github.run_attempt }}-shard${{ matrix.shard }}
+          path: test-results/
+          if-no-files-found: warn
+          retention-days: 1
