@@ -119,15 +119,15 @@ describe('constraint', () => {
     await insertUser('u3', 'a3');
     await insertGroup('g1', 'u1');
     await insertGroup('g2', 'u2');
-    await exec("insert into group_member values ('g1','u1','admin',?)", [NOW]);
-    await expectReject("insert into group_member values ('g1','u2','admin',?)", [NOW]);
-    await exec("insert into group_member values ('g1','u2','moderator',?)", [NOW]);
-    await exec("insert into group_member values ('g1','u3','moderator',?)", [NOW]);
+    await exec("insert into group_member(group_id, user_id, role, joined_at) values ('g1','u1','admin',?)", [NOW]);
+    await expectReject("insert into group_member(group_id, user_id, role, joined_at) values ('g1','u2','admin',?)", [NOW]);
+    await exec("insert into group_member(group_id, user_id, role, joined_at) values ('g1','u2','moderator',?)", [NOW]);
+    await exec("insert into group_member(group_id, user_id, role, joined_at) values ('g1','u3','moderator',?)", [NOW]);
     await expectReject("update group_member set role = 'admin' where group_id = 'g1' and user_id = 'u2'");
-    await exec("insert into group_member values ('g2','u2','admin',?)", [NOW]);
-    await expectReject("insert into group_member values ('g2','u3','owner',?)", [NOW]);
+    await exec("insert into group_member(group_id, user_id, role, joined_at) values ('g2','u2','admin',?)", [NOW]);
+    await expectReject("insert into group_member(group_id, user_id, role, joined_at) values ('g2','u3','owner',?)", [NOW]);
     // เข้าซ้ำไม่สร้างแถวซ้ำ (PK group_id+user_id)
-    await expectReject("insert into group_member values ('g1','u3','member',?)", [NOW]);
+    await expectReject("insert into group_member(group_id, user_id, role, joined_at) values ('g1','u3','member',?)", [NOW]);
   });
 
   it('pin reset ค้างได้ 1 ต่อผู้ใช้ (pending/approved) — ที่ปิดแล้วไม่นับ', async () => {

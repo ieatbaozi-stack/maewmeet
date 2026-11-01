@@ -217,7 +217,7 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
                   <ul className="rsvp-people">
                     {g.list.map((p) => (
                       <li key={p.userId}>
-                        <MemberAvatar displayName={p.displayName} colorIndex={p.colorIndex} size="sm" />
+                        <MemberAvatar displayName={p.displayName} colorIndex={p.colorIndex} shapeIndex={p.shapeIndex} size="sm" />
                         <span className="nm">
                           <Name>{shownName(p.displayName, t("account.deletedName"))}</Name>
                           {p.userId === me.userId ? <span className="you">({t("group.members.you")})</span> : null}

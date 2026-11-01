@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Icon } from "@/components/icons/Icon";
 import type { GroupDetailDto, InviteDto } from "@/lib/data/serializers/groups";
+import { AppearanceSection } from "./AppearanceSection";
 import { DeleteSection, LeaveSection, TransferSection } from "./DangerSections";
 import { canEditSettings, viewerRole } from "./helpers";
 import { InviteSection } from "./InviteSection";
@@ -50,6 +51,10 @@ export function SettingsView({ group, invites, myId }: { group: GroupDetailDto; 
         <h2 id="set-members-h">{t("members.title")}</h2>
         <MemberList groupId={group.id} members={group.members} viewer={viewer} myId={myId} />
       </section>
+
+      {group.myAppearance ? (
+        <AppearanceSection groupId={group.id} displayName={group.members.find((m) => m.userId === myId)?.displayName ?? ""} initial={group.myAppearance} />
+      ) : null}
 
       <InviteSection {...base} groupName={group.name} invites={invites} seesOthers={editable} />
 

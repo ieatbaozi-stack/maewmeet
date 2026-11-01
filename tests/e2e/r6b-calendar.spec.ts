@@ -1,4 +1,4 @@
-// R6B — ปฏิทิน: แท็บ "ว่างตรงกัน" เด่น (F3ข) + ปุ่มลอย "+ สร้างนัด" ข้าง "+ ลงวันไม่ว่าง" (F3ค)
+// R6B — ปฏิทิน: แท็บ "ว่างตรงกัน" เด่น (F3ข · R6B-1 วนธีมสว่าง+มืด ตาม R6C-7 L3) + ปุ่มลอย "+ สร้างนัด" ข้าง "+ ลงวันไม่ว่าง" (F3ค · ภาพหลังเลื่อนลงสุด ตาม L4)
 //   R6B-1 แท็บ free มี data-emphasis + ไอคอน · ยังไม่เลือก = สีต่างจากแท็บอื่น · เลือกแล้ว = aria-pressed + สไตล์ "เลือกแล้ว" เดียวกับแท็บอื่น
 //   R6B-2 ปุ่มสร้างนัด (มือถือ: appt-add-fab · ≥48em: appt-add-top) → ฟอร์มของกลุ่มที่เลือกอยู่ → สร้างจริง → หน้ารายละเอียด + API ยืนยัน
 //   R6B-3 375/390/768 × (th·สว่าง | en·มืด): checkLayout · appt-add-fab ไม่ทับ busy-add · เลื่อนลงสุดแล้วเนื้อหา/hint ไม่อยู่ใต้ปุ่มลอย · มุมมอง month/free/day/mine
@@ -69,13 +69,15 @@ async function contentUnderFab(page: Page): Promise<string[]> {
 }
 
 // ───────── R6B-1 ─────────
-test('R6B-1: แท็บว่างตรงกันเด่น (ไอคอน + สีเน้น) · เลือกแล้วใช้สไตล์เลือกแล้วเหมือนแท็บอื่น', async ({ newDevice, baseURL }) => {
+// R6C-7 L3: วนทั้งสองธีม (th·สว่าง | en·มืด) — สีเน้นของแท็บต้องต่างจากแท็บธรรมดา/แท็บที่เลือกในธีมมืดด้วย
+for (const { locale, theme } of COMBOS) {
+test(`R6B-1 ${locale}/${theme}: แท็บว่างตรงกันเด่น (ไอคอน + สีเน้น) · เลือกแล้วใช้สไตล์เลือกแล้วเหมือนแท็บอื่น`, async ({ newDevice, baseURL }) => {
   test.setTimeout(90_000);
-  const locale: Locale = 'th';
-  const scene = await makeScene(newDevice, baseURL!, { locale, theme: 'light', labels: ['Ann', 'Ben'] });
+  const scene = await makeScene(newDevice, baseURL!, { locale, theme, labels: ['Ann', 'Ben'] });
   const page = scene.members[0]!.page;
   const problems = watchConsole(page);
   await openCalendar(page, { gid: scene.gid, view: 'month' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
 
   const tab = (v: CalView) => page.getByTestId(`cal-view-${v}`);
   const bg = (v: CalView) => tab(v).evaluate((el) => getComputedStyle(el).backgroundColor);
@@ -119,6 +121,7 @@ test('R6B-1: แท็บว่างตรงกันเด่น (ไอค�
 
   expect(problems.filter((p) => !isHydration(p)), 'console error').toEqual([]);
 });
+}
 
 // ───────── R6B-2 ─────────
 test('R6B-2: ปุ่มสร้างนัดบนปฏิทิน → ฟอร์มของกลุ่มที่เลือกอยู่ → สร้างได้จริง', async ({ newDevice, baseURL }) => {
@@ -223,6 +226,10 @@ for (const { locale, theme } of COMBOS) {
         expect(Math.abs(ab!.y + ab!.height / 2 - (bb!.y + bb!.height / 2)), `${view}: อยู่แถวเดียวกัน`).toBeLessThanOrEqual(2);
         expect(ab!.x + ab!.width, `${view}: สร้างนัดอยู่ซ้ายของลงวันไม่ว่าง`).toBeLessThanOrEqual(bb!.x);
         await scrollToBottom(page);
+        // R6C-7 L4: ภาพหลังเลื่อนลงสุด (checkLayout ถ่ายเต็มหน้าก่อนเลื่อน → ไม่เห็นปุ่มลอยทับท้ายหน้า) · เคารพ screenshot: 'off' ของ config
+        if (testInfo.project.use.screenshot !== 'off') {
+          await page.screenshot({ path: testInfo.outputPath(`r6b-${view}-bottom-${locale}-${theme}-${testInfo.project.name}.png`), animations: 'disabled' });
+        }
         if (view === 'month') {
           const hint = page.getByText(msg(locale, 'calendar.busyLegend.hint'), { exact: true });
           await expect(hint).toBeVisible();
@@ -267,6 +274,7 @@ test('R6B-3 จอ 360: ปุ่มสร้างนัดเหลือไ�
     for (const box of [ab!, bb!]) expect(Math.min(box.width, box.height), '360: ปุ่มลอย ≥ 44px').toBeGreaterThanOrEqual(44);
     await page.screenshot({ path: testInfo.outputPath(`r6b-360-month-${locale}-${theme}.png`), fullPage: true, animations: 'disabled' });
     await scrollToBottom(page);
+    if (testInfo.project.use.screenshot !== 'off') await page.screenshot({ path: testInfo.outputPath(`r6b-360-month-bottom-${locale}-${theme}.png`), animations: 'disabled' });
     expect(await contentUnderFab(page), '360: เลื่อนลงสุดแล้วไม่มีเนื้อหาอยู่ใต้ปุ่มลอย').toEqual([]);
     expect(problems.filter((p) => !isHydration(p)), 'console error').toEqual([]);
   }

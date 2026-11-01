@@ -1,17 +1,18 @@
 // DTO ของนัด + RSVP + ผลเตือนนัดทับ (R4B) — ที่เดียวที่นัดออกจากระบบ
 //  - ชื่อ/สถานที่/คำอธิบายผ่าน sanitizeDisplayText ตอนอ่าน (แถวที่เข้ามาก่อนมีกติกา) · คำอธิบายคงขึ้นบรรทัดได้
-//  - RSVP: นับ/แสดงเฉพาะ "สมาชิกปัจจุบัน" (repo join group_member) · ชื่อ = ชื่อที่แสดง · สี = memberColorIndex ชุดเดียวกับปฏิทิน
+//  - RSVP: นับ/แสดงเฉพาะ "สมาชิกปัจจุบัน" (repo join group_member) · ชื่อ = ชื่อที่แสดง · สี/รูปทรง = memberAppearance ชุดเดียวกับปฏิทิน (R6C)
 //  - ผู้สร้าง/ผู้ยกเลิก: แสดงเมื่อยังเป็นสมาชิกกลุ่ม ไม่งั้น null (ไม่เปิดเผยชื่อคนที่ออกแล้ว)
 //  - busy ในผลเตือนนัดทับผ่าน toBusyForViewers ตัวเดียวกับปฏิทิน/วันว่าง — ไม่มี note · รายการซ่อนไม่มี title
 import type { AppointmentRow, RsvpResponse, RsvpRow } from '@/lib/data/repos/appointment';
 import { daysUntil } from '@/lib/calendar';
-import { memberColorIndex } from '@/lib/shared/member-color';
+import { memberAppearance, type AppearanceSlots, type MemberAppearance } from '@/lib/shared/member-color';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { BusyHiddenView, BusySharedView } from './busy';
 
 export const RSVP_RESPONSES = ['going', 'maybe', 'not_going'] as const satisfies readonly RsvpResponse[];
 
-export type PersonDto = { userId: string; displayName: string; colorIndex: number };
+/** colorIndex/shapeIndex 0–9 จาก memberAppearance (slot ที่เลือก ?? hash เดิม) */
+export type PersonDto = { userId: string; displayName: string; colorIndex: number; shapeIndex: number };
 
 export type RsvpCountsDto = { going: number; maybe: number; not_going: number; noResponse: number };
 
@@ -68,12 +69,15 @@ export type AppointmentPermissionsDto = {
 export type AppointmentDetailDto = Omit<AppointmentDto, 'rsvp'> & {
   rsvp: RsvpDetailDto;
   permissions: AppointmentPermissionsDto;
+  /** หน้าตาของผู้ดูในกลุ่มของนัด (R6C) · null = ผู้ดูไม่ใช่สมาชิก (super admin นอกกลุ่ม) */
+  myAppearance: MemberAppearance | null;
 };
 
 export type OverlapBlockedDto = {
   userId: string;
   displayName: string;
   colorIndex: number;
+  shapeIndex: number;
   /** busy ของคนนี้ที่ทับนัด (เรียง startAt, id) — ผ่าน serializer เดียวกับปฏิทิน */
   items: (BusySharedView | BusyHiddenView)[];
 };
@@ -84,18 +88,21 @@ export type OverlapDto = {
   blocked: OverlapBlockedDto[];
 };
 
-const person = (groupId: string, userId: string, displayName: string): PersonDto => ({
+const person = (groupId: string, userId: string, displayName: string, slots: AppearanceSlots | null): PersonDto => ({
   userId,
   displayName: sanitizeDisplayText(displayName),
-  colorIndex: memberColorIndex(groupId, userId),
+  ...memberAppearance(groupId, userId, slots),
 });
+
+/** ชื่อ + slot หน้าตาของสมาชิกปัจจุบัน (R6C) */
+export type MemberLook = { displayName: string } & AppearanceSlots;
 
 export type AppointmentContext = {
   viewerId: string;
   now: number;
   groupName: string;
-  /** สมาชิกปัจจุบันของกลุ่มที่นัดสังกัด (userId → ชื่อ) */
-  memberNames: ReadonlyMap<string, string>;
+  /** สมาชิกปัจจุบันของกลุ่มที่นัดสังกัด (userId → ชื่อ + slot หน้าตา) */
+  members: ReadonlyMap<string, MemberLook>;
   memberCount: number;
   /** RSVP ของสมาชิกปัจจุบันของนัดนี้ */
   rsvps: readonly RsvpRow[];
@@ -106,7 +113,7 @@ function buildRsvp(row: AppointmentRow, c: AppointmentContext): RsvpDetailDto {
   let mine: RsvpResponse | null = null;
   for (const r of c.rsvps) {
     if (r.appointmentId !== row.id) continue;
-    members[r.response].push(person(row.groupId, r.userId, r.displayName));
+    members[r.response].push(person(row.groupId, r.userId, r.displayName, r));
     if (r.userId === c.viewerId) mine = r.response;
   }
   const answered = members.going.length + members.maybe.length + members.not_going.length;
@@ -120,8 +127,8 @@ function buildRsvp(row: AppointmentRow, c: AppointmentContext): RsvpDetailDto {
 function toBase(row: AppointmentRow, c: AppointmentContext): Omit<AppointmentDto, 'rsvp'> {
   const named = (id: string | null): PersonDto | null => {
     if (id === null) return null;
-    const name = c.memberNames.get(id);
-    return name === undefined ? null : person(row.groupId, id, name);
+    const m = c.members.get(id);
+    return m === undefined ? null : person(row.groupId, id, m.displayName, m);
   };
   return {
     id: row.id,
@@ -166,7 +173,13 @@ export function toAppointmentDto(row: AppointmentRow, c: AppointmentContext): Ap
 
 /** มุมมองรายละเอียด — รายชื่อต่อคำตอบ + สิทธิ์ของผู้ดู */
 export function toAppointmentDetailDto(row: AppointmentRow, c: AppointmentContext, permissions: AppointmentPermissionsDto): AppointmentDetailDto {
-  return { ...toBase(row, c), rsvp: buildRsvp(row, c), permissions };
+  const mine = c.members.get(c.viewerId);
+  return {
+    ...toBase(row, c),
+    rsvp: buildRsvp(row, c),
+    permissions,
+    myAppearance: mine === undefined ? null : memberAppearance(row.groupId, c.viewerId, mine),
+  };
 }
 
 export { person as toPersonDto };

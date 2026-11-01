@@ -394,6 +394,7 @@ export interface OverlapPerson {
   userId: string;
   displayName: string;
   colorIndex: number;
+  shapeIndex: number;
   you: boolean;
   rows: OverlapRow[];
   moreRows: number;
@@ -424,7 +425,7 @@ export function overlapView(o: OverlapDto, ctx: { myId: string; tz: string; loca
       const title = "title" in it && typeof it.title === "string" && it.title !== "" ? it.title : null;
       return { key: `${b.userId}-${it.id ?? i}`, when: itemWhen(it, ctx.tz, ctx.locale), title };
     });
-    return { userId: b.userId, displayName: b.displayName, colorIndex: b.colorIndex, you: b.userId === ctx.myId, rows: rows.slice(0, OVERLAP_MAX_ROWS), moreRows: Math.max(0, rows.length - OVERLAP_MAX_ROWS) };
+    return { userId: b.userId, displayName: b.displayName, colorIndex: b.colorIndex, shapeIndex: b.shapeIndex, you: b.userId === ctx.myId, rows: rows.slice(0, OVERLAP_MAX_ROWS), moreRows: Math.max(0, rows.length - OVERLAP_MAX_ROWS) };
   });
   const people = all.slice(0, OVERLAP_MAX_PEOPLE);
   const more = Math.max(0, all.length - people.length);

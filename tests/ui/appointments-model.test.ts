@@ -308,8 +308,8 @@ describe('overlapView (เตือนนัดทับ)', () => {
 });
 
 describe('RSVP optimistic', () => {
-  const me = { userId: 'me', displayName: 'ฉัน', colorIndex: 3 };
-  const other = { userId: 'o', displayName: 'เพื่อน', colorIndex: 1 };
+  const me = { userId: 'me', displayName: 'ฉัน', colorIndex: 3, shapeIndex: 3 };
+  const other = { userId: 'o', displayName: 'เพื่อน', colorIndex: 1, shapeIndex: 1 };
   const base = (): RsvpDetailDto => ({ counts: { going: 1, maybe: 0, not_going: 0, noResponse: 2 }, mine: null, members: { going: [other], maybe: [], not_going: [] } });
 
   it('ตอบครั้งแรก: เข้ารายชื่อ · ยังไม่ตอบลด 1', () => {

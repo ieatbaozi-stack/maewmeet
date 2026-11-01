@@ -37,7 +37,7 @@ type Avail = {
   group: { id: string; tz: string; windowStartMin: number; windowEndMin: number; minFreeMinutes: number };
   from: string;
   to: string;
-  members: { userId: string; displayName: string; colorIndex: number }[];
+  members: { userId: string; displayName: string; colorIndex: number; shapeIndex: number }[];
   days: Day[];
   busy: View[];
   truncated: boolean;
@@ -142,7 +142,7 @@ describe('ADR 0005 — ข้อมูล T1/T2/T24 ผ่าน API ตรง�
         group: z.object({ id: z.uuid(), tz: z.string(), windowStartMin: z.number(), windowEndMin: z.number(), minFreeMinutes: z.number() }).strict(),
         from: z.string(),
         to: z.string(),
-        members: z.array(z.object({ userId: z.uuid(), displayName: z.string(), colorIndex: z.number().int().min(0).max(9) }).strict()),
+        members: z.array(z.object({ userId: z.uuid(), displayName: z.string(), colorIndex: z.number().int().min(0).max(9), shapeIndex: z.number().int().min(0).max(9) }).strict()),
         busy: z.array(item),
         days: z.array(
           z
@@ -182,7 +182,7 @@ describe('ADR 0005 — ข้อมูล T1/T2/T24 ผ่าน API ตรง�
     expect(r.data.group).toEqual({ id: gid, tz: 'Asia/Bangkok', windowStartMin: 480, windowEndMin: 1320, minFreeMinutes: 120 });
     expect(r.data.members[0]!.userId).toBe(carol.id);
     expect(r.data.members.map((m) => m.userId).sort()).toEqual(ids(alice, bob, carol).sort());
-    for (const m of r.data.members) expect(m.colorIndex).toBe(memberColorIndex(gid, m.userId));
+    for (const m of r.data.members) expect([m.colorIndex, m.shapeIndex]).toEqual([memberColorIndex(gid, m.userId), memberColorIndex(gid, m.userId)]); // R6C-1
     expect(r.data.members.find((m) => m.userId === bob.id)!.displayName).toBe(bob.displayName);
     expect([r.data.from, r.data.to, r.data.truncated]).toEqual(['2026-11-01', '2026-11-07', false]);
     expect(r.headers.get('cache-control')).toBe('private, no-store');

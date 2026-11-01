@@ -214,6 +214,11 @@ export const MATRIX = {
     resource: 'group',
     cases: { any: r(NF, OK, ATR, OK, OK, NF, AUTH) },
   },
+  'member.setOwnAppearance': {
+    ref: 'R6C_CONTRACT §2 (F3a): สมาชิกทุก role ตั้งสี/รูปร่างของตัวเอง · SA นอกกลุ่ม 403 · NM 404',
+    resource: 'group',
+    cases: { any: r(FB, OK, OK, OK, OK, NF, AUTH) },
+  },
 
   // ───────── §3 แถว 18–19 ─────────
   'pinReset.list': { ref: '§3 อนุมัติ/ปฏิเสธ reset PIN', resource: 'none', cases: { any: SA_ONLY } },

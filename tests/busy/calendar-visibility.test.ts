@@ -28,7 +28,7 @@ let visibleId: string;
 let hiddenId: string;
 
 type Busy = Record<string, unknown> & { id: string; userId: string };
-type Cal = { group: { id: string; tz: string }; from: string; to: string; members: { userId: string; displayName: string; colorIndex: number }[]; busy: Busy[]; truncated: boolean };
+type Cal = { group: { id: string; tz: string }; from: string; to: string; members: { userId: string; displayName: string; colorIndex: number; shapeIndex: number }[]; busy: Busy[]; truncated: boolean };
 
 const RANGE = 'from=2026-10-01&to=2026-10-31';
 const calUrl = (g: string, q = RANGE) => `/api/groups/${g}/calendar?${q}`;
@@ -85,7 +85,7 @@ const calendarSchema = z
     group: z.object({ id: z.uuid(), tz: z.string() }).strict(),
     from: z.string(),
     to: z.string(),
-    members: z.array(z.object({ userId: z.uuid(), displayName: z.string(), colorIndex: z.number().int().min(0).max(9) }).strict()),
+    members: z.array(z.object({ userId: z.uuid(), displayName: z.string(), colorIndex: z.number().int().min(0).max(9), shapeIndex: z.number().int().min(0).max(9) }).strict()),
     busy: z.array(z.union([sharedViewSchema, hiddenViewSchema])),
     truncated: z.boolean(),
   })
@@ -131,7 +131,7 @@ describe('ADR 0006 ข้อ 1 — สมาชิกเห็นผ่านก
     const ids = r.data.members.map((m) => m.userId);
     expect(ids[0]).toBe(viewer.id);
     expect(ids.sort()).toEqual([admin.id, owner.id, viewer.id].sort());
-    for (const m of r.data.members) expect(m.colorIndex).toBe(memberColorIndex(g1, m.userId));
+    for (const m of r.data.members) expect([m.colorIndex, m.shapeIndex]).toEqual([memberColorIndex(g1, m.userId), memberColorIndex(g1, m.userId)]); // R6C-1
     expect(r.data.members.find((m) => m.userId === owner.id)!.displayName).toBe(owner.displayName);
     expect(r.text).not.toContain(p2.id);
     expect(r.text).not.toContain(out.id);

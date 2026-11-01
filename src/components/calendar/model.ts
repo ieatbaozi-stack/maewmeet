@@ -23,6 +23,8 @@ export interface MemberInfo {
   displayName: string;
   /** 0–9 */
   colorIndex: number;
+  /** 0–9 · อิสระจากสี (R6C) */
+  shapeIndex: number;
 }
 
 /** รายการ busy ที่เพื่อนเห็น: ไม่มี note · รายการซ่อน/ไม่ได้ใส่ → ไม่มีฟิลด์ title เลย */

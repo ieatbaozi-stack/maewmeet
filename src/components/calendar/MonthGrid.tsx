@@ -110,7 +110,7 @@ export function MonthGrid({ model, monthTitle, members, busyByDate, selected, lo
                   </span>
                   <span className="cal-dots" aria-hidden="true">
                     {ids.slice(0, layout.shown).map((m) => (
-                      <span className="member-dot" data-slot={memberSlot(m.colorIndex)} key={m.userId} />
+                      <span className="member-dot" data-color={memberSlot(m.colorIndex)} data-shape={memberSlot(m.shapeIndex)} key={m.userId} />
                     ))}
                     {layout.more > 0 ? <span className={layout.wide ? "more wide" : "more"}>{t("calendar.cell.more", { count: layout.more })}</span> : null}
                   </span>
@@ -135,7 +135,7 @@ export function MemberLegend({ members, myId }: { members: readonly MemberInfo[]
       <ul className="cal-who" aria-labelledby="cal-who-h">
         {members.map((m) => (
           <li key={m.userId} data-testid={`cal-who-${m.userId}`}>
-            <span className="member-dot" data-slot={memberSlot(m.colorIndex)} aria-hidden="true" />
+            <span className="member-dot" data-color={memberSlot(m.colorIndex)} data-shape={memberSlot(m.shapeIndex)} aria-hidden="true" />
             <span className="nm">
               <Name>{m.displayName}</Name>
             </span>

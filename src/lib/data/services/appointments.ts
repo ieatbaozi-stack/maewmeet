@@ -49,7 +49,7 @@ import {
   CALENDAR_MAX_ITEMS,
 } from '@/lib/shared/limits';
 import { parseMapUrl } from '@/lib/shared/location-parse';
-import { memberColorIndex } from '@/lib/shared/member-color';
+import { memberAppearance } from '@/lib/shared/member-color';
 import { checkVisibleName, hasForbiddenChars, sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
 import { notify } from '../notifications/notify';
@@ -59,6 +59,7 @@ import {
   toAppointmentDto,
   type AppointmentDetailDto,
   type AppointmentDto,
+  type MemberLook,
   type OverlapDto,
 } from '../serializers/appointments';
 import { compareBusyRows, toBusyForViewers } from '../serializers/busy';
@@ -270,10 +271,10 @@ async function toListDtos(db: Reader, viewerId: string, now: number, rows: Appoi
     currentMemberNames(db, groupIds, people),
     listCurrentRsvps(db, rows.map((r) => r.id)),
   ]);
-  const byGroup = new Map<string, Map<string, string>>();
+  const byGroup = new Map<string, Map<string, MemberLook>>();
   for (const m of members) {
-    const g = byGroup.get(m.groupId) ?? new Map<string, string>();
-    g.set(m.userId, m.displayName);
+    const g = byGroup.get(m.groupId) ?? new Map<string, MemberLook>();
+    g.set(m.userId, m);
     byGroup.set(m.groupId, g);
   }
   return rows.map((r) =>
@@ -281,7 +282,7 @@ async function toListDtos(db: Reader, viewerId: string, now: number, rows: Appoi
       viewerId,
       now,
       groupName: names.get(r.groupId) ?? '',
-      memberNames: byGroup.get(r.groupId) ?? new Map(),
+      members: byGroup.get(r.groupId) ?? new Map(),
       memberCount: counts.get(r.groupId) ?? 0,
       rsvps,
     }),
@@ -295,7 +296,7 @@ async function toDetailDto(db: Reader, actor: UserActor, now: number, row: Appoi
   const open = row.status === 'active' && row.endAt > now;
   return toAppointmentDetailDto(
     row,
-    { viewerId: actor.id, now, groupName, memberNames: new Map(members.map((m) => [m.userId, m.displayName])), memberCount: members.length, rsvps },
+    { viewerId: actor.id, now, groupName, members: new Map(members.map((m) => [m.userId, m])), memberCount: members.length, rsvps },
     {
       canEdit: open && can(actor, 'appointment.update', res).allow,
       canCancel: open && can(actor, 'appointment.cancel', res).allow,
@@ -314,13 +315,13 @@ async function computeOverlap(db: Reader, groupId: string, tz: string, startAt: 
   const { rows, truncated } = await listSharedBusyInGroup(db, groupId, startAt - AVAILABILITY_FETCH_MARGIN_MS, endAt + AVAILABILITY_FETCH_MARGIN_MS, CALENDAR_MAX_ITEMS);
   const byId = new Map<string, SharedBusyRow>(rows.map((r) => [r.id, r]));
   const hits = membersBlockedDuring(startAt, endAt, tz, members.map((m) => m.userId), rows);
-  const nameOf = new Map(members.map((m) => [m.userId, m.displayName]));
+  const byMember = new Map(members.map((m) => [m.userId, m]));
   return {
     status: truncated ? 'unknown' : 'ok',
     blocked: hits.map((h) => ({
       userId: h.userId,
-      displayName: sanitizeDisplayText(nameOf.get(h.userId) ?? ''),
-      colorIndex: memberColorIndex(groupId, h.userId),
+      displayName: sanitizeDisplayText(byMember.get(h.userId)?.displayName ?? ''),
+      ...memberAppearance(groupId, h.userId, byMember.get(h.userId)),
       items: h.blocks
         .map((b) => byId.get(b.id)!)
         .sort(compareBusyRows)

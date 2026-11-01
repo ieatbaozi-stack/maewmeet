@@ -51,6 +51,7 @@ export const ROUTE_MANIFEST = [
   { method: 'DELETE', path: '/api/groups/:gid', action: 'group.delete', auth: 'actor', owner: 'platform' },
   { method: 'DELETE', path: '/api/groups/:gid/members/:uid', action: 'member.remove', auth: 'actor', owner: 'platform' },
   { method: 'PATCH', path: '/api/groups/:gid/members/:uid', action: 'member.setRole', auth: 'actor', owner: 'platform' },
+  { method: 'PATCH', path: '/api/groups/:gid/members/me/appearance', action: 'member.setOwnAppearance', auth: 'actor', owner: 'platform' },
   { method: 'POST', path: '/api/groups/:gid/transfer-admin', action: 'group.transferAdmin', auth: 'actor', owner: 'platform' },
   { method: 'POST', path: '/api/groups/:gid/leave', action: 'group.leave', auth: 'actor', owner: 'platform' },
   { method: 'POST', path: '/api/groups/:gid/invites/direct', action: 'invite.direct.create', auth: 'actor', owner: 'platform' },

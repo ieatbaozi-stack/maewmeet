@@ -7,6 +7,15 @@
 
 ## [Unreleased]
 
+### Added
+- สมาชิกตั้งสีและรูปทรงของตัวเองได้ต่อกลุ่ม (แต่ละกลุ่มเลือกไม่ซ้ำกัน) — ไม่เลือกก็ใช้สี/รูปทรงเดิมที่คำนวณให้ (R6C F3ก)
+- API `PATCH /api/groups/:gid/members/me/appearance` ตั้งสี/รูปทรงของตัวเองในกลุ่ม · `MemberInfo` มี `shapeIndex` เพิ่ม (R6C)
+- Migration `0002`: เพิ่มคอลัมน์ `group_member.color_slot` และ `group_member.shape_slot` (integer, nullable, CHECK 1–10, ไม่ backfill) (R6C)
+
+### Changed
+- สีกับรูปทรงของสมาชิกแยกกัน: ใช้ `data-color` / `data-shape` แทน `data-slot` เดิม (R6C)
+- ปฏิทิน: ปุ่มบนแถบบนของจอกว้างซ่อนเมื่อกลุ่มอยู่ในสถานะ gone / error / loading (R6C)
+
 ## [0.7.1] - 2026-11-01
 
 ### Added

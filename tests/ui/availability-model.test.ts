@@ -44,7 +44,7 @@ const day = (date: string, free: number, total: number, o: Partial<AvDay> = {}):
   ...o,
 });
 const allFree = (date: string, total: number, segments: AvSegment[]): AvDay => day(date, total, total, { allFree: true, segments });
-const M = (id: string, name: string, colorIndex = 0): MemberInfo => ({ userId: id, displayName: name, colorIndex });
+const M = (id: string, name: string, colorIndex = 0): MemberInfo => ({ userId: id, displayName: name, colorIndex, shapeIndex: colorIndex });
 const item = (id: string, userId: string, o: Partial<SharedBusy>): SharedBusy => ({
   id,
   userId,

@@ -568,6 +568,44 @@
         "confirm": "Remove"
       }
     },
+    "appearance": {
+      "title": "How I look in this group",
+      "body": "Pick a colour and a shape for your avatar. Only this group sees it, and it’s fine if someone else picks the same.",
+      "previewAria": "Preview of your avatar: {color}, {shape}",
+      "colorLabel": "Colour",
+      "shapeLabel": "Shape",
+      "optionAria": "{name}",
+      "auto": "Use automatic",
+      "autoHint": "Go back to the colour and shape we picked for you.",
+      "saving": "Saving…",
+      "saved": "Saved. Your new look shows everywhere in this group.",
+      "autoSaved": "Switched back to automatic",
+      "failed": "Couldn’t save that. Please try again.",
+      "color": {
+        "1": "Coral",
+        "2": "Peach",
+        "3": "Mustard",
+        "4": "Leaf green",
+        "5": "Mint",
+        "6": "Teal",
+        "7": "Sky blue",
+        "8": "Periwinkle",
+        "9": "Lilac",
+        "10": "Magenta pink"
+      },
+      "shape": {
+        "1": "Circle",
+        "2": "Rounded square",
+        "3": "Hexagon",
+        "4": "Octagon",
+        "5": "Diamond",
+        "6": "Pentagon",
+        "7": "Teardrop",
+        "8": "Shield",
+        "9": "Parallelogram",
+        "10": "Clipped square"
+      }
+    },
     "invite": {
       "title": "Invite friends",
       "mineOnly": "You only see the codes you created.",

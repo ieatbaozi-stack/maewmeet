@@ -132,7 +132,7 @@ export function FreeDetail({ day, data, myId, variant, hintId, onCreate }: FreeD
         <ul className="cal-people" aria-labelledby={`${uid}-bl`} data-testid="free-blockers">
           {rows.map(({ member, flagged, entries }) => (
             <li className="cal-person" key={member.userId} data-testid={`free-blocker-${member.userId}`} data-flagged={flagged ? "true" : undefined}>
-              <MemberAvatar displayName={member.displayName} colorIndex={member.colorIndex} size="sm" />
+              <MemberAvatar displayName={member.displayName} colorIndex={member.colorIndex} shapeIndex={member.shapeIndex} size="sm" />
               <span className="pn">
                 <span>
                   <Name>{member.displayName}</Name>

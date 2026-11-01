@@ -7,8 +7,8 @@ export type GroupRole = "admin" | "moderator" | "member";
 export const MEMBER_SLOT_COUNT = 10;
 
 /**
- * ช่องสีของสมาชิก (data-slot, 1–10) จาก colorIndex 0–9 ของ API (Lead: data-slot = colorIndex + 1)
- * ชนกันได้ — สัญญาณที่ไม่ใช่สีคือรูปทรง + ตัวอักษรย่อ (members.css)
+ * ช่อง 1–10 สำหรับ data-color / data-shape จาก colorIndex / shapeIndex 0–9 ของ API (ช่อง = index + 1)
+ * ชนกันได้ — สัญญาณที่ไม่ใช่สีคือรูปทรง + ตัวอักษรย่อ (members.css) · สีกับรูปทรงเป็นอิสระต่อกัน (R6C)
  */
 export function memberSlot(colorIndex: number): number {
   const n = Number.isFinite(colorIndex) ? Math.trunc(colorIndex) : 0;

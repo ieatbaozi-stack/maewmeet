@@ -126,8 +126,8 @@ describe('ระดับ DB (ด่านสุดท้าย — ข้าม
   it('สมาชิกซ้ำ (PK group_id+user_id) · role นอกชุด (CHECK) ถูกปฏิเสธ', async () => {
     const bob = await person(h, 'bob');
     const gid = await makeGroup(alice);
-    await expect(h.rows("INSERT INTO group_member VALUES (?, ?, 'member', 1)", [gid, alice.id])).rejects.toThrow(/UNIQUE|constraint/i);
-    await expect(h.rows("INSERT INTO group_member VALUES (?, ?, 'owner', 1)", [gid, bob.id])).rejects.toThrow(/CHECK|constraint/i);
+    await expect(h.rows("INSERT INTO group_member (group_id, user_id, role, joined_at) VALUES (?, ?, 'member', 1)", [gid, alice.id])).rejects.toThrow(/UNIQUE|constraint/i);
+    await expect(h.rows("INSERT INTO group_member (group_id, user_id, role, joined_at) VALUES (?, ?, 'owner', 1)", [gid, bob.id])).rejects.toThrow(/CHECK|constraint/i);
   });
 
   it('หน้าต่างวันว่างผิดกติกา (CHECK) ถูกปฏิเสธระดับ DB', async () => {

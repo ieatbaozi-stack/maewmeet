@@ -72,7 +72,7 @@ export function MemberList({ groupId, members, viewer, myId }: MemberListProps) 
           return (
             <li key={m.userId}>
               <div className="row" role="group" aria-label={t("group.members.rowAria", { name: m.displayName, role: roleLabel })}>
-                <MemberAvatar displayName={m.displayName} colorIndex={m.colorIndex} size="lg" />
+                <MemberAvatar displayName={m.displayName} colorIndex={m.colorIndex} shapeIndex={m.shapeIndex} size="lg" />
                 <span className="row-main">
                   <span className="row-title"><Name>{m.displayName}</Name></span>
                   {isSelf ? <span className="you">{t("group.members.you")}</span> : null}
