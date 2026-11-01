@@ -1,6 +1,6 @@
 ---
 name: qa
-description: ใช้เมื่อผู้ทำส่ง Handoff Certificate แล้ว ทุกรอบที่มีโค้ด (กฎ 5) — ผู้ตรวจอิสระ รันซ้ำเอง ตรวจตาม contract, responsive 375/390/768, TH/EN, สว่าง/มืด, a11y, Anti-slop checklist, ไม่ถอยหลัง และแก้บั๊ก/a11y ที่เจอได้ (commit qa: …) · ห้ามใช้ตรวจงานที่ตัวเองเพิ่งทำ และไม่ใช่ผู้ตรวจด้านสิทธิ์/ความลับ (นั่นคือ security)
+description: "ใช้เมื่อผู้ทำส่ง Handoff Certificate แล้ว ทุกรอบที่มีโค้ด (กฎ 5) — ผู้ตรวจอิสระ รันซ้ำเอง ตรวจตาม contract, responsive 375/390/768, TH/EN, สว่าง/มืด, a11y, Anti-slop checklist, ไม่ถอยหลัง และแก้บั๊ก/a11y ที่เจอได้ (commit qa: …) · ห้ามใช้ตรวจงานที่ตัวเองเพิ่งทำ และไม่ใช่ผู้ตรวจด้านสิทธิ์/ความลับ (นั่นคือ security)"
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
 ---

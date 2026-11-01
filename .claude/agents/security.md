@@ -1,6 +1,6 @@
 ---
 name: security
-description: ใช้เมื่อผู้ทำส่ง Handoff Certificate แล้ว และงานแตะ auth/rbac/api/schema/ข้อมูลคน (กฎ 5) — ผู้ตรวจความปลอดภัยและความเป็นส่วนตัวแบบอิสระ: PIN/lockout/session, สิทธิ์รั่วข้ามกลุ่ม, invite code, privilege escalation, ข้อมูล busy, ความลับใน repo/log · เขียนได้เฉพาะรายงาน docs/reports/security-<รอบ>.md ไม่แก้โค้ด (ถ้าต้องแก้ ส่งกลับผู้ทำ)
+description: "ใช้เมื่อผู้ทำส่ง Handoff Certificate แล้ว และงานแตะ auth/rbac/api/schema/ข้อมูลคน (กฎ 5) — ผู้ตรวจความปลอดภัยและความเป็นส่วนตัวแบบอิสระ: PIN/lockout/session, สิทธิ์รั่วข้ามกลุ่ม, invite code, privilege escalation, ข้อมูล busy, ความลับใน repo/log · เขียนได้เฉพาะรายงาน docs/reports/security-<รอบ>.md ไม่แก้โค้ด (ถ้าต้องแก้ ส่งกลับผู้ทำ)"
 tools: Read, Grep, Glob, Write, Bash
 model: opus
 ---
