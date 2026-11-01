@@ -79,7 +79,7 @@ function People({ people, more }: { people: OverlapPerson[]; more: number }) {
       <ul className="ov-list" aria-label={t("appointments.overlap.groupAria")} data-testid="appt-overlap-list">
         {people.map((p) => (
           <li key={p.userId} data-testid="appt-overlap-person">
-            <MemberAvatar displayName={p.displayName} colorIndex={p.colorIndex} size="sm" />
+            <MemberAvatar displayName={p.displayName} colorIndex={p.colorIndex} shapeIndex={p.shapeIndex} size="sm" />
             <span className="ov-who">
               <span className="ov-name">
                 <Name>{p.displayName}</Name>

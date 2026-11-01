@@ -70,7 +70,7 @@ export function DayPanel({ date, today, members, spans, myId, nowMinute, onPrev,
           {rows.map(({ member, segments }) => (
             <div className="cal-row" key={member.userId} data-testid={`cal-strip-${member.userId}`}>
               <span className="cal-name">
-                <MemberAvatar displayName={member.displayName} colorIndex={member.colorIndex} size="sm" />
+                <MemberAvatar displayName={member.displayName} colorIndex={member.colorIndex} shapeIndex={member.shapeIndex} size="sm" />
                 <span className="nm">
                   <Name>{member.displayName}</Name>
                 </span>
@@ -82,7 +82,7 @@ export function DayPanel({ date, today, members, spans, myId, nowMinute, onPrev,
                     <span
                       key={`${seg.item.id}-${seg.from}`}
                       className={["cal-bar", seg.cutStart ? "cut-start" : "", seg.cutEnd ? "cut-end" : ""].filter(Boolean).join(" ")}
-                      data-slot={memberSlot(member.colorIndex)}
+                      data-color={memberSlot(member.colorIndex)} data-shape={memberSlot(member.shapeIndex)}
                       data-testid="cal-bar"
                       style={{ "--s": box.start, "--w": box.width } as CSSProperties}
                     />
@@ -109,7 +109,7 @@ export function DayPanel({ date, today, members, spans, myId, nowMinute, onPrev,
           <ul className="cal-people" data-testid="cal-people">
             {busyRows.map(({ member, segments }) => (
               <li className="cal-person" key={member.userId} data-testid={`cal-person-${member.userId}`}>
-                <MemberAvatar displayName={member.displayName} colorIndex={member.colorIndex} size="sm" />
+                <MemberAvatar displayName={member.displayName} colorIndex={member.colorIndex} shapeIndex={member.shapeIndex} size="sm" />
                 <span className="pn">
                   <Name>{member.displayName}</Name>
                   {member.userId === myId ? <span className="you small muted">{t("group.members.you")}</span> : null}

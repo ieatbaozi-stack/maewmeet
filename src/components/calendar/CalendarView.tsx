@@ -485,11 +485,14 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
           <Icon name="chevron-down" size="sm" />
         </button>
         {/* R6B F3ค: สร้างนัดของกลุ่มที่เลือกอยู่ (สิทธิ์ appointment.create ตรวจที่ API) */}
-        {group ? <CreateAppointmentButton groupId={group.id} groupName={group.name} memberCount={group.memberCount} tz={groupTz} userId={userId} className="btn btn-secondary wide-only" testId="appt-add-top" /> : null}
-        <button type="button" className="btn btn-secondary wide-only" data-testid="busy-add-top" onClick={() => openForm(null)}>
-          <Icon name="plus" />
-          <span>{t("busy.add")}</span>
-        </button>
+        {/* R6C L2: เงื่อนไขเดียวกับปุ่มลอยมือถือ — ซ่อนตอนกลุ่ม gone/error/loading */}
+        {showFab && group ? <CreateAppointmentButton groupId={group.id} groupName={group.name} memberCount={group.memberCount} tz={groupTz} userId={userId} className="btn btn-secondary wide-only" testId="appt-add-top" /> : null}
+        {showFab ? (
+          <button type="button" className="btn btn-secondary wide-only" data-testid="busy-add-top" onClick={() => openForm(null)}>
+            <Icon name="plus" />
+            <span>{t("busy.add")}</span>
+          </button>
+        ) : null}
         <Bell />
       </header>
       <main className="main wide cal-main" id="main" data-view={view}>

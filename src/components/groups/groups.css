@@ -122,3 +122,23 @@
   .invite-card { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
   .invite-card .actions { min-width: calc(var(--space-7) * 4); }
 }
+
+/* หน้าตาของฉันในกลุ่ม (R6C · docs/design/R6C_APPEARANCE.md) */
+.appr-preview { margin-top: var(--space-4); display: grid; justify-items: center; gap: var(--space-2); }
+.member-avatar.appr-big { --member-size: var(--tap-lg); font-size: var(--text-lg); }
+.appr-group { margin-top: var(--space-4); }
+.appr-grid { margin-top: var(--space-2); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-2); }
+.appr-opt { position: relative; display: grid; place-items: center; min-height: var(--tap); cursor: pointer; }
+.appr-cell { position: relative; display: grid; place-items: center; width: var(--tap); height: var(--tap); border-radius: var(--radius-full); }
+.appr-opt input:focus-visible + .appr-cell { outline: var(--focus-ring) solid var(--focus); outline-offset: 0; }
+.appr-chk { display: none; position: absolute; right: calc(var(--space-1) * -1); bottom: calc(var(--space-1) * -1); width: var(--space-4); height: var(--space-4); border-radius: var(--radius-full); background: var(--ink); color: var(--surface); place-items: center; }
+.appr-chk .icon { width: 100%; height: 100%; }
+.appr-opt input:checked + .appr-cell::after {
+  content: ""; position: absolute; inset: calc((var(--space-1) + var(--border-strong)) * -1);
+  border: var(--border-strong) solid var(--ink); border-radius: var(--radius-full); pointer-events: none;
+}
+.appr-opt input:checked + .appr-cell .appr-chk { display: grid; }
+.appr-status { min-height: var(--space-5); margin-top: var(--space-2); }
+@media (min-width: 48em) {
+  .appr-grid { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+}
