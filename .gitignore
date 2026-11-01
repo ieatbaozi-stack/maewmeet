@@ -30,3 +30,7 @@ next-env.d.ts
 *.pem
 npm-debug.log*
 docs/design/screenshots/
+.claude/agent-log.jsonl
+.claude/settings.local.json
+.claude/settings.local.json.bak
+.claude/settings.local.json.tmp-*
