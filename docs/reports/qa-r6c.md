@@ -39,3 +39,9 @@ Screenshots: scratchpad `r6c-settings-{th-light,en-dark}-{mobile-375,mobile-390,
 
 ## Not verified
 CI on the PR; Vitest DB tests on this machine (EPERM); real devices / screen reader beyond accessible names; no dedicated e2e for free-days and OverlapNotice appearance.
+
+## ตรวจซ้ำหลังแก้ L1 (commit 41954e9, 2c3f21c)
+- โค้ด: `showTopActions=false` ครบทุกกิ่ง loading/error/gone — mine (loading, error), free (gone, error, loading), ปฏิทินกลุ่ม gone/error, day view loading; month/week = `!loading`. แท็บ "ของฉัน" ว่างและกลุ่มคนเดียว (free) คงเป็น true ตามต้องการ · day view gone ถูกจับโดยกิ่ง `cal.status === "gone"` ก่อนถึง day · `showFab` ไม่เปลี่ยน
+- เทสต์ใหม่ (R6C-7 L2 ข้อที่ 2): ยืนยันแท็บว่างจริงด้วย `appt-add-fab` = 0 แล้วเช็คปุ่มบนเห็น · free ของกลุ่มคนเดียวไม่ใช่ gone/error แล้วเห็นปุ่ม — ทดสอบสิ่งที่อ้างจริง (รันเฉพาะ tablet-768, mobile skip ตามออกแบบ)
+- รัน: typecheck exit 0 · lint exit 0 · build สำเร็จ · playwright 4 spec (workers=2, retries=0) -> 38 passed, 10 skipped, 0 failed
+- verdict สุดท้าย: **ผ่าน** (L1 ปิดแล้ว) · ไม่ได้ตรวจ: CI บน PR
