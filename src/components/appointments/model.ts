@@ -406,9 +406,11 @@ export const OVERLAP_MAX_ROWS = 2;
 type OverlapItem = OverlapDto["blocked"][number]["items"][number];
 
 function itemWhen(it: OverlapItem, tz: string, locale: CalendarLocale): MessageRef {
-  if (it.allDay) return ref("calendar.day.allDay");
-  const s = toLocal(it.startAt, it.tz || tz);
-  const e = toLocal(it.endAt, it.tz || tz);
+  // R6D: นัดที่ตอบไป (kind appointment/other_group_appointment) ไม่มี allDay/tz/id → timed ใน tz กลุ่ม
+  if ("allDay" in it && it.allDay) return ref("calendar.day.allDay");
+  const itTz = "tz" in it && it.tz ? it.tz : tz;
+  const s = toLocal(it.startAt, itTz);
+  const e = toLocal(it.endAt, itTz);
   if (s.date === e.date) return ref("calendar.day.range", { start: hhmm(s.minute), end: hhmm(e.minute) });
   const d = (x: DateISO) => format(x, { locale, style: "day-month" });
   return ref("busy.when.timedSpan", { startDate: d(s.date), start: hhmm(s.minute), endDate: d(e.date), end: hhmm(e.minute) });
@@ -423,7 +425,7 @@ export function overlapView(o: OverlapDto, ctx: { myId: string; tz: string; loca
   const all: OverlapPerson[] = o.blocked.map((b) => {
     const rows = b.items.map((it, i): OverlapRow => {
       const title = "title" in it && typeof it.title === "string" && it.title !== "" ? it.title : null;
-      return { key: `${b.userId}-${it.id ?? i}`, when: itemWhen(it, ctx.tz, ctx.locale), title };
+      return { key: `${b.userId}-${"id" in it ? it.id : i}`, when: itemWhen(it, ctx.tz, ctx.locale), title };
     });
     return { userId: b.userId, displayName: b.displayName, colorIndex: b.colorIndex, shapeIndex: b.shapeIndex, you: b.userId === ctx.myId, rows: rows.slice(0, OVERLAP_MAX_ROWS), moreRows: Math.max(0, rows.length - OVERLAP_MAX_ROWS) };
   });

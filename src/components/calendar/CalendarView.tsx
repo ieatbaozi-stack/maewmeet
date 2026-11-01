@@ -24,7 +24,7 @@ import { GroupSwitchSheet, type GroupOption } from "./GroupSwitchSheet";
 import { MemberLegend, MonthGrid } from "./MonthGrid";
 import { MineList } from "./MineList";
 import { classifyDay, isSelectable, planFromDate, urlDayParam } from "@/components/availability/model";
-import { buildMonth, busyUsersByDate, fetchRange, monthStart, shiftMonth, spanOf, ymOf, type OwnBusy } from "./model";
+import { buildMonth, busyUsersByDate, fetchRange, monthStart, shiftMonth, spanOf, toSharedBusy, ymOf, type OwnBusy } from "./model";
 
 export type CalView = "month" | "free" | "day" | "mine";
 /** ลำดับปุ่ม (UX X34): เดือน | ว่างตรงกัน | วัน | ของฉัน */
@@ -197,10 +197,12 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   const loading = cal.key !== calKey;
   const ready = !loading && cal.status === "ready" ? cal.data : null;
   const avLoading = av === null || av.key !== avKey;
-  const avReady = !avLoading && av?.status === "ready" ? av.data : null;
+  const avReadyRaw = !avLoading && av?.status === "ready" ? av.data : null;
+  // R6D: busy[] มี kind — แปลงเป็นรูปเดิมให้ FreeView (ลำดับคงเดิม → itemIdx ยังชี้ถูก)
+  const avReady = useMemo(() => (avReadyRaw ? { ...avReadyRaw, busy: avReadyRaw.busy.map((b) => toSharedBusy(b, avReadyRaw.group.tz)) } : null), [avReadyRaw]);
   const groupTz = ready?.group.tz ?? tz;
   const members = ready?.members ?? [];
-  const spans = useMemo(() => (ready ? ready.busy.map((b) => spanOf(b, groupTz)) : []), [ready, groupTz]);
+  const spans = useMemo(() => (ready ? ready.busy.map((b) => spanOf(toSharedBusy(b, groupTz), groupTz)) : []), [ready, groupTz]);
   const busyByDate = useMemo(() => busyUsersByDate(spans, month.from, month.to), [spans, month.from, month.to]);
   const monthTitle = format(monthStart(ym.year, ym.month), { locale, style: "month-year" });
   const group = groups.find((g) => g.id === gid) ?? null;

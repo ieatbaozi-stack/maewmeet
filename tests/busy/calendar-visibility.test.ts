@@ -69,6 +69,7 @@ const leaks = (r: Res, ...needles: string[]) => needles.filter((n) => r.text.inc
 
 // response schema แบบ strict — ฟิลด์เกินแล้วล้ม (ADR 0006 test 8)
 const base = {
+  kind: z.literal('busy'), // R6D (ADR 0009 §2): ทุกชิ้นมี kind
   id: z.uuid(),
   userId: z.uuid(),
   allDay: z.boolean(),
@@ -100,7 +101,7 @@ describe('ADR 0006 ข้อ 1 — สมาชิกเห็นผ่านก
     const body = calendarSchema.parse(r.json.data);
     expect(body.busy.map((b) => b.id)).toEqual([visibleId, hiddenId]);
     const hidden = r.data.busy.find((b) => b.id === hiddenId)!;
-    expect(Object.keys(hidden).sort()).toEqual(['allDay', 'endAt', 'id', 'localEndDate', 'localStartDate', 'startAt', 'tz', 'userId']);
+    expect(Object.keys(hidden).sort()).toEqual(['allDay', 'endAt', 'id', 'kind', 'localEndDate', 'localStartDate', 'startAt', 'tz', 'userId']); // R6D: + kind
     expect('title' in hidden).toBe(false); // ไม่ใช่ null หรือ ""
     expect(hidden).toMatchObject({ allDay: true, localStartDate: '2026-10-24', localEndDate: '2026-10-25', userId: owner.id });
     const shown = r.data.busy.find((b) => b.id === visibleId)!;
@@ -396,7 +397,7 @@ describe('ADR 0006 test 8–9 — ระดับชนิดข้อมูล 
     expect(JSON.stringify(view)).not.toContain(CN);
     const hidden = toBusyForViewers({ ...row, hideDetail: true } as never);
     expect('title' in hidden).toBe(false);
-    expect(Object.keys(hidden)).toHaveLength(8);
+    expect(Object.keys(hidden)).toHaveLength(9); // R6D: + kind
     // แม้ SQL ปล่อย title ของรายการซ่อนมา (สมมติบั๊ก) serializer ก็ตัดซ้ำ
     expect('title' in toBusyForViewers({ ...row, hideDetail: true, title: CH } as never)).toBe(false);
     // title ว่างหลังทำความสะอาด → ไม่มีฟิลด์

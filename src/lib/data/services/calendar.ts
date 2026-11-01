@@ -1,22 +1,23 @@
 // service: ปฏิทินกลุ่ม — U8 · ADR 0006 §1, §3 · action `group.calendar.view`
 //  - โหลด GroupCtx (1 query) → authorize บรรทัดแรกของส่วนที่แตะข้อมูล · ไม่ใช่สมาชิก/กลุ่มไม่มี/ลบแล้ว → NOT_FOUND (404) เหมือนกันหมด
 //  - ตรวจช่วงวันที่ *หลัง* ผ่านด่านกลุ่ม (คนนอกได้ 404 แม้ส่งช่วงผิด — ไม่เป็น oracle ว่ากลุ่มมีจริง)
-//  - busy ของสมาชิกปัจจุบันของกลุ่มนี้เท่านั้น (JOIN group_member ของ gid นี้) ผ่าน serializer เดียว (toBusyForViewers) — ไม่มีมุมมองเจ้าของ แม้เป็นรายการของผู้ดูเอง
+//  - busy ของสมาชิกปัจจุบันของกลุ่มนี้เท่านั้น (JOIN group_member ของ gid นี้) ผ่าน serializer เดียว — ไม่มีมุมมองเจ้าของ แม้เป็นรายการของผู้ดูเอง
+//  - R6D (ADR 0009): รวมนัดที่สมาชิกตอบ "ไป" จากทุกกลุ่ม (loadMemberBusy) · นัดกลุ่มอื่น = ช่วงเวลาเท่านั้น
 //  - super admin ที่ไม่ใช่สมาชิก → audit `group.calendar.view` (ตามกติกาอ่านของ R2: auditRead)
 import { z } from 'zod';
 import { addDays, compareDates, isValidDate, spanDays, startOfDay } from '@/lib/calendar';
 import { findGroupById } from '@/lib/data/repos/group';
 import { listMembers } from '@/lib/data/repos/group-member';
-import { listSharedBusyInGroup } from '@/lib/data/repos/busy';
+import { loadMemberBusy } from './member-busy';
 import { authorize } from '@/lib/rbac/can';
 import type { Actor } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
-import { CALENDAR_MAX_ITEMS, CALENDAR_MAX_RANGE_DAYS } from '@/lib/shared/limits';
+import { CALENDAR_MAX_RANGE_DAYS } from '@/lib/shared/limits';
 import { memberAppearance } from '@/lib/shared/member-color';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
 import { loadGroupCtx } from '../policy-context';
-import { toBusyForViewers, type BusyHiddenView, type BusySharedView } from '../serializers/busy';
+import type { MemberBusyView } from '../serializers/busy';
 import { asUser, auditRead } from './group-common';
 
 export const calendarParamsSchema = z.object({ gid: z.uuid() });
@@ -55,9 +56,12 @@ export type GroupCalendarDto = {
   to: string;
   /** ผู้ดู (ถ้าเป็นสมาชิก) ก่อน แล้วตามช่องสี */
   members: CalendarMemberDto[];
-  /** เรียงตามเวลาเริ่ม · ทุกชิ้นผ่าน toBusyForViewers */
-  busy: (BusySharedView | BusyHiddenView)[];
-  /** true = มีแถวเกิน CALENDAR_MAX_ITEMS ในช่วงนี้ → ส่งมาเฉพาะส่วนแรก (เรียงตามเวลาเริ่ม) · UI ควรแจ้งผู้ใช้ */
+  /**
+   * เรียง startAt, endAt, kind, id (ADR 0009 §2) · ทุกชิ้นผ่าน serializer busy:
+   * kind "busy" (busy_block) · "appointment" (นัดที่ตอบไปในกลุ่มนี้ — มี appointmentId/title) · "other_group_appointment" (นัดกลุ่มอื่น — ช่วงเวลาเท่านั้น)
+   */
+  busy: MemberBusyView[];
+  /** true = busy หรือ going มีแถวเกิน CALENDAR_MAX_ITEMS ในช่วงนี้ → ส่งมาเฉพาะส่วนแรก (เรียงตามเวลาเริ่ม) · UI ควรแจ้งผู้ใช้ */
   truncated: boolean;
 };
 
@@ -74,7 +78,7 @@ export async function getGroupCalendar(actor: Actor, groupId: string, query: Cal
   // ช่วง [from, to] รวมปลาย ตามวันท้องถิ่นของ *กลุ่ม* → epoch [เที่ยงคืนต้น from, เที่ยงคืนต้นวันหลัง to) — ตรงกับที่ UI วางรายการตาม tz กลุ่ม (L3)
   const fromMs = startOfDay(range.from, row.tz);
   const toMs = startOfDay(addDays(range.to, 1), row.tz);
-  const { rows: busy, truncated } = await listSharedBusyInGroup(ctx.db, groupId, fromMs, toMs, CALENDAR_MAX_ITEMS);
+  const { items, truncated } = await loadMemberBusy(ctx.db, groupId, row.tz, fromMs, toMs);
   await auditRead(ctx.db, me, allow, { action: 'group.calendar.view', targetType: 'group', targetId: groupId, groupId, meta: { from: range.from, to: range.to } }, ctx.now);
 
   const dtos: CalendarMemberDto[] = members.map((m) => ({
@@ -88,5 +92,5 @@ export async function getGroupCalendar(actor: Actor, groupId: string, query: Cal
       a.colorIndex - b.colorIndex ||
       (a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0),
   );
-  return { group: { id: row.id, tz: row.tz }, from: range.from, to: range.to, members: dtos, busy: busy.map(toBusyForViewers), truncated };
+  return { group: { id: row.id, tz: row.tz }, from: range.from, to: range.to, members: dtos, busy: items.map((i) => i.view), truncated };
 }

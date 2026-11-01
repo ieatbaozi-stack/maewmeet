@@ -65,6 +65,10 @@ export const APPOINTMENT_MAX_BACKDATE_MS = 60 * 60 * 1000;
 export const APPOINTMENT_MAX_SPAN_DAYS = BUSY_MAX_TIMED_DAYS;
 export const APPOINTMENT_LIST_DEFAULT = 20;
 export const APPOINTMENT_LIST_MAX = 50;
+/** R6D (ADR 0009 §3): myConflicts ในรายละเอียดนัด — สูงสุด 5 รายการ (+ myConflictsTruncated) */
+export const APPOINTMENT_MY_CONFLICTS_MAX = 5;
+/** R6D: เพดานคำมั่นของฉันที่โหลดเพื่อคำนวณ myConflict ของการ์ดในรายการ (1 query ต่อหน้า) */
+export const APPOINTMENT_LIST_CONFLICT_SCAN_MAX = 500;
 export const NOTIFICATION_LIST_DEFAULT = 20;
 export const NOTIFICATION_LIST_MAX = 50;
 /** POST /api/me/notifications/read {ids} — จำนวน id สูงสุดต่อคำขอ */
@@ -93,6 +97,10 @@ export const ACCOUNT_RATE_LIMITS = {
 // ───────── หน้าตาของฉันในกลุ่ม — R6C_CONTRACT §2 ─────────
 /** PATCH /api/groups/:gid/members/me/appearance — 60 ครั้ง/10 นาที/ผู้ใช้ (ทุกกลุ่มรวมกัน) · เกิน → RATE_LIMITED + Retry-After */
 export const MEMBER_APPEARANCE_RATE_LIMIT = { prefix: 'member:appearance', limit: 60, windowMs: 10 * MINUTE_MS } as const;
+
+// ───────── กลุ่มปัจจุบัน (คุกกี้ mm_group) — R6D G1 · ADR 0009 §5 ─────────
+/** PUT /api/me/current-group — 120 ครั้ง/10 นาที/ผู้ใช้ (เรียกเมื่อเปิดหน้ากลุ่ม/เปลี่ยนกลุ่ม) · เกิน → RATE_LIMITED + Retry-After */
+export const CURRENT_GROUP_RATE_LIMIT = { prefix: 'me:current-group', limit: 120, windowMs: 10 * MINUTE_MS } as const;
 
 export const ADMIN_RATE_LIMITS = {
   /** ทุก endpoint admin ที่เขียน (suspend / unsuspend / unlock) — 60 ครั้ง/10 นาที/ผู้ใช้ */

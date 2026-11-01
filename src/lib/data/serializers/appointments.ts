@@ -3,11 +3,11 @@
 //  - RSVP: นับ/แสดงเฉพาะ "สมาชิกปัจจุบัน" (repo join group_member) · ชื่อ = ชื่อที่แสดง · สี/รูปทรง = memberAppearance ชุดเดียวกับปฏิทิน (R6C)
 //  - ผู้สร้าง/ผู้ยกเลิก: แสดงเมื่อยังเป็นสมาชิกกลุ่ม ไม่งั้น null (ไม่เปิดเผยชื่อคนที่ออกแล้ว)
 //  - busy ในผลเตือนนัดทับผ่าน toBusyForViewers ตัวเดียวกับปฏิทิน/วันว่าง — ไม่มี note · รายการซ่อนไม่มี title
-import type { AppointmentRow, RsvpResponse, RsvpRow } from '@/lib/data/repos/appointment';
+import type { AppointmentRow, MyCommitmentRow, RsvpResponse, RsvpRow } from '@/lib/data/repos/appointment';
 import { daysUntil } from '@/lib/calendar';
 import { memberAppearance, type AppearanceSlots, type MemberAppearance } from '@/lib/shared/member-color';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
-import type { BusyHiddenView, BusySharedView } from './busy';
+import type { MemberBusyView } from './busy';
 
 export const RSVP_RESPONSES = ['going', 'maybe', 'not_going'] as const satisfies readonly RsvpResponse[];
 
@@ -57,6 +57,11 @@ export type AppointmentDto = {
   cancelledAt: number | null;
   cancelledBy: PersonDto | null;
   rsvp: RsvpSummaryDto;
+  /**
+   * R6D (ADR 0009 §3, main ตัดสิน (ข)): เฉพาะ DTO รายการ — true = ฉันตอบ "ไป" นัดนี้ และนัดนี้ทับนัดอื่นที่ฉันตอบ "ไป" หรือ busy ของฉัน (ชนขอบไม่นับ)
+   * ค่าของผู้ขอเท่านั้น (รายการเป็นของ session user เสมอ) · ไม่มี key ใน DTO รายละเอียด (ใช้ myConflicts)
+   */
+  myConflict?: boolean;
 };
 
 export type AppointmentPermissionsDto = {
@@ -66,11 +71,31 @@ export type AppointmentPermissionsDto = {
   canRsvp: boolean;
 };
 
-export type AppointmentDetailDto = Omit<AppointmentDto, 'rsvp'> & {
+/**
+ * สิ่งที่ "ฉัน" มีอยู่แล้วที่ทับนัดนี้ (ADR 0009 §3) — ของ session user เท่านั้น จึงมีชื่อ/กลุ่มของตัวเองได้
+ * busy ที่ไม่มี title (หรือ title ว่าง) → title: null (UI ใช้ "ช่วงไม่ว่างที่ลงไว้") · ไม่มี note
+ */
+export type MyConflictDto =
+  | { kind: 'appointment'; appointmentId: string; title: string; groupId: string; groupName: string; startAt: number; endAt: number; tz: string }
+  | { kind: 'busy'; busyId: string; title: string | null; allDay: boolean; startAt: number; endAt: number; localStartDate: string; localEndDate: string; tz: string };
+
+export type MyConflictsDto = { myConflicts: MyConflictDto[]; myConflictsTruncated: boolean };
+
+export const NO_CONFLICTS: MyConflictsDto = Object.freeze({ myConflicts: [], myConflictsTruncated: false }) as MyConflictsDto;
+
+export type AppointmentDetailDto = Omit<AppointmentDto, 'rsvp' | 'myConflict'> & {
   rsvp: RsvpDetailDto;
   permissions: AppointmentPermissionsDto;
   /** หน้าตาของผู้ดูในกลุ่มของนัด (R6C) · null = ผู้ดูไม่ใช่สมาชิก (super admin นอกกลุ่ม) */
   myAppearance: MemberAppearance | null;
+  /**
+   * R6D: นัดที่ฉันตอบ "ไป" (ทุกกลุ่ม ยกเว้นนัดนี้) + busy ของฉัน ที่ทับนัดนี้ (ครึ่งเปิด ชนขอบไม่นับ) ≤ 5 รายการ เรียงเวลาเริ่ม
+   * คำนวณใน GET /api/appointments/:id และ PUT .../rsvp เท่านั้น · สร้าง/แก้/ยกเลิก และนัดยกเลิก/จบแล้ว/ผู้ดูไม่ใช่สมาชิก → []
+   * ป้าย "ชนกับนัดอื่น" = rsvp.mine === 'going' && myConflicts.length > 0
+   */
+  myConflicts: MyConflictDto[];
+  /** true = มีรายการชนมากกว่า 5 */
+  myConflictsTruncated: boolean;
 };
 
 export type OverlapBlockedDto = {
@@ -78,8 +103,8 @@ export type OverlapBlockedDto = {
   displayName: string;
   colorIndex: number;
   shapeIndex: number;
-  /** busy ของคนนี้ที่ทับนัด (เรียง startAt, id) — ผ่าน serializer เดียวกับปฏิทิน */
-  items: (BusySharedView | BusyHiddenView)[];
+  /** busy ของคนนี้ที่ทับนัด (เรียง startAt, endAt, kind, id) — ผ่าน serializer เดียวกับปฏิทิน · kind ตาม ADR 0009 §2 */
+  items: MemberBusyView[];
 };
 
 export type OverlapDto = {
@@ -165,20 +190,48 @@ function cleanMultiline(raw: string): string {
 }
 
 /** มุมมองรายการ — จำนวนต่อคำตอบ + คำตอบของฉัน (ไม่มีรายชื่อ) */
-export function toAppointmentDto(row: AppointmentRow, c: AppointmentContext): AppointmentDto {
+export function toAppointmentDto(row: AppointmentRow, c: AppointmentContext, myConflict?: boolean): AppointmentDto {
   const { members: _members, ...summary } = buildRsvp(row, c);
   void _members;
-  return { ...toBase(row, c), rsvp: summary };
+  const dto: AppointmentDto = { ...toBase(row, c), rsvp: summary };
+  if (myConflict !== undefined) dto.myConflict = myConflict;
+  return dto;
+}
+
+/** แถวคำมั่นของฉัน → DTO (allowlist · สร้างอ็อบเจกต์ใหม่) */
+export function toMyConflictDto(r: MyCommitmentRow): MyConflictDto {
+  if (r.kind === 'appointment') {
+    return { kind: 'appointment', appointmentId: r.id, title: sanitizeDisplayText(r.title), groupId: r.groupId, groupName: sanitizeDisplayText(r.groupName), startAt: r.startAt, endAt: r.endAt, tz: r.tz };
+  }
+  const title = r.title === null ? '' : sanitizeDisplayText(r.title);
+  return {
+    kind: 'busy',
+    busyId: r.id,
+    title: title === '' ? null : title,
+    allDay: r.allDay,
+    startAt: r.startAt,
+    endAt: r.endAt,
+    localStartDate: r.localStartDate,
+    localEndDate: r.localEndDate,
+    tz: r.tz,
+  };
 }
 
 /** มุมมองรายละเอียด — รายชื่อต่อคำตอบ + สิทธิ์ของผู้ดู */
-export function toAppointmentDetailDto(row: AppointmentRow, c: AppointmentContext, permissions: AppointmentPermissionsDto): AppointmentDetailDto {
+export function toAppointmentDetailDto(
+  row: AppointmentRow,
+  c: AppointmentContext,
+  permissions: AppointmentPermissionsDto,
+  conflicts: MyConflictsDto = NO_CONFLICTS,
+): AppointmentDetailDto {
   const mine = c.members.get(c.viewerId);
   return {
     ...toBase(row, c),
     rsvp: buildRsvp(row, c),
     permissions,
     myAppearance: mine === undefined ? null : memberAppearance(row.groupId, c.viewerId, mine),
+    myConflicts: [...conflicts.myConflicts],
+    myConflictsTruncated: conflicts.myConflictsTruncated,
   };
 }
 

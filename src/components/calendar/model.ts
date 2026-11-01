@@ -40,6 +40,35 @@ export interface SharedBusy {
   title?: string;
 }
 
+/**
+ * R6D (ADR 0009 §2): ชิ้นใน busy[] ของ API ปฏิทิน/วันว่าง มี kind 3 แบบ — 'busy' = SharedBusy เดิม ·
+ * 'appointment' = นัดที่สมาชิกตอบ "ไป" ในกลุ่มนี้ · 'other_group_appointment' = นัดกลุ่มอื่น (ช่วงเวลาเท่านั้น)
+ */
+export type ApiBusyItem =
+  | (SharedBusy & { kind: "busy" })
+  | { kind: "appointment"; appointmentId: string; userId: string; title: string; startAt: EpochMs; endAt: EpochMs }
+  | { kind: "other_group_appointment"; userId: string; startAt: EpochMs; endAt: EpochMs };
+
+/**
+ * แปลงเป็นรูป SharedBusy เดิม (platform เพิ่มให้ compile ได้ใน R6D — frontend แทนด้วยการแสดงตาม kind ได้)
+ * นัด = ช่วง timed ใน tz กลุ่ม · id สังเคราะห์ (ไม่ใช่ id ของ busy) · นัดกลุ่มอื่นไม่มี title
+ */
+export function toSharedBusy(b: ApiBusyItem, groupTz: string): SharedBusy {
+  if (b.kind === "busy") return b;
+  const base = {
+    userId: b.userId,
+    allDay: false,
+    startAt: b.startAt,
+    endAt: b.endAt,
+    localStartDate: toLocal(b.startAt, groupTz).date,
+    localEndDate: toLocal(b.endAt - 1, groupTz).date,
+    tz: groupTz,
+  };
+  return b.kind === "appointment"
+    ? { id: `appt:${b.appointmentId}:${b.userId}`, ...base, title: b.title }
+    : { id: `other:${b.userId}:${b.startAt}`, ...base };
+}
+
 export interface OwnBusy {
   id: string;
   allDay: boolean;
