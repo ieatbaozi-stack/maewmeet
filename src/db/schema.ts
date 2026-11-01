@@ -98,11 +98,16 @@ export const groupMember = sqliteTable('group_member', {
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   role: text('role', { enum: ['admin', 'moderator', 'member'] }).notNull(),
   joinedAt: ms('joined_at').notNull(),
+  // R6C F3ก: หน้าตาที่สมาชิกเลือกเองในกลุ่มนี้ (slot 1–10) · NULL = ใช้ hash เดิม (memberColorIndex) · สี/รูปทรงแยกอิสระ
+  colorSlot: integer('color_slot'),
+  shapeSlot: integer('shape_slot'),
 }, (t) => [
   primaryKey({ columns: [t.groupId, t.userId] }),                     // U5: เข้าซ้ำไม่สร้างแถวซ้ำ
   index('group_member_user_idx').on(t.userId),
   uniqueIndex('group_one_admin_uq').on(t.groupId).where(sql`${t.role} = 'admin'`),   // กลุ่มละ 1 admin
   check('group_member_role_ck', sql`${t.role} in ('admin','moderator','member')`),
+  check('group_member_color_slot_ck', sql`${t.colorSlot} is null or (typeof(${t.colorSlot}) = 'integer' and ${t.colorSlot} between 1 and 10)`),
+  check('group_member_shape_slot_ck', sql`${t.shapeSlot} is null or (typeof(${t.shapeSlot}) = 'integer' and ${t.shapeSlot} between 1 and 10)`),
 ]);
 
 export const groupInvite = sqliteTable('group_invite', {

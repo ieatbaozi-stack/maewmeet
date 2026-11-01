@@ -40,7 +40,7 @@ async function group(admin: string): Promise<string> {
   return id;
 }
 const addMember = (g: string, u: string, role: 'member' | 'moderator' = 'member') =>
-  db.$client.execute({ sql: 'INSERT INTO group_member VALUES (?, ?, ?, ?)', args: [g, u, role, NOW] });
+  db.$client.execute({ sql: 'INSERT INTO group_member (group_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)', args: [g, u, role, NOW] });
 const removeMember = (g: string, u: string) => db.$client.execute({ sql: 'DELETE FROM group_member WHERE group_id = ? AND user_id = ?', args: [g, u] });
 const setRole = (g: string, u: string, role: string) =>
   db.$client.execute({ sql: 'UPDATE group_member SET role = ? WHERE group_id = ? AND user_id = ?', args: [role, g, u] });

@@ -57,7 +57,7 @@ async function group(creator: string, cap = 10): Promise<string> {
 const roleOf = async (g: string, u: string) =>
   ((await db.$client.execute({ sql: 'SELECT role FROM group_member WHERE group_id = ? AND user_id = ?', args: [g, u] })).rows[0]?.role as string | undefined) ?? null;
 async function addMember(g: string, u: string, role: 'member' | 'moderator' = 'member') {
-  await db.$client.execute({ sql: 'INSERT INTO group_member VALUES (?, ?, ?, ?)', args: [g, u, role, NOW] });
+  await db.$client.execute({ sql: 'INSERT INTO group_member (group_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)', args: [g, u, role, NOW] });
 }
 
 /** super admin นอกกลุ่ม: ไม่มี role ให้ตรวจ (ข้าม ActorGuard) */
