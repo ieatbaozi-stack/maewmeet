@@ -59,6 +59,8 @@ export const ACTIONS = [
   'group.transferAdmin',
   'group.delete',
   'group.leave',
+  // R6C: สี/รูปร่างของตัวเองในกลุ่ม (F3a)
+  'member.setOwnAppearance',
 
   // ── §3 แถว 18–19: super admin ──
   'pinReset.list',
@@ -187,6 +189,7 @@ export const ACTION_RESOURCE = {
   'group.transferAdmin': ['member'],
   'group.delete': ['group'],
   'group.leave': ['group'],
+  'member.setOwnAppearance': ['group'],
 
   'pinReset.list': ['none'],
   'pinReset.decide': ['none'],

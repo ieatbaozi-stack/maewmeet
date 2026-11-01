@@ -146,6 +146,15 @@ const appointmentRsvp: Rule<AppointmentResource> = inGroup<AppointmentResource>(
   role !== null ? ALLOW : deny('FORBIDDEN'),
 );
 
+/**
+ * R6C_CONTRACT §2 (F3a) — ตั้งสี/รูปร่างของตัวเองในกลุ่ม: สมาชิกทุก role ✅ · SA ที่ไม่ใช่สมาชิก → FORBIDDEN
+ * (ไม่ใช้ anyMember เพราะให้ SA ผ่าน — SA นอกกลุ่มไม่มีแถว group_member ให้ตั้งค่า) · NM → 404 ที่ด่านกลุ่ม
+ * ไม่มีกรณี "ของคนอื่น": API ใช้ userId จาก session เสมอ resource จึงเป็นแค่กลุ่ม
+ */
+const memberSetOwnAppearance: Rule<ResourceFor<'member.setOwnAppearance'>> = inGroup(({ role }) =>
+  role !== null ? ALLOW : deny('FORBIDDEN'),
+);
+
 type Rules = { readonly [A in Action]: Rule<ResourceFor<A>> };
 
 const RULES: Rules = {
@@ -201,6 +210,7 @@ const RULES: Rules = {
   'group.transferAdmin': transferAdmin,
   'group.delete': adminOnly(),
   'group.leave': groupLeave,
+  'member.setOwnAppearance': memberSetOwnAppearance,
 
   'pinReset.list': superAdminAction('pinReset.list'),
   'pinReset.decide': superAdminAction('pinReset.decide'),
