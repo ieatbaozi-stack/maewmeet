@@ -48,9 +48,14 @@ export async function measureLayout(page: Page, minTarget = 44): Promise<Layout>
     const small: string[] = [];
     let count = 0;
     for (const el of document.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea, [role="button"], [role="link"]')) {
-      const r = el.getBoundingClientRect();
+      let r = el.getBoundingClientRect();
       const cs = getComputedStyle(el);
       if (r.width === 0 || r.height === 0 || cs.visibility === 'hidden' || cs.display === 'none') continue;
+      // radio/checkbox ที่ซ่อนแบบ visually-hidden (sr-only 1×1, R6C picker) ไม่ใช่เป้าสัมผัสจริง → วัด <label> ที่ครอบ (ช่องที่ผู้ใช้แตะ) แทน · ไม่มี label = ยังวัดตัว input (จะล้มถ้าเล็ก)
+      if (el instanceof HTMLInputElement && (el.type === 'radio' || el.type === 'checkbox') && r.width <= 2 && r.height <= 2) {
+        const lab = el.closest('label');
+        if (lab) r = lab.getBoundingClientRect();
+      }
       count++;
       if (r.width < min || r.height < min) {
         const name = (el.getAttribute('aria-label') || el.textContent || el.getAttribute('name') || '').trim().slice(0, 30);

@@ -20,7 +20,7 @@ import {
 } from '@/components/groups/helpers';
 import { GROUP_LIMITS } from '@/lib/shared/limits';
 
-describe('memberSlot: colorIndex 0–9 → data-slot 1–10', () => {
+describe('memberSlot: index 0–9 → data-color/data-shape 1–10', () => {
   it('บวก 1 ตามที่ Lead ตัดสิน', () => {
     expect(memberSlot(0)).toBe(1);
     expect(memberSlot(9)).toBe(10);

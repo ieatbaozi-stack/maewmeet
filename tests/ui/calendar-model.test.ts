@@ -132,9 +132,9 @@ describe('busyUsersByDate / dayRows / stripBox', () => {
   });
   it('dayRows คงลำดับสมาชิก · segments เรียงตามเวลาเริ่ม · คนไม่ติด = ว่างเปล่า', () => {
     const members = [
-      { userId: 'u1', displayName: 'A', colorIndex: 0 },
-      { userId: 'u2', displayName: 'B', colorIndex: 1 },
-      { userId: 'u3', displayName: 'C', colorIndex: 2 },
+      { userId: 'u1', displayName: 'A', colorIndex: 0, shapeIndex: 0 },
+      { userId: 'u2', displayName: 'B', colorIndex: 1, shapeIndex: 1 },
+      { userId: 'u3', displayName: 'C', colorIndex: 2, shapeIndex: 2 },
     ];
     const rows = dayRows(members, spans, '2026-10-30');
     expect(rows.map((r) => r.member.userId)).toEqual(['u1', 'u2', 'u3']);
