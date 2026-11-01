@@ -330,9 +330,12 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
 
   let body: React.ReactNode;
   let showFab = true;
+  // R6C L1: ปุ่มแถบบนจอกว้าง ซ่อนเฉพาะ gone/error/loading (ไม่ผูกกับ showFab)
+  let showTopActions = true;
   if (view === "mine") {
     if (!mine || mine.key !== mineKey) {
       showFab = false;
+      showTopActions = false;
       body = (
         <div aria-busy="true" data-testid="cal-loading">
           <div className="skeleton cal-skel" />
@@ -345,6 +348,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       );
     } else if (mine.status === "error") {
       showFab = false;
+      showTopActions = false;
       body = errorBlock(t("busy.mine.error.title"), t("busy.mine.error.body"), retryCal, "cal-error");
     } else {
       showFab = mine.items.length > 0;
@@ -360,6 +364,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     const avError = !avLoading && av?.status === "error";
     if (avGone) {
       showFab = false;
+      showTopActions = false;
       body = (
         <div data-testid="free-gone">
           <EmptyState pose="lost" title={t("calendar.gone.title")} body={t("calendar.gone.body")} cta={{ label: t("calendar.gone.cta"), href: "/groups" }} />
@@ -367,6 +372,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       );
     } else if (avError) {
       showFab = false;
+      showTopActions = false;
       body = errorBlock(t("availability.error.title"), t("availability.error.body"), retryCal, "free-error");
     } else if (avReady && avReady.members.length <= 1) {
       // กลุ่มคนเดียว: X/1 ไม่มีความหมาย → ซ่อนตาราง ชวนเพื่อนแทน
@@ -378,6 +384,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       );
     } else {
       showFab = !avLoading;
+      showTopActions = !avLoading;
       const planFrom = avReady && av ? planFromDate(today, av.nowMs, avReady.group) : today;
       const pickedOk = freePicked !== null && avReady ? avReady.days.some((d) => d.date === freePicked && isSelectable(classifyDay(d, planFrom))) : false;
       body = (
@@ -404,6 +411,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     }
   } else if (!loading && cal.status === "gone") {
     showFab = false;
+    showTopActions = false;
     body = (
       <div data-testid="cal-gone">
         <EmptyState pose="lost" title={t("calendar.gone.title")} body={t("calendar.gone.body")} cta={{ label: t("calendar.gone.cta"), href: "/groups" }} />
@@ -411,10 +419,12 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     );
   } else if (!loading && cal.status === "error") {
     showFab = false;
+    showTopActions = false;
     body = errorBlock(t("calendar.error.title"), t("calendar.error.body"), retryCal, "cal-error");
   } else if (view === "day") {
     if (loading) {
       showFab = false;
+      showTopActions = false;
       body = (
         <div aria-busy="true" data-testid="cal-loading">
           <div className="skeleton cal-skel" />
@@ -429,6 +439,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     }
   } else {
     showFab = !loading;
+    showTopActions = !loading;
     body = (
       <>
         {ready?.truncated === true ? <TruncatedNote messageKey="calendar.truncated" /> : null}
@@ -485,9 +496,8 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
           <Icon name="chevron-down" size="sm" />
         </button>
         {/* R6B F3ค: สร้างนัดของกลุ่มที่เลือกอยู่ (สิทธิ์ appointment.create ตรวจที่ API) */}
-        {/* R6C L2: เงื่อนไขเดียวกับปุ่มลอยมือถือ — ซ่อนตอนกลุ่ม gone/error/loading */}
-        {showFab && group ? <CreateAppointmentButton groupId={group.id} groupName={group.name} memberCount={group.memberCount} tz={groupTz} userId={userId} className="btn btn-secondary wide-only" testId="appt-add-top" /> : null}
-        {showFab ? (
+        {showTopActions && group ? <CreateAppointmentButton groupId={group.id} groupName={group.name} memberCount={group.memberCount} tz={groupTz} userId={userId} className="btn btn-secondary wide-only" testId="appt-add-top" /> : null}
+        {showTopActions ? (
           <button type="button" className="btn btn-secondary wide-only" data-testid="busy-add-top" onClick={() => openForm(null)}>
             <Icon name="plus" />
             <span>{t("busy.add")}</span>
