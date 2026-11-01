@@ -84,6 +84,10 @@ Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL
 
 > **รอบต่อ ๆ ไป**: เมื่อ release ใดมี migration ใหม่ (ไฟล์ใหม่ใน `drizzle/`) Lead จะแจ้งในรายงาน → boss รัน B6 (prod) + B7 (preview) **ก่อน** merge/push เข้า main
 
+> **หมายเหตุ R6C (migration `0002`)**: รอบนี้มีไฟล์ใหม่ `drizzle/0002_*.sql` — ใช้ขั้นตอน B6 (prod) + B7 (preview) ข้างบนตามเดิม ก่อน merge
+> - migration นี้เพิ่มคอลัมน์ `group_member.color_slot` / `shape_slot` แบบ nullable เท่านั้น ไม่ลบ/แก้ข้อมูลเดิม และโค้ดรุ่นเดิมไม่อ่านคอลัมน์เหล่านี้ → รัน migrate **ก่อน** deploy ปลอดภัย (รุ่นเก่าที่ยังรันอยู่ไม่พัง)
+> - `0002` เป็น SQL ที่เขียนมือ เพราะ drizzle-kit 0.31.11 generate SQL แบบสร้างตารางใหม่แล้ว `INSERT ... SELECT` คอลัมน์ที่ตารางเดิมยังไม่มี (ดูคอมเมนต์ในหัวไฟล์ `drizzle/0002_*.sql`) · ผลเท่ากับ schema ใน `schema.ts`
+
 ---
 
 ## C. สร้างความลับ (pepper, APP_SECRET, CRON_SECRET)
