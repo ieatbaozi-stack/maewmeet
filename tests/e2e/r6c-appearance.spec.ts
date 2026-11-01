@@ -290,3 +290,27 @@ test('R6C-7 L2: จอกว้าง — appt-add-top/busy-add-top เห็น
 
   expect(problems.filter((p) => !isHydration(p)), 'console error').toEqual([]);
 });
+
+// ───────── R6C-7 L2: ปุ่มแถบบนจอกว้างต้องยังอยู่ตอนแท็บว่าง (ไม่ใช่ gone/error/loading) ─────────
+test('R6C-7 L2: จอกว้าง — แท็บ "ของฉัน" ว่าง และกลุ่มคนเดียวในแท็บว่างตรงกัน ยังเห็น appt-add-top/busy-add-top', async ({ newDevice, baseURL }, testInfo) => {
+  test.skip(testInfo.project.name !== 'tablet-768', 'ปุ่มแถบบนแสดงที่ ≥ 48em (768) เท่านั้น');
+  test.setTimeout(90_000);
+  const scene: Scene = await makeScene(newDevice, baseURL!, { locale: 'th', theme: 'light', labels: ['Ann'] });
+  const a = scene.members[0]!; // กลุ่มคนเดียว ยังไม่มีรายการ
+  const problems = watchConsole(a.page);
+
+  await openCalendar(a.page, { gid: scene.gid, view: 'mine' });
+  await expect(a.page.getByTestId('cal-loading')).toHaveCount(0);
+  await expect(a.page.getByTestId('appt-add-fab')).toHaveCount(0); // ยืนยันว่าเป็นแท็บว่างจริง (FAB ซ่อนตาม showFab)
+  await expect(a.page.getByTestId('appt-add-top')).toBeVisible();
+  await expect(a.page.getByTestId('busy-add-top')).toBeVisible();
+
+  await openCalendar(a.page, { gid: scene.gid, view: 'free' });
+  await expect(a.page.getByTestId('cal-loading')).toHaveCount(0);
+  await expect(a.page.getByTestId('free-gone')).toHaveCount(0);
+  await expect(a.page.getByTestId('free-error')).toHaveCount(0);
+  await expect(a.page.getByTestId('appt-add-top')).toBeVisible();
+  await expect(a.page.getByTestId('busy-add-top')).toBeVisible();
+
+  expect(problems.filter((p) => !isHydration(p)), 'console error').toEqual([]);
+});
