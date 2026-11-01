@@ -6,6 +6,7 @@ import { startTransition, useEffect, useMemo, useState, useSyncExternalStore } f
 import { useLocale, useTranslations } from "next-intl";
 import { callApi } from "@/components/auth/api";
 import { BusyFormSheet, type BusyDone } from "@/components/busy/BusyFormSheet";
+import { CreateAppointmentButton } from "@/components/appointments/CreateAppointmentButton";
 import { FreeView } from "@/components/availability/FreeView";
 import { Cat } from "@/components/brand";
 import { Notice } from "@/components/groups/Notice";
@@ -202,7 +203,8 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   const spans = useMemo(() => (ready ? ready.busy.map((b) => spanOf(b, groupTz)) : []), [ready, groupTz]);
   const busyByDate = useMemo(() => busyUsersByDate(spans, month.from, month.to), [spans, month.from, month.to]);
   const monthTitle = format(monthStart(ym.year, ym.month), { locale, style: "month-year" });
-  const groupName = groups.find((g) => g.id === gid)?.name ?? "";
+  const group = groups.find((g) => g.id === gid) ?? null;
+  const groupName = group?.name ?? "";
   const solo = members.length <= 1;
   const nowMinute = cal.status === "ready" && selected === today ? toLocal(cal.nowMs, groupTz).minute : null;
 
@@ -482,6 +484,8 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
           </span>
           <Icon name="chevron-down" size="sm" />
         </button>
+        {/* R6B F3ค: สร้างนัดของกลุ่มที่เลือกอยู่ (สิทธิ์ appointment.create ตรวจที่ API) */}
+        {group ? <CreateAppointmentButton groupId={group.id} groupName={group.name} memberCount={group.memberCount} tz={groupTz} userId={userId} className="btn btn-secondary wide-only" testId="appt-add-top" /> : null}
         <button type="button" className="btn btn-secondary wide-only" data-testid="busy-add-top" onClick={() => openForm(null)}>
           <Icon name="plus" />
           <span>{t("busy.add")}</span>
@@ -492,7 +496,8 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
         <h1 className="sr-only">{t("nav.calendar")}</h1>
         <div className="segmented cols-4 cal-views" role="group" aria-label={t("calendar.view.label")}>
           {VIEWS.map((v) => (
-            <button type="button" key={v} aria-pressed={view === v} data-testid={`cal-view-${v}`} onClick={() => changeView(v)}>
+            <button type="button" key={v} aria-pressed={view === v} data-testid={`cal-view-${v}`} data-emphasis={v === "free" ? "true" : undefined} onClick={() => changeView(v)}>
+              {v === "free" ? <Icon name="circle-check" size="sm" /> : null}
               {t(`calendar.view.${v}`)}
             </button>
           ))}
@@ -519,10 +524,13 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
         {body}
       </main>
       {showFab ? (
-        <button type="button" className="btn btn-primary fab mobile-only" data-testid="busy-add" onClick={() => openForm(null)}>
-          <Icon name="plus" />
-          <span>{t("busy.add")}</span>
-        </button>
+        <div className="fab-row mobile-only" data-testid="fab-row">
+          {group ? <CreateAppointmentButton groupId={group.id} groupName={group.name} memberCount={group.memberCount} tz={groupTz} userId={userId} className="btn btn-secondary fab fab-appt" testId="appt-add-fab" /> : null}
+          <button type="button" className="btn btn-primary fab" data-testid="busy-add" onClick={() => openForm(null)}>
+            <Icon name="plus" />
+            <span>{t("busy.add")}</span>
+          </button>
+        </div>
       ) : null}
 
       {switching ? <GroupSwitchSheet groups={groups} currentId={gid} onPick={pickGroup} onClose={() => setSwitching(false)} /> : null}
