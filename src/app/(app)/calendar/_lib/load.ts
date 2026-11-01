@@ -1,5 +1,7 @@
 // โหลดข้อมูลแท็บปฏิทินฝั่งเซิร์ฟเวอร์ — เรียก service ตรง (authorize() บรรทัดแรกของ service ยังทำงานเหมือนผ่าน API)
 // สิทธิ์ตัดสินที่ service เสมอ: ไม่ใช่สมาชิก/กลุ่มถูกลบ → NOT_FOUND → สถานะ "gone" (UI ไม่เปิดเผยว่ากลุ่มมีอยู่)
+// R6D G1 (ADR 0009 §5): กลุ่มที่แสดง = ?g= (ถ้าเป็นกลุ่มของฉัน) → คุกกี้ mm_group (uuid + อยู่ใน listMyGroups ที่โหลดอยู่แล้ว — 0 query เพิ่ม) → กลุ่มแรก
+//   Server Component ตั้งคุกกี้ไม่ได้ → คืน rememberGid ให้หน้าเรนเดอร์ <RememberGroup> (PUT /api/me/current-group)
 import { pageRequest } from "@/app/_lib/session";
 import type { InitialAvailability, InitialCalendar, CalView } from "@/components/calendar/CalendarView";
 import { canEditSettings, viewerRole } from "@/components/groups/helpers";
@@ -9,6 +11,8 @@ import { getGroupAvailability } from "@/lib/data/services/availability";
 import { getGroupCalendar } from "@/lib/data/services/calendar";
 import { getGroup, listMyGroups } from "@/lib/data/services/groups";
 import { getActor } from "@/lib/auth/session";
+import { readCookie } from "@/lib/auth/request";
+import { CURRENT_GROUP_COOKIE, chooseCalendarGroup } from "@/lib/shared/current-group-cookie";
 import { fetchRange } from "@/components/calendar/model";
 import { clock } from "@/lib/shared/clock";
 import { AppError } from "@/lib/shared/errors";
@@ -30,8 +34,10 @@ export type CalendarPageData =
       nowMs: EpochMs;
       date: DateISO;
       view: CalView;
-      /** มี ?g= แต่ไม่ใช่กลุ่มของฉัน → แสดงกลุ่มแรกแทน (UI แจ้งสั้นๆ; API ยัง 404 ไม่เปิดเผยว่ากลุ่มมีอยู่) */
+      /** มี ?g= แต่ไม่ใช่กลุ่มของฉัน → แสดงกลุ่มจากคุกกี้/กลุ่มแรกแทน (UI แจ้งสั้นๆ; API ยัง 404 ไม่เปิดเผยว่ากลุ่มมีอยู่) · คุกกี้ใช้ไม่ได้ → false เสมอ */
       groupMissing: boolean;
+      /** R6D G1: ?g= เป็นกลุ่มของฉันแต่ต่างจากคุกกี้ → gid ที่หน้าควรจำ (เรนเดอร์ <RememberGroup gid>) · อื่น ๆ null */
+      rememberGid: string | null;
       /** มี ?d= ที่ถูกต้องมาจริง (ไม่ใช่วันนี้ที่เดาให้) — มุมมอง "ว่างตรงกัน" ใช้เลือกวันที่แผงขวา */
       dateGiven: boolean;
       /** ผู้ดู admin/ผู้ช่วยดูแล → เห็นลิงก์ "ปรับช่วงเวลา" (ความสะดวกเท่านั้น — สิทธิ์จริงตรวจที่ API) */
@@ -43,7 +49,7 @@ export type CalendarPageData =
 
 const VIEWS: readonly CalView[] = ["month", "free", "day", "mine"];
 
-/** group ที่ขอมาไม่ใช่ของฉัน/ไม่มี → ใช้กลุ่มแรก (ไม่เปิดเผยว่ามี) + groupMissing=true · d ที่ผิดรูปแบบ → วันนี้ · v ที่ไม่รู้จัก → เดือน */
+/** group ที่ขอมาไม่ใช่ของฉัน/ไม่มี → ใช้กลุ่มจากคุกกี้/กลุ่มแรก (ไม่เปิดเผยว่ามี) + groupMissing=true · d ที่ผิดรูปแบบ → วันนี้ · v ที่ไม่รู้จัก → เดือน */
 export async function loadCalendarPage(search: CalendarSearch): Promise<CalendarPageData> {
   const req = await pageRequest();
   const actor = await getActor(req);
@@ -53,9 +59,13 @@ export async function loadCalendarPage(search: CalendarSearch): Promise<Calendar
   const { groups } = await listMyGroups(actor, ctx);
   const first = groups[0];
   if (!first) return { kind: "no-group" };
-  const match = groups.find((g) => g.id === search.g);
-  const chosen = match ?? first;
-  const groupMissing = search.g !== undefined && search.g !== "" && match === undefined;
+  const pick = chooseCalendarGroup(
+    groups.map((g) => g.id),
+    search.g,
+    readCookie(req, CURRENT_GROUP_COOKIE),
+  );
+  const chosen = groups.find((g) => g.id === pick.gid) ?? first;
+  const { groupMissing, rememberGid } = pick;
   const options = groups.map((g) => ({ id: g.id, name: g.name, memberCount: g.memberCount }));
   const view = VIEWS.find((v) => v === search.v) ?? "month";
 
@@ -69,7 +79,7 @@ export async function loadCalendarPage(search: CalendarSearch): Promise<Calendar
     if (e instanceof AppError && e.code === "NOT_FOUND") {
       // เพิ่งถูกนำออก/กลุ่มถูกลบระหว่างทาง
       const today = todayIn("Asia/Bangkok", nowMs);
-      return { kind: "ready", groups: options, gid: chosen.id, tz: "Asia/Bangkok", today, nowMs, date: today, view, groupMissing, dateGiven: false, canEditWindow: false, initial: { status: "gone" }, initialAvailability: view === "free" ? { status: "gone" } : null };
+      return { kind: "ready", groups: options, gid: chosen.id, tz: "Asia/Bangkok", today, nowMs, date: today, view, groupMissing, rememberGid: null, dateGiven: false, canEditWindow: false, initial: { status: "gone" }, initialAvailability: view === "free" ? { status: "gone" } : null };
     }
     throw e;
   }
@@ -96,5 +106,5 @@ export async function loadCalendarPage(search: CalendarSearch): Promise<Calendar
       initial = failure(e);
     }
   }
-  return { kind: "ready", groups: options, gid: chosen.id, tz, today, nowMs, date, view, groupMissing, dateGiven, canEditWindow, initial, initialAvailability };
+  return { kind: "ready", groups: options, gid: chosen.id, tz, today, nowMs, date, view, groupMissing, rememberGid, dateGiven, canEditWindow, initial, initialAvailability };
 }

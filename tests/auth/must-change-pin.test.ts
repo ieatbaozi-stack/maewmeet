@@ -28,6 +28,7 @@ const UUID = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const SAMPLE_BODY: Record<string, unknown> = {
   'POST /api/prefs': { theme: 'dark' },
   'PATCH /api/groups/:gid/members/me/appearance': { color: 1, shape: 1 }, // R6C
+  'PUT /api/me/current-group': { gid: '00000000-0000-4000-8000-000000000001' }, // R6D G1
   'POST /api/auth/signup': { username: 'new_person', displayName: 'N', pin: '482915', pinConfirm: '482915' },
   'POST /api/auth/login': { username: 'someone', pin: '482915' },
   'POST /api/auth/pin-reset': { username: 'someone' },
