@@ -90,6 +90,10 @@ export const ACCOUNT_RATE_LIMITS = {
   rename: { prefix: 'me:rename', limit: 10, windowMs: DAY_MS },
 } as const;
 
+// ───────── หน้าตาของฉันในกลุ่ม — R6C_CONTRACT §2 ─────────
+/** PATCH /api/groups/:gid/members/me/appearance — 60 ครั้ง/10 นาที/ผู้ใช้ (ทุกกลุ่มรวมกัน) · เกิน → RATE_LIMITED + Retry-After */
+export const MEMBER_APPEARANCE_RATE_LIMIT = { prefix: 'member:appearance', limit: 60, windowMs: 10 * MINUTE_MS } as const;
+
 export const ADMIN_RATE_LIMITS = {
   /** ทุก endpoint admin ที่เขียน (suspend / unsuspend / unlock) — 60 ครั้ง/10 นาที/ผู้ใช้ */
   write: { prefix: 'admin:write', limit: 60, windowMs: 10 * MINUTE_MS },

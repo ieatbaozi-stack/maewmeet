@@ -12,7 +12,7 @@ import { authorize } from '@/lib/rbac/can';
 import type { Actor } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
 import { CALENDAR_MAX_ITEMS, CALENDAR_MAX_RANGE_DAYS } from '@/lib/shared/limits';
-import { memberColorIndex } from '@/lib/shared/member-color';
+import { memberAppearance } from '@/lib/shared/member-color';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
 import { loadGroupCtx } from '../policy-context';
@@ -43,8 +43,10 @@ export function parseDateRange(from: string, to: string): { from: string; to: st
 export type CalendarMemberDto = {
   userId: string;
   displayName: string;
-  /** 0–9 · คงที่ต่อ (ผู้ใช้, กลุ่ม) */
+  /** 0–9 · slot ที่สมาชิกเลือก (R6C) ?? hash คงที่ต่อ (ผู้ใช้, กลุ่ม) */
   colorIndex: number;
+  /** 0–9 · รูปทรง (R6C) — ไม่ตั้ง = เท่ากับ hash ของสี */
+  shapeIndex: number;
 };
 
 export type GroupCalendarDto = {
@@ -78,7 +80,7 @@ export async function getGroupCalendar(actor: Actor, groupId: string, query: Cal
   const dtos: CalendarMemberDto[] = members.map((m) => ({
     userId: m.userId,
     displayName: sanitizeDisplayText(m.displayName),
-    colorIndex: memberColorIndex(groupId, m.userId),
+    ...memberAppearance(groupId, m.userId, m),
   }));
   dtos.sort(
     (a, b) =>

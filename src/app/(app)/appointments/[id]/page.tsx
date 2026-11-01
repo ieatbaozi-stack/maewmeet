@@ -3,7 +3,7 @@ import { getPageUser, requireUser } from "@/app/_lib/session";
 import { Aurora } from "@/components/brand";
 import { AppointmentDetail } from "@/components/appointments/AppointmentDetail";
 import { clock } from "@/lib/shared/clock";
-import { memberColorIndex } from "@/lib/shared/member-color";
+import { memberAppearance } from "@/lib/shared/member-color";
 import { loadAppointment } from "../_lib/load";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -28,7 +28,7 @@ export default async function AppointmentPage({ params }: { params: Promise<{ id
       <Aurora intensity="soft" />
       <AppointmentDetail
         initial={appointment}
-        me={{ userId: user.id, displayName: user.displayName, colorIndex: memberColorIndex(appointment.groupId, user.id) }}
+        me={{ userId: user.id, displayName: user.displayName, ...(appointment.myAppearance ?? memberAppearance(appointment.groupId, user.id)) }}
         nowMs={clock.now()}
       />
     </>

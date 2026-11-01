@@ -27,6 +27,7 @@ const UUID = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 /** body ตัวอย่างที่ผ่าน validation ของแต่ละ route (route ใหม่ที่ไม่มีในตารางนี้ใช้ {} — ถ้าตก VALIDATION เทสต์จะบอกให้เพิ่ม) */
 const SAMPLE_BODY: Record<string, unknown> = {
   'POST /api/prefs': { theme: 'dark' },
+  'PATCH /api/groups/:gid/members/me/appearance': { color: 1, shape: 1 }, // R6C
   'POST /api/auth/signup': { username: 'new_person', displayName: 'N', pin: '482915', pinConfirm: '482915' },
   'POST /api/auth/login': { username: 'someone', pin: '482915' },
   'POST /api/auth/pin-reset': { username: 'someone' },

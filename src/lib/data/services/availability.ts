@@ -20,7 +20,7 @@ import { authorize } from '@/lib/rbac/can';
 import type { Actor } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
 import { CALENDAR_MAX_ITEMS } from '@/lib/shared/limits';
-import { memberColorIndex } from '@/lib/shared/member-color';
+import { memberAppearance } from '@/lib/shared/member-color';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
 import { loadGroupCtx } from '../policy-context';
@@ -40,7 +40,7 @@ const HOUR_MS = 3_600_000;
  */
 export const AVAILABILITY_FETCH_MARGIN_MS = 26 * HOUR_MS;
 
-export type AvailabilityMemberDto = { userId: string; displayName: string; colorIndex: number };
+export type AvailabilityMemberDto = { userId: string; displayName: string; colorIndex: number; shapeIndex: number };
 
 export type AvailabilityDayDto = {
   date: DateISO;
@@ -94,7 +94,7 @@ export async function getGroupAvailability(actor: Actor, groupId: string, query:
   const members: AvailabilityMemberDto[] = memberRows.map((m) => ({
     userId: m.userId,
     displayName: sanitizeDisplayText(m.displayName),
-    colorIndex: memberColorIndex(groupId, m.userId),
+    ...memberAppearance(groupId, m.userId, m),
   }));
   members.sort(
     (a, b) =>

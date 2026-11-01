@@ -218,13 +218,13 @@ export async function groupNames(db: DbOrTx, groupIds: string[]): Promise<Map<st
   return new Map(rows.map((r) => [r.id, r.name]));
 }
 
-export type MemberName = { groupId: string; userId: string; displayName: string };
+export type MemberName = { groupId: string; userId: string; displayName: string; colorSlot: number | null; shapeSlot: number | null };
 
 /** สมาชิกปัจจุบันของกลุ่มที่ระบุ (กรองคู่ group/user ที่ผู้เรียก) — ใช้หาชื่อผู้สร้าง/ผู้ยกเลิกที่ "ยังอยู่ในกลุ่ม" */
 export async function currentMemberNames(db: DbOrTx, groupIds: string[], userIds: string[]): Promise<MemberName[]> {
   if (groupIds.length === 0 || userIds.length === 0) return [];
   return db
-    .select({ groupId: groupMember.groupId, userId: groupMember.userId, displayName: user.displayName })
+    .select({ groupId: groupMember.groupId, userId: groupMember.userId, displayName: user.displayName, colorSlot: groupMember.colorSlot, shapeSlot: groupMember.shapeSlot })
     .from(groupMember)
     .innerJoin(user, eq(user.id, groupMember.userId))
     .where(and(inArray(groupMember.groupId, groupIds), inArray(groupMember.userId, userIds)));
@@ -241,13 +241,21 @@ export async function memberCountsByGroup(db: DbOrTx, groupIds: string[]): Promi
 }
 
 // ───────── RSVP ─────────
-export type RsvpRow = { appointmentId: string; userId: string; response: RsvpResponse; displayName: string };
+/** colorSlot/shapeSlot: หน้าตาที่ผู้ตอบเลือกในกลุ่มของนัด (R6C) — มาจาก group_member ที่ join อยู่แล้ว */
+export type RsvpRow = { appointmentId: string; userId: string; response: RsvpResponse; displayName: string; colorSlot: number | null; shapeSlot: number | null };
 
 /** คำตอบของ "สมาชิกปัจจุบัน" ของกลุ่มที่นัดสังกัดเท่านั้น (คนที่ออก/ถูกลบไม่นับ ไม่แสดง · คำตอบก่อน joined_at ปัจจุบันไม่นับ) — counts/members/mine/home ทุกที่มาจากฟังก์ชันนี้ */
 export async function listCurrentRsvps(db: DbOrTx, appointmentIds: string[]): Promise<RsvpRow[]> {
   if (appointmentIds.length === 0) return [];
   return db
-    .select({ appointmentId: appointmentRsvp.appointmentId, userId: appointmentRsvp.userId, response: appointmentRsvp.response, displayName: user.displayName })
+    .select({
+      appointmentId: appointmentRsvp.appointmentId,
+      userId: appointmentRsvp.userId,
+      response: appointmentRsvp.response,
+      displayName: user.displayName,
+      colorSlot: groupMember.colorSlot,
+      shapeSlot: groupMember.shapeSlot,
+    })
     .from(appointmentRsvp)
     .innerJoin(appointment, eq(appointment.id, appointmentRsvp.appointmentId))
     // updated_at >= joined_at: คำตอบที่ให้ไว้ก่อนเข้ากลุ่มรอบปัจจุบัน (ออกแล้วกลับมา) ไม่นับ/ไม่แสดง/ไม่เป็น `mine` — ไม่ลบแถวตอนออก (QA M1)

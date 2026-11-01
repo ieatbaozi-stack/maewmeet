@@ -204,3 +204,25 @@ export async function countAdmins(db: DbOrTx, groupId: string): Promise<number> 
   );
   return Number(rows[0]?.n ?? 0);
 }
+
+/**
+ * R6C F3ก: ตั้งหน้าตาของ "ตัวเอง" ในกลุ่ม (slot 1–10 · null = ใช้ hash) — คำสั่งเดียวมีเงื่อนไข: ยังเป็นสมาชิก + กลุ่มยังไม่ถูกลบ
+ * คืน slot หลังเขียน · null = ไม่ใช่สมาชิกแล้ว/กลุ่มถูกลบ (ผู้เรียกตอบ NOT_FOUND) · CHECK group_member_*_slot_ck เป็นด่านสุดท้าย
+ */
+export async function updateOwnAppearance(
+  db: DbOrTx,
+  input: { groupId: string; userId: string; colorSlot: number | null; shapeSlot: number | null },
+): Promise<{ colorSlot: number | null; shapeSlot: number | null } | null> {
+  const rows = await db
+    .update(groupMember)
+    .set({ colorSlot: input.colorSlot, shapeSlot: input.shapeSlot })
+    .where(
+      and(
+        eq(groupMember.groupId, input.groupId),
+        eq(groupMember.userId, input.userId),
+        sql`EXISTS (SELECT 1 FROM groups WHERE id = ${input.groupId} AND deleted_at IS NULL)`,
+      ),
+    )
+    .returning({ colorSlot: groupMember.colorSlot, shapeSlot: groupMember.shapeSlot });
+  return rows[0] ?? null;
+}

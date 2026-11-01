@@ -3,7 +3,7 @@
 import type { GroupOfUser, GroupRow, GroupRole } from '@/lib/data/repos/group';
 import type { InviteListRow, PendingDirectInvite } from '@/lib/data/repos/group-invite';
 import type { MemberWithUser } from '@/lib/data/repos/group-member';
-import { memberColorIndex } from '@/lib/shared/member-color';
+import { memberAppearance, type AppearanceSlots, type MemberAppearance } from '@/lib/shared/member-color';
 import { sanitizeDisplayText as clean } from '@/lib/shared/name-rules';
 
 export type GroupSummaryDto = {
@@ -27,8 +27,10 @@ export type MemberDto = {
   userId: string;
   displayName: string;
   role: GroupRole;
-  /** 0–9 · คงที่ต่อ (ผู้ใช้, กลุ่ม) */
+  /** 0–9 · slot ที่สมาชิกเลือก (R6C) ?? hash คงที่ต่อ (ผู้ใช้, กลุ่ม) */
   colorIndex: number;
+  /** 0–9 · รูปทรง (R6C) — ไม่ตั้ง = เท่ากับ hash ของสี */
+  shapeIndex: number;
   joinedAt: number;
 };
 
@@ -44,26 +46,44 @@ export type GroupDetailDto = {
   myRole: GroupRole | null;
   memberCount: number;
   members: MemberDto[];
+  /** หน้าตาของผู้ดูในกลุ่มนี้ (R6C picker) · null = ผู้ดูไม่ใช่สมาชิก */
+  myAppearance: MyAppearanceDto | null;
 };
 
-export const toGroupDetail = (g: GroupRow, myRole: GroupRole | null, members: MemberWithUser[]): GroupDetailDto => ({
-  id: g.id,
-  name: clean(g.name),
-  tz: g.tz,
-  freeWindowStartMin: g.freeWindowStartMin,
-  freeWindowEndMin: g.freeWindowEndMin,
-  minFreeMinutes: g.minFreeMinutes,
-  createdAt: g.createdAt,
-  myRole,
-  memberCount: members.length,
-  members: members.map((m) => ({
-    userId: m.userId,
-    displayName: clean(m.displayName),
-    role: m.role,
-    colorIndex: memberColorIndex(g.id, m.userId),
-    joinedAt: m.joinedAt,
-  })),
+/**
+ * หน้าตาของฉันในกลุ่ม (R6C) — colorIndex/shapeIndex = ค่าที่ใช้แสดง (0–9)
+ * color/shape = slot ที่เลือกไว้ (1–10) · null = "ใช้แบบอัตโนมัติ" (hash เดิม)
+ */
+export type MyAppearanceDto = MemberAppearance & { color: number | null; shape: number | null };
+
+export const toMyAppearance = (groupId: string, userId: string, slots: AppearanceSlots): MyAppearanceDto => ({
+  ...memberAppearance(groupId, userId, slots),
+  color: slots.colorSlot,
+  shape: slots.shapeSlot,
 });
+
+export const toGroupDetail = (g: GroupRow, myRole: GroupRole | null, members: MemberWithUser[], viewerId: string): GroupDetailDto => {
+  const mine = members.find((m) => m.userId === viewerId);
+  return {
+    id: g.id,
+    name: clean(g.name),
+    tz: g.tz,
+    freeWindowStartMin: g.freeWindowStartMin,
+    freeWindowEndMin: g.freeWindowEndMin,
+    minFreeMinutes: g.minFreeMinutes,
+    createdAt: g.createdAt,
+    myRole,
+    memberCount: members.length,
+    members: members.map((m) => ({
+      userId: m.userId,
+      displayName: clean(m.displayName),
+      role: m.role,
+      ...memberAppearance(g.id, m.userId, m),
+      joinedAt: m.joinedAt,
+    })),
+    myAppearance: mine === undefined ? null : toMyAppearance(g.id, viewerId, mine),
+  };
+};
 
 export type InviteDto = {
   id: string;

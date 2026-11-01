@@ -13,6 +13,7 @@ import {
   listMembers,
   setMemberRoleGuarded,
   transferAdminSteps,
+  updateOwnAppearance,
 } from '@/lib/data/repos/group-member';
 import { revokeActiveInvitesCreatedBy } from '@/lib/data/repos/group-invite';
 import { constraintKind } from '@/lib/data/repos/errors';
@@ -20,12 +21,14 @@ import { authorize } from '@/lib/rbac/can';
 import type { Actor, GroupCtx } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
-import { GROUP_LIMITS } from '@/lib/shared/limits';
+import { GROUP_LIMITS, MEMBER_APPEARANCE_RATE_LIMIT } from '@/lib/shared/limits';
+import { APPEARANCE_SLOT_MAX, APPEARANCE_SLOT_MIN } from '@/lib/shared/member-color';
+import { takeUserSlot } from '../admin-input';
 import type { DbOrTx } from '@/db/client';
 import type { DataCtx } from '../context';
 import { parseGroupName } from '../group-name';
 import { loadGroupCtx } from '../policy-context';
-import { toGroupDetail, toGroupSummary, type GroupDetailDto, type GroupSummaryDto } from '../serializers/groups';
+import { toGroupDetail, toGroupSummary, toMyAppearance, type GroupDetailDto, type GroupSummaryDto, type MyAppearanceDto } from '../serializers/groups';
 import { inTx } from '../tx';
 import { asUser, audit, auditRead } from './group-common';
 
@@ -53,6 +56,11 @@ export type SetRoleInput = z.output<typeof setRoleInputSchema>;
 
 export const transferAdminInputSchema = z.object({ toUserId: z.uuid() }).strict();
 export type TransferAdminInput = z.output<typeof transferAdminInputSchema>;
+
+/** R6C: slot 1–10 หรือ null (= ใช้แบบอัตโนมัติ) · ทั้งสองคีย์บังคับ · คีย์เกิน → UNKNOWN_FIELD */
+const appearanceSlot = z.number().int().min(APPEARANCE_SLOT_MIN).max(APPEARANCE_SLOT_MAX).nullable();
+export const setAppearanceInputSchema = z.object({ color: appearanceSlot, shape: appearanceSlot }).strict();
+export type SetAppearanceInput = z.output<typeof setAppearanceInputSchema>;
 
 // ───────── helpers ─────────
 const groupRes = (group: GroupCtx) => ({ type: 'group', group }) as const;
@@ -114,7 +122,7 @@ export async function getGroup(actor: Actor, groupId: string, ctx: DataCtx): Pro
   if (!row || row.deletedAt !== null) throw new AppError('NOT_FOUND');
   const members = await listMembers(ctx.db, groupId);
   await auditRead(ctx.db, me, allow, { action: 'group.view', targetType: 'group', targetId: groupId, groupId }, ctx.now);
-  return { group: toGroupDetail(row, group.actorRole, members) };
+  return { group: toGroupDetail(row, group.actorRole, members, me.id) };
 }
 
 // ───────── U6 · D9 ─────────
@@ -261,4 +269,21 @@ export async function leaveGroup(actor: Actor, groupId: string, ctx: DataCtx): P
     await audit(tx, me, allow, { action: 'group.leave', targetType: 'member', targetId: me.id, groupId }, now);
   });
   return { left: true };
+}
+
+// ───────── R6C F3ก · หน้าตาของฉันในกลุ่มนี้ ─────────
+/**
+ * ตั้งสี/รูปทรงของ "ตัวเอง" (userId จาก session เสมอ — ไม่มีทางตั้งให้คนอื่น) · null = กลับไปใช้ hash เดิม
+ * authorize(member.setOwnAppearance): สมาชิกทุก role · SA นอกกลุ่ม FORBIDDEN · คนนอก/กลุ่มลบ NOT_FOUND (+ PIN/suspended ใน can())
+ * ไม่ลง audit (ค่าแสดงผลส่วนตัว — R6C_CONTRACT §2) · limiter ต่อผู้ใช้หลัง authorize (คนนอกไม่กินโควตา)
+ */
+export async function setMyAppearance(actor: Actor, groupId: string, input: SetAppearanceInput, ctx: DataCtx): Promise<MyAppearanceDto> {
+  const group = await loadGroupCtx(ctx.db, actor, groupId);
+  authorize(actor, 'member.setOwnAppearance', groupRes(group));
+  const me = asUser(actor);
+  const { db, now } = ctx;
+  await takeUserSlot(db, MEMBER_APPEARANCE_RATE_LIMIT, me.id, now);
+  const saved = await updateOwnAppearance(db, { groupId, userId: me.id, colorSlot: input.color, shapeSlot: input.shape });
+  if (!saved) throw new AppError('NOT_FOUND'); // ออกจากกลุ่ม/กลุ่มถูกลบระหว่างทาง
+  return toMyAppearance(groupId, me.id, saved);
 }
