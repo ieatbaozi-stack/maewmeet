@@ -1,6 +1,6 @@
 # ADR 0010 — busy หลายวัน "เฉพาะช่วงเวลา" (ชุดรายวัน `series_id`)
 
-- **Status**: Proposed (Architect, 2026-11-02) · รอบ R6F · มี migration `0003`
+- **Status**: Accepted (2026-11-03) · เสนอ Proposed 2026-11-02 (Architect) · รอบ R6F · มี migration `0003` · implement ตาม ADR แล้ว ผ่าน QA ([qa-r6f](../reports/qa-r6f.md): 0 H/0 M/3 L) และ Security ([security-r6f](../reports/security-r6f.md): 0 C/H/M/L, 5 Info) · ข้อตัดสินของ main ดู §10 (Errata ท้าย R6F_CONTRACT)
 - **เกี่ยวข้อง**: [R6F_CONTRACT](../../R6F_CONTRACT.md) §1–§2, §5 · [ADR 0004](0004-time-and-timezone.md) §2, §5 · [ADR 0005](0005-common-free-time-algorithm.md) · [ADR 0006](0006-busy-visibility.md) §1–§3 · [ADR 0003](0003-rbac.md) · [ADR 0009](0009-going-counts-as-busy.md) · R6E_CONTRACT E11 (popup ลงทับ)
 - **เจ้าของการ implement**: Platform (`src/lib/calendar/**`, `src/lib/data/**`, route `src/app/api/me/busy/**`, `src/db/schema.ts`, `drizzle/0003_*`) · Frontend (`BusyFormSheet`, รายการ/รายละเอียด busy) · ตรวจโดย Security & Privacy + QA
 - **หมายเหตุชื่อ**: contract เขียน `busy.series_id` · ตารางจริงชื่อ `busy_block` (`src/db/schema.ts:138`) → คอลัมน์คือ **`busy_block.series_id`**
@@ -202,12 +202,13 @@ CREATE INDEX `busy_user_series_idx` ON `busy_block` (`user_id`,`series_id`) WHER
 | C. กฎทำซ้ำ (RRULE) แถวเดียว ขยายตอนอ่าน | 1 แถวต่อชุด | ต้องแก้ ADR 0005 + ทุก query ที่ใช้ `start_at/end_at` + index ใช้ไม่ได้ · ขัด contract §1 ("1 รายการต่อวัน") | ไม่เลือก |
 | D. client ยิง POST timed ทีละวัน | ไม่ต้องแก้เซิร์ฟเวอร์ | ไม่ atomic (ขัด contract §1) · ไม่มีชุด | ไม่เลือก |
 
-### 10. ข้อที่ให้ main ตัดสิน
-1. **Rate limit ของ busy** (§8) — ยังไม่มีในโค้ดแม้ contract §7 อ้างว่ามี · ทางเลือก: (ก) เพิ่ม `BUSY_WRITE_RATE_LIMITS` รอบนี้ (ต้องให้ platform แตะ `src/lib/shared/limits.ts` ซึ่ง **ไม่อยู่ในรายการไฟล์ของ contract §4** — แต่ `services/busy*.ts` อยู่) ค่าเสนอ create 30/10 นาที, delete 60/10 นาที · (ข) ไม่เพิ่ม ยอมรับว่าตัวคุมคือเพดาน 300 + ขนาดสูงสุด 62 แถว/คำขอ แล้วบันทึกเป็นความเสี่ยงให้ security · architect แนะนำ (ก)
-2. **ที่อ่าน `?scope`** (§5) — (ก) parse ใน handler ของ `src/app/api/me/busy/[id]/route.ts` (อยู่ในขอบเขต — ค่าเริ่มต้นของ ADR นี้) · (ข) เพิ่มตัวเลือก `query?: ZodSchema` ให้ `route()` ใน `src/app/api/_lib/route.ts` (ใช้ซ้ำได้, error VALIDATION ผ่านทางเดียวกับ input อื่น) แต่แตะไฟล์ที่ contract ไม่ได้ระบุ · (ค) เปลี่ยนเป็น `DELETE /api/me/busy/:id/series` (path ใหม่ + manifest) ซึ่งต่างจากที่ contract เขียน
-3. **จบเที่ยงคืน (24:00)** — ช่องเวลารับ `HH:mm` ถึง 23:59 → ชุดรายวันจบช้าสุด 23:30 · รับ `endTime: "24:00"` สำหรับ daily ไหม (ต้องแก้ `parseTimeOfDay` หรือกรณีพิเศษ) · architect แนะนำ **ไม่รับรอบนี้** (สอดคล้อง "ไม่ข้ามเที่ยงคืน") ให้ ux ทำให้ตัวเลือกเวลาของ daily ไม่มี 24:00
-4. **ลำดับรอบ**: contract บอก "เริ่มหลัง R6E merge" แต่ branch นี้แตกจาก `main` ที่ v0.8.0 (R6E ยังไม่ merge) · ส่วน platform/ADR ไม่ขึ้นกับ R6E · ส่วน frontend ที่ใช้ popup E11 ต้อง rebase บน R6E ก่อน
-5. **ลบทั้งชุดรวมวันที่ผ่านไปแล้ว** — ADR นี้ลบทุกแถวของชุด (ตาม contract) · ถ้า boss อยากได้ "ลบตั้งแต่วันนี้เป็นต้นไป" เป็นงานรอบหน้า
+### 10. ข้อที่ main ตัดสินแล้ว (Errata ท้าย R6F_CONTRACT, 2026-11-02) — ปิดแล้ว
+1. **Rate limit ของ busy** (§8) → **(ก) ทำแล้ว**: `BUSY_WRITE_RATE_LIMITS` ใน `src/lib/shared/limits.ts` — `create` 30 ครั้ง/10 นาที, `delete` 60 ครั้ง/10 นาที ต่อผู้ใช้ · `services/busy.ts` เรียก `takeUserSlot` หลังตรวจอินพุต (อินพุตผิดไม่กินโควตา) · เกิน → `RATE_LIMITED` + Retry-After (รหัสเดิม) · ใช้กับทุก kind และทั้งสอง scope (QA note ใน qa-r6f)
+2. **ที่อ่าน `?scope`** (§5) → **(ก)**: parse ใน handler ของ `src/app/api/me/busy/[id]/route.ts` · ผิด → `VALIDATION {fields:{scope:'INVALID'}}` · ไม่แก้ `src/app/api/_lib/route.ts` · manifest ไม่เปลี่ยน
+3. **จบเที่ยงคืน (24:00)** → **ไม่รองรับรอบนี้** · `TIME_RE` ใน `src/lib/calendar/zone.ts` รับ `00:00`–`23:59` → daily จบช้าสุด `23:30`
+4. **ลำดับรอบ** → platform + test (ฝั่งเซิร์ฟเวอร์) เริ่มก่อนบน branch นี้ · ux/frontend เริ่มหลัง R6E merge แล้ว merge `main` เข้ามา (ใช้ popup E11)
+5. **ลบทั้งชุด** → ลบทุกแถวของชุด **รวมวันที่ผ่านแล้ว** (`deleteOwnBusySeries` ใน `src/lib/data/repos/busy.ts` คำสั่งเดียวตาม §5) · "ลบตั้งแต่วันนี้เป็นต้นไป" ไว้รอบหน้า
+6. (เพิ่มหลัง platform ส่งงาน) **R6F-1 "ทุกไบต์" ผ่อนเป็น additive**: owner view (`BusyOwnView`) ของ all_day/timed มีคีย์ `seriesId: null` เพิ่มได้ตาม §6 · รูป `{ busy }` และค่าเดิมต้องเหมือนเดิม · มุมมองของคนอื่นต้องไม่มีคีย์นี้ (`BUSY_SHARED_FIELDS` ไม่เปลี่ยน) · บรรทัด "เดิมทุกไบต์" ใน §1 Response ให้อ่านตามข้อนี้
 
 ## Consequences
 - (+) "ว่างตรงกัน"/ปฏิทินถูกต้องทันทีโดยไม่แตะอัลกอริทึม · ความเป็นส่วนตัวฝั่งแชร์เท่าเดิม (ไม่มีฟิลด์ใหม่ออกนอกเจ้าของ)
@@ -215,13 +216,18 @@ CREATE INDEX `busy_user_series_idx` ON `busy_block` (`user_id`,`series_id`) WHER
 - (−) ชุดยาวกินเพดาน 300 เร็ว (ชุด 62 วัน 4 ชุด = 248) — ผู้ใช้จะเจอ `LIMIT_REACHED busyCount` เร็วขึ้น · ux ต้องบอกจำนวนวันก่อนบันทึก
 - (−) แก้ชื่อทีละวันทำให้ชุดแตก (ตั้งใจ) — ถ้าผู้ใช้อยากแก้ทั้งชุดต้องลบทั้งชุดแล้วลงใหม่ในรอบนี้
 
-## 11. สิ่งที่ยังไม่ได้ยืนยัน
-- รุ่น SQLite ของ libSQL/Turso ที่ใช้จริงบน prod ≥ 3.35 (จำเป็นเฉพาะ rollback ข้อ 2 — DROP COLUMN) · `RETURNING` ใช้อยู่แล้วใน repo จึงน่าจะ ≥ 3.35 แต่ไม่ได้เช็กกับฐานจริง
-- drizzle-kit 0.31.11 generate partial index + ADD COLUMN ของรอบนี้เป็น ALTER ไม่ rebuild ตาราง — platform ต้องดูไฟล์ที่ generate จริง
-- ชื่อตาราง/คอลัมน์บันทึก migration ของ drizzle (`__drizzle_migrations`, `hash`) ที่ใช้ใน rollback ข้อ 2 — ยังไม่ได้ตรวจกับฐานจริง
-- การที่ SQLite ประเมิน scalar subquery แบบไม่ correlated ใน `INSERT … SELECT … FROM (VALUES)` **ครั้งเดียวก่อนเขียน** — เป็นพฤติกรรมที่คาดไว้ แต่ความถูกต้องของ ADR ไม่พึ่งข้อนี้: ถ้าประเมินทีละแถวจนได้ < N แถว ตัวตรวจ `rows.length === N` จะ throw + rollback · เทสต์ R6F-5 ต้องยืนยันด้วยกรณี "เหลือที่ว่างน้อยกว่า N" (เช่น 290 + 28) → 0 แถว ไม่ใช่ 10
+## 11. สิ่งที่ยืนยันแล้ว / ยังไม่ยืนยัน
+**ยืนยันแล้ว (ในเครื่อง — platform ยืนยัน และ architect รันซ้ำ 2026-11-03 ด้วย `@libsql/client` `:memory:` + `drizzle-orm/libsql/migrator` กับโฟลเดอร์ `drizzle/`)**
+- SQLite ในเครื่อง (libsql client ของ repo) = **3.45.1** (`select sqlite_version()`) → ≥ 3.35 รองรับ `RETURNING` และ `DROP COLUMN` [S4]
+- ตารางบันทึก migration ของ drizzle = `__drizzle_migrations(id, hash, created_at)` (`pragma table_info`) · หลัง apply 0000–0003 มี 4 แถว
+- `drizzle-kit generate` ได้ `drizzle/0003_r6f_busy_series.sql` เป็น ``ALTER TABLE `busy_block` ADD `series_id` text`` + ``CREATE INDEX `busy_user_series_idx` … WHERE "busy_block"."series_id" is not null`` ตรงกับ §4 (ไม่ rebuild ตาราง) · หลัง migrate `pragma index_list(busy_block)` มี `busy_user_series_idx`
+- "ทั้งหมดหรือไม่มีเลย" ของ `insertBusySeriesIfUnderCap` และกรณียิงพร้อมกัน — QA ยืนยันด้วยการรันเทสต์ (qa-r6f R6F-5)
 
-## แหล่งอ้างอิง (เข้าถึง 2026-11-02)
+**ยังไม่ยืนยัน**
+- **รุ่น SQLite ของ Turso บน prod** — ยังไม่ได้เช็กกับฐานจริง (จำเป็นเฉพาะ rollback ข้อ 2 — DROP COLUMN ≥ 3.35) · `RETURNING` ใช้อยู่แล้วบน prod จึงน่าจะ ≥ 3.35 แต่ยังเป็นการอนุมาน
+- ตาราง/แถว `__drizzle_migrations` บน **ฐาน prod** (ยืนยันแล้วเฉพาะในเครื่อง) — ก่อน rollback ข้อ 2 ให้ตรวจกับฐานจริงและแจ้ง main ก่อนแตะ (ตาม `docs/OPERATIONS.md` หมายเหตุ R6F)
+
+## แหล่งอ้างอิง (เข้าถึง 2026-11-02 · โค้ดตรวจซ้ำ 2026-11-03 บน `feat/r6f-daily-busy`)
 - [S1] SQLite — ALTER TABLE (ADD COLUMN restrictions; DROP COLUMN fails if "The column is indexed") — https://www.sqlite.org/lang_altertable.html
 - [S2] SQLite — Partial Indexes ("If a term in X is of the form z IS NOT NULL and if a term in W is a comparison operator on z other than IS, then those terms match") — https://www.sqlite.org/partialindex.html
 - [S3] SQLite — Limits §17 SQLITE_MAX_VARIABLE_NUMBER: 999 ก่อน 3.32.0 (2020-05-22), 32766 หลังจากนั้น — https://www.sqlite.org/limits.html
