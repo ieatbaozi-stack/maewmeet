@@ -88,13 +88,13 @@ Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL
 > - migration นี้เพิ่มคอลัมน์ `group_member.color_slot` / `shape_slot` แบบ nullable เท่านั้น ไม่ลบ/แก้ข้อมูลเดิม และโค้ดรุ่นเดิมไม่อ่านคอลัมน์เหล่านี้ → รัน migrate **ก่อน** deploy ปลอดภัย (รุ่นเก่าที่ยังรันอยู่ไม่พัง)
 > - `0002` เป็น SQL ที่เขียนมือ เพราะ drizzle-kit 0.31.11 generate SQL แบบสร้างตารางใหม่แล้ว `INSERT ... SELECT` คอลัมน์ที่ตารางเดิมยังไม่มี (ดูคอมเมนต์ในหัวไฟล์ `drizzle/0002_*.sql`) · ผลเท่ากับ schema ใน `schema.ts`
 
-> **หมายเหตุ R6F (migration `0003`)**: รอบนี้มีไฟล์ใหม่ `drizzle/0003_r6f_busy_series.sql` — boss ต้องรัน migration บน Turso **ก่อน** deploy/merge โดยใช้คำสั่งเดียวกับ `0002` (B6 prod + B7 preview):
+> **หมายเหตุ R6F (migration `0003`)**: รอบนี้มีไฟล์ใหม่ `drizzle/0003_r6f_busy_series.sql` — boss ต้องรัน migration บน Turso ตามลำดับ **preview ก่อน push/เปิด PR** (Vercel preview ของ PR ใช้ฐาน preview — ถ้าไม่รันก่อน หน้า busy บน preview จะพัง) แล้ว **prod ก่อน merge** (merge แล้ว prod deploy ทันที) โดยใช้คำสั่งเดียวกับ `0002` (B6 prod + B7 preview):
 > ```powershell
 > $env:TURSO_DATABASE_URL = "libsql://maewmeet-prod-xxxx.turso.io"     # URL จริงจาก B3 (รอบ preview ใช้ URL ของ preview)
 > $env:TURSO_AUTH_TOKEN = [System.Net.NetworkCredential]::new('', (Read-Host -AsSecureString 'วาง TURSO_AUTH_TOKEN')).Password
 > npx drizzle-kit migrate
 > ```
-> ทำทีละฐาน (prod แล้ว preview) · ควรเห็น `[✓] migrations applied successfully!` · เสร็จแล้วล้างค่า: `Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL`
+> ทำทีละฐานตามลำดับข้างบน (preview → เปิด PR → prod → merge) · ควรเห็น `[✓] migrations applied successfully!` · เสร็จแล้วล้างค่า: `Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL`
 > - migration นี้ทำ 2 อย่างเท่านั้น: `ALTER TABLE busy_block ADD series_id text` (nullable ไม่ backfill) และสร้าง partial index `busy_user_series_idx` — ไม่ลบ/แก้ข้อมูลเดิม แถวเดิมทุกแถวได้ `series_id = NULL` = รายการเดี่ยว · โค้ดรุ่นเดิมไม่อ่านคอลัมน์นี้ → รัน migrate **ก่อน** deploy ปลอดภัย
 > - **ตรวจหลังรัน** (ต่อฐานละครั้ง ด้วย `turso db shell maewmeet-prod "..."` / `maewmeet-preview` หรือหน้า SQL บน app.turso.tech):
 >   1. `SELECT name FROM pragma_table_info('busy_block') WHERE name = 'series_id';` → ต้องได้ 1 แถว (`series_id`)
