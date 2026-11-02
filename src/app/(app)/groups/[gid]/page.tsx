@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { CURRENT_GROUP_COOKIE, parseCurrentGroupCookie } from "@/lib/shared/current-group-cookie";
 import { getTranslations } from "next-intl/server";
 import { getPageUser, requireUser } from "@/app/_lib/session";
 import { Aurora, Cat } from "@/components/brand";
@@ -31,6 +33,8 @@ export default async function GroupPage({ params }: { params: Promise<{ gid: str
   const { gid } = await params;
   const group = await loadGroup(gid);
   const t = await getTranslations();
+  // คุกกี้ mm_group เป็น HttpOnly → อ่านได้เฉพาะฝั่งเซิร์ฟเวอร์ · ยิง PUT เฉพาะเมื่อค่าต่างจากกลุ่มนี้ (security R6D L2 · ADR 0009 §5)
+  const remembered = parseCurrentGroupCookie((await cookies()).get(CURRENT_GROUP_COOKIE)?.value);
   const solo = group.memberCount <= 1;
   // จำนวนนัดที่กำลังจะถึง (ไม่นับที่ยกเลิก) สำหรับการ์ดนัดของกลุ่ม · โหลดไม่ได้ → ไม่ทำให้หน้ากลุ่มล้ม (การ์ดแสดงข้อความ 0)
   const upcoming = solo ? null : await loadGroupAppointments(gid).catch(() => null);
@@ -47,7 +51,7 @@ export default async function GroupPage({ params }: { params: Promise<{ gid: str
     <>
       <Aurora intensity="soft" />
       {/* R6D G1: เปิดหน้ากลุ่ม = กลุ่มปัจจุบันของเครื่องนี้ (เฉพาะสมาชิกจริง — เซิร์ฟเวอร์ตรวจซ้ำที่ PUT) */}
-      {group.myRole !== null ? <RememberGroup gid={group.id} /> : null}
+      {group.myRole !== null && remembered !== group.id ? <RememberGroup gid={group.id} /> : null}
       <header className="topbar">
         <Link className="icon-btn" href="/groups" aria-label={t("group.back")}>
           <Icon name="chevron-left" />
