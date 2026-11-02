@@ -7,6 +7,18 @@
 
 ## [Unreleased]
 
+### Added
+- ลง busy หลายวันแบบ "เฉพาะช่วงเวลา" (เช่น 17:00–20:00 ทุกวันที่ 3–30 พ.ย. ที่เหลือว่าง) — ระบบสร้างเป็นรายการวันละ 1 รายการ แบบ "ทั้งหมดหรือไม่มีเลย" · ช่วงสูงสุด 62 วัน · จบช้าสุด 23:30 (ไม่ข้ามเที่ยงคืน) · วันเดียวไม่นับเป็นชุด (R6F, ADR 0010)
+- ลบ busy ได้ 2 แบบ: "ลบวันนี้" (วันเดียว) และ "ลบทั้งชุด" (รวมวันที่ผ่านไปแล้ว) — ป้ายชุดและปุ่มลบทั้งชุดเห็นเฉพาะเจ้าของ (R6F)
+- API: `POST /api/me/busy` รับ `kind: "daily"` (ตอบ `{ seriesId, count, items }`) · `DELETE /api/me/busy/:id?scope=series` ลบทั้งชุด (R6F)
+- Migration `0003`: เพิ่มคอลัมน์ `busy_block.series_id` (text, nullable, ไม่ backfill) + partial index `busy_user_series_idx` (R6F)
+- Rate limit ของ busy ต่อผู้ใช้: สร้าง 30 ครั้ง / ลบ 60 ครั้ง ต่อ 10 นาที (เกิน → `RATE_LIMITED`) (R6F)
+
+### Changed
+- owner view ของ busy (`GET/POST/PATCH /api/me/busy*`) มีคีย์ `seriesId` เพิ่ม (`string | null`) · คนอื่นในกลุ่ม/ปฏิทิน/วันว่างไม่เห็นคีย์นี้เลย (R6F)
+- `DELETE /api/me/busy/:id` ตอบ `{ deleted, count }` (เดิม `{ deleted }`) (R6F)
+- แก้ไขรายการที่อยู่ในชุด (PATCH) → รายการนั้นหลุดจากชุด (วันอื่นไม่กระทบ) (R6F)
+
 ## [0.8.1] - 2026-11-03
 
 ### Added

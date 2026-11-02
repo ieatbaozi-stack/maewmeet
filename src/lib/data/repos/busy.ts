@@ -3,12 +3,13 @@
 // สองทางอ่านที่แยกกันโดยโครงสร้าง (ADR 0006 §2):
 //   - ฝั่งเจ้าของ (OwnBusyRow)    : SELECT ทุกคอลัมน์รวม `note` — ใช้เฉพาะ WHERE user_id = <เจ้าของ> เท่านั้น
 //   - ฝั่งแชร์   (SharedBusyRow)  : **ไม่ SELECT `note` เลย** และ `title` ถูกตัดใน SQL เมื่อ hide_detail = 1 (CASE) — ตัวอักษรของรายการซ่อนไม่ออกจาก DB
+//                                   และ **ไม่ SELECT `series_id`** (R6F, ADR 0010 §6 — ความเป็นชุดเห็นเฉพาะเจ้าของ)
 // การเขียนที่แข่งกันได้ (เพดาน 300) = คำสั่ง SQL เดียวที่มีเงื่อนไขในตัว (INSERT … SELECT … WHERE count < cap) เหมือน R2 — ไม่มี check-then-act
 // ทุกคำสั่งเขียนผูก user_id ของผู้กระทำ (เจ้าของเท่านั้น) — busy ไม่ผูกกลุ่ม จึงไม่มี role ให้ ActorGuard ตรวจ; ตัวป้องกันคือ user_id + สถานะบัญชียัง active
-import { and, asc, eq, gt, gte, isNull, lt, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, gte, inArray, isNull, lt, lte, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import { appointment, appointmentRsvp, busyBlock, groupMember, groups } from '@/db/schema';
-import type { DbOrTx } from '@/db/client';
+import type { DbOrTx, Tx } from '@/db/client';
 import { DAY_MS } from '@/lib/shared/clock';
 import { BUSY_MAX_BACKDATE_DAYS } from '@/lib/shared/limits';
 
@@ -39,6 +40,8 @@ export type BusyWrite = {
   localEndDate: string;
   tz: string;
   hideDetail: boolean;
+  /** R6F: ชุดรายวัน · ไม่ส่ง = ไม่แตะ (insert เดี่ยว = NULL) · null = หลุดจากชุด (PATCH สำเร็จ) */
+  seriesId?: string | null;
 };
 
 /**
@@ -71,6 +74,50 @@ export async function insertBusyIfUnderCap(
     RETURNING id`);
   if (rows.length !== 1) return null;
   return findOwnBusy(db, input.id, input.userId);
+}
+
+/** แถวหนึ่งวันของชุด (ผลของ expandDailyBusyInput + id ที่เซิร์ฟเวอร์สร้าง) */
+export type BusySeriesRow = { id: string; startAt: number; endAt: number; localStartDate: string; localEndDate: string };
+
+/**
+ * R6F (ADR 0010 §3): เพิ่ม N แถว (ชุดเดียว) ถ้าผู้ใช้ active และ windowCount + N <= cap — คำสั่ง INSERT … SELECT เดียว ไม่มี check-then-act
+ * เงื่อนไขใน WHERE ไม่ขึ้นกับแถวของ v (subquery ไม่ correlated) → ผ่านทั้ง N หรือไม่ผ่านทั้ง N · `+ N <= cap` คือรูปทั่วไปของ `count < cap` (N=1)
+ * คืน null = ได้ไม่ครบ N (ปกติคือ 0 = ถูกปฏิเสธ) — **ต้องเรียกใน inTx และผู้เรียก throw เมื่อได้ null** → rollback ทั้งก้อน (ไม่มีแถวค้าง)
+ * ห้ามมี SELECT ก่อนคำสั่งนี้ใน transaction เดียวกัน (ให้ได้ write lock ตั้งแต่คำสั่งแรก — ADR 0010 §3 [S5])
+ * พารามิเตอร์ = 5×N + 9 (N ≤ 62 → ≤ 319 < 999) · เท่ากับ N แล้วอ่านกลับเรียง start_at, id
+ */
+export async function insertBusySeriesIfUnderCap(
+  tx: Tx,
+  input: {
+    userId: string;
+    seriesId: string | null;
+    cap: number;
+    shared: Pick<BusyWrite, 'title' | 'note' | 'hideDetail' | 'tz'>;
+    rows: readonly BusySeriesRow[];
+  },
+  now: number,
+): Promise<OwnBusyRow[] | null> {
+  const n = input.rows.length;
+  if (n === 0) return [];
+  const values = sql.join(
+    input.rows.map((r) => sql`(${r.id}, ${r.startAt}, ${r.endAt}, ${r.localStartDate}, ${r.localEndDate})`),
+    sql`, `,
+  );
+  const { title, note, hideDetail, tz } = input.shared;
+  const inserted = await tx.all<{ id: string }>(sql`
+    WITH v(id, start_at, end_at, local_start_date, local_end_date) AS (VALUES ${values})
+    INSERT INTO busy_block (id, user_id, series_id, title, note, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at)
+    SELECT v.id, ${input.userId}, ${input.seriesId}, ${title}, ${note}, 0, v.start_at, v.end_at, v.local_start_date, v.local_end_date, ${tz}, ${hideDetail ? 1 : 0}, ${now}, ${now}
+    FROM v
+    WHERE EXISTS (SELECT 1 FROM user WHERE id = ${input.userId} AND status = 'active')
+      AND ${windowCount(input.userId, now)} + ${n} <= ${input.cap}
+    RETURNING id`);
+  if (inserted.length !== n) return null;
+  return tx
+    .select()
+    .from(busyBlock)
+    .where(and(eq(busyBlock.userId, input.userId), inArray(busyBlock.id, input.rows.map((r) => r.id))))
+    .orderBy(asc(busyBlock.startAt), asc(busyBlock.id));
 }
 
 export async function activeBusyCount(db: DbOrTx, userId: string, now: number): Promise<number> {
@@ -121,6 +168,20 @@ export async function deleteOwnBusy(db: DbOrTx, id: string, userId: string): Pro
     .where(and(eq(busyBlock.id, id), eq(busyBlock.userId, userId)))
     .returning({ id: busyBlock.id });
   return rows.length === 1;
+}
+
+/**
+ * R6F (ADR 0010 §5): ลบทั้งชุดของแถว id — คำสั่งเดียว · ทั้งสองชั้นผูก user_id = ผู้กระทำ (ของคนอื่น/ไม่มี → 0 แถว → ผู้เรียกตอบ NOT_FOUND)
+ * แถวที่ไม่มีชุด (series_id NULL) → ลบแถวนั้นแถวเดียว · ลบทุกแถวของชุดรวมวันที่ผ่านไปแล้ว · คืนจำนวนแถวที่ลบ
+ */
+export async function deleteOwnBusySeries(db: DbOrTx, id: string, userId: string): Promise<number> {
+  const rows = await db.all<{ id: string }>(sql`
+    DELETE FROM busy_block
+    WHERE user_id = ${userId}
+      AND (id = ${id}
+           OR (series_id IS NOT NULL AND series_id = (SELECT series_id FROM busy_block WHERE id = ${id} AND user_id = ${userId})))
+    RETURNING id`);
+  return rows.length;
 }
 
 /** รายการของฉันที่ยังไม่สิ้นสุด (ใกล้สุดก่อน) */

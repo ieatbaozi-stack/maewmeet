@@ -12,13 +12,16 @@ import { Name, withNames } from "@/components/Name";
 import { Sheet } from "@/components/shell/Sheet";
 import type { CalendarLocale, DateISO } from "@/lib/calendar";
 import { DateRangePicker } from "./DateRangePicker";
-import { candidateOf, findOverlaps, limitOverlaps, listQueryFor } from "./overlap-model";
+import { candidatesOf, findOverlapsAny, hullOf, limitOverlaps, listQueryFor } from "./overlap-model";
 import {
   NOTE_MAX,
   TIME_OPTIONS,
   TITLE_MAX,
   buildPayload,
+  dailySummary,
+  mapDailySaveFailure,
   type BusyPayload,
+  type BusyScope,
   durationRef,
   kindChangePatch,
   formStateOfOwn,
@@ -36,7 +39,7 @@ import {
 import { hasSeenNotice, markNoticeSeen, subscribeNotice } from "./notice";
 import { BusyButton } from "@/components/shell/BusyButton";
 
-export type BusyDone = "created" | "updated" | "deleted" | "gone";
+export type BusyDone = "created" | "updated" | "deleted" | "deletedDay" | "deletedSeries" | "gone";
 
 export interface BusyFormSheetProps {
   /** รายการที่แก้ (null = ลงใหม่) */
@@ -49,7 +52,8 @@ export interface BusyFormSheetProps {
   groupCount: number;
   userId: string;
   onClose: () => void;
-  onDone: (result: BusyDone) => void;
+  /** count = จำนวนวันจาก response (สร้างชุด / ลบทั้งชุด) */
+  onDone: (result: BusyDone, count?: number) => void;
 }
 
 interface Problems {
@@ -60,6 +64,7 @@ interface Problems {
 const NO_PROBLEMS: Problems = { date: null, time: null, banner: null };
 
 const KINDS: readonly BusyKindChoice[] = ["allDay", "timed", "multi"];
+const SCOPES: readonly BusyScope[] = ["allDay", "daily"];
 const HELP_KEY: Record<BusyKindChoice, string> = { allDay: "allDay", timed: "timed", multi: "multi" };
 const PICK_HINT: Record<BusyKindChoice, string> = { allDay: "pick", timed: "pickTimed", multi: "pickRange" };
 
@@ -84,6 +89,9 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // R6F: ลบรายการในชุด → dialog เลือก (วันนี้/ทั้งชุด) แล้วยืนยันอีกชั้นก่อนลบทั้งชุด
+  const [seriesStep, setSeriesStep] = useState<"choose" | "confirm" | null>(null);
+  const inSeries = edit !== null && edit.seriesId != null;
   // R6E E11: ทับ busy เดิมของตัวเอง → dialog ถามก่อนบันทึก (ไม่บล็อก)
   const [overlap, setOverlap] = useState<{ payload: BusyPayload; items: OwnBusy[] } | null>(null);
 
@@ -106,7 +114,7 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
   function chooseKind(kind: BusyKindChoice) {
     if (kind === s.kind) return;
     setPending(false);
-    patch(kindChangePatch(s, kind));
+    patch({ ...kindChangePatch(s, kind), ...(kind === "multi" ? {} : { scope: "allDay" as const }) });
     setPickerOpen(kind !== "timed");
   }
 
@@ -129,7 +137,9 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
   const summaryText = summary ? text(summary) : t("busy.form.date.none");
   const minutes = s.kind === "timed" ? timedMinutes(s) : null;
   const dur = minutes !== null ? durationRef(minutes) : null;
-  const days = s.kind === "multi" ? totalDays(s) : null;
+  const isDaily = s.kind === "multi" && s.scope === "daily";
+  const days = s.kind === "multi" && !isDaily ? totalDays(s) : null;
+  const daily = dailySummary(s);
 
   // ───────── บันทึก / ลบ ─────────
   async function submit(e: FormEvent) {
@@ -156,11 +166,12 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
 
   async function findOwnOverlaps(payload: BusyPayload): Promise<OwnBusy[]> {
     try {
-      const c = candidateOf(payload);
-      if (!c) return [];
-      const res = await callApi<{ busy: OwnBusy[]; truncated?: boolean }>(`/api/me/busy${listQueryFor(c)}`, { method: "GET" });
+      // R6F: daily = ขยายเป็นรายวัน (expandDailyBusyInput) แล้วเทียบทีละวันกับ busy เดิม
+      const cands = candidatesOf(payload);
+      if (!cands || cands.length === 0) return [];
+      const res = await callApi<{ busy: OwnBusy[]; truncated?: boolean }>(`/api/me/busy${listQueryFor(hullOf(cands))}`, { method: "GET" });
       if (!res.ok || !Array.isArray(res.data?.busy)) return [];
-      return findOverlaps(c, res.data.busy, edit ? edit.id : null);
+      return findOverlapsAny(cands, res.data.busy, edit ? edit.id : null);
     } catch {
       return [];
     }
@@ -172,13 +183,14 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
     setProblems(NO_PROBLEMS);
     const res = edit
       ? await callApi(`/api/me/busy/${edit.id}`, { method: "PATCH", body: payload })
-      : await callApi("/api/me/busy", { method: "POST", body: payload });
+      : await callApi<{ count?: number }>("/api/me/busy", { method: "POST", body: payload });
     setSaving(false);
     if (res.ok) {
-      onDone(edit ? "updated" : "created");
+      const made = payload.kind === "daily" ? (res.data as { count?: number } | undefined)?.count : undefined;
+      onDone(edit ? "updated" : "created", typeof made === "number" ? made : undefined);
       return;
     }
-    const f = mapSaveFailure(res, s.kind);
+    const f = payload.kind === "daily" ? mapDailySaveFailure(res) : mapSaveFailure(res, s.kind);
     if (f.type === "gone") {
       onDone("gone");
       return;
@@ -188,14 +200,19 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
     setInvalid({ date: f.invalidDate, time: f.invalidTime });
   }
 
-  async function remove() {
+  async function remove(scope: "one" | "series" | null = null) {
     if (!edit || deleting) return;
     setDeleting(true);
     setDeleteError(null);
-    const res = await callApi(`/api/me/busy/${edit.id}`, { method: "DELETE" });
+    const res = scope
+      ? await callApi<{ deleted?: number; count?: number }>(`/api/me/busy/${edit.id}?scope=${scope}`, { method: "DELETE" })
+      : await callApi(`/api/me/busy/${edit.id}`, { method: "DELETE" });
     setDeleting(false);
     if (res.ok) {
-      onDone("deleted");
+      if (scope === "series") {
+        const n = (res.data as { count?: number } | undefined)?.count;
+        onDone("deletedSeries", typeof n === "number" ? n : undefined);
+      } else onDone(scope === "one" ? "deletedDay" : "deleted");
       return;
     }
     if (res.kind === "api" && res.status === 404) {
@@ -326,7 +343,23 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
             ) : null}
           </div>
 
-          {s.kind === "timed" ? (
+          {s.kind === "multi" && !edit ? (
+            <div className="field" data-testid="busy-scope">
+              <span className="label" id={`${uid}-scope`}>
+                {t("busy.form.scope.label")}
+              </span>
+              <div className="segmented busy-types" role="group" aria-labelledby={`${uid}-scope`}>
+                {SCOPES.map((k) => (
+                  <button type="button" key={k} aria-pressed={s.scope === k} data-testid={`busy-scope-${k}`} onClick={() => patch({ scope: k })}>
+                    {t(`busy.form.scope.${k}`)}
+                  </button>
+                ))}
+              </div>
+              <p className="busy-type-help">{t(`busy.form.scope.help.${s.scope}`)}</p>
+            </div>
+          ) : null}
+
+          {s.kind === "timed" || isDaily ? (
             <>
               <div className="pair2 busy-timerow-pair">
                 <TimeSelect
@@ -356,7 +389,16 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
                   <span>{text(problems.time.ref)}</span>
                 </p>
               ) : null}
-              {summary ? (
+              {isDaily ? <p className="field-hint">{t("busy.form.scope.timeHint")}</p> : null}
+              {isDaily && daily ? (
+                <div className="busy-daily-summary" role="group" aria-label={t("busy.form.summary.dailyAria", { count: daily.count, start: daily.start, end: daily.end })} data-testid="busy-summary-daily">
+                  <p className="cal-summary-line" data-testid="busy-summary">
+                    <span>{t("busy.form.summary.daily", { count: daily.count, start: daily.start, end: daily.end })}</span>
+                  </p>
+                  <p className="field-hint">{t("busy.form.summary.dailyNote", { count: daily.count })}</p>
+                </div>
+              ) : null}
+              {s.kind === "timed" && summary ? (
                 <p className="cal-summary-line" data-testid="busy-summary">
                   <span>{text(summary)}</span>
                   {endInfo?.overnight ? (
@@ -371,7 +413,7 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
             </>
           ) : null}
 
-          {s.kind === "multi" && summary ? (
+          {s.kind === "multi" && !isDaily && summary ? (
             <p className="cal-summary-line" data-testid="busy-summary">
               <span>{text(summary)}</span>
               {days !== null ? <span className="muted small">{t("busy.form.totalDays", { count: days })}</span> : null}
@@ -445,8 +487,23 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
             </p>
           </div>
 
+          {inSeries ? (
+            <div className="busy-series-note" data-testid="busy-series-note">
+              <p className="tag tag-muted">
+                <Icon name="calendar" size="sm" />
+                <span>{t("busy.series.detailPlain")}</span>
+              </p>
+              <p className="field-hint">{t("busy.form.series.editNote")}</p>
+            </div>
+          ) : null}
+
           {edit ? (
-            <button type="button" className="btn btn-danger-quiet btn-block busy-delete" data-testid="busy-delete" onClick={() => setConfirmDelete(true)}>
+            <button
+              type="button"
+              className="btn btn-danger-quiet btn-block busy-delete"
+              data-testid="busy-delete"
+              onClick={() => (inSeries ? setSeriesStep("choose") : setConfirmDelete(true))}
+            >
               <Icon name="trash-2" />
               <span>{t("busy.form.delete")}</span>
             </button>
@@ -471,6 +528,26 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
         />
       ) : null}
 
+      {seriesStep && edit ? (
+        <SeriesDeleteDialog
+          step={seriesStep}
+          busy={deleting}
+          error={deleteError}
+          summaryText={summaryText}
+          title={edit.title}
+          onOne={() => void remove("one")}
+          onAskAll={() => {
+            setDeleteError(null);
+            setSeriesStep("confirm");
+          }}
+          onAll={() => void remove("series")}
+          onClose={() => {
+            setSeriesStep(null);
+            setDeleteError(null);
+          }}
+        />
+      ) : null}
+
       {confirmDelete && edit ? (
         <ConfirmDialog
           title={t("busy.delete.title")}
@@ -484,7 +561,7 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
             setDeleteError(null);
           }}
         >
-          <p className="small muted" data-testid="busy-delete-summary">
+          <p className="small muted busy-delete-detail" data-testid="busy-delete-summary">
             <b>{summaryText}</b>
             {edit.title ? (
               <>
@@ -496,6 +573,81 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
         </ConfirmDialog>
       ) : null}
     </>
+  );
+}
+
+/** R6F: ลบรายการในชุด — ขั้น 1 เลือก ลบวันนี้/ลบทั้งชุด/ยกเลิก · ขั้น 2 ยืนยันลบทั้งชุด (บอกชัดว่ารวมวันที่ผ่านแล้ว) · ไม่มีจำนวนวันในข้อความ (API ไม่ส่งจำนวนชุด) */
+function SeriesDeleteDialog({
+  step,
+  busy,
+  error,
+  summaryText,
+  title,
+  onOne,
+  onAskAll,
+  onAll,
+  onClose,
+}: {
+  step: "choose" | "confirm";
+  busy: boolean;
+  error: string | null;
+  summaryText: string;
+  title: string | null;
+  onOne: () => void;
+  onAskAll: () => void;
+  onAll: () => void;
+  onClose: () => void;
+}) {
+  const t = useTranslations();
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const detail = (
+    <p className="small muted busy-delete-detail" data-testid="busy-delete-summary">
+      <b>{summaryText}</b>
+      {title ? (
+        <>
+          {" · "}
+          <Name>{title}</Name>
+        </>
+      ) : null}
+    </p>
+  );
+  if (step === "confirm") {
+    return (
+      <ConfirmDialog title={t("busy.series.confirmAllTitle")} body={t("busy.series.confirmAllBody")} confirmLabel={t("busy.series.confirmAll")} busy={busy} error={error} onConfirm={onAll} onClose={onClose}>
+        {detail}
+      </ConfirmDialog>
+    );
+  }
+  return (
+    <Sheet
+      alert
+      title={t("busy.series.deleteTitle")}
+      onClose={onClose}
+      initialFocusRef={cancelRef}
+      footer={
+        <>
+          <BusyButton type="button" className="btn btn-secondary btn-block" busy={busy} data-testid="busy-series-delete-one" busyLabel={t("busy.series.deleteOne")} idleLabel={t("busy.series.deleteOne")} onClick={onOne} />
+          <button type="button" className="btn btn-danger btn-block" disabled={busy} data-testid="busy-series-delete-all" onClick={onAskAll}>
+            {t("busy.series.deleteAll")}
+          </button>
+          <button ref={cancelRef} type="button" className="btn btn-secondary btn-block" disabled={busy} data-testid="busy-series-cancel" onClick={onClose}>
+            {t("busy.series.cancel")}
+          </button>
+        </>
+      }
+    >
+      <div data-testid="busy-series-dialog">
+        <p>{t("busy.series.deleteBody")}</p>
+        {detail}
+        <p className="small muted">{t("busy.series.deleteOneHelp")}</p>
+        <p className="small muted">{t("busy.series.deleteAllHelp")}</p>
+        {error ? (
+          <p className="form-error sheet-error" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </div>
+    </Sheet>
   );
 }
 

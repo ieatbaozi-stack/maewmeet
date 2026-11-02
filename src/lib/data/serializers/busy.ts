@@ -4,6 +4,7 @@
 // ทุกฟังก์ชันสร้างอ็อบเจกต์ใหม่จากรายชื่อฟิลด์ที่อนุญาต (allowlist) — ไม่ลบฟิลด์ออกจากแถว DB
 // ผู้ดูที่ไม่ใช่เจ้าของไม่มีทางได้ OwnBusyRow: repo ฝั่งแชร์ไม่ SELECT note (ดู repos/busy.ts) และ toBusyForViewers รับ SharedBusyRow เท่านั้น
 // ไม่ส่ง created_at/updated_at ให้คนอื่น (กันเดาพฤติกรรม) · รายการที่ไม่ได้กรอก title กับรายการซ่อน หน้าตาเหมือนกัน (UX X28)
+// R6F (ADR 0010 §6): seriesId ส่งให้เจ้าของเท่านั้น (BusyOwnView) · มุมมองของคนอื่นไม่มี key นี้เลยทุกกรณี (SharedBusyRow ไม่มีคอลัมน์ series_id)
 // R6D (ADR 0009 §2): ทุกชิ้นใน busy[] ที่คนอื่นเห็นมี `kind` — 'busy' (busy_block) · 'appointment' (นัดที่ตอบ "ไป" ในกลุ่มที่กำลังดู) ·
 //   'other_group_appointment' (นัดกลุ่มอื่น — แค่ช่วงเวลา ไม่มี key id/title/group/place/tz เลย ไม่ใช่ null)
 import type { GoingBusyRow, OwnBusyRow, SharedBusyRow } from '@/lib/data/repos/busy';
@@ -31,8 +32,8 @@ export type OtherGroupBusyView = { kind: 'other_group_appointment'; userId: stri
 /** ชิ้นเดียวใน busy[] ของปฏิทิน/วันว่าง/เตือนนัดทับ */
 export type MemberBusyView = BusySharedView | BusyHiddenView | AppointmentBusyView | OtherGroupBusyView;
 export type MemberBusyKind = MemberBusyView['kind'];
-/** เจ้าของเห็นครบ */
-export type BusyOwnView = BusyBase & { title: string | null; note: string | null; hidden: boolean };
+/** เจ้าของเห็นครบ · R6F: seriesId (ชุดรายวัน · null = รายการเดี่ยว) — **เจ้าของเท่านั้น** ไม่อยู่ใน BUSY_SHARED_FIELDS (ADR 0010 §6) */
+export type BusyOwnView = BusyBase & { title: string | null; note: string | null; hidden: boolean; seriesId: string | null };
 
 /** ชื่อฟิลด์ของ kind 'busy' ที่ส่งให้คนอื่นได้ทั้งหมด (allowlist — เทสต์ใช้ตรวจ) */
 export const BUSY_SHARED_FIELDS = ['kind', 'id', 'userId', 'allDay', 'startAt', 'endAt', 'localStartDate', 'localEndDate', 'tz', 'title'] as const;
@@ -60,6 +61,7 @@ export function toBusyOwnView(r: OwnBusyRow): BusyOwnView {
     title: r.title === null ? null : sanitizeDisplayText(r.title),
     note: r.note,
     hidden: r.hideDetail,
+    seriesId: r.seriesId ?? null,
   };
 }
 

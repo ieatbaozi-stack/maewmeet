@@ -214,7 +214,7 @@ describe('แก้/ลบ + IDOR (R3-3)', () => {
 
   it('ลบ: ถาวร (hard delete) · ลบซ้ำ → 404', async () => {
     const id = (await create(a, timed())).data.busy.id;
-    expect((await del(a.c, `/api/me/busy/${id}`)).data).toEqual({ deleted: true });
+    expect((await del(a.c, `/api/me/busy/${id}`)).data).toEqual({ deleted: true, count: 1 }); // R6F (ADR 0010 §5): + count
     expect(await h.count('busy_block WHERE id = ?', [id])).toBe(0);
     expect((await del(a.c, `/api/me/busy/${id}`)).status).toBe(404);
   });

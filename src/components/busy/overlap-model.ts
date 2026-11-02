@@ -2,7 +2,7 @@
 // วัน/เวลาคำนวณผ่าน src/lib/calendar เท่านั้น (กฎ 9): normalizeBusyInput (เหมือนเซิร์ฟเวอร์) + overlapsRange (ครึ่งเปิด: ชนขอบพอดีไม่ทับ)
 // ทดสอบที่ tests/ui/r6e-busy-overlap.test.ts
 import type { OwnBusy } from "@/components/calendar/model";
-import { compareDates, normalizeBusyInput, overlapsRange, spanDays, type DateISO, type EpochMs } from "@/lib/calendar";
+import { compareDates, expandDailyBusyInput, normalizeBusyInput, overlapsRange, spanDays, type DateISO, type EpochMs } from "@/lib/calendar";
 import { CALENDAR_MAX_RANGE_DAYS } from "@/lib/shared/limits";
 import type { BusyPayload } from "./form-model";
 
@@ -30,6 +30,39 @@ export function candidateOf(p: Pick<BusyPayload, "kind" | "startDate" | "endDate
   if (!r.ok) return null;
   const v = r.value;
   return { allDay: v.allDay, startAt: v.startAt, endAt: v.endAt, localStartDate: v.localStartDate, localEndDate: v.localEndDate };
+}
+
+/**
+ * R6F: payload → ช่วงจริงทุกรายการที่จะถูกสร้าง · daily = ขยายเป็นรายวันด้วย expandDailyBusyInput (ตัวเดียวกับเซิร์ฟเวอร์) · แปลงไม่ได้ = null
+ */
+export function candidatesOf(p: Pick<BusyPayload, "kind" | "startDate" | "endDate" | "startTime" | "endTime" | "tz">): OverlapCandidate[] | null {
+  if (p.kind !== "daily") {
+    const c = candidateOf(p as Parameters<typeof candidateOf>[0]);
+    return c ? [c] : null;
+  }
+  if (p.startTime === undefined || p.endTime === undefined) return null;
+  const r = expandDailyBusyInput({ kind: "daily", startDate: p.startDate, endDate: p.endDate, startTime: p.startTime, endTime: p.endTime, ...(p.tz !== undefined ? { tz: p.tz } : {}) });
+  if (!r.ok) return null;
+  return r.value.map((v) => ({ allDay: v.allDay, startAt: v.startAt, endAt: v.endAt, localStartDate: v.localStartDate, localEndDate: v.localEndDate }));
+}
+
+/** รายการเดิมที่ทับรายการใดรายการหนึ่งใน cands (ไม่ซ้ำ · เรียงตามเวลาเริ่ม) */
+export function findOverlapsAny(cands: readonly OverlapCandidate[], existing: readonly OwnBusy[], selfId: string | null): OwnBusy[] {
+  const hit = new Map<string, OwnBusy>();
+  for (const c of cands) for (const b of findOverlaps(c, existing, selfId)) hit.set(b.id, b);
+  return [...hit.values()].sort((a, b) => a.startAt - b.startAt || (a.id < b.id ? -1 : 1));
+}
+
+/** ช่วงวันรวมของทุกรายการ (ใช้เป็น query ของ GET /api/me/busy) */
+export function hullOf(cands: readonly OverlapCandidate[]): OverlapCandidate {
+  const first = cands[0]!;
+  let a = first.localStartDate;
+  let b = first.localEndDate;
+  for (const c of cands) {
+    if (compareDates(c.localStartDate, a) < 0) a = c.localStartDate;
+    if (compareDates(c.localEndDate, b) > 0) b = c.localEndDate;
+  }
+  return { ...first, localStartDate: a, localEndDate: b };
 }
 
 /**

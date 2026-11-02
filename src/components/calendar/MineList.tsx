@@ -81,7 +81,7 @@ export function MineList({ items, nowMs, onOpen, onAdd }: MineListProps) {
                         <span className="row-title plain">{t("busy.mine.noTitle")}</span>
                       )}
                       <span className="row-meta">{whenText}</span>
-                      {ongoing || it.hidden || it.note ? (
+                      {ongoing || it.hidden || it.note || it.seriesId ? (
                         <span className="tags">
                           {ongoing ? (
                             <span className="tag tag-busy">
@@ -93,6 +93,12 @@ export function MineList({ items, nowMs, onOpen, onAdd }: MineListProps) {
                             <span className="tag tag-muted">
                               <Icon name="eye-off" size="sm" />
                               <span>{t("busy.mine.hiddenTag")}</span>
+                            </span>
+                          ) : null}
+                          {it.seriesId ? (
+                            <span className="tag tag-muted" aria-label={t("busy.series.tagAria")} data-testid="busy-series-tag">
+                              <Icon name="calendar" size="sm" />
+                              <span>{t("busy.series.tag")}</span>
                             </span>
                           ) : null}
                           {it.note ? (

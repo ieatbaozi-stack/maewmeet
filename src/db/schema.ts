@@ -149,9 +149,13 @@ export const busyBlock = sqliteTable('busy_block', {
   hideDetail: bool('hide_detail').notNull().default(false),
   createdAt: ms('created_at').notNull(),
   updatedAt: ms('updated_at').notNull(),
+  // R6F (ADR 0010 §4): ชุดรายวัน · uuid ที่เซิร์ฟเวอร์สร้างตอน POST kind:'daily' (N ≥ 2) · NULL = รายการเดี่ยว · ไม่มี FK (ไม่มีตารางชุด)
+  // เห็นเฉพาะเจ้าของ — คิวรีฝั่งแชร์ไม่ SELECT คอลัมน์นี้ (ADR 0010 §6)
+  seriesId: text('series_id'),
 }, (t) => [
   index('busy_user_start_idx').on(t.userId, t.startAt),
   index('busy_user_end_idx').on(t.userId, t.endAt),
+  index('busy_user_series_idx').on(t.userId, t.seriesId).where(sql`${t.seriesId} is not null`),
   check('busy_range_ck', sql`${t.endAt} > ${t.startAt} and ${t.localEndDate} >= ${t.localStartDate}`),
 ]);
 
