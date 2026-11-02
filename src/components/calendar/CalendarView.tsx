@@ -74,6 +74,8 @@ const TOAST_KEY: Record<BusyDone, string> = {
   created: "busy.toast.saved",
   updated: "busy.toast.updated",
   deleted: "busy.toast.deleted",
+  deletedDay: "busy.toast.deletedDay",
+  deletedSeries: "busy.toast.deletedSeries",
   gone: "busy.form.error.gone",
 };
 
@@ -114,7 +116,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   const [version, setVersion] = useState(0);
   const [form, setForm] = useState<FormState>(null);
   const [switching, setSwitching] = useState(false);
-  const [toast, setToast] = useState<BusyDone | null>(null);
+  const [toast, setToast] = useState<{ result: BusyDone; count?: number } | null>(null);
   const [missingShown, setMissingShown] = useState(groupMissing);
   // มุมมองว่างตรงกัน: วันที่ผู้ใช้เลือก (null = ใช้วันตั้งต้น) · sheet รายละเอียดวัน (มือถือ)
   const [freePicked, setFreePicked] = useState<DateISO | null>(initialView === "free" && dateGiven ? initialDate : null);
@@ -278,10 +280,17 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     setForm({ edit, today: formToday, defaultDate: view === "day" ? selected : formToday });
   }
 
-  function onDone(result: BusyDone) {
+  function onDone(result: BusyDone, count?: number) {
     setForm(null);
-    setToast(result);
+    // R6F: สร้างชุด → "บันทึก N วัน" · ลบทั้งชุด → "ลบทั้งชุด (N วัน)" (N จาก response)
+    setToast(count === undefined ? { result } : { result, count });
     setVersion((v) => v + 1);
+  }
+
+  function toastText(result: BusyDone, count: number | undefined): string {
+    if (result === "created" && count !== undefined) return t("busy.toast.savedDaily", { count });
+    if (result === "deletedSeries" && count !== undefined) return t("busy.toast.deletedSeriesCount", { count });
+    return t(TOAST_KEY[result]);
   }
 
   function pickGroup(id: string) {
@@ -542,7 +551,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
         ) : null}
         {toast ? (
           <div data-testid="cal-toast">
-            <Notice kind={toast === "gone" ? "error" : "ok"}>{t(TOAST_KEY[toast])}</Notice>
+            <Notice kind={toast.result === "gone" ? "error" : "ok"}>{toastText(toast.result, toast.count)}</Notice>
           </div>
         ) : null}
         {view === "mine" ? (

@@ -125,3 +125,10 @@
 .busy-overlap-list li { display: flex; align-items: flex-start; gap: var(--space-2); min-width: 0; font-size: var(--text-sm); overflow-wrap: anywhere; }
 .busy-overlap-list li .icon { margin-top: var(--space-1); flex: none; }
 .busy-overlap-more { margin-top: var(--space-2); }
+
+/* R6F: เฉพาะช่วงเวลา (หลายวัน) — สรุปก่อนบันทึก + โน้ตรายการในชุด · ใช้ token เท่านั้น */
+.busy-daily-summary { margin-top: var(--space-1); }
+.busy-daily-summary .field-hint { margin-top: var(--space-1); }
+.busy-series-note { margin-top: var(--space-3); }
+.busy-series-note .tag { width: fit-content; max-width: 100%; margin: 0; }
+.busy-series-note .field-hint { margin-top: var(--space-2); }
