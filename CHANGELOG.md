@@ -11,10 +11,17 @@
 - สมาชิกตั้งสีและรูปทรงของตัวเองได้ต่อกลุ่ม (แต่ละกลุ่มเลือกไม่ซ้ำกัน) — ไม่เลือกก็ใช้สี/รูปทรงเดิมที่คำนวณให้ (R6C F3ก)
 - API `PATCH /api/groups/:gid/members/me/appearance` ตั้งสี/รูปทรงของตัวเองในกลุ่ม · `MemberInfo` มี `shapeIndex` เพิ่ม (R6C)
 - Migration `0002`: เพิ่มคอลัมน์ `group_member.color_slot` และ `group_member.shape_slot` (integer, nullable, CHECK 1–10, ไม่ backfill) (R6C)
+- จำกลุ่มที่เลือกไว้ต่อเครื่อง: คุกกี้ `mm_group` + `PUT /api/me/current-group` + RBAC action `member.setCurrentGroup` (R6D G1)
+- ตอบ "ไป" นัดหนึ่ง = ไม่ว่างในทุกกลุ่ม — กลุ่มอื่นเห็นแค่ "ติดนัดกลุ่มอื่น" ไม่เห็นรายละเอียดนัด (R6D G2, ADR 0009)
+- popup ยืนยันก่อนตอบ "ไป" พร้อมเตือนนัดชน (ไม่บล็อก) และป้ายชนที่นัดซึ่งชนกัน (R6D)
+- แท็บของฉันมี "นัดที่ฉันตอบไป": `GET /api/me/appointments?rsvp=going` (R6D)
 
 ### Changed
 - สีกับรูปทรงของสมาชิกแยกกัน: ใช้ `data-color` / `data-shape` แทน `data-slot` เดิม (R6C)
 - ปฏิทิน: ปุ่มบนแถบบนของจอกว้างซ่อนเมื่อกลุ่มอยู่ในสถานะ gone / error / loading (R6C)
+- `busy[]` ใน calendar / availability / overlap มีฟิลด์ `kind` 3 แบบ (ADR 0009) (R6D)
+- `/appointments/check` รับ `appointmentId?` เพื่อไม่นับนัดตัวเองเป็นนัดชน (R6D)
+- logout / logout-all / ลบบัญชี ลบคุกกี้ `mm_group` ด้วย · รอบ R6D ไม่มี migration (R6D)
 
 ## [0.7.1] - 2026-11-01
 
