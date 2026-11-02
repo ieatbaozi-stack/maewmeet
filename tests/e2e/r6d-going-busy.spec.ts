@@ -121,6 +121,30 @@ test.describe('R6D เรื่องเล่า', () => {
     await expect(u.page).toHaveURL(/\/calendar$/);
     await expect(switcher(u.page)).toHaveAttribute('aria-label', labelRe(locale, X));
 
+    // 1b) เปิด /groups/<gid> ซ้ำเมื่อคุกกี้ตรง gid แล้ว → ไม่มี PUT ซ้ำ · เปิดกลุ่มอื่น → PUT 1 ครั้ง
+    const puts: string[] = [];
+    const onReq = (r: import('@playwright/test').Request) => {
+      if (r.url().endsWith('/api/me/current-group') && r.method() === 'PUT') puts.push(r.postData() ?? '');
+    };
+    u.page.on('request', onReq);
+    await go(u.page, `/groups/${gidOf[X]}`);
+    await expect(u.page).toHaveURL(new RegExp(`/groups/${gidOf[X]}$`));
+    await u.page.waitForLoadState('networkidle');
+    expect(puts, 'คุกกี้ตรงกลุ่มอยู่แล้ว = ไม่ PUT ซ้ำ').toEqual([]);
+    const put1b = rememberDone(u.page);
+    await go(u.page, `/groups/${gidOf[Y]}`);
+    expect((await put1b).status()).toBe(200);
+    await u.page.waitForLoadState('networkidle');
+    expect(puts, 'เปิดกลุ่มอื่น = PUT 1 ครั้ง').toHaveLength(1);
+    expect(puts[0]).toContain(gidOf[Y]);
+    u.page.off('request', onReq);
+    // คืนเป็น X ให้ขั้นต่อไป
+    const put1c = rememberDone(u.page);
+    await go(u.page, `/groups/${gidOf[X]}`);
+    await put1c;
+    await go(u.page, '/calendar');
+    await expect(switcher(u.page)).toHaveAttribute('aria-label', labelRe(locale, X));
+
     // 2) เปลี่ยนด้วย dropdown เป็น Y → ไปหน้าอื่นแล้วกลับ → Y
     const put2 = rememberDone(u.page);
     await switcher(u.page).click();

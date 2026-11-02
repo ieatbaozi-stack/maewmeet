@@ -129,6 +129,9 @@ test('th: A สร้างนัดจากวันว่างร่วม �
   await seenB.settled();
   // R6D: B เป็นเจ้าของ busy นี้เอง และตอบ "ไป" นัดที่ทับ → myConflicts คืนชื่อ busy ของ B ให้ B (ของตัวเองเท่านั้น) · note ต้องไม่ถูกส่งเสมอ
   expect(seenB.texts.filter((t) => t.includes(CN)).length, `response ของ B ต้องไม่มี note ${CN}`).toBe(0);
+  // ชื่อ busy ของ B อนุญาตเฉพาะใน myConflicts ("kind":"busy","busyId":"<uuid>","title":"<CT>") — ที่อื่นห้าม
+  const allowedCT = new RegExp(`"kind":"busy","busyId":"[0-9a-f-]{36}","title":"${CT.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'g');
+  expect(seenB.texts.filter((t) => t.replace(allowedCT, '').includes(CT)).length, `response ของ B ต้องไม่มีชื่อ busy ${CT} นอก myConflicts`).toBe(0);
 
   // ───── 5) C: กระดิ่ง 1 (เปิดนัดจาก URL ตรง ๆ คงแจ้งเตือนไว้ไม่อ่าน) → อาจไป ─────
   await go(c.page, '/');
