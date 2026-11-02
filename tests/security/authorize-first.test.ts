@@ -116,7 +116,7 @@ const AUTHZ_CALL = /\b(?:authorize|authorizeInGroup)\s*\(/;
 const SERVICE_FILES = [
   ...walk(join(ROOT, 'src/lib/data/services'), (f) => f.endsWith('.ts')),
   ...walk(join(ROOT, 'src/lib/auth/services'), (f) => f.endsWith('.ts')),
-].filter((f) => !NO_ACTOR_FILES.has(rel(f)) && !f.endsWith('/index.ts'));
+].filter((f) => !NO_ACTOR_FILES.has(rel(f)) && !rel(f).endsWith('/index.ts'));
 
 describe('A. service ทุกตัวเรียก authorize() ก่อนแตะ repo/db', () => {
   it('พบไฟล์ service ให้สแกน (กันสแกนว่างเปล่า)', () => {
@@ -151,7 +151,7 @@ describe('A. service ทุกตัวเรียก authorize() ก่อน�
   });
 });
 
-const ROUTE_FILES = walk(join(ROOT, 'src/app/api'), (f) => f.endsWith('/route.ts') && !f.includes('/_lib/'));
+const ROUTE_FILES = walk(join(ROOT, 'src/app/api'), (f) => rel(f).endsWith('/route.ts') && !rel(f).includes('/_lib/'));
 
 describe('B. route ทุกตัวผ่าน route() wrapper และ manifest', () => {
   it('พบ route ให้สแกน', () => {
