@@ -34,12 +34,16 @@ export {
   todayIn,
 } from './zone';
 export {
+  expandDailyBusyInput,
   normalizeBusyInput,
   type AllDayBusyInput,
   type BusyInput,
   type BusyInputError,
   type BusyLimitOptions,
   type BusyRow,
+  type DailyBusyInput,
+  type DailyBusyOptions,
+  type ExpandDailyBusyResult,
   type NormalizeBusyOptions,
   type NormalizeBusyResult,
   type TimedBusyInput,
