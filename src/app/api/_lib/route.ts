@@ -9,10 +9,12 @@
 //
 // ลำดับตายตัว: (cron: Bearer) → 1. CSRF Origin + JSON content-type (non-GET, auth=actor) → 2. zod → 3. actor →
 //              4. handler/service → 5. {data} | {error:{code,params}} + Cache-Control: private, no-store
+// R7 §2: ครอบทั้งหมดด้วยตัวนับ query/เวลาต่อ request (ปิดได้ด้วย SERVER_TIMING_ENABLED=false) → header Server-Timing (ดู shouldExposeServerTiming)
 import type { z } from 'zod';
 import type { Actor } from '@/lib/rbac/types';
 import { clock } from '@/lib/shared/clock';
-import { configuredAppOrigin, getEnv, isEnvError, type Env } from '@/lib/shared/env';
+import { runWithRequestMetrics, serverTimingValue } from '@/db/request-metrics';
+import { configuredAppOrigin, getEnv, isEnvError, serverTimingEnabled, type Env } from '@/lib/shared/env';
 import { AppError, errorBody, httpStatusOf, isErrorCode, type ErrorCode, type ErrorParams } from '@/lib/shared/errors';
 import { resolveActor, setActorResolver } from './actor';
 import { getActor, takeRenewedSessionCookie } from '@/lib/auth/session';
@@ -235,7 +237,8 @@ export function route<S extends AnySchema | undefined = undefined, PS extends An
     throw new Error(`route ${spec.method} ${spec.path} is not registered in src/app/api/_lib/manifest.ts`);
   }
 
-  return async (req: Request, ctx?: RouteContext): Promise<Response> => {
+  /** ทำงานจริงของ request (ขั้น cron → 1–5) · seen.user = actor ที่ resolve ได้เป็นผู้ใช้ที่ล็อกอิน (ใช้ตัดสินว่าแนบ Server-Timing ไหม) */
+  const handle = async (req: Request, ctx: RouteContext | undefined, seen: { user: boolean }): Promise<Response> => {
     try {
       // (cron) Bearer ก่อนทุกอย่าง
       if (entry.auth === 'cron') {
@@ -267,6 +270,7 @@ export function route<S extends AnySchema | undefined = undefined, PS extends An
 
       // 3. actor (R0: anonymous — R1 session)
       const actor: Actor = entry.auth === 'actor' ? await resolveActor(req) : { kind: 'anonymous' };
+      seen.user = actor.kind === 'user';
 
       // 4. handler → service
       const result = await spec.handler({
@@ -296,4 +300,26 @@ export function route<S extends AnySchema | undefined = undefined, PS extends An
       return errorResponse('UNKNOWN');
     }
   };
+
+  return async (req: Request, ctx?: RouteContext): Promise<Response> => {
+    if (!serverTimingEnabled()) return handle(req, ctx, { user: false });
+    // R7 §2: นับ query/เวลา DB ต่อ request (AsyncLocalStorage — ไม่ปนข้าม request)
+    return runWithRequestMetrics(async (m) => {
+      const seen = { user: false };
+      const res = await handle(req, ctx, seen);
+      if (shouldExposeServerTiming(seen.user, res.status)) res.headers.set('Server-Timing', serverTimingValue(m));
+      return res;
+    });
+  };
+}
+
+/**
+ * แนบ Server-Timing เฉพาะ: ผู้ใช้ที่ล็อกอินแล้ว + คำตอบสำเร็จ (< 400) — R7-3
+ * - ไม่แนบให้ anonymous (login / signup / pin-reset / health / cron): จำนวน query ของเส้นทางที่ตั้งใจตอบเหมือนกันทุกกรณี
+ *   (เช่น pin-reset ตอบเหมือนกันทั้งมีและไม่มีผู้ใช้) อาจต่างกันตามข้อมูล → กลายเป็น oracle บอกว่ามีบัญชี
+ * - ไม่แนบให้คำตอบ error: NOT_FOUND ของคนนอกกลุ่ม/กลุ่มไม่มี/ลบแล้ว ต้องเหมือนกันทุกไบต์ (ADR 0003 IDOR) — จำนวน query อาจต่างกัน
+ * ค่าใน header มีแค่ตัวเลข (ดู serverTimingValue) ไม่มี SQL/พารามิเตอร์/id/ข้อมูลผู้ใช้
+ */
+export function shouldExposeServerTiming(actorIsUser: boolean, status: number): boolean {
+  return actorIsUser && status < 400;
 }

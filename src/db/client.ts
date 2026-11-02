@@ -4,6 +4,7 @@
 import { createClient, type Client } from '@libsql/client';
 import { drizzle, type LibSQLDatabase } from 'drizzle-orm/libsql';
 import { getEnv } from '@/lib/shared/env';
+import { instrumentClient } from './request-metrics';
 import * as schema from './schema';
 
 export type Schema = typeof schema;
@@ -28,7 +29,8 @@ export function createDb(options: { url: string; authToken?: string }): Db {
     authToken: options.authToken,
     ...(options.url.startsWith('file:') ? { timeout: FILE_BUSY_TIMEOUT_MS } : {}),
   });
-  return drizzle(client, { schema });
+  // R7 §2: นับ query/เวลา DB ต่อ request (เฉพาะใน runWithRequestMetrics — นอกนั้นไม่ทำอะไร) · ไม่เก็บ SQL/พารามิเตอร์
+  return drizzle(instrumentClient(client), { schema });
 }
 
 let instance: Db | undefined;
