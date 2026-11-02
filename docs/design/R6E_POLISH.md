@@ -66,7 +66,7 @@
 ### 3.6 Tokens ที่ต้องเพิ่มใน `src/styles/tokens.css` (ทั้งสว่าง/มืด; ผู้เพิ่ม = ux ถ้า main สั่ง หรือ frontend ตาม contract)
 | token | สว่าง | มืด | คอนทราสต์ (ตรวจแล้วจากค่า token ที่มี) |
 |---|---|---|---|
-| `--progress-fill` | `var(--accent)` #4B59C2 | `var(--accent)` #A8B2F0 | กับ `--bg` #FAF8F5 ≈ 5.6:1 / กับ #17161C ≈ 9:1 — ผ่าน 3:1 สำหรับองค์ประกอบกราฟิก (WCAG 1.4.11) |
+| `--progress-fill` | `var(--accent)` #4B59C2 | `var(--accent)` #A8B2F0 | กับ `--bg` #FAF8F5 5.65:1 (สว่าง) / 8.81:1 (มืด) วัดด้วย contrast.mjs — ผ่าน 3:1 สำหรับองค์ประกอบกราฟิก (WCAG 1.4.11) |
 | `--progress-track` | `var(--accent-soft)` | `var(--accent-soft)` | ราง ตกแต่ง ไม่ต้องผ่านคอนทราสต์ |
 | `--spinner-arc` | `var(--accent)` | `var(--accent)` | เหมือนข้างบน · ในปุ่มหลัก (พื้น accent) ให้ใช้สีตัวอักษรของปุ่ม `currentColor` |
 | `--spinner-track` | `var(--line)` | `var(--line)` | ตกแต่ง |
@@ -74,4 +74,4 @@
 | `--progress-h` | 3px | 3px | |
 | `--spinner-size` / `--spinner-size-lg` | 16px / 24px | เหมือนกัน | |
 | `--loading-delay` | 150ms | 150ms | ใช้ใน CSS `animation-delay`/อ้างค่าใน JS; reduced-motion ไม่ต้องเป็น 0 (ยังหน่วงเพื่อกันกะพริบ) |
-ค่าคอนทราสต์ที่เขียนเป็นการประมาณจากค่า hex ที่มี ยังไม่ได้รันเครื่องมือวัด — qa/frontend ควรวัดจริงตอนมีภาพหน้าจอ
+เพิ่ม token ใน tokens.css และคู่วัดใน docs/design/tools/contrast.mjs แล้ว (ผลวัดจริง: progress/spinner บน bg 5.65 / 8.81, บน surface 5.99 / 7.97, บน skeleton 5.22 / 7.11; ink-muted บน skeleton 5.67 / 6.13)
