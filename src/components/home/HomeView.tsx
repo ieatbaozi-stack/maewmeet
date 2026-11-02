@@ -441,7 +441,7 @@ function NextCard({
               </button>
             ))}
           </div>
-          <p className="rsvp-hint" id="home-rsvp-hint">
+          <p className="rsvp-hint" id="home-rsvp-hint" data-testid="home-rsvp-hint">
             {t("appointments.rsvp.goingHint")}
           </p>
           {saving ? (
