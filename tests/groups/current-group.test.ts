@@ -52,7 +52,7 @@ describe('role × action — สมาชิกจริงเท่านั้
     expect(b.text).toBe(c.text);
   });
 
-  it('super admin ที่ไม่ใช่สมาชิก → ปฏิเสธ (403 FORBIDDEN ตามกฎ member.setOwnAppearance) · ไม่มี Set-Cookie', async () => {
+  it('super admin ที่ไม่ใช่สมาชิก → ปฏิเสธ (403 FORBIDDEN ตามกฎ member.setCurrentGroup) · ไม่มี Set-Cookie', async () => {
     const r = await put(boss.c, { gid });
     expect(r.status).toBe(403);
     expect(r.code).toBe('FORBIDDEN');
