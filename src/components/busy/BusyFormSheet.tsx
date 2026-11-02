@@ -4,19 +4,21 @@ import { useId, useRef, useState, useSyncExternalStore, type FormEvent } from "r
 import { useLocale, useTranslations } from "next-intl";
 import { callApi } from "@/components/auth/api";
 import { Cat } from "@/components/brand";
-import { whenRef, type OwnBusy } from "@/components/calendar/model";
+import { whenPartsOfOwn, whenRef, type OwnBusy } from "@/components/calendar/model";
 import { ConfirmDialog } from "@/components/groups/ConfirmDialog";
 import { failureRef } from "@/components/groups/errors";
 import { Icon } from "@/components/icons/Icon";
-import { Name } from "@/components/Name";
+import { Name, withNames } from "@/components/Name";
 import { Sheet } from "@/components/shell/Sheet";
 import type { CalendarLocale, DateISO } from "@/lib/calendar";
 import { DateRangePicker } from "./DateRangePicker";
+import { candidateOf, findOverlaps, limitOverlaps, listQueryFor } from "./overlap-model";
 import {
   NOTE_MAX,
   TIME_OPTIONS,
   TITLE_MAX,
   buildPayload,
+  type BusyPayload,
   durationRef,
   kindChangePatch,
   formStateOfOwn,
@@ -32,6 +34,7 @@ import {
   type FormProblem,
 } from "./form-model";
 import { hasSeenNotice, markNoticeSeen, subscribeNotice } from "./notice";
+import { BusyButton } from "@/components/shell/BusyButton";
 
 export type BusyDone = "created" | "updated" | "deleted" | "gone";
 
@@ -81,6 +84,8 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // R6E E11: ทับ busy เดิมของตัวเอง → dialog ถามก่อนบันทึก (ไม่บล็อก)
+  const [overlap, setOverlap] = useState<{ payload: BusyPayload; items: OwnBusy[] } | null>(null);
 
   // ประกาศครั้งแรก: SSR/ก่อนอ่าน storage ถือว่า "เห็นแล้ว" (ไม่กระพริบ) · ใช้เฉพาะตอนลงใหม่
   const seen = useSyncExternalStore(
@@ -139,9 +144,35 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
     }
     setSaving(true);
     setProblems(NO_PROBLEMS);
+    // R6E E11: เช็กว่าทับ busy เดิมของฉันไหม — โหลดเช็กไม่สำเร็จ = บันทึกตามเดิม ไม่บล็อก
+    const hits = await findOwnOverlaps(built.payload);
+    if (hits.length > 0) {
+      setSaving(false);
+      setOverlap({ payload: built.payload, items: hits });
+      return;
+    }
+    await save(built.payload);
+  }
+
+  async function findOwnOverlaps(payload: BusyPayload): Promise<OwnBusy[]> {
+    try {
+      const c = candidateOf(payload);
+      if (!c) return [];
+      const res = await callApi<{ busy: OwnBusy[]; truncated?: boolean }>(`/api/me/busy${listQueryFor(c)}`, { method: "GET" });
+      if (!res.ok || !Array.isArray(res.data?.busy)) return [];
+      return findOverlaps(c, res.data.busy, edit ? edit.id : null);
+    } catch {
+      return [];
+    }
+  }
+
+  /** บันทึกจริง (สร้าง/แก้) — ใช้ทั้งทางปกติและหลังยืนยัน "ลงซ้ำ" */
+  async function save(payload: BusyPayload) {
+    setSaving(true);
+    setProblems(NO_PROBLEMS);
     const res = edit
-      ? await callApi(`/api/me/busy/${edit.id}`, { method: "PATCH", body: built.payload })
-      : await callApi("/api/me/busy", { method: "POST", body: built.payload });
+      ? await callApi(`/api/me/busy/${edit.id}`, { method: "PATCH", body: payload })
+      : await callApi("/api/me/busy", { method: "POST", body: payload });
     setSaving(false);
     if (res.ok) {
       onDone(edit ? "updated" : "created");
@@ -199,9 +230,7 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
                 {groupCount > 0 ? <small>{groupsLine}</small> : null}
               </span>
             </p>
-            <button type="submit" form={formId} className="btn btn-primary btn-block" disabled={saving} data-testid="busy-submit">
-              {saving ? t("busy.form.saving") : t("busy.form.submit")}
-            </button>
+            <BusyButton type="submit" form={formId} className="btn btn-primary btn-block" busy={saving} data-testid="busy-submit" busyLabel={t("busy.form.saving")} label={t("busy.form.submit")} />
           </>
         }
       >
@@ -425,6 +454,23 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
         </form>
       </Sheet>
 
+      {overlap ? (
+        <OverlapDialog
+          items={overlap.items}
+          locale={locale}
+          onBack={() => {
+            setOverlap(null);
+            // กลับไปแก้: โฟกัสกลับที่ปุ่มบันทึก (ปุ่มถูก disabled ระหว่างเช็ก โฟกัสเดิมหลุดไปแล้ว)
+            setTimeout(() => document.querySelector<HTMLElement>('[data-testid="busy-submit"]')?.focus(), 0);
+          }}
+          onConfirm={() => {
+            const p = overlap.payload;
+            setOverlap(null);
+            void save(p);
+          }}
+        />
+      ) : null}
+
       {confirmDelete && edit ? (
         <ConfirmDialog
           title={t("busy.delete.title")}
@@ -450,6 +496,48 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
         </ConfirmDialog>
       ) : null}
     </>
+  );
+}
+
+/** dialog "ลงซ้ำไหม" (R6E E11) — Sheet แบบ alert เดิมของแอป · โฟกัสเริ่มที่ "กลับไปแก้" · Esc/scrim/X = กลับไปแก้ (ไม่บันทึก) */
+function OverlapDialog({ items, locale, onBack, onConfirm }: { items: OwnBusy[]; locale: CalendarLocale; onBack: () => void; onConfirm: () => void }) {
+  const t = useTranslations();
+  const backRef = useRef<HTMLButtonElement>(null);
+  const { shown, more } = limitOverlaps(items);
+  return (
+    <Sheet
+      alert
+      title={t("busy.form.overlap.title")}
+      onClose={onBack}
+      initialFocusRef={backRef}
+      footer={
+        <>
+          <button ref={backRef} type="button" className="btn btn-secondary btn-block" data-testid="busy-overlap-back" onClick={onBack}>
+            {t("busy.form.overlap.back")}
+          </button>
+          <button type="button" className="btn btn-primary btn-block" data-testid="busy-overlap-confirm" onClick={onConfirm}>
+            {t("busy.form.overlap.confirm")}
+          </button>
+        </>
+      }
+    >
+      <div data-testid="busy-overlap">
+        <p>{t("busy.form.overlap.body")}</p>
+        <ul className="busy-overlap-list" aria-label={t("busy.form.overlap.listAria")} data-testid="busy-overlap-list">
+          {shown.map((b) => {
+            const w = whenRef(whenPartsOfOwn(b), locale);
+            const time = t(w.key, w.values);
+            return (
+              <li key={b.id} data-testid="busy-overlap-item">
+                <Icon name="clock" size="sm" />
+                <span>{b.title ? withNames((n) => t("busy.form.overlap.item", { title: n.title, time }), { title: b.title }) : t("busy.form.overlap.itemPlain", { time })}</span>
+              </li>
+            );
+          })}
+        </ul>
+        {more ? <p className="busy-overlap-more small muted" data-testid="busy-overlap-more">{t("busy.form.overlap.more")}</p> : null}
+      </div>
+    </Sheet>
   );
 }
 
