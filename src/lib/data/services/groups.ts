@@ -21,7 +21,7 @@ import { authorize } from '@/lib/rbac/can';
 import type { Actor, GroupCtx } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
-import { GROUP_LIMITS, MEMBER_APPEARANCE_RATE_LIMIT } from '@/lib/shared/limits';
+import { GROUP_DEFAULT_MIN_FREE_MINUTES, GROUP_LIMITS, MEMBER_APPEARANCE_RATE_LIMIT } from '@/lib/shared/limits';
 import { APPEARANCE_SLOT_MAX, APPEARANCE_SLOT_MIN } from '@/lib/shared/member-color';
 import { takeUserSlot } from '../admin-input';
 import type { DbOrTx } from '@/db/client';
@@ -100,7 +100,11 @@ export async function createGroup(actor: Actor, input: CreateGroupInput, ctx: Da
   const id = newId();
   const { now } = ctx;
   await inTx(ctx.db, async (tx) => {
-    const created = await insertGroupIfUnderCap(tx, { id, name, createdBy: me.id, cap: GROUP_LIMITS.groupsCreatedPerUser }, now);
+    const created = await insertGroupIfUnderCap(
+      tx,
+      { id, name, createdBy: me.id, cap: GROUP_LIMITS.groupsCreatedPerUser, minFreeMinutes: GROUP_DEFAULT_MIN_FREE_MINUTES }, // R7 G1
+      now,
+    );
     if (!created) throw new AppError('LIMIT_REACHED', { limit: 'groups', max: GROUP_LIMITS.groupsCreatedPerUser });
     await insertAdminMember(tx, id, me.id, now); // กลุ่มละ 1 admin — group_one_admin_uq กันซ้ำระดับ DB
     await audit(tx, me, allow, { action: 'group.create', targetType: 'group', targetId: id, groupId: id }, now);

@@ -3,6 +3,7 @@
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { groupMember, groups } from '@/db/schema';
 import type { DbOrTx } from '@/db/client';
+import { GROUP_DEFAULT_MIN_FREE_MINUTES } from '@/lib/shared/limits';
 import { actorGuardClause, type ActorGuard } from './group-member';
 
 export type GroupRow = typeof groups.$inferSelect;
@@ -15,15 +16,19 @@ export type GroupPatch = {
   minFreeMinutes?: number;
 };
 
-/** สร้างกลุ่มถ้าผู้สร้างยังมีกลุ่มที่สร้าง (และยังไม่ลบ) น้อยกว่า `cap` — คำสั่งเดียวอะตอมมิก · คืน false = เต็มเพดาน */
+/**
+ * สร้างกลุ่มถ้าผู้สร้างยังมีกลุ่มที่สร้าง (และยังไม่ลบ) น้อยกว่า `cap` — คำสั่งเดียวอะตอมมิก · คืน false = เต็มเพดาน
+ * minFreeMinutes: ไม่ส่ง = GROUP_DEFAULT_MIN_FREE_MINUTES (R7 G1 — ไม่พึ่ง DB default 120) · หน้าต่าง 08:00–22:00 ใช้ DB default
+ */
 export async function insertGroupIfUnderCap(
   db: DbOrTx,
-  input: { id: string; name: string; createdBy: string; cap: number },
+  input: { id: string; name: string; createdBy: string; cap: number; minFreeMinutes?: number },
   now: number,
 ): Promise<boolean> {
+  const minFree = input.minFreeMinutes ?? GROUP_DEFAULT_MIN_FREE_MINUTES;
   const rows = await db.all<{ id: string }>(sql`
-    INSERT INTO groups (id, name, created_by, created_at, updated_at)
-    SELECT ${input.id}, ${input.name}, ${input.createdBy}, ${now}, ${now}
+    INSERT INTO groups (id, name, min_free_minutes, created_by, created_at, updated_at)
+    SELECT ${input.id}, ${input.name}, ${minFree}, ${input.createdBy}, ${now}, ${now}
     WHERE (SELECT count(*) FROM groups WHERE created_by = ${input.createdBy} AND deleted_at IS NULL) < ${input.cap}
     RETURNING id`);
   return rows.length === 1;

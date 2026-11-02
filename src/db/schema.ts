@@ -80,6 +80,8 @@ export const groups = sqliteTable('groups', {
   tz: text('tz').notNull().default('Asia/Bangkok'),                   // ADR 0004 §4
   freeWindowStartMin: integer('free_window_start_min').notNull().default(480),   // 08:00
   freeWindowEndMin: integer('free_window_end_min').notNull().default(1320),      // 22:00
+  // R7 G1: ค่าที่กลุ่มใหม่ได้จริงมาจาก service (GROUP_DEFAULT_MIN_FREE_MINUTES = 240 ใน src/lib/shared/limits.ts) — default(120) คงไว้
+  // เพราะเปลี่ยน default ของ SQLite ต้อง rebuild ตาราง (ความเสี่ยงแบบ 0002) · ไม่มี migration: insert ของแอปส่งค่าเองทุกครั้ง
   minFreeMinutes: integer('min_free_minutes').notNull().default(120),
   createdBy: text('created_by').notNull().references(() => user.id),
   createdAt: ms('created_at').notNull(),
