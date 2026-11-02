@@ -5,8 +5,9 @@
 //  - เวลาทั้งหมดผ่าน src/lib/calendar (normalizeBusyInput แบบ timed ใน tz กลุ่ม · todayIn/daysUntil) — ไม่คำนวณวันเอง
 //  - สร้างนัด: notify(tx) 'appointment.created' ถึงสมาชิกทุกคนยกเว้นผู้สร้าง ใน transaction เดียวกัน (ล้ม → นัด rollback)
 //  - เตือนนัดทับ: busy ของสมาชิกปัจจุบันผ่านคิวรีฝั่งแชร์ + serializer เดียวกับปฏิทิน/วันว่าง (ไม่มี note · รายการซ่อนไม่มี title) · ไม่บล็อกการสร้าง/แก้
+//  - R6D (ADR 0009): busy รวมนัดที่ตอบ "ไป" จากทุกกลุ่ม (ตัดนัดตัวเองออก) · myConflicts ของ session user ในรายละเอียด · myConflict ในรายการ
 import { z } from 'zod';
-import { membersBlockedDuring, normalizeBusyInput, type BusyInputError } from '@/lib/calendar';
+import { membersBlockedDuring, normalizeBusyInput, overlapsRange, type BusyInputError } from '@/lib/calendar';
 import { findGroupById } from '@/lib/data/repos/group';
 import { listMemberIds, listMembers } from '@/lib/data/repos/group-member';
 import {
@@ -20,6 +21,7 @@ import {
   listGroupAppointmentRows,
   listMyUpcomingAppointmentRows,
   memberCountsByGroup,
+  myCommitmentsOverlapping,
   updateAppointmentGuarded,
   upsertRsvpIfOpen,
   type AppointmentCursor,
@@ -28,7 +30,6 @@ import {
   type AppointmentScope,
   type AppointmentWrite,
 } from '@/lib/data/repos/appointment';
-import { listSharedBusyInGroup, type SharedBusyRow } from '@/lib/data/repos/busy';
 import { rateKey, type RateSpec } from '@/lib/auth/throttle';
 import { refundBucket, reserveBucket } from '@/lib/data/repos/rate-limit-bucket';
 import { authorize, can } from '@/lib/rbac/can';
@@ -46,7 +47,8 @@ import {
   APPOINTMENT_MAX_SPAN_DAYS,
   APPOINTMENT_PLACE_NAME_MAX,
   APPOINTMENT_TITLE_MAX,
-  CALENDAR_MAX_ITEMS,
+  APPOINTMENT_MY_CONFLICTS_MAX,
+  APPOINTMENT_LIST_CONFLICT_SCAN_MAX,
 } from '@/lib/shared/limits';
 import { parseMapUrl } from '@/lib/shared/location-parse';
 import { memberAppearance } from '@/lib/shared/member-color';
@@ -60,9 +62,12 @@ import {
   type AppointmentDetailDto,
   type AppointmentDto,
   type MemberLook,
+  type MyConflictsDto,
   type OverlapDto,
+  NO_CONFLICTS,
+  toMyConflictDto,
 } from '../serializers/appointments';
-import { compareBusyRows, toBusyForViewers } from '../serializers/busy';
+import { loadMemberBusy, type MemberBusyItem } from './member-busy';
 import { inTx, serialized } from '../tx';
 import { asUser, audit, auditRead } from './group-common';
 import { AVAILABILITY_FETCH_MARGIN_MS } from './availability';
@@ -95,8 +100,11 @@ export const createAppointmentInputSchema = z
   .strict();
 export type CreateAppointmentInput = z.output<typeof createAppointmentInputSchema>;
 
-/** ตรวจนัดทับล่วงหน้า (ไม่เขียน) — ต้องการแค่ช่วงเวลา */
-export const checkAppointmentInputSchema = z.object(scheduleShape).strict();
+/**
+ * ตรวจนัดทับล่วงหน้า (ไม่เขียน) — ต้องการแค่ช่วงเวลา
+ * appointmentId? (R6D, ADR 0009 §4): ฟอร์มแก้นัดส่ง id นัดเดิม → ไม่นับคำตอบ "ไป" ของนัดนั้นเอง · ผูกกลุ่ม :gid ใน SQL (id นัดกลุ่มอื่นไม่มีผล)
+ */
+export const checkAppointmentInputSchema = z.object({ ...scheduleShape, appointmentId: idField.optional() }).strict();
 export type CheckAppointmentInput = z.output<typeof checkAppointmentInputSchema>;
 
 const SCHEDULE_KEYS = ['startDate', 'startTime', 'endDate', 'endTime'] as const;
@@ -133,7 +141,8 @@ export const listAppointmentsQuerySchema = z
   .strict();
 export type ListAppointmentsQuery = z.output<typeof listAppointmentsQuerySchema>;
 
-export const myAppointmentsQuerySchema = z.object({ limit: z.string().max(8).optional() }).strict();
+/** rsvp=going (R6D แท็บ "ของฉัน"): เฉพาะนัดที่ฉันตอบ "ไป" · ค่าอื่น → VALIDATION fields.rsvp INVALID (ตรวจใน service) */
+export const myAppointmentsQuerySchema = z.object({ limit: z.string().max(8).optional(), rsvp: z.string().max(16).optional() }).strict();
 export type MyAppointmentsQuery = z.output<typeof myAppointmentsQuerySchema>;
 
 // ───────── parsing / validation (หลัง authorize) ─────────
@@ -260,7 +269,31 @@ async function appointmentFor(actor: Actor, id: string, ctx: DataCtx): Promise<A
 
 type Reader = Parameters<typeof listMembers>[0];
 
-/** DTO รายการ (หลายกลุ่มได้) — จำนวน RSVP + ของฉัน · ไม่มีรายชื่อ */
+/**
+ * myConflict ของการ์ดในรายการ (main ตัดสิน (ข)): นัด active ที่ฉันตอบ going และทับนัด going อื่นของฉัน/busy ของฉัน (ชนขอบไม่นับ)
+ * ไม่มีนัดที่ฉันตอบ going ในหน้านี้ → 0 query · มี → +1 query (คำมั่นของฉันในช่วงรวมของนัดเหล่านั้น เพดาน APPOINTMENT_LIST_CONFLICT_SCAN_MAX)
+ */
+async function listConflictFlags(
+  db: Reader,
+  viewerId: string,
+  rows: AppointmentRow[],
+  rsvps: readonly { appointmentId: string; userId: string; response: string }[],
+): Promise<Set<string>> {
+  const goingIds = new Set(rsvps.filter((r) => r.userId === viewerId && r.response === 'going').map((r) => r.appointmentId));
+  const mine = rows.filter((r) => r.status === 'active' && goingIds.has(r.id));
+  const flagged = new Set<string>();
+  if (mine.length === 0) return flagged;
+  const from = Math.min(...mine.map((r) => r.startAt));
+  const to = Math.max(...mine.map((r) => r.endAt));
+  const commitments = await myCommitmentsOverlapping(db, viewerId, from, to, null, APPOINTMENT_LIST_CONFLICT_SCAN_MAX);
+  for (const r of mine) {
+    const hit = commitments.some((c) => !(c.kind === 'appointment' && c.id === r.id) && overlapsRange(c.startAt, c.endAt, r.startAt, r.endAt));
+    if (hit) flagged.add(r.id);
+  }
+  return flagged;
+}
+
+/** DTO รายการ (หลายกลุ่มได้) — จำนวน RSVP + ของฉัน · ไม่มีรายชื่อ · myConflict ของผู้ขอ */
 async function toListDtos(db: Reader, viewerId: string, now: number, rows: AppointmentRow[]): Promise<AppointmentDto[]> {
   if (rows.length === 0) return [];
   const groupIds = [...new Set(rows.map((r) => r.groupId))];
@@ -277,21 +310,49 @@ async function toListDtos(db: Reader, viewerId: string, now: number, rows: Appoi
     g.set(m.userId, m);
     byGroup.set(m.groupId, g);
   }
+  const conflicts = await listConflictFlags(db, viewerId, rows, rsvps);
   return rows.map((r) =>
-    toAppointmentDto(r, {
-      viewerId,
-      now,
-      groupName: names.get(r.groupId) ?? '',
-      members: byGroup.get(r.groupId) ?? new Map(),
-      memberCount: counts.get(r.groupId) ?? 0,
-      rsvps,
-    }),
+    toAppointmentDto(
+      r,
+      {
+        viewerId,
+        now,
+        groupName: names.get(r.groupId) ?? '',
+        members: byGroup.get(r.groupId) ?? new Map(),
+        memberCount: counts.get(r.groupId) ?? 0,
+        rsvps,
+      },
+      conflicts.has(r.id),
+    ),
   );
 }
 
-/** DTO รายละเอียด — รายชื่อ RSVP + สิทธิ์ของผู้ดู */
-async function toDetailDto(db: Reader, actor: UserActor, now: number, row: AppointmentRow, group: GroupCtx, groupName: string): Promise<AppointmentDetailDto> {
-  const [members, rsvps] = await Promise.all([listMembers(db, row.groupId), listCurrentRsvps(db, [row.id])]);
+/**
+ * R6D (ADR 0009 §3): นัด going อื่นของฉัน (ทุกกลุ่ม) + busy ของฉัน ที่ทับนัดนี้ — ของ session user เท่านั้น · 1 query (UNION ALL)
+ * นัดยกเลิก/จบแล้ว หรือผู้ดูไม่ใช่สมาชิก (super admin นอกกลุ่ม) → [] โดยไม่แตะ DB · กรองซ้ำด้วย overlapsRange (ครึ่งเปิด) · ≤ 5 + truncated
+ */
+async function myConflictsFor(db: Reader, me: UserActor, now: number, row: AppointmentRow, group: GroupCtx): Promise<MyConflictsDto> {
+  if (row.status !== 'active' || row.endAt <= now || group.actorRole === null) return NO_CONFLICTS;
+  const rows = await myCommitmentsOverlapping(db, me.id, row.startAt, row.endAt, row.id, APPOINTMENT_MY_CONFLICTS_MAX + 1);
+  const hits = rows.filter((c) => !(c.kind === 'appointment' && c.id === row.id) && overlapsRange(c.startAt, c.endAt, row.startAt, row.endAt));
+  return { myConflicts: hits.slice(0, APPOINTMENT_MY_CONFLICTS_MAX).map(toMyConflictDto), myConflictsTruncated: hits.length > APPOINTMENT_MY_CONFLICTS_MAX };
+}
+
+/** DTO รายละเอียด — รายชื่อ RSVP + สิทธิ์ของผู้ดู · withConflicts = คำนวณ myConflicts (เฉพาะ getAppointment / setRsvp — ADR 0009 §3) */
+async function toDetailDto(
+  db: Reader,
+  actor: UserActor,
+  now: number,
+  row: AppointmentRow,
+  group: GroupCtx,
+  groupName: string,
+  withConflicts = false,
+): Promise<AppointmentDetailDto> {
+  const [members, rsvps, conflicts] = await Promise.all([
+    listMembers(db, row.groupId),
+    listCurrentRsvps(db, [row.id]),
+    withConflicts ? myConflictsFor(db, actor, now, row, group) : Promise.resolve(NO_CONFLICTS),
+  ]);
   const res = { type: 'appointment', group, createdBy: row.createdBy } as const;
   const open = row.status === 'active' && row.endAt > now;
   return toAppointmentDetailDto(
@@ -302,19 +363,24 @@ async function toDetailDto(db: Reader, actor: UserActor, now: number, row: Appoi
       canCancel: open && can(actor, 'appointment.cancel', res).allow,
       canRsvp: open && can(actor, 'appointment.rsvp', res).allow,
     },
+    conflicts,
   );
 }
 
 /**
  * U10.1 (ADR 0005 §4 · ADR 0006 §3): สมาชิกปัจจุบันที่ busy ทับ [startAt, endAt) — ไม่บล็อก
- * busy มาจากคิวรีฝั่งแชร์ตัวเดียวกับปฏิทิน/วันว่าง (ไม่ SELECT note · title ซ่อนตัดใน SQL) และออกผ่าน toBusyForViewers · ดึงช่วงขยาย 26 ชม. (busy ทั้งวันเก็บเที่ยงคืนใน tz เจ้าของ)
- * ถูกตัดที่ CALENDAR_MAX_ITEMS → status 'unknown' (ห้ามสรุปว่าไม่มีใครติด)
+ * busy มาจากคิวรีฝั่งแชร์ตัวเดียวกับปฏิทิน/วันว่าง (ไม่ SELECT note · title ซ่อนตัดใน SQL) และออกผ่าน serializer busy · ดึงช่วงขยาย 26 ชม. (busy ทั้งวันเก็บเที่ยงคืนใน tz เจ้าของ)
+ * R6D (ADR 0009 §4): รวมนัดที่สมาชิกตอบ "ไป" (ทุกกลุ่ม) · excludeAppointmentId = นัดที่กำลังสร้าง/แก้/ตรวจ (ไม่เตือนว่าชนนัดตัวเอง)
+ * busy หรือ going ถูกตัดที่ CALENDAR_MAX_ITEMS → status 'unknown' (ห้ามสรุปว่าไม่มีใครติด)
  */
-async function computeOverlap(db: Reader, groupId: string, tz: string, startAt: number, endAt: number): Promise<OverlapDto> {
-  const members = await listMembers(db, groupId);
-  const { rows, truncated } = await listSharedBusyInGroup(db, groupId, startAt - AVAILABILITY_FETCH_MARGIN_MS, endAt + AVAILABILITY_FETCH_MARGIN_MS, CALENDAR_MAX_ITEMS);
-  const byId = new Map<string, SharedBusyRow>(rows.map((r) => [r.id, r]));
-  const hits = membersBlockedDuring(startAt, endAt, tz, members.map((m) => m.userId), rows);
+async function computeOverlap(db: Reader, groupId: string, tz: string, startAt: number, endAt: number, excludeAppointmentId?: string): Promise<OverlapDto> {
+  const [members, { items, truncated }] = await Promise.all([
+    listMembers(db, groupId),
+    loadMemberBusy(db, groupId, tz, startAt - AVAILABILITY_FETCH_MARGIN_MS, endAt + AVAILABILITY_FETCH_MARGIN_MS, excludeAppointmentId),
+  ]);
+  const byKey = new Map<string, MemberBusyItem>(items.map((i) => [i.key, i]));
+  const order = new Map<string, number>(items.map((i, n) => [i.key, n])); // items เรียงตาม compareBusyViews แล้ว
+  const hits = membersBlockedDuring(startAt, endAt, tz, members.map((m) => m.userId), items.map((i) => i.input));
   const byMember = new Map(members.map((m) => [m.userId, m]));
   return {
     status: truncated ? 'unknown' : 'ok',
@@ -323,9 +389,9 @@ async function computeOverlap(db: Reader, groupId: string, tz: string, startAt: 
       displayName: sanitizeDisplayText(byMember.get(h.userId)?.displayName ?? ''),
       ...memberAppearance(groupId, h.userId, byMember.get(h.userId)),
       items: h.blocks
-        .map((b) => byId.get(b.id)!)
-        .sort(compareBusyRows)
-        .map(toBusyForViewers),
+        .map((b) => b.id)
+        .sort((a, b) => order.get(a)! - order.get(b)!)
+        .map((k) => byKey.get(k)!.view),
     })),
   };
 }
@@ -333,7 +399,7 @@ async function computeOverlap(db: Reader, groupId: string, tz: string, startAt: 
 /** เตือนนัดทับเป็นของแถม: คำนวณล้ม (ไม่ควรเกิด) ต้องไม่ทำให้คำตอบของการสร้าง/แก้ที่สำเร็จไปแล้วล้ม → unknown */
 async function overlapOrUnknown(db: Reader, row: AppointmentRow): Promise<OverlapDto> {
   try {
-    return await computeOverlap(db, row.groupId, row.tz, row.startAt, row.endAt);
+    return await computeOverlap(db, row.groupId, row.tz, row.startAt, row.endAt, row.id);
   } catch {
     return { status: 'unknown', blocked: [] };
   }
@@ -434,7 +500,7 @@ export async function checkAppointmentOverlap(actor: Actor, groupId: string, inp
   const groupRow = await findGroupById(db, groupId);
   if (!groupRow || groupRow.deletedAt !== null) throw new AppError('NOT_FOUND');
   const s = scheduleOf(input, groupRow.tz, now);
-  const overlap = await computeOverlap(db, groupId, s.tz, s.startAt, s.endAt);
+  const overlap = await computeOverlap(db, groupId, s.tz, s.startAt, s.endAt, input.appointmentId);
   await auditRead(db, me, allow, { action: 'appointment.check', targetType: 'group', targetId: groupId, groupId }, now);
   return { overlap };
 }
@@ -467,16 +533,17 @@ export async function getAppointment(actor: Actor, id: string, ctx: DataCtx): Pr
   const row = c.appointment!;
   const { db, now } = ctx;
   await auditRead(db, me, allow, { action: 'appointment.view', targetType: 'appointment', targetId: id, groupId: row.groupId }, now);
-  return { appointment: await toDetailDto(db, me, now, row, c.group, c.groupName) };
+  return { appointment: await toDetailDto(db, me, now, row, c.group, c.groupName, true) };
 }
 
-/** U11: นัด active ที่ยังไม่จบ ข้ามทุกกลุ่มของฉัน เรียงเริ่มเร็วสุดก่อน (ไม่รวมนัดที่ยกเลิก/ผ่านแล้ว/กลุ่มที่ลบ) */
+/** U11: นัด active ที่ยังไม่จบ ข้ามทุกกลุ่มของฉัน เรียงเริ่มเร็วสุดก่อน (ไม่รวมนัดที่ยกเลิก/ผ่านแล้ว/กลุ่มที่ลบ) · rsvp=going → เฉพาะที่ฉันตอบ "ไป" (R6D) */
 export async function listMyAppointments(actor: Actor, query: MyAppointmentsQuery, ctx: DataCtx): Promise<{ appointments: AppointmentDto[] }> {
   authorize(actor, 'appointment.list.mine', { type: 'none' });
   const me = asUser(actor);
   const { db, now } = ctx;
   const limit = parseLimit(query.limit, APPOINTMENT_LIST_DEFAULT, APPOINTMENT_LIST_MAX);
-  const rows = await listMyUpcomingAppointmentRows(db, me.id, now, limit);
+  if (query.rsvp !== undefined && query.rsvp !== 'going') throw new AppError('VALIDATION', { fields: { rsvp: 'INVALID' } });
+  const rows = await listMyUpcomingAppointmentRows(db, me.id, now, limit, { onlyGoing: query.rsvp === 'going' });
   return { appointments: await toListDtos(db, me.id, now, rows) };
 }
 
@@ -546,7 +613,7 @@ export async function setRsvp(actor: Actor, id: string, input: RsvpInput, ctx: D
   // อ่านนัดใหม่แล้วประกอบ DTO ให้เห็นผลล่าสุดรวมคำตอบของคนอื่นที่เพิ่งเข้ามา
   const fresh = await loadAppointmentCtx(db, me, id);
   if (!fresh.appointment) throw new AppError('NOT_FOUND');
-  return { appointment: await toDetailDto(db, me, now, fresh.appointment, fresh.group, fresh.groupName) };
+  return { appointment: await toDetailDto(db, me, now, fresh.appointment, fresh.group, fresh.groupName, true) };
 }
 
 async function whyRsvpRejected(db: Reader, actor: UserActor, id: string, now: number): Promise<AppError> {

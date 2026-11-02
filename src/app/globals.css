@@ -282,6 +282,8 @@
   .alert span { display: block; }
   .tag { display: inline-flex; align-items: center; gap: var(--space-1); padding: 0 var(--space-2); border-radius: var(--radius-sm); font-size: var(--text-xs); font-weight: var(--weight-medium); line-height: var(--leading); white-space: nowrap; }
   .tag-wait { background: var(--event); color: var(--event-ink); }
+  /* R6D: ป้าย "ชนกับนัดอื่น" — เตือน ไม่ใช่ error (ไอคอนเตือนอยู่ข้างข้อความเสมอ) */
+  .tag-warn { background: var(--warn); color: var(--warn-ink); white-space: normal; }
 
   .login-hero-compact { padding: var(--space-4) 0; }
   .login-hero-compact .logo { display: block; height: var(--space-7); }

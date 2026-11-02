@@ -18,7 +18,8 @@ import type { AppointmentDetailDto, PersonDto } from "@/lib/data/serializers/app
 import { callApiFull } from "./api";
 import { AppointmentFormSheet } from "./AppointmentFormSheet";
 import { ANSWER_ICON, RsvpControl } from "./RsvpControl";
-import { actionFailureRef, appointmentWhen, applyRsvp, apptPhase, coordsText, rsvpClosedReason, type Rsvp } from "./model";
+import { RsvpConfirm } from "./RsvpConfirm";
+import { actionFailureRef, appointmentWhen, applyRsvp, apptPhase, coordsText, rsvpClosedReason, rsvpConfirmKind, showConflictBadge, type Rsvp } from "./model";
 
 /** ยกเลิกนัดตอนนี้ยังไม่ส่งแจ้งเตือน (ADR 0007 v1 มีแค่ appointment.created) — ข้อความใน dialog จึงบอกว่า "ไม่แจ้ง" */
 export const CANCEL_NOTIFIES = false;
@@ -45,6 +46,9 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const keepRef = useRef<HTMLButtonElement>(null);
+  // R6D: popup ยืนยัน RSVP (to = เป็น "ไป" · from = เปลี่ยนจาก "ไป")
+  const [confirm, setConfirm] = useState<{ direction: "to" | "from"; prev: Rsvp | null; next: Rsvp } | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
 
   const phase = apptPhase(a, nowMs);
   const cancelled = a.status === "cancelled";
@@ -69,7 +73,9 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
     const res = await callApiFull<{ appointment: AppointmentDetailDto }>(`/api/appointments/${a.id}/rsvp`, { method: "PUT", body: { response: next } });
     setSaving(false);
     if (res.ok) {
-      setA(res.data.appointment);
+      // PUT rsvp คืน myConflicts ที่คำนวณใหม่ (ADR 0009 §3) — ถ้าไม่มีมาให้คงค่าเดิม ไม่ทับด้วย []
+      const got = res.data.appointment;
+      setA({ ...got, myConflicts: got.myConflicts ?? before.myConflicts, myConflictsTruncated: got.myConflictsTruncated ?? before.myConflictsTruncated });
       setSaved(next);
       return;
     }
@@ -82,6 +88,32 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
     const fr = actionFailureRef(res, "appointments.rsvp.error");
     setRsvpError(t(fr.key, fr.values));
     setA(restored);
+  }
+
+  /** เลือกคำตอบจากปุ่ม: เป็น "ไป" / จาก "ไป" ต้องยืนยันก่อน · สลับ maybe↔not_going หรือตอบครั้งแรกเป็นสองอย่างนี้ = บันทึกเลย */
+  function onPick(next: Rsvp) {
+    if (saving || closed !== null || a.rsvp.mine === next) return;
+    const direction = rsvpConfirmKind(a.rsvp.mine, next);
+    if (direction === null) {
+      void pick(next);
+      return;
+    }
+    setRsvpError(null);
+    setConfirm({ direction, prev: a.rsvp.mine, next });
+  }
+
+  async function onConfirm() {
+    if (!confirm || confirmBusy) return;
+    setConfirmBusy(true);
+    await pick(confirm.next);
+    setConfirmBusy(false);
+    setConfirm(null);
+  }
+
+  /** แก้นัดแล้ว: response ของ PATCH ไม่มี myConflicts (ได้ []) → โหลดรายละเอียดใหม่เพื่อให้ป้ายชนตรงกับเวลาใหม่ (ล้มเหลว = คงค่าเดิม) */
+  async function reloadConflicts() {
+    const res = await callApiFull<{ appointment: AppointmentDetailDto }>(`/api/appointments/${a.id}`, { method: "GET" });
+    if (res.ok) setA((cur) => ({ ...cur, myConflicts: res.data.appointment.myConflicts, myConflictsTruncated: res.data.appointment.myConflictsTruncated }));
   }
 
   async function doCancel() {
@@ -149,6 +181,14 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
             <h2 className={cancelled ? "appt-title is-cancelled" : "appt-title"} id={`${uid}-t`} data-testid="appt-detail-title">
               <Name>{a.title}</Name>
             </h2>
+            {showConflictBadge(a) ? (
+              <p className="appt-conflict">
+                <span className="tag tag-warn" data-testid="appt-conflict-badge">
+                  <Icon name="triangle-alert" size="sm" />
+                  <span>{t("appointments.conflictBadge")}</span>
+                </span>
+              </p>
+            ) : null}
             <ul className="appt-facts">
               <li className="appt-fact">
                 <Icon name="clock" />
@@ -191,7 +231,7 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
         {!cancelled ? (
           <section className="appt-section" aria-labelledby={`${uid}-rv`} data-testid="appt-rsvp-section">
             <h2 id={`${uid}-rv`}>{t("appointments.rsvp.question")}</h2>
-            <RsvpControl value={a.rsvp.mine} closed={closed} saving={saving} error={rsvpError} saved={saved} labelledBy={`${uid}-rv`} onPick={(r) => void pick(r)} />
+            <RsvpControl value={a.rsvp.mine} closed={closed} saving={saving} error={rsvpError} saved={saved} labelledBy={`${uid}-rv`} onPick={onPick} />
             <div className="appt-who" style={{ borderTop: 0, paddingTop: 0 }}>
               <p className="rsvp-counts" data-testid="appt-rsvp-counts">
                 <Count answer="going" label={t("appointments.rsvp.summary.going", { count: c.going })} />
@@ -282,10 +322,26 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
           userId={me.userId}
           onClose={() => setEditing(false)}
           onSaved={(next) => {
-            setA(next);
+            // PATCH ไม่คืน myConflicts → คงค่าเดิมไว้ก่อนแล้วโหลดใหม่ (ไม่ทับด้วย [])
+            setA({ ...next, myConflicts: a.myConflicts, myConflictsTruncated: a.myConflictsTruncated });
             setEditing(false);
+            void reloadConflicts();
           }}
           onGone={() => router.replace("/")}
+        />
+      ) : null}
+
+      {confirm ? (
+        <RsvpConfirm
+          direction={confirm.direction}
+          prev={confirm.prev}
+          next={confirm.next}
+          conflicts={a.myConflicts}
+          truncated={a.myConflictsTruncated}
+          groupId={a.groupId}
+          saving={confirmBusy}
+          onConfirm={() => void onConfirm()}
+          onCancel={() => setConfirm(null)}
         />
       ) : null}
 

@@ -104,7 +104,8 @@ export function AppointmentFormSheet({ mode, groupId, groupName, memberCount, tz
   useEffect(() => {
     if (!scheduleKey || !s.date || !end) return;
     let cancelled = false;
-    const body = { startDate: s.date, startTime: s.startTime, endDate: end.endDate, endTime: s.endTime };
+    // แก้นัด: ส่ง appointmentId เพื่อไม่ให้ตรวจชนกับตัวเอง (ตอบ "ไป" ไว้แล้ว = busy ของตัวเอง)
+    const body = { startDate: s.date, startTime: s.startTime, endDate: end.endDate, endTime: s.endTime, ...(edit ? { appointmentId: edit.id } : {}) };
     const timer = setTimeout(async () => {
       const res = await callApiFull<{ overlap: OverlapDto }>(`/api/groups/${groupId}/appointments/check`, { method: "POST", body });
       if (cancelled) return;

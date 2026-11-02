@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { startTransition, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { callApi } from "@/components/auth/api";
+import { rememberGroup } from "./RememberGroup";
+import { GoingList } from "./GoingList";
 import { BusyFormSheet, type BusyDone } from "@/components/busy/BusyFormSheet";
 import { CreateAppointmentButton } from "@/components/appointments/CreateAppointmentButton";
 import { FreeView } from "@/components/availability/FreeView";
@@ -18,13 +20,14 @@ import { EmptyState } from "@/components/shell/EmptyState";
 import { DEFAULT_TZ, addDays, format, toLocal, todayIn, type CalendarLocale, type DateISO, type EpochMs } from "@/lib/calendar";
 import type { GroupAvailabilityDto } from "@/lib/data/services/availability";
 import type { GroupCalendarDto } from "@/lib/data/services/calendar";
+import type { AppointmentDto } from "@/lib/data/serializers/appointments";
 import { clock } from "@/lib/shared/clock";
 import { DayPanel } from "./DayPanel";
 import { GroupSwitchSheet, type GroupOption } from "./GroupSwitchSheet";
-import { MemberLegend, MonthGrid } from "./MonthGrid";
+import { KindLegend, MemberLegend, MonthGrid } from "./MonthGrid";
 import { MineList } from "./MineList";
 import { classifyDay, isSelectable, planFromDate, urlDayParam } from "@/components/availability/model";
-import { buildMonth, busyUsersByDate, fetchRange, monthStart, shiftMonth, spanOf, ymOf, type OwnBusy } from "./model";
+import { buildMonth, busyUsersByDate, fetchRange, monthStart, shiftMonth, spanOf, toSharedBusy, ymOf, type OwnBusy } from "./model";
 
 export type CalView = "month" | "free" | "day" | "mine";
 /** ลำดับปุ่ม (UX X34): เดือน | ว่างตรงกัน | วัน | ของฉัน */
@@ -57,7 +60,7 @@ export interface CalendarViewProps {
 
 type CalState = { key: string; nowMs: EpochMs; status: "ready"; data: GroupCalendarDto } | { key: string; nowMs: EpochMs; status: "error" | "gone" };
 type AvState = { key: string; nowMs: EpochMs; status: "ready"; data: GroupAvailabilityDto } | { key: string; nowMs: EpochMs; status: "error" | "gone" };
-type MineState = { key: string; nowMs: EpochMs; status: "ready"; items: OwnBusy[]; truncated: boolean } | { key: string; nowMs: EpochMs; status: "error" };
+type MineState = { key: string; nowMs: EpochMs; status: "ready"; items: OwnBusy[]; truncated: boolean; going: AppointmentDto[] | null } | { key: string; nowMs: EpochMs; status: "error" };
 type FormState = { edit: OwnBusy | null; today: DateISO; defaultDate: DateISO } | null;
 
 const WIDE = "(min-width: 48em)";
@@ -172,10 +175,18 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   useEffect(() => {
     if (view !== "mine" || mine?.key === mineKey) return;
     let live = true;
-    void callApi<{ busy: OwnBusy[]; truncated?: boolean }>("/api/me/busy", { method: "GET" }).then((res) => {
+    // R6D: นัดที่ตอบ "ไป" โหลดคู่กัน — ล้มเหลวเฉพาะส่วนนี้ (going: null) ไม่ทำให้รายการ busy หายไป
+    void Promise.all([
+      callApi<{ busy: OwnBusy[]; truncated?: boolean }>("/api/me/busy", { method: "GET" }),
+      callApi<{ appointments: AppointmentDto[] }>("/api/me/appointments?rsvp=going", { method: "GET" }),
+    ]).then(([res, going]) => {
       if (!live) return;
       const nowMs = clock.now();
-      setMine(res.ok ? { key: mineKey, nowMs, status: "ready", items: res.data.busy, truncated: res.data.truncated === true } : { key: mineKey, nowMs, status: "error" });
+      setMine(
+        res.ok
+          ? { key: mineKey, nowMs, status: "ready", items: res.data.busy, truncated: res.data.truncated === true, going: going.ok ? going.data.appointments : null }
+          : { key: mineKey, nowMs, status: "error" },
+      );
     });
     return () => {
       live = false;
@@ -197,10 +208,12 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   const loading = cal.key !== calKey;
   const ready = !loading && cal.status === "ready" ? cal.data : null;
   const avLoading = av === null || av.key !== avKey;
-  const avReady = !avLoading && av?.status === "ready" ? av.data : null;
+  const avReadyRaw = !avLoading && av?.status === "ready" ? av.data : null;
+  // R6D: busy[] มี kind — แปลงเป็นรูปเดิมให้ FreeView (ลำดับคงเดิม → itemIdx ยังชี้ถูก)
+  const avReady = useMemo(() => (avReadyRaw ? { ...avReadyRaw, busy: avReadyRaw.busy.map((b) => toSharedBusy(b, avReadyRaw.group.tz)) } : null), [avReadyRaw]);
   const groupTz = ready?.group.tz ?? tz;
   const members = ready?.members ?? [];
-  const spans = useMemo(() => (ready ? ready.busy.map((b) => spanOf(b, groupTz)) : []), [ready, groupTz]);
+  const spans = useMemo(() => (ready ? ready.busy.map((b) => spanOf(toSharedBusy(b, groupTz), groupTz)) : []), [ready, groupTz]);
   const busyByDate = useMemo(() => busyUsersByDate(spans, month.from, month.to), [spans, month.from, month.to]);
   const monthTitle = format(monthStart(ym.year, ym.month), { locale, style: "month-year" });
   const group = groups.find((g) => g.id === gid) ?? null;
@@ -274,6 +287,8 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   function pickGroup(id: string) {
     setSwitching(false);
     if (id === gid) return;
+    // R6D G1: จำกลุ่มที่เลือกไว้ (คุกกี้ฝั่งเซิร์ฟเวอร์) — ไม่รอผล ไม่แจ้ง error
+    rememberGroup(id);
     startTransition(() => router.replace(`/calendar?g=${id}&v=${view}&d=${selected}`));
   }
 
@@ -356,6 +371,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
         <>
           {mine.truncated ? <TruncatedNote messageKey="busy.mine.truncated" /> : null}
           <MineList items={mine.items} nowMs={mine.nowMs} onOpen={(it) => openForm(it)} onAdd={() => openForm(null)} />
+          <GoingList items={mine.going} onRetry={retryCal} />
         </>
       );
     }
@@ -477,6 +493,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
                   </section>
                 ) : null}
                 <MemberLegend members={members} myId={userId} />
+                <KindLegend />
               </>
             )}
           </section>

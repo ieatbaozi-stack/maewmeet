@@ -5,8 +5,9 @@
 //   - ฝั่งแชร์   (SharedBusyRow)  : **ไม่ SELECT `note` เลย** และ `title` ถูกตัดใน SQL เมื่อ hide_detail = 1 (CASE) — ตัวอักษรของรายการซ่อนไม่ออกจาก DB
 // การเขียนที่แข่งกันได้ (เพดาน 300) = คำสั่ง SQL เดียวที่มีเงื่อนไขในตัว (INSERT … SELECT … WHERE count < cap) เหมือน R2 — ไม่มี check-then-act
 // ทุกคำสั่งเขียนผูก user_id ของผู้กระทำ (เจ้าของเท่านั้น) — busy ไม่ผูกกลุ่ม จึงไม่มี role ให้ ActorGuard ตรวจ; ตัวป้องกันคือ user_id + สถานะบัญชียัง active
-import { and, asc, eq, gt, gte, lt, lte, sql } from 'drizzle-orm';
-import { busyBlock, groupMember } from '@/db/schema';
+import { and, asc, eq, gt, gte, isNull, lt, lte, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/sqlite-core';
+import { appointment, appointmentRsvp, busyBlock, groupMember, groups } from '@/db/schema';
 import type { DbOrTx } from '@/db/client';
 import { DAY_MS } from '@/lib/shared/clock';
 import { BUSY_MAX_BACKDATE_DAYS } from '@/lib/shared/limits';
@@ -181,4 +182,79 @@ export async function listSharedBusyInGroup(
 ): Promise<{ rows: SharedBusyRow[]; truncated: boolean }> {
   const rows = await sharedBusyInGroupQuery(db, groupId, fromMs, toMs, max + 1);
   return rows.length > max ? { rows: rows.slice(0, max), truncated: true } : { rows, truncated: false };
+}
+
+// ───────── R6D G2: นัดที่ตอบ "ไป" = ช่วงไม่ว่าง (ADR 0009 §1) ─────────
+
+/**
+ * แถว going ที่เตรียมให้สมาชิกกลุ่มที่กำลังดู — นัดกลุ่มอื่น: appointmentId/title เป็น NULL ตั้งแต่ใน SQL (CASE)
+ * ไม่มี group_id / place_name / lat / lng / map_url / description / tz ของนัดใด ๆ
+ */
+export type GoingBusyRow = {
+  userId: string;
+  startAt: number;
+  endAt: number;
+  /** นัดอยู่ในกลุ่มที่กำลังดู */
+  sameGroup: boolean;
+  appointmentId: string | null;
+  title: string | null;
+};
+
+const viewerMember = alias(groupMember, 'vm');
+const apptMember = alias(groupMember, 'am');
+
+/**
+ * คิวรีเดียว (ADR 0009 §1): นัด active ที่ "สมาชิกปัจจุบันของกลุ่ม groupId" ตอบ going จากทุกกลุ่ม ที่ทับช่วง [fromMs, toMs) (ครึ่งเปิด ชนขอบไม่นับ)
+ * นับเฉพาะเมื่อ: กลุ่มของนัดยังไม่ถูกลบ · ผู้ตอบยังเป็นสมาชิกกลุ่มของนัด และ rsvp.updated_at >= joined_at (กติกาเดียวกับ listCurrentRsvps)
+ * excludeAppointmentId: ตัดนัดนี้ออก *เฉพาะเมื่ออยู่ในกลุ่ม groupId* (ใส่ id นัดกลุ่มอื่นไม่มีผล — ไม่เป็น oracle)
+ * ส่งคืน query builder (ไม่ execute) ให้เทสต์ตรวจ `.toSQL()` · ผู้เรียกต้องผ่านด่านกลุ่มมาแล้ว
+ */
+export function goingBusyInGroupQuery(db: DbOrTx, groupId: string, fromMs: number, toMs: number, limit: number, excludeAppointmentId?: string) {
+  const same = sql`${appointment.groupId} = ${groupId}`;
+  const conds = [eq(viewerMember.groupId, groupId)];
+  if (excludeAppointmentId !== undefined) conds.push(sql`NOT (${appointment.id} = ${excludeAppointmentId} AND ${same})`);
+  return db
+    .select({
+      userId: appointmentRsvp.userId,
+      startAt: appointment.startAt,
+      endAt: appointment.endAt,
+      sameGroup: sql<number>`(${same})`,
+      appointmentId: sql<string | null>`CASE WHEN ${same} THEN ${appointment.id} ELSE NULL END`,
+      title: sql<string | null>`CASE WHEN ${same} THEN ${appointment.title} ELSE NULL END`,
+    })
+    .from(viewerMember)
+    .innerJoin(appointmentRsvp, and(eq(appointmentRsvp.userId, viewerMember.userId), eq(appointmentRsvp.response, 'going')))
+    .innerJoin(
+      appointment,
+      and(eq(appointment.id, appointmentRsvp.appointmentId), eq(appointment.status, 'active'), lt(appointment.startAt, toMs), gt(appointment.endAt, fromMs)),
+    )
+    .innerJoin(groups, and(eq(groups.id, appointment.groupId), isNull(groups.deletedAt)))
+    .innerJoin(
+      apptMember,
+      and(eq(apptMember.groupId, appointment.groupId), eq(apptMember.userId, appointmentRsvp.userId), sql`${appointmentRsvp.updatedAt} >= ${apptMember.joinedAt}`),
+    )
+    .where(and(...conds))
+    .orderBy(asc(appointment.startAt), asc(appointment.endAt), asc(appointmentRsvp.userId), asc(appointment.id))
+    .limit(limit);
+}
+
+/** คืนไม่เกิน `max` แถว + truncated เมื่อมีเกิน */
+export async function listGoingBusyInGroup(
+  db: DbOrTx,
+  groupId: string,
+  fromMs: number,
+  toMs: number,
+  max: number,
+  excludeAppointmentId?: string,
+): Promise<{ rows: GoingBusyRow[]; truncated: boolean }> {
+  const raw = await goingBusyInGroupQuery(db, groupId, fromMs, toMs, max + 1, excludeAppointmentId);
+  const rows: GoingBusyRow[] = raw.slice(0, max).map((r) => ({
+    userId: r.userId,
+    startAt: r.startAt,
+    endAt: r.endAt,
+    sameGroup: Number(r.sameGroup) === 1,
+    appointmentId: r.appointmentId,
+    title: r.title,
+  }));
+  return { rows, truncated: raw.length > max };
 }

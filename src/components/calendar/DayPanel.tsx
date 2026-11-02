@@ -8,7 +8,8 @@ import { memberSlot } from "@/components/groups/helpers";
 import { Icon } from "@/components/icons/Icon";
 import { Name, withNames } from "@/components/Name";
 import { format, type CalendarLocale, type DateISO } from "@/lib/calendar";
-import { dayRows, joinNames, nowPercent, segmentLabel, segmentTitle, stripBox, type ItemSpan, type MemberInfo } from "./model";
+import { BusyItemLine } from "./BusyItemLine";
+import { busyKindOf, dayRows, itemApptHref, joinNames, nowPercent, segmentLabel, segmentTitle, stripBox, type ItemSpan, type MemberInfo } from "./model";
 
 const AXIS = [0, 6, 12, 18, 24] as const;
 
@@ -81,7 +82,8 @@ export function DayPanel({ date, today, members, spans, myId, nowMinute, onPrev,
                   return (
                     <span
                       key={`${seg.item.id}-${seg.from}`}
-                      className={["cal-bar", seg.cutStart ? "cut-start" : "", seg.cutEnd ? "cut-end" : ""].filter(Boolean).join(" ")}
+                      className={["cal-bar", seg.cutStart ? "cut-start" : "", seg.cutEnd ? "cut-end" : "", `kind-${busyKindOf(seg.item)}`].filter(Boolean).join(" ")}
+                      data-kind={busyKindOf(seg.item)}
                       data-color={memberSlot(member.colorIndex)} data-shape={memberSlot(member.shapeIndex)}
                       data-testid="cal-bar"
                       style={{ "--s": box.start, "--w": box.width } as CSSProperties}
@@ -119,17 +121,16 @@ export function DayPanel({ date, today, members, spans, myId, nowMinute, onPrev,
                     const label = segmentLabel(seg);
                     const title = segmentTitle(seg);
                     return (
-                      <div className="cal-item" key={`${seg.item.id}-${seg.from}`} data-testid="cal-item">
-                        <span className="when">{t(label.ref.key, label.ref.values)}</span>
-                        {title ? (
-                          <span className="what">
-                            <Name>{title}</Name>
-                          </span>
-                        ) : (
-                          <span className="what plain">{t("calendar.day.busyPlain")}</span>
-                        )}
-                        {label.dayOf ? <span className="sub">{t(label.dayOf.key, label.dayOf.values)}</span> : null}
-                      </div>
+                      <BusyItemLine
+                        key={`${seg.item.id}-${seg.from}`}
+                        kind={busyKindOf(seg.item)}
+                        whenText={t(label.ref.key, label.ref.values)}
+                        title={title}
+                        memberName={member.displayName}
+                        href={itemApptHref(seg.item)}
+                        subText={label.dayOf ? t(label.dayOf.key, label.dayOf.values) : null}
+                        busyTestId="cal-item"
+                      />
                     );
                   })}
                 </div>

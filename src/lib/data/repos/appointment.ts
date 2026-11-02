@@ -199,14 +199,21 @@ export async function listGroupAppointmentRows(
     .limit(q.limit);
 }
 
-/** นัด active ที่ยังไม่จบ ข้ามทุกกลุ่มที่ฉันเป็นสมาชิก (กลุ่มที่ลบแล้วไม่รวม) เรียงเริ่มเร็วสุดก่อน */
-export async function listMyUpcomingAppointmentRows(db: DbOrTx, userId: string, now: number, limit: number): Promise<AppointmentRow[]> {
+/**
+ * นัด active ที่ยังไม่จบ ข้ามทุกกลุ่มที่ฉันเป็นสมาชิก (กลุ่มที่ลบแล้วไม่รวม) เรียงเริ่มเร็วสุดก่อน
+ * `onlyGoing` (R6D แท็บ "ของฉัน"): เฉพาะนัดที่ฉันตอบ going ตามกติกา ADR 0009 §1 (updated_at >= joined_at ของสมาชิกภาพปัจจุบัน) — กรองในคิวรีเดิม (+0 query)
+ */
+export async function listMyUpcomingAppointmentRows(db: DbOrTx, userId: string, now: number, limit: number, opts: { onlyGoing?: boolean } = {}): Promise<AppointmentRow[]> {
+  const conds: SQL[] = [eq(groupMember.userId, userId), eq(appointment.status, 'active'), gt(appointment.endAt, now)];
+  if (opts.onlyGoing) {
+    conds.push(sql`EXISTS (SELECT 1 FROM appointment_rsvp r WHERE r.appointment_id = ${appointment.id} AND r.user_id = ${userId} AND r.response = 'going' AND r.updated_at >= ${groupMember.joinedAt})`);
+  }
   const rows = await db
     .select({ a: appointment })
     .from(groupMember)
     .innerJoin(groups, and(eq(groups.id, groupMember.groupId), sql`${groups.deletedAt} IS NULL`))
     .innerJoin(appointment, eq(appointment.groupId, groupMember.groupId))
-    .where(and(eq(groupMember.userId, userId), eq(appointment.status, 'active'), gt(appointment.endAt, now)))
+    .where(and(...conds))
     .orderBy(asc(appointment.startAt), asc(appointment.id))
     .limit(limit);
   return rows.map((r) => r.a);
@@ -289,4 +296,81 @@ export async function upsertRsvpIfOpen(
     ON CONFLICT (appointment_id, user_id) DO UPDATE SET response = excluded.response, updated_at = excluded.updated_at
     RETURNING response`);
   return rows.length === 1;
+}
+
+// ───────── R6D: นัด/busy ของฉันที่ทับช่วงเวลา (ADR 0009 §3) ─────────
+/**
+ * แถวคำมั่นของ session user ที่ทับช่วง — ใช้เฉพาะ "ของฉัน" (WHERE user_id = me ทั้งสองฝั่ง) จึงส่งชื่อ/กลุ่มของตัวเองได้
+ * ฝั่ง busy **ไม่ SELECT note** (ADR 0006) · title ของ busy ที่ซ่อนรายละเอียดส่งได้ (เป็นของเจ้าตัว)
+ */
+export type MyCommitmentRow =
+  | { kind: 'appointment'; id: string; title: string; groupId: string; groupName: string; startAt: number; endAt: number; tz: string }
+  | { kind: 'busy'; id: string; title: string | null; allDay: boolean; startAt: number; endAt: number; localStartDate: string; localEndDate: string; tz: string };
+
+/**
+ * SQL ของ myCommitmentsOverlapping (แยกออกมาให้เทสต์ตรวจว่าไม่มี `note`) — UNION ALL คำสั่งเดียว:
+ *  (ก) rsvp going ของฉัน ตามกติกา ADR 0009 §1 (นัด active · กลุ่มไม่ถูกลบ · ยังเป็นสมาชิก · updated_at >= joined_at) ยกเว้น excludeAppointmentId
+ *  (ข) busy_block ของฉัน (start_at/end_at ที่เก็บ — ทั้งวัน = เที่ยงคืนใน tz เจ้าของ)
+ * ทับ = start_at < :endAt AND end_at > :startAt (ครึ่งเปิด ชนขอบไม่นับ)
+ */
+export function myCommitmentsSql(userId: string, startAt: number, endAt: number, excludeAppointmentId: string | null, limit: number): SQL {
+  const exclude = excludeAppointmentId === null ? sql`` : sql` AND a.id <> ${excludeAppointmentId}`;
+  return sql`
+    SELECT * FROM (
+      SELECT 'appointment' AS kind, a.id AS id, a.title AS title, a.group_id AS group_id, g.name AS group_name, 0 AS all_day,
+             a.start_at AS start_at, a.end_at AS end_at, NULL AS local_start_date, NULL AS local_end_date, a.tz AS tz
+      FROM appointment_rsvp r
+      JOIN appointment a ON a.id = r.appointment_id AND a.status = 'active' AND a.start_at < ${endAt} AND a.end_at > ${startAt}
+      JOIN groups g ON g.id = a.group_id AND g.deleted_at IS NULL
+      JOIN group_member am ON am.group_id = a.group_id AND am.user_id = r.user_id AND r.updated_at >= am.joined_at
+      WHERE r.user_id = ${userId} AND r.response = 'going'${exclude}
+      UNION ALL
+      SELECT 'busy' AS kind, b.id AS id, b.title AS title, NULL AS group_id, NULL AS group_name, b.all_day AS all_day,
+             b.start_at AS start_at, b.end_at AS end_at, b.local_start_date AS local_start_date, b.local_end_date AS local_end_date, b.tz AS tz
+      FROM busy_block b
+      WHERE b.user_id = ${userId} AND b.start_at < ${endAt} AND b.end_at > ${startAt}
+    )
+    ORDER BY start_at, end_at, kind, id
+    LIMIT ${limit}`;
+}
+
+type CommitmentRaw = {
+  kind: string;
+  id: string;
+  title: string | null;
+  group_id: string | null;
+  group_name: string | null;
+  all_day: number;
+  start_at: number;
+  end_at: number;
+  local_start_date: string | null;
+  local_end_date: string | null;
+  tz: string;
+};
+
+/** นัดที่ฉันตอบ going + busy ของฉัน ที่ทับ [startAt, endAt) — คิวรีเดียว · ผู้เรียกขอ limit = เพดาน+1 เพื่อรู้ว่าถูกตัด */
+export async function myCommitmentsOverlapping(
+  db: DbOrTx,
+  userId: string,
+  startAt: number,
+  endAt: number,
+  excludeAppointmentId: string | null,
+  limit: number,
+): Promise<MyCommitmentRow[]> {
+  const rows = await db.all<CommitmentRaw>(myCommitmentsSql(userId, startAt, endAt, excludeAppointmentId, limit));
+  return rows.map((r): MyCommitmentRow =>
+    r.kind === 'appointment'
+      ? { kind: 'appointment', id: r.id, title: r.title ?? '', groupId: r.group_id ?? '', groupName: r.group_name ?? '', startAt: Number(r.start_at), endAt: Number(r.end_at), tz: r.tz }
+      : {
+          kind: 'busy',
+          id: r.id,
+          title: r.title,
+          allDay: Number(r.all_day) === 1,
+          startAt: Number(r.start_at),
+          endAt: Number(r.end_at),
+          localStartDate: r.local_start_date ?? '',
+          localEndDate: r.local_end_date ?? '',
+          tz: r.tz,
+        },
+  );
 }

@@ -161,6 +161,7 @@ test('แผนที่โหลดไม่ได้ (tile ล้ม): หน�
   await checkLayout(b.page, testInfo, 'detail-map-failed', locale, 'light');
   await expect(b.page.getByTestId('appt-rsvp-going')).toBeEnabled(); // ส่วนอื่นยังใช้งานได้
   await b.page.getByTestId('appt-rsvp-going').click();
+  await b.page.getByTestId('rsvp-confirm-ok').click(); // R6D: เป็น "ไป" ต้องยืนยันก่อน
   await expect(b.page.getByTestId('appt-rsvp-going')).toHaveAttribute('aria-pressed', 'true');
   expect(problems.filter((p) => !isHydration(p))).toEqual([]);
 });

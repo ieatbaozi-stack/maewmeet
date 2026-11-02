@@ -121,12 +121,17 @@ test('th: A สร้างนัดจากวันว่างร่วม �
   const goingBtn = b.page.getByTestId('appt-rsvp-going');
   await expect(goingBtn).toHaveAttribute('aria-pressed', 'false');
   await goingBtn.click();
+  await b.page.getByTestId('rsvp-confirm-ok').click(); // R6D: เป็น "ไป" ต้องยืนยันก่อน
   await expect(goingBtn).toHaveAttribute('aria-pressed', 'true');
   await expect(b.page.getByTestId('appt-rsvp-maybe')).toHaveAttribute('aria-pressed', 'false');
   await expect(b.page.getByTestId('appt-rsvp-saved')).toContainText(T('appointments.rsvp.saved', { answer: '' }).trim().replace(/:$/, ''));
   await expect(b.page.getByTestId('appt-rsvp-counts')).toContainText(T('appointments.rsvp.summary.going', { count: 1 }));
   await seenB.settled();
-  for (const s of [CN, CT]) expect(seenB.texts.filter((t) => t.includes(s)).length, `response ของ B ต้องไม่มี ${s} (ของตัวเองซ่อนจากผู้อื่น แต่ B เองก็ไม่ควรได้ใน response ของนัด)`).toBe(0);
+  // R6D: B เป็นเจ้าของ busy นี้เอง และตอบ "ไป" นัดที่ทับ → myConflicts คืนชื่อ busy ของ B ให้ B (ของตัวเองเท่านั้น) · note ต้องไม่ถูกส่งเสมอ
+  expect(seenB.texts.filter((t) => t.includes(CN)).length, `response ของ B ต้องไม่มี note ${CN}`).toBe(0);
+  // ชื่อ busy ของ B อนุญาตเฉพาะใน myConflicts ("kind":"busy","busyId":"<uuid>","title":"<CT>") — ที่อื่นห้าม
+  const allowedCT = new RegExp(`"kind":"busy","busyId":"[0-9a-f-]{36}","title":"${CT.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'g');
+  expect(seenB.texts.filter((t) => t.replace(allowedCT, '').includes(CT)).length, `response ของ B ต้องไม่มีชื่อ busy ${CT} นอก myConflicts`).toBe(0);
 
   // ───── 5) C: กระดิ่ง 1 (เปิดนัดจาก URL ตรง ๆ คงแจ้งเตือนไว้ไม่อ่าน) → อาจไป ─────
   await go(c.page, '/');

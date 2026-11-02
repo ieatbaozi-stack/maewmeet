@@ -40,6 +40,8 @@ export interface HomeAppointment {
   isPast: boolean;
   daysUntil: number;
   rsvp: RsvpSummary;
+  /** R6D: ตอบ "ไป" และทับนัด/ช่วงไม่ว่างอื่นของฉัน — ค่าของผู้ขอเท่านั้น (เซิร์ฟเวอร์ไม่ส่งให้คนอื่น) */
+  myConflict?: boolean;
 }
 
 // ───────── การ์ดถัดไป / รายการ ─────────

@@ -3,10 +3,13 @@
 import { addDays, daysBetween, format, toLocal, type CalendarLocale, type DateISO, type EpochMs } from "@/lib/calendar";
 import { weekdayShort } from "@/components/shell/weekday";
 import {
+  busyKindOf,
+  itemApptHref,
   segmentLabel,
   segmentOn,
   segmentTitle,
   spanOf,
+  type BusyKind,
   type DaySegment,
   type MemberInfo,
   type MessageRef,
@@ -234,6 +237,10 @@ export interface BlockerEntry {
   /** ชื่อรายการ — null = ซ่อน/ไม่ได้ใส่ → UI แสดง "ไม่ว่าง" (calendar.day.busyPlain) */
   title: string | null;
   from: number;
+  /** R6D: ชนิดช่วง (busy | appointment | other_group_appointment) */
+  kind: BusyKind;
+  /** kind appointment: ลิงก์ไปหน้านัด */
+  href: string | null;
 }
 
 export interface BlockerRow {
@@ -254,7 +261,7 @@ export function entryOf(item: SharedBusy, date: DateISO, groupTz: string): Block
   const seg: DaySegment | null = segmentOn(spanOf(item, groupTz), date);
   if (!seg) return null;
   const label = segmentLabel(seg);
-  return { key: `${item.id}-${seg.from}`, when: label.ref, dayOf: label.dayOf, title: segmentTitle(seg), from: seg.from };
+  return { key: `${item.id}-${seg.from}`, when: label.ref, dayOf: label.dayOf, title: segmentTitle(seg), from: seg.from, kind: busyKindOf(item), href: itemApptHref(item) };
 }
 
 /** แถว "ใครไม่ว่างเมื่อไร": นับว่าไม่ว่างก่อน แล้วตามลำดับสมาชิก · คนที่ไม่มีรายการ → noBusy */

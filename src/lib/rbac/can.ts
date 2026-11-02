@@ -155,6 +155,14 @@ const memberSetOwnAppearance: Rule<ResourceFor<'member.setOwnAppearance'>> = inG
   role !== null ? ALLOW : deny('FORBIDDEN'),
 );
 
+/**
+ * R6D G1 (ADR 0009 §5) — จำกลุ่มปัจจุบันของเครื่อง (PUT /api/me/current-group): สมาชิกทุก role ✅ ·
+ * SA ที่ไม่ใช่สมาชิก → FORBIDDEN (SA เห็นกลุ่มได้แต่ไม่ใช่ "กลุ่มของฉัน") · NM/กลุ่มลบ → 404 ที่ด่านกลุ่ม
+ */
+const memberSetCurrentGroup: Rule<ResourceFor<'member.setCurrentGroup'>> = inGroup(({ role }) =>
+  role !== null ? ALLOW : deny('FORBIDDEN'),
+);
+
 type Rules = { readonly [A in Action]: Rule<ResourceFor<A>> };
 
 const RULES: Rules = {
@@ -211,6 +219,7 @@ const RULES: Rules = {
   'group.delete': adminOnly(),
   'group.leave': groupLeave,
   'member.setOwnAppearance': memberSetOwnAppearance,
+  'member.setCurrentGroup': memberSetCurrentGroup,
 
   'pinReset.list': superAdminAction('pinReset.list'),
   'pinReset.decide': superAdminAction('pinReset.decide'),

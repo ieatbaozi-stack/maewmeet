@@ -6,6 +6,7 @@ import { MemberAvatar } from "@/components/groups/MemberAvatar";
 import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
 import type { CalendarLocale } from "@/lib/calendar";
+import { BusyItemLine } from "@/components/calendar/BusyItemLine";
 import { dayBlockers, durationMsg, longestSegment, namesOf, statusVariant, type AvData, type AvDay, type AvSegment } from "./model";
 import { namesSentence } from "./FreeSummary";
 
@@ -147,17 +148,16 @@ export function FreeDetail({ day, data, myId, variant, hintId, onCreate }: FreeD
               </span>
               <div className="items">
                 {entries.map((en) => (
-                  <div className="cal-item" key={en.key} data-testid="free-item">
-                    <span className="when">{t(en.when.key, en.when.values)}</span>
-                    {en.title ? (
-                      <span className="what">
-                        <Name>{en.title}</Name>
-                      </span>
-                    ) : (
-                      <span className="what plain">{t("calendar.day.busyPlain")}</span>
-                    )}
-                    {en.dayOf ? <span className="sub">{t(en.dayOf.key, en.dayOf.values)}</span> : null}
-                  </div>
+                  <BusyItemLine
+                    key={en.key}
+                    kind={en.kind}
+                    whenText={t(en.when.key, en.when.values)}
+                    title={en.title}
+                    memberName={member.displayName}
+                    href={en.href}
+                    subText={en.dayOf ? t(en.dayOf.key, en.dayOf.values) : null}
+                    busyTestId="free-item"
+                  />
                 ))}
               </div>
             </li>

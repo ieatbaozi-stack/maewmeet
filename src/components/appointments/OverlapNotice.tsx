@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { MemberAvatar } from "@/components/groups/MemberAvatar";
 import { Icon } from "@/components/icons/Icon";
-import { Name } from "@/components/Name";
+import { Name, withNames } from "@/components/Name";
 import type { OverlapPerson, OverlapView } from "./model";
 
 /**
@@ -89,7 +89,17 @@ function People({ people, more }: { people: OverlapPerson[]; more: number }) {
                 <span className="ov-why" key={r.key}>
                   <span className="num">{t(r.when.key, r.when.values)}</span>
                   {" · "}
-                  {r.title !== null ? (
+                  {r.kind === "other_group_appointment" ? (
+                    <span className="t kind-label" data-testid="appt-overlap-other">
+                      <Icon name="lock" size="sm" />
+                      <span>{t("calendar.kind.otherLabel")}</span>
+                    </span>
+                  ) : r.kind === "appointment" ? (
+                    <span className="t kind-label" data-testid="appt-overlap-appt">
+                      <Icon name="calendar" size="sm" />
+                      <span>{withNames((n) => t("calendar.kind.appointmentLabel", { title: n.title }), { title: r.title ?? "" })}</span>
+                    </span>
+                  ) : r.title !== null ? (
                     <span className="t">
                       <Name>{r.title}</Name>
                     </span>

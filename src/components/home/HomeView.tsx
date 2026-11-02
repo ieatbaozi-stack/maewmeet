@@ -6,6 +6,10 @@ import { useLocale, useTranslations } from "next-intl";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { Icon, type IconName } from "@/components/icons/Icon";
 import { format, type CalendarLocale } from "@/lib/calendar";
+import { callApiFull } from "@/components/appointments/api";
+import { RsvpConfirm } from "@/components/appointments/RsvpConfirm";
+import { rsvpConfirmKind, type MyConflict } from "@/components/appointments/model";
+import type { AppointmentDetailDto } from "@/lib/data/serializers/appointments";
 import { fetchMyAppointments, putRsvp } from "./api";
 import {
   HOME_LIMIT,
@@ -63,6 +67,10 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
   const [nowMs, setNowMs] = useState(initialNowMs);
   const [rsvp, dispatch] = useReducer(rsvpReducer, {} as RsvpState);
   const [announce, setAnnounce] = useState("");
+  // R6D: popup ยืนยันก่อนเป็น/เลิก "ไป" (ถ้าเป็น "ไป" ดึงรายละเอียดมาก่อนเพื่อรู้ว่าชนอะไร)
+  const [pending, setPending] = useState<{ a: HomeAppointment; choice: RsvpAnswer; direction: "to" | "from"; prev: RsvpAnswer | null; conflicts: MyConflict[]; truncated: boolean } | null>(null);
+  const [pendingBusy, setPendingBusy] = useState(false);
+  const opening = useRef(false);
 
   const loadSeq = useRef(0);
   const rsvpSeq = useRef(0);
@@ -119,28 +127,69 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
   }, [load]);
 
   const choose = useCallback(
-    async (a: HomeAppointment, choice: RsvpAnswer) => {
+    async (a: HomeAppointment, choice: RsvpAnswer): Promise<boolean> => {
       const cur = rsvp[a.id];
-      if (cur?.saving) return;
-      if (displayRsvp(a, rsvp).mine === choice) return;
+      if (cur?.saving) return false;
+      if (displayRsvp(a, rsvp).mine === choice) return false;
       rsvpSeq.current += 1;
       const seq = rsvpSeq.current;
       dispatch({ type: "choose", id: a.id, base: a.rsvp, choice, seq });
       const r = await putRsvp(a.id, choice);
-      if (!alive.current) return;
+      if (!alive.current) return false;
       if (r.ok) {
         dispatch({ type: "saved", id: a.id, seq, summary: r.data });
         setItems((cur2) => cur2.map((x) => (x.id === a.id ? { ...x, rsvp: r.data } : x)));
         setAnnounce(t("appointments.rsvp.saved", { answer: t(`appointments.rsvp.answer.${choice}`) }));
+        return true;
       } else {
         const key = r.kind === "api" ? rsvpErrorKey(r.error.code) : "generic";
         dispatch({ type: "failed", id: a.id, seq, error: key });
         // นัดถูกยกเลิก/จบ/ไม่มีสิทธิ์แล้ว: โหลดรายการใหม่ให้ตรงความจริง
         if (key !== "generic") void load(true);
+        return false;
       }
     },
     [load, rsvp, t],
   );
+
+  /** กดปุ่ม RSVP บนการ์ด: เป็น/เลิก "ไป" ต้องยืนยันก่อน · อย่างอื่นบันทึกเลย */
+  const request = useCallback(
+    async (a: HomeAppointment, choice: RsvpAnswer) => {
+      if (rsvp[a.id]?.saving || opening.current || pending) return;
+      const prev = displayRsvp(a, rsvp).mine;
+      const direction = rsvpConfirmKind(prev, choice);
+      if (direction === null) {
+        await choose(a, choice);
+        return;
+      }
+      let conflicts: MyConflict[] = [];
+      let truncated = false;
+      if (direction === "to") {
+        opening.current = true;
+        const r = await callApiFull<{ appointment: AppointmentDetailDto }>(`/api/appointments/${encodeURIComponent(a.id)}`, { method: "GET" });
+        opening.current = false;
+        if (!alive.current) return;
+        // ดึงรายละเอียดไม่ได้ = ยังถามยืนยันได้ แค่ไม่มีรายการที่ชน (เซิร์ฟเวอร์ไม่บล็อกอยู่แล้ว)
+        if (r.ok) {
+          conflicts = r.data.appointment.myConflicts ?? [];
+          truncated = r.data.appointment.myConflictsTruncated === true;
+        }
+      }
+      setPending({ a, choice, direction, prev, conflicts, truncated });
+    },
+    [choose, pending, rsvp],
+  );
+
+  async function confirmPending() {
+    if (!pending || pendingBusy) return;
+    setPendingBusy(true);
+    const ok = await choose(pending.a, pending.choice);
+    if (!alive.current) return;
+    setPendingBusy(false);
+    setPending(null);
+    // คำตอบ "ไป" เปลี่ยน → ป้ายชนของการ์ดอื่นเปลี่ยนด้วย: โหลดรายการใหม่เงียบๆ
+    if (ok) void load(true);
+  }
 
   if (status === "loading") return <LoadingMain />;
   if (status === "error") {
@@ -202,7 +251,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
   return (
     <main className="main home-main" id="main">
       <h1 className="h-section home-h">{t("home.nextUp")}</h1>
-      <NextCard a={next} rsvp={rsvp} nowMs={nowMs} locale={locale} onChoose={choose} />
+      <NextCard a={next} rsvp={rsvp} nowMs={nowMs} locale={locale} onChoose={request} />
       {later.length > 0 ? (
         <section className="appt-list-card" aria-labelledby="home-later-h" data-testid="home-later">
           <div className="appt-list-head">
@@ -227,6 +276,19 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
       <span className="sr-only" role="status" aria-live="polite" data-testid="home-live">
         {announce}
       </span>
+      {pending ? (
+        <RsvpConfirm
+          direction={pending.direction}
+          prev={pending.prev}
+          next={pending.choice}
+          conflicts={pending.conflicts}
+          truncated={pending.truncated}
+          groupId={pending.a.groupId}
+          saving={pendingBusy}
+          onConfirm={() => void confirmPending()}
+          onCancel={() => setPending(null)}
+        />
+      ) : null}
     </main>
   );
 }
@@ -305,6 +367,14 @@ function NextCard({
         <h2 className="appt-title" id="home-next-t">
           <bdi>{a.title}</bdi>
         </h2>
+        {a.myConflict === true && summary.mine === "going" ? (
+          <p className="appt-conflict">
+            <span className="tag tag-warn" data-testid="appt-conflict-badge">
+              <Icon name="triangle-alert" size="sm" />
+              <span>{t("appointments.conflictBadge")}</span>
+            </span>
+          </p>
+        ) : null}
         <ul className="appt-facts">
           <li className="appt-fact">
             <Icon name="clock" />
@@ -356,7 +426,7 @@ function NextCard({
           <p className="rsvp-label" id="home-rsvp-l">
             {t("appointments.rsvp.question")}
           </p>
-          <div className={`segmented rsvp-choice${saving ? " is-saving" : ""}`} role="group" aria-labelledby="home-rsvp-l" aria-busy={saving !== null} data-testid="home-rsvp">
+          <div className={`segmented rsvp-choice${saving ? " is-saving" : ""}`} role="group" aria-labelledby="home-rsvp-l" aria-describedby="home-rsvp-hint" aria-busy={saving !== null} data-testid="home-rsvp">
             {RSVP_ANSWERS.map((c) => (
               <button
                 type="button"
@@ -371,6 +441,9 @@ function NextCard({
               </button>
             ))}
           </div>
+          <p className="rsvp-hint" id="home-rsvp-hint">
+            {t("appointments.rsvp.goingHint")}
+          </p>
           {saving ? (
             <p className="rsvp-note" role="status">
               <Icon name="refresh-cw" size="sm" />
@@ -398,6 +471,7 @@ function Row({ a, rsvp, nowMs, locale }: { a: HomeAppointment; rsvp: RsvpState; 
   const { day, date } = dateBox(a);
   const mine = displayRsvp(a, rsvp).mine;
   const state = mine ?? "none";
+  const conflict = a.myConflict === true && mine === "going";
   const r = timeRange(a, locale);
   const timeText = r.kind === "overnight" ? t("appointments.when.overnight", { start: r.start, end: r.end }) : r.text;
   const cd = rowCountdown(a, nowMs);
@@ -406,7 +480,7 @@ function Row({ a, rsvp, nowMs, locale }: { a: HomeAppointment; rsvp: RsvpState; 
     <Link
       className="appt-row"
       href={`/appointments/${encodeURIComponent(a.id)}`}
-      aria-label={t("home.row.aria", { title: a.title, countdown, when: `${shortDateLabel(a, locale)} ${timeText}`, group: a.groupName, state })}
+      aria-label={t("home.row.aria", { title: a.title, countdown, when: `${shortDateLabel(a, locale)} ${timeText}`, group: a.groupName, state }) + (conflict ? `. ${t("appointments.conflictAria")}` : "")}
       data-testid="home-row"
       data-appt-id={a.id}
     >
@@ -434,6 +508,12 @@ function Row({ a, rsvp, nowMs, locale }: { a: HomeAppointment; rsvp: RsvpState; 
             <Icon name={ANSWER_ICON[state]} size="sm" />
             <span>{t(`appointments.rsvp.mine.${state}`)}</span>
           </span>
+          {conflict ? (
+            <span className="tag tag-warn" data-testid="appt-conflict-badge">
+              <Icon name="triangle-alert" size="sm" />
+              <span>{t("appointments.conflictBadge")}</span>
+            </span>
+          ) : null}
         </span>
       </span>
       <Icon name="chevron-right" className="chev" />

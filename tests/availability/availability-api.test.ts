@@ -135,7 +135,7 @@ describe('ADR 0005 — ข้อมูล T1/T2/T24 ผ่าน API ตรง�
   it('รูปร่าง response ตรง strict schema (ฟิลด์เกินแล้วล้ม) · members: ผู้ดูก่อน + colorIndex ตรง /calendar · group มีหน้าต่าง', async () => {
     await timed(alice, '2026-11-03', '10:00', '12:00', { title: CT, note: CN });
     await timed(bob, '2026-11-03', '14:00', '16:00', { title: CH, note: CN, hideDetail: true });
-    const base = { id: z.uuid(), userId: z.uuid(), allDay: z.boolean(), startAt: z.number().int(), endAt: z.number().int(), localStartDate: z.string(), localEndDate: z.string(), tz: z.string() };
+    const base = { kind: z.literal('busy'), id: z.uuid(), userId: z.uuid(), allDay: z.boolean(), startAt: z.number().int(), endAt: z.number().int(), localStartDate: z.string(), localEndDate: z.string(), tz: z.string() };
     const item = z.union([z.object({ ...base, title: z.string().min(1) }).strict(), z.object(base).strict()]);
     const schema = z
       .object({
