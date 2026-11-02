@@ -43,7 +43,7 @@ export function RenameSheet({ current, onClose, onDone }: { current: string; onC
       onClose={() => (busy ? undefined : onClose())}
       footer={
         <>
-          <BusyButton type="submit" form={`${id}-f`} className="btn btn-primary btn-block" busy={busy} busyLabel={t("account.rename.saving")} label={t("account.rename.save")} />
+          <BusyButton type="submit" form={`${id}-f`} className="btn btn-primary btn-block" busy={busy} busyLabel={t("account.rename.saving")} idleLabel={t("account.rename.save")} />
           <button type="button" className="btn btn-secondary btn-block" disabled={busy} onClick={onClose}>
             {t("common.cancel")}
           </button>

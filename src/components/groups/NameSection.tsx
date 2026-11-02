@@ -75,7 +75,7 @@ export function NameSection({ groupId, name, editable, notify }: SectionProps & 
               </p>
             ) : null}
           </div>
-          <BusyButton type="submit" className="btn btn-primary" busy={busy} disabled={len === 0 || unchanged} busyLabel={tAll("common.save")} label={tAll("common.save")} />
+          <BusyButton type="submit" className="btn btn-primary" busy={busy} disabled={len === 0 || unchanged} busyLabel={tAll("common.save")} idleLabel={tAll("common.save")} />
         </form>
       ) : (
         <p className="readonly">{name}</p>

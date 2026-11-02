@@ -230,7 +230,7 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
                 {groupCount > 0 ? <small>{groupsLine}</small> : null}
               </span>
             </p>
-            <BusyButton type="submit" form={formId} className="btn btn-primary btn-block" busy={saving} data-testid="busy-submit" busyLabel={t("busy.form.saving")} label={t("busy.form.submit")} />
+            <BusyButton type="submit" form={formId} className="btn btn-primary btn-block" busy={saving} data-testid="busy-submit" busyLabel={t("busy.form.saving")} idleLabel={t("busy.form.submit")} />
           </>
         }
       >

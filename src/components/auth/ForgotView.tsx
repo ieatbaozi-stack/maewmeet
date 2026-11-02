@@ -108,7 +108,7 @@ export function ForgotView({ initial }: { initial: ResetStatus }) {
               <span>{t("forgot.deviceNote")}</span>
             </p>
             <div className="auth-actions">
-              <BusyButton type="submit" className="btn btn-primary btn-block" busy={busy} disabled={username.trim() === ""} busyLabel={t("forgot.submitting")} label={t("forgot.submit")} />
+              <BusyButton type="submit" className="btn btn-primary btn-block" busy={busy} disabled={username.trim() === ""} busyLabel={t("forgot.submitting")} idleLabel={t("forgot.submit")} />
             </div>
           </form>
         </section>

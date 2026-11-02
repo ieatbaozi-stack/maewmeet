@@ -208,7 +208,7 @@ export function AppointmentFormSheet({ mode, groupId, groupName, memberCount, tz
             <button type="button" className="btn btn-secondary" data-testid="appt-form-cancel" onClick={onClose}>
               {t("common.cancel")}
             </button>
-            <BusyButton type="submit" form={formId} className="btn btn-primary" busy={saving} data-testid="appt-submit" busyLabel={mode === "edit" ? t("appointments.form.submit.saving") : t("appointments.form.submit.creating")} label={mode === "edit" ? t("appointments.form.submit.save") : t("appointments.form.submit.create")} />
+            <BusyButton type="submit" form={formId} className="btn btn-primary" busy={saving} data-testid="appt-submit" busyLabel={mode === "edit" ? t("appointments.form.submit.saving") : t("appointments.form.submit.creating")} idleLabel={mode === "edit" ? t("appointments.form.submit.save") : t("appointments.form.submit.create")} />
           </div>
         </>
       }

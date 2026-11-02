@@ -35,7 +35,7 @@ export function ConfirmDialog({ title, body, confirmLabel, onConfirm, onClose, b
       initialFocusRef={cancelRef}
       footer={
         <>
-          <BusyButton className={tone === "danger" ? "btn btn-danger btn-block" : "btn btn-primary btn-block"} busy={busy} disabled={confirmDisabled} onClick={onConfirm} busyLabel={confirmLabel} label={confirmLabel} />
+          <BusyButton className={tone === "danger" ? "btn btn-danger btn-block" : "btn btn-primary btn-block"} busy={busy} disabled={confirmDisabled} onClick={onConfirm} busyLabel={confirmLabel} idleLabel={confirmLabel} />
           <button ref={cancelRef} type="button" className="btn btn-secondary btn-block" onClick={onClose}>
             {t("common.cancel")}
           </button>

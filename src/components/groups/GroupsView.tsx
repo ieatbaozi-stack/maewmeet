@@ -196,7 +196,7 @@ function CreateGroupSheet({ onClose, onDone }: { onClose: () => void; onDone: (i
       initialFocusRef={inputRef}
       footer={
         <>
-          <BusyButton type="submit" form={`${id}-f`} className="btn btn-primary btn-block" busy={busy} disabled={len === 0} busyLabel={t("groups.createSheet.submitting")} label={t("groups.createSheet.submit")} />
+          <BusyButton type="submit" form={`${id}-f`} className="btn btn-primary btn-block" busy={busy} disabled={len === 0} busyLabel={t("groups.createSheet.submitting")} idleLabel={t("groups.createSheet.submit")} />
           <button type="button" className="btn btn-secondary btn-block" onClick={onClose}>
             {t("common.cancel")}
           </button>
@@ -277,7 +277,7 @@ function JoinSheet({
       initialFocusRef={inputRef}
       footer={
         <>
-          <BusyButton type="submit" form={`${id}-f`} className="btn btn-primary btn-block" busy={busy} disabled={code.trim() === ""} busyLabel={t("groups.join.submitting")} label={t("groups.join.submit")} />
+          <BusyButton type="submit" form={`${id}-f`} className="btn btn-primary btn-block" busy={busy} disabled={code.trim() === ""} busyLabel={t("groups.join.submitting")} idleLabel={t("groups.join.submit")} />
           <button type="button" className="btn btn-secondary btn-block" onClick={onClose}>
             {t("common.cancel")}
           </button>

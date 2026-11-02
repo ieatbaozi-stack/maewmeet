@@ -101,7 +101,7 @@ export function WindowSection({ groupId, editable, notify, saved }: SectionProps
               {error}
             </p>
           ) : null}
-          <BusyButton type="submit" className="btn btn-primary" busy={busy} disabled={!valid || unchanged} busyLabel={tAll("common.save")} label={tAll("common.save")} />
+          <BusyButton type="submit" className="btn btn-primary" busy={busy} disabled={!valid || unchanged} busyLabel={tAll("common.save")} idleLabel={tAll("common.save")} />
         </form>
       ) : (
         <p className="readonly">{summary(saved)}</p>

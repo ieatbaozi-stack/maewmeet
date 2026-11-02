@@ -53,7 +53,7 @@ export function RsvpConfirm({ direction, prev, next, conflicts, truncated, group
           <button ref={keepRef} type="button" className="btn btn-secondary btn-block" style={{ minHeight: "var(--tap-lg)" }} disabled={saving} data-testid="rsvp-confirm-cancel" onClick={onCancel}>
             {keepLabel}
           </button>
-          <BusyButton className="btn btn-primary btn-block" style={{ minHeight: "var(--tap-lg)" }} busy={saving} data-testid="rsvp-confirm-ok" onClick={onConfirm} busyLabel={t("appointments.rsvp.saving")} label={confirmLabel} />
+          <BusyButton className="btn btn-primary btn-block" style={{ minHeight: "var(--tap-lg)" }} busy={saving} data-testid="rsvp-confirm-ok" onClick={onConfirm} busyLabel={t("appointments.rsvp.saving")} idleLabel={confirmLabel} />
         </>
       }
     >
