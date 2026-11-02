@@ -58,3 +58,5 @@
 - ไม่รองรับเวลาจบ 24:00 รอบนี้ (จบช้าสุด 23:30)
 - ลบทั้งชุด = ลบทุกวันในชุดรวมวันที่ผ่านแล้ว · "ลบตั้งแต่วันนี้" ไว้รอบหน้า
 - ลำดับ: platform + test (ฝั่งเซิร์ฟเวอร์) เริ่มได้เลยบน branch นี้ · ux/frontend เริ่มหลัง R6E merge แล้ว rebase/merge `main` เข้ามาก่อน (ใช้ popup E11)
+- (หลัง platform ส่งงาน) R6F-1 "ทุกไบต์" ผ่อนเป็น: owner view ของ all_day/timed มีคีย์ `seriesId: null` เพิ่มได้ (additive, ตาม ADR 0010 §6) · รูป `{ busy }` และค่าเดิมต้องเหมือนเดิม · คนอื่นต้องไม่มีคีย์นี้
+- platform แก้ `tests/busy/busy-api.test.ts:217` และ `tests/busy/calendar-visibility.test.ts:406` (ไฟล์ของ test) บรรทัดละ 1 ตามรูป response ใหม่ — main รับทราบ · test ตรวจซ้ำในขั้น test
