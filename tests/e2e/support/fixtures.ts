@@ -41,8 +41,17 @@ export type Layout = {
   targetCount: number;
 };
 
+/** R6E E12: รอให้ transition เข้า/ออกของ sheet/dialog/หน้า (จำกัดเวลา ≤ 200 ms) จบก่อนวัดขนาด — ข้าม animation วนไม่รู้จบ (aurora/วงหมุน) */
+export async function settleAnimations(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    const finite = document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity);
+    await Promise.all(finite.map((a) => a.finished.catch(() => undefined)));
+  });
+}
+
 /** R0-12: ไม่มี horizontal scroll + a/button/input ที่มองเห็นทุกตัว ≥ 44×44 CSS px */
 export async function measureLayout(page: Page, minTarget = 44): Promise<Layout> {
+  await settleAnimations(page);
   return page.evaluate((min) => {
     const de = document.documentElement;
     const small: string[] = [];

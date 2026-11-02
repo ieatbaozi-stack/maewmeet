@@ -311,7 +311,9 @@
   "common": {
     "cancel": "ยกเลิก",
     "save": "บันทึก",
-    "close": "ปิด"
+    "close": "ปิด",
+    "loading": "กำลังโหลด…",
+    "navLoading": "กำลังเปิดหน้า…"
   },
   "signup": {
     "title": "สร้างบัญชี",
@@ -891,6 +893,16 @@
       "error": {
         "save": "บันทึกไม่สำเร็จ ข้อมูลในฟอร์มยังอยู่ ลองอีกครั้ง",
         "gone": "รายการนี้ไม่มีแล้ว อาจถูกลบจากอุปกรณ์เครื่องอื่น"
+      },
+      "overlap": {
+        "title": "ช่วงนี้ลงไม่ว่างไว้แล้ว",
+        "body": "ช่วงที่เลือกทับกับที่คุณลงไว้ก่อนหน้า จะลงซ้ำอีกไหม",
+        "listAria": "ช่วงไม่ว่างที่ทับกัน",
+        "item": "{title} · {time}",
+        "itemPlain": "ช่วงไม่ว่างที่คุณลงไว้ · {time}",
+        "more": "และรายการอื่นอีก",
+        "confirm": "ลงซ้ำ",
+        "back": "กลับไปแก้"
       }
     },
     "delete": {
@@ -1126,9 +1138,10 @@
       "conflictApptGroup": "{title} · กลุ่ม {group} · {time}",
       "conflictBusy": "{title} · {time}",
       "conflictBusyPlain": "ช่วงไม่ว่างที่คุณลงไว้ · {time}",
-      "conflictMore": "และอีก {count} รายการ",
+      "conflictMore": "และนัดอื่นอีก",
       "conflictNote": "ยังตอบ “ไป” ได้ ระบบแค่เตือนให้รู้",
       "conflictConfirm": "ไปทั้งสองนัด",
+      "conflictConfirmBusy": "ไปนัดนี้",
       "fromTitle": "เปลี่ยนใจใช่ไหม?",
       "fromBody": "ช่วงเวลานี้จะกลับมาว่างในปฏิทิน",
       "fromConfirm": "{next, select, maybe {เปลี่ยนเป็นอาจไป} other {เปลี่ยนเป็นไม่ไป}}",

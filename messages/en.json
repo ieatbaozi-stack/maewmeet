@@ -311,7 +311,9 @@
   "common": {
     "cancel": "Cancel",
     "save": "Save",
-    "close": "Close"
+    "close": "Close",
+    "loading": "Loading…",
+    "navLoading": "Opening the page…"
   },
   "signup": {
     "title": "Create an account",
@@ -891,6 +893,16 @@
       "error": {
         "save": "Couldn’t save. What you typed is still here — try again.",
         "gone": "This entry no longer exists. It may have been deleted on another device."
+      },
+      "overlap": {
+        "title": "You already have busy time then",
+        "body": "This overlaps busy time you added earlier. Add it again anyway?",
+        "listAria": "Busy time that overlaps",
+        "item": "{title} · {time}",
+        "itemPlain": "Busy time you added · {time}",
+        "more": "and more",
+        "confirm": "Add it again",
+        "back": "Back to edit"
       }
     },
     "delete": {
@@ -1126,9 +1138,10 @@
       "conflictApptGroup": "{title} · {group} · {time}",
       "conflictBusy": "{title} · {time}",
       "conflictBusyPlain": "Busy time you added · {time}",
-      "conflictMore": "and {count} more",
+      "conflictMore": "and more",
       "conflictNote": "You can still say you’re going. This is just a heads-up.",
       "conflictConfirm": "Going to both",
+      "conflictConfirmBusy": "Go anyway",
       "fromTitle": "Changing your mind?",
       "fromBody": "This time will be free again in your calendar.",
       "fromConfirm": "{next, select, maybe {Change to maybe} other {Change to can’t go}}",

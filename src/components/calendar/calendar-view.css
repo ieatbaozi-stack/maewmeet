@@ -119,3 +119,9 @@
 .av-nobody-cta { margin-top: var(--space-2); }
 .av-nobody-cta .btn { background: var(--surface); }
 .av-cta .btn .soon { display: inline-flex; margin-top: 0; gap: 0; grid-template-columns: none; }  /* ชนกับ .soon ของหน้ากลุ่ม (groups.css) */
+
+/* R6E E11: รายการที่ทับใน dialog "ลงซ้ำไหม" */
+.busy-overlap-list { display: grid; gap: var(--space-2); margin-top: var(--space-3); padding: var(--space-3); background: var(--surface-2); border-radius: var(--radius-sm); }
+.busy-overlap-list li { display: flex; align-items: flex-start; gap: var(--space-2); min-width: 0; font-size: var(--text-sm); overflow-wrap: anywhere; }
+.busy-overlap-list li .icon { margin-top: var(--space-1); flex: none; }
+.busy-overlap-more { margin-top: var(--space-2); }

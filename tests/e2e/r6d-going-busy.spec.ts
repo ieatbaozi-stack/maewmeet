@@ -11,7 +11,7 @@ import type { Locator, Page } from '@playwright/test';
 import { expect, GOOD_PIN, postJson, signupViaApi, test, uniqueUsername } from './support/auth';
 import { canary, createBusyApi, recordResponses } from './support/busy';
 import { openCalendar, pageDump } from './support/calendar-ui';
-import { setPrefs, watchConsole } from './support/fixtures';
+import { setPrefs, settleAnimations, watchConsole } from './support/fixtures';
 import { checkLayout, createGroupApi, go, joinViaApiCode, membersApi, type Theme } from './support/groups';
 import { msg, type Locale } from './support/messages';
 import { call, cancelApptApi, createApptApi, daysAhead, isHydration, makeScene, rsvpApi, stubTiles, type ApptApi, type Member } from './support/appt';
@@ -650,6 +650,7 @@ const LONG_BUSY = `LongBusy${'z'.repeat(72)}`; // 80 ตัว
 
 /** sheet อยู่ในจอ: ไม่ล้นข้าง · ปุ่มท้าย sheet เห็นครบและ ≥ 44px · ข้อความในรายการชนไม่ล้นแถว */
 async function expectSheetFits(page: Page, label: string): Promise<void> {
+  await settleAnimations(page); // R6E E12: sheet มี transition เข้า ≤ 200 ms
   const r = await dialog(page).evaluate((el) => {
     const b = el.getBoundingClientRect();
     return { left: b.left, right: b.right, top: b.top, bottom: b.bottom, sw: el.scrollWidth, cw: el.clientWidth, vw: document.documentElement.clientWidth, vh: window.innerHeight };

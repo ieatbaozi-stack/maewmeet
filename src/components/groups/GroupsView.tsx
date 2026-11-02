@@ -15,6 +15,7 @@ import { setFlash } from "./flash";
 import { GROUP_NAME_MAX, formatShortDate, groupNameLength } from "./helpers";
 import { FlashNotice, Notice } from "./Notice";
 import { Name, withNames } from "@/components/Name";
+import { BusyButton } from "@/components/shell/BusyButton";
 
 type Sheets = null | "create" | "join";
 type Status = { kind: "ok" | "error"; text: string } | null;
@@ -195,9 +196,7 @@ function CreateGroupSheet({ onClose, onDone }: { onClose: () => void; onDone: (i
       initialFocusRef={inputRef}
       footer={
         <>
-          <button type="submit" form={`${id}-f`} className="btn btn-primary btn-block" disabled={busy || len === 0}>
-            {busy ? t("groups.createSheet.submitting") : t("groups.createSheet.submit")}
-          </button>
+          <BusyButton type="submit" form={`${id}-f`} className="btn btn-primary btn-block" busy={busy} disabled={len === 0} busyLabel={t("groups.createSheet.submitting")} idleLabel={t("groups.createSheet.submit")} />
           <button type="button" className="btn btn-secondary btn-block" onClick={onClose}>
             {t("common.cancel")}
           </button>
@@ -278,9 +277,7 @@ function JoinSheet({
       initialFocusRef={inputRef}
       footer={
         <>
-          <button type="submit" form={`${id}-f`} className="btn btn-primary btn-block" disabled={busy || code.trim() === ""}>
-            {busy ? t("groups.join.submitting") : t("groups.join.submit")}
-          </button>
+          <BusyButton type="submit" form={`${id}-f`} className="btn btn-primary btn-block" busy={busy} disabled={code.trim() === ""} busyLabel={t("groups.join.submitting")} idleLabel={t("groups.join.submit")} />
           <button type="button" className="btn btn-secondary btn-block" onClick={onClose}>
             {t("common.cancel")}
           </button>
