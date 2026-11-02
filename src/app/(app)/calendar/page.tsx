@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/app/_lib/session";
 import { Aurora } from "@/components/brand";
 import { CalendarView } from "@/components/calendar/CalendarView";
+import { RememberGroup } from "@/components/calendar/RememberGroup";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { TopBar } from "@/components/shell/TopBar";
 import { loadCalendarPage } from "./_lib/load";
@@ -45,6 +46,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
   return (
     <>
       <Aurora intensity="soft" />
+      {/* R6D G1: ?g= ที่ชัดเจน (หรือกลุ่มต่างจากคุกกี้) → จำเป็นกลุ่มปัจจุบัน */}
+      {data.rememberGid ? <RememberGroup gid={data.rememberGid} /> : null}
       <CalendarView
         key={data.gid}
         groups={data.groups}

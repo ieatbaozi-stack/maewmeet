@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { useTranslations } from "next-intl";
 import { Icon, type IconName } from "@/components/icons/Icon";
 import { RSVP_ANSWERS, type Rsvp, type RsvpClosedReason } from "./model";
@@ -35,9 +36,10 @@ export interface RsvpControlProps {
 export function RsvpControl({ value, closed, saving, error, saved, labelledBy, onPick, testIdPrefix = "appt-rsvp" }: RsvpControlProps) {
   const t = useTranslations();
   const disabled = closed !== null;
+  const hintId = useId();
   return (
     <div className="rsvp" data-testid={`${testIdPrefix}-block`} style={{ marginTop: 0 }}>
-      <div className={saving ? "segmented rsvp-choice is-saving" : "segmented rsvp-choice"} role="group" aria-labelledby={labelledBy} aria-busy={saving || undefined}>
+      <div className={saving ? "segmented rsvp-choice is-saving" : "segmented rsvp-choice"} role="group" aria-labelledby={labelledBy} aria-describedby={closed === null ? hintId : undefined} aria-busy={saving || undefined}>
         {RSVP_ANSWERS.map((a) => (
           <button
             type="button"
@@ -53,6 +55,12 @@ export function RsvpControl({ value, closed, saving, error, saved, labelledBy, o
           </button>
         ))}
       </div>
+      {/* R6D: ตอบ "ไป" = ไม่ว่างทุกกลุ่ม — บอกก่อนกด (ผูก aria-describedby กับกลุ่มปุ่ม) */}
+      {closed === null ? (
+        <p className="rsvp-hint" id={hintId} data-testid={`${testIdPrefix}-hint`}>
+          {t("appointments.rsvp.goingHint")}
+        </p>
+      ) : null}
       {saving ? (
         <p className="rsvp-note" role="status">
           <Icon name="refresh-cw" size="sm" className="ov-spin" />

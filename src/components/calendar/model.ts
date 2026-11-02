@@ -28,8 +28,15 @@ export interface MemberInfo {
 }
 
 /** รายการ busy ที่เพื่อนเห็น: ไม่มี note · รายการซ่อน/ไม่ได้ใส่ → ไม่มีฟิลด์ title เลย */
+/** R6D: ชนิดของช่วงไม่ว่างที่เพื่อนเห็น — ไม่มี kind = busy (ข้อมูลเดิม) */
+export type BusyKind = "busy" | "appointment" | "other_group_appointment";
+
 export interface SharedBusy {
   id: string;
+  /** R6D: ไม่ใส่ = busy ปกติ */
+  kind?: BusyKind;
+  /** kind 'appointment' เท่านั้น — ลิงก์ไปหน้านัด */
+  appointmentId?: string;
   userId: string;
   allDay: boolean;
   startAt: EpochMs;
@@ -65,9 +72,12 @@ export function toSharedBusy(b: ApiBusyItem, groupTz: string): SharedBusy {
     tz: groupTz,
   };
   return b.kind === "appointment"
-    ? { id: `appt:${b.appointmentId}:${b.userId}`, ...base, title: b.title }
-    : { id: `other:${b.userId}:${b.startAt}`, ...base };
+    ? { id: `appt:${b.appointmentId}:${b.userId}`, kind: "appointment", appointmentId: b.appointmentId, ...base, title: b.title }
+    : { id: `other:${b.userId}:${b.startAt}`, kind: "other_group_appointment", ...base };
 }
+
+/** ชนิดของรายการ (ไม่มี kind = busy) */
+export const busyKindOf = (item: Pick<SharedBusy, "kind">): BusyKind => item.kind ?? "busy";
 
 export interface OwnBusy {
   id: string;
@@ -284,6 +294,10 @@ export function segmentLabel(seg: DaySegment): { ref: MessageRef; dayOf: Message
 
 /** รายการที่ซ่อน/ไม่ได้ใส่ "ทำอะไร" = ไม่มีฟิลด์ title → "ไม่ว่าง" (ผู้ดูแยกไม่ได้ — UX X28) */
 export const segmentTitle = (seg: DaySegment): string | null => (typeof seg.item.title === "string" && seg.item.title !== "" ? seg.item.title : null);
+
+/** R6D: ลิงก์ไปหน้านัดของรายการ kind 'appointment' (อื่นๆ = null → ไม่ใช่ลิงก์) */
+export const itemApptHref = (item: Pick<SharedBusy, "kind" | "appointmentId">): string | null =>
+  item.kind === "appointment" && item.appointmentId ? `/appointments/${encodeURIComponent(item.appointmentId)}` : null;
 
 // ───────── ข้อความ "เมื่อไร" ของรายการ (รายการของฉัน + สรุปในฟอร์ม) ─────────
 export interface WhenParts {

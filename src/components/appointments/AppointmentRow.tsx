@@ -20,13 +20,15 @@ export function AppointmentRow({ a, nowMs }: { a: AppointmentDto; nowMs: number 
   const start = toLocal(a.startAt, a.tz);
   const whenPlain = `${weekdayShort(a.localDate, { locale })} ${format(a.localDate, { locale, style: "day-month" })} ${hhmm(start.minute)}`;
   const mine = a.rsvp.mine;
+  // R6D: ป้ายชน (เห็นเฉพาะเจ้าตัว — เซิร์ฟเวอร์ส่ง myConflict ของผู้ขอเท่านั้น) · นัดที่ยกเลิก/จบแล้วไม่แสดง
+  const conflict = a.myConflict === true && mine === "going" && phase !== "cancelled" && phase !== "past";
   const cls = phase === "cancelled" ? " is-cancelled" : phase === "past" ? " is-past" : "";
   return (
     <li>
       <Link
         className={`appt-row${cls}`}
         href={`/appointments/${a.id}`}
-        aria-label={t("appointments.row.aria", { title: `⁨${a.title}⁩`, when: whenPlain, state: rowState(a) })}
+        aria-label={t("appointments.row.aria", { title: `⁨${a.title}⁩`, when: whenPlain, state: rowState(a) }) + (conflict ? `. ${t("appointments.conflictAria")}` : "")}
         data-testid="appt-row"
         data-status={a.status}
         data-appt-id={a.id}
@@ -55,6 +57,12 @@ export function AppointmentRow({ a, nowMs }: { a: AppointmentDto; nowMs: number 
                   <Icon name={ANSWER_ICON[mine ?? "none"]} size="sm" />
                   {t(`appointments.rsvp.mine.${mine ?? "none"}`)}
                 </span>
+                {conflict ? (
+                  <span className="tag tag-warn" data-testid="appt-conflict-badge">
+                    <Icon name="triangle-alert" size="sm" />
+                    <span>{t("appointments.conflictBadge")}</span>
+                  </span>
+                ) : null}
               </>
             )}
           </span>

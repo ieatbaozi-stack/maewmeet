@@ -8,6 +8,7 @@ import { MemberList } from "@/components/groups/MemberList";
 import { viewerRole } from "@/components/groups/helpers";
 import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
+import { RememberGroup } from "@/components/calendar/RememberGroup";
 import { CreateAppointmentButton } from "@/components/appointments/CreateAppointmentButton";
 import { loadGroup } from "../_lib/load";
 import { loadGroupAppointments } from "../../appointments/_lib/load";
@@ -45,6 +46,8 @@ export default async function GroupPage({ params }: { params: Promise<{ gid: str
   return (
     <>
       <Aurora intensity="soft" />
+      {/* R6D G1: เปิดหน้ากลุ่ม = กลุ่มปัจจุบันของเครื่องนี้ (เฉพาะสมาชิกจริง — เซิร์ฟเวอร์ตรวจซ้ำที่ PUT) */}
+      {group.myRole !== null ? <RememberGroup gid={group.id} /> : null}
       <header className="topbar">
         <Link className="icon-btn" href="/groups" aria-label={t("group.back")}>
           <Icon name="chevron-left" />

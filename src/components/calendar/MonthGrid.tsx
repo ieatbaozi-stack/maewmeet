@@ -3,6 +3,7 @@
 import { useState, type KeyboardEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { memberSlot } from "@/components/groups/helpers";
+import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
 import { format, weekdayLabels, type CalendarLocale, type DateISO } from "@/lib/calendar";
 import { arrowTarget, dotLayout, type MemberInfo, type MonthModel } from "./model";
@@ -146,6 +147,39 @@ export function MemberLegend({ members, myId }: { members: readonly MemberInfo[]
       <p className="cal-note">{t("calendar.busyLegend.hint")}</p>
       {members.length > 8 ? <p className="cal-note">{t("calendar.busyLegend.more")}</p> : null}
       {members.length > 10 ? <p className="cal-note">{t("calendar.busyLegend.sameColour")}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * R6D: คำอธิบายชนิดช่วงที่ไม่ว่าง (ต่อจาก MemberLegend) — ลายเฉียง = ลงเอง · แคปซูลทึบ+ไอคอนปฏิทิน = นัดของกลุ่มนี้ ·
+ * กรอบประ+ไอคอนกุญแจ = นัดกลุ่มอื่น · แยกด้วยรูปทรง/ไอคอน/คำ ไม่ใช้สีอย่างเดียว
+ */
+export function KindLegend() {
+  const t = useTranslations();
+  return (
+    <div className="cal-legend cal-kinds" data-testid="cal-kinds">
+      <h3 className="sub-h" id="cal-kinds-h">
+        {t("calendar.kind.title")}
+      </h3>
+      <ul className="cal-kind-list" aria-labelledby="cal-kinds-h">
+        <li>
+          <span className="kind-swatch is-busy" aria-hidden="true" />
+          <span>{t("calendar.kind.busy")}</span>
+        </li>
+        <li>
+          <span className="kind-swatch is-appt" aria-hidden="true">
+            <Icon name="calendar" size="sm" />
+          </span>
+          <span>{t("calendar.kind.appointment")}</span>
+        </li>
+        <li>
+          <span className="kind-swatch is-other" aria-hidden="true">
+            <Icon name="lock" size="sm" />
+          </span>
+          <span>{t("calendar.kind.other")}</span>
+        </li>
+      </ul>
     </div>
   );
 }

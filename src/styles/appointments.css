@@ -75,6 +75,7 @@
 .rsvp-choice.is-saving button { cursor: progress; }
 .rsvp-note { display: flex; gap: var(--space-2); align-items: flex-start; margin-top: var(--space-2); font-size: var(--text-sm); color: var(--ink-muted); }
 .rsvp-note .icon { margin-top: var(--space-1); }
+.rsvp-hint { margin-top: var(--space-2); font-size: var(--text-sm); color: var(--ink-muted); }
 .rsvp-error { margin-top: var(--space-2); font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--danger-ink); display: flex; gap: var(--space-2); align-items: flex-start; }
 .rsvp-error .icon { margin-top: var(--space-1); }
 
@@ -212,6 +213,18 @@
 .ov-name .you { color: var(--ink-muted); font-weight: var(--weight-regular); font-size: var(--text-sm); margin-left: var(--space-1); }
 .ov-why { font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
 .ov-why .t { color: var(--busy-ink); font-weight: var(--weight-medium); }
+.ov-why .t.kind-label { display: inline-flex; align-items: flex-start; gap: var(--space-1); }
+.ov-why .t.kind-label .icon { margin-top: var(--space-1); flex: none; }
+
+/* ---------- R6D: popup ยืนยัน RSVP + ป้ายชน ---------- */
+.appt-conflict { margin-top: var(--space-2); }
+.rsvp-conflicts { margin-top: var(--space-4); padding: var(--space-3); border-radius: var(--radius-sm); display: grid; gap: var(--space-2); background: var(--warn); color: var(--warn-ink); }
+.rsvp-conflicts h3 { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-md); font-weight: var(--weight-semibold); line-height: var(--leading-heading); }
+.rsvp-conflicts ul { display: grid; gap: var(--space-2); }
+.rsvp-conflicts li { display: flex; align-items: flex-start; gap: var(--space-2); min-width: 0; font-size: var(--text-sm); overflow-wrap: anywhere; }
+.rsvp-conflicts li .icon { margin-top: var(--space-1); flex: none; }
+.rsvp-conflicts-more, .rsvp-conflicts-note { font-size: var(--text-sm); }
+.rsvp-confirm-status { min-height: calc(var(--text-sm) * var(--leading)); margin-top: var(--space-2); }
 .ov-more { font-size: var(--text-sm); padding: var(--space-2) 0; color: var(--ink-muted); }
 .ov-retry { justify-self: start; }
 .ov-spin { animation: ov-spin 1.2s linear infinite; }

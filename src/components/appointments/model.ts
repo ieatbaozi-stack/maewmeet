@@ -2,7 +2,7 @@
 // ไม่แตะ DOM/เครือข่าย · ทดสอบที่ tests/ui/appointments-model.test.ts · วัน/เวลาคำนวณผ่าน src/lib/calendar เท่านั้น (ห้าม new Date)
 import { addDays, parseLocalDateTime, toLocal, STEP_MINUTES, type CalendarLocale, type DateISO, type EpochMs } from "@/lib/calendar";
 import { format } from "@/lib/calendar";
-import type { MessageRef } from "@/components/calendar/model";
+import { whenRef, type BusyKind, type MessageRef } from "@/components/calendar/model";
 import type { Failure } from "./api";
 import type { AppointmentDetailDto, AppointmentDto, OverlapDto, PersonDto, RsvpCountsDto, RsvpDetailDto } from "@/lib/data/serializers/appointments";
 import { APPOINTMENT_DESCRIPTION_MAX, APPOINTMENT_MAX_BACKDATE_MS, APPOINTMENT_PLACE_NAME_MAX, APPOINTMENT_TITLE_MAX } from "@/lib/shared/limits";
@@ -389,6 +389,8 @@ export interface OverlapRow {
   when: MessageRef;
   /** ชื่อรายการที่เจ้าของเปิดเผย · null = "ไม่ว่าง" (ซ่อน/ไม่ได้ใส่ — ผู้ดูแยกไม่ได้) */
   title: string | null;
+  /** R6D: busy = ช่วงที่ลงเอง · appointment = นัด (title = ชื่อนัดของกลุ่มนี้) · other_group_appointment = ติดนัดกลุ่มอื่น (ไม่มีชื่อ) */
+  kind: BusyKind;
 }
 export interface OverlapPerson {
   userId: string;
@@ -425,7 +427,9 @@ export function overlapView(o: OverlapDto, ctx: { myId: string; tz: string; loca
   const all: OverlapPerson[] = o.blocked.map((b) => {
     const rows = b.items.map((it, i): OverlapRow => {
       const title = "title" in it && typeof it.title === "string" && it.title !== "" ? it.title : null;
-      return { key: `${b.userId}-${"id" in it ? it.id : i}`, when: itemWhen(it, ctx.tz, ctx.locale), title };
+      const kind: BusyKind = "kind" in it && (it.kind === "appointment" || it.kind === "other_group_appointment") ? it.kind : "busy";
+      // นัด/นัดกลุ่มอื่นไม่มี id ของ busy → ใช้ชนิด+ลำดับเป็น key
+      return { key: `${b.userId}-${"id" in it ? it.id : `${kind}${i}`}`, when: itemWhen(it, ctx.tz, ctx.locale), title, kind };
     });
     return { userId: b.userId, displayName: b.displayName, colorIndex: b.colorIndex, shapeIndex: b.shapeIndex, you: b.userId === ctx.myId, rows: rows.slice(0, OVERLAP_MAX_ROWS), moreRows: Math.max(0, rows.length - OVERLAP_MAX_ROWS) };
   });
@@ -498,6 +502,33 @@ export function appointmentWhen(a: Pick<AppointmentDto, "startAt" | "endAt" | "t
   if (e.date === addDays(s.date, 1) && e.minute <= s.minute) return ref("appointments.when.overnight", { start, end });
   const d = (x: DateISO) => format(x, { locale, style: "day-month" });
   return ref("busy.when.timedSpan", { startDate: d(s.date), start, endDate: d(e.date), end });
+}
+
+// ───────── R6D: ชนกับนัดอื่น / นัดที่ตอบ "ไป" ─────────
+export type MyConflict = AppointmentDetailDto["myConflicts"][number];
+
+/** ช่วงเวลาของสิ่งที่ชน (ใน tz ของมันเอง) · busy ทั้งวัน = ข้อความวัน */
+export function conflictWhen(c: MyConflict, locale: CalendarLocale): MessageRef {
+  if (c.kind === "busy" && c.allDay) return whenRef({ allDay: true, startDate: c.localStartDate, endDate: c.localEndDate }, locale);
+  return appointmentWhen(c, locale);
+}
+
+/** ต้องมี popup ยืนยันไหม: เป็น "ไป" (จากอย่างอื่น/ยังไม่ตอบ) = to · จาก "ไป" เป็นอย่างอื่น = from · นอกนั้น (maybe↔not_going/ตอบครั้งแรกเป็นสองอย่างนี้) = null */
+export function rsvpConfirmKind(prev: Rsvp | null, next: Rsvp): "to" | "from" | null {
+  if (prev === next) return null;
+  if (next === "going") return "to";
+  return prev === "going" ? "from" : null;
+}
+
+/** ป้ายชนที่หน้านัด: เฉพาะคนที่ตอบ "ไป" และนัดยังเปิดอยู่ */
+export const showConflictBadge = (a: Pick<AppointmentDetailDto, "rsvp" | "myConflicts" | "status" | "isPast">): boolean =>
+  a.rsvp.mine === "going" && a.myConflicts.length > 0 && a.status !== "cancelled" && !a.isPast;
+
+/** เวลาของนัดที่ตอบ "ไป" ในแท็บ "ของฉัน" (วันที่ + ช่วงเวลา ใน tz ของนัด) */
+export function goingWhen(a: Pick<AppointmentDto, "startAt" | "endAt" | "tz">, locale: CalendarLocale): MessageRef {
+  const s = toLocal(a.startAt, a.tz);
+  const e = toLocal(a.endAt, a.tz);
+  return whenRef({ allDay: false, startDate: s.date, endDate: e.date, startTime: hhmm(s.minute), endTime: hhmm(e.minute) }, locale);
 }
 
 /** หมายเลขวันที่/เดือนย่อสำหรับ datebox ในแถว */
