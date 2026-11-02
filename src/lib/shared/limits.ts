@@ -38,6 +38,14 @@ export const BUSY_RETENTION_DAYS = 90;
 /** ความยาวสูงสุดของ title / note (อักขระ = code point) */
 export const BUSY_TITLE_MAX = 80;
 export const BUSY_NOTE_MAX = 500;
+/**
+ * R6F (ADR 0010 §8 · main ตัดสิน 2026-11-02): limiter เขียน busy ต่อผู้ใช้ — fixed window ผ่าน rate_limit_bucket · เกิน → RATE_LIMITED + Retry-After
+ * create นับต่อคำขอ (ทุก kind — ชุดรายวัน 62 แถวก็นับ 1) · delete นับต่อคำขอ (ทั้ง scope=one และ series)
+ */
+export const BUSY_WRITE_RATE_LIMITS = {
+  create: { prefix: 'busy:create', limit: 30, windowMs: 10 * MINUTE_MS },
+  delete: { prefix: 'busy:delete', limit: 60, windowMs: 10 * MINUTE_MS },
+} as const;
 
 /** ชนิดเพดานที่ใส่ใน params ของ LIMIT_REACHED (UX แปลตามนี้) */
 export type LimitKind =

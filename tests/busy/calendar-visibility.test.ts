@@ -403,7 +403,7 @@ describe('ADR 0006 test 8–9 — ระดับชนิดข้อมูล 
     // title ว่างหลังทำความสะอาด → ไม่มีฟิลด์
     expect('title' in toBusyForViewers({ ...row, title: '​' } as never)).toBe(false);
     expect(Object.keys(toBusyOwnView({ ...row, hideDetail: true, createdAt: 1, updatedAt: 1 } as never)).sort()).toEqual(
-      ['allDay', 'endAt', 'hidden', 'id', 'localEndDate', 'localStartDate', 'note', 'startAt', 'title', 'tz', 'userId'],
+      ['allDay', 'endAt', 'hidden', 'id', 'localEndDate', 'localStartDate', 'note', 'seriesId', 'startAt', 'title', 'tz', 'userId'], // R6F (ADR 0010 §6): + seriesId (เจ้าของเท่านั้น)
     );
   });
 
