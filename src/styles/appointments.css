@@ -60,7 +60,10 @@
 /* ---------- RSVP: segmented 3 ปุ่ม (ไอคอนต่างรูป + ข้อความ + วงแหวนหนาเมื่อเลือก) ---------- */
 .rsvp { margin-top: var(--space-4); }
 .rsvp-label { font-size: var(--text-sm); color: var(--ink-muted); margin-bottom: var(--space-2); }
-.rsvp-choice button { position: relative; }
+/* R6E E4: 3 ปุ่มบรรทัดเดียวทุกจอ — grid 3 คอลัมน์เท่ากัน (.segmented) · ไม่ตัดบรรทัด · padding แนวนอนไม่เกิน --space-2 · ตัวอักษรไม่ต่ำกว่า --text-sm */
+.rsvp-choice button { position: relative; white-space: nowrap; min-width: 0; padding: 0 var(--space-1); gap: var(--space-1); font-size: var(--text-sm); }
+.rsvp-choice button > span:not(.spinner) { min-width: 0; }
+.rsvp-note .spinner { margin-top: var(--space-1); }
 .rsvp-choice button .icon { width: var(--icon-sm); height: var(--icon-sm); }
 .rsvp-choice button[aria-pressed="true"] {
   border-color: transparent; font-weight: var(--weight-semibold);

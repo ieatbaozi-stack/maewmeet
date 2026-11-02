@@ -3,6 +3,7 @@
 import { useId } from "react";
 import { useTranslations } from "next-intl";
 import { Icon, type IconName } from "@/components/icons/Icon";
+import { Spinner } from "@/components/shell/Spinner";
 import { RSVP_ANSWERS, type Rsvp, type RsvpClosedReason } from "./model";
 
 export const ANSWER_ICON: Record<Rsvp | "none", IconName> = {
@@ -48,9 +49,11 @@ export function RsvpControl({ value, closed, saving, error, saved, labelledBy, o
             data-testid={`${testIdPrefix}-${a}`}
             aria-pressed={value === a}
             disabled={disabled}
+            aria-disabled={saving || undefined}
+            aria-busy={saving && value === a ? true : undefined}
             onClick={() => onPick(a)}
           >
-            <Icon name={ANSWER_ICON[a]} size="sm" />
+            {saving && value === a ? <Spinner /> : <Icon name={ANSWER_ICON[a]} size="sm" />}
             <span>{t(`appointments.rsvp.answer.${a}`)}</span>
           </button>
         ))}
@@ -63,7 +66,7 @@ export function RsvpControl({ value, closed, saving, error, saved, labelledBy, o
       ) : null}
       {saving ? (
         <p className="rsvp-note" role="status">
-          <Icon name="refresh-cw" size="sm" className="ov-spin" />
+          <Spinner />
           <span>{t("appointments.rsvp.saving")}</span>
         </p>
       ) : null}
