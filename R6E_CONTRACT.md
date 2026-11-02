@@ -1,6 +1,6 @@
 # R6E_CONTRACT.md — เก็บงานค้างหลัง v0.8.0 (backlog R6C/R6D + F5)
 
-> ผู้เขียน: main · 2026-11-02 · สถานะ: **ร่าง รอ boss เห็นชอบ**
+> ผู้เขียน: main · 2026-11-02 · สถานะ: **boss เห็นชอบแล้ว** 2026-11-02 · E10 = (ก) คงไว้ · v0.8.1
 > ที่มา: PROGRESS.md "เหลือ" · `docs/reports/qa-r6d.md` L1–L4 · `security-r6d.md` L1 · `security-r6c.md` L2 · `qa-r6c.md` L2 · NEXT_PHASE F5
 > branch: `chore/r6e-cleanup` · ข้อเสนอเลขเวอร์ชัน: **v0.8.1** (PATCH — แก้ข้อความ/เลย์เอาต์/เทสต์/เอกสาร ไม่มีพฤติกรรมใหม่) · **ไม่มี migration · ไม่แตะ API/schema/RBAC**
 
@@ -16,7 +16,7 @@
 | E7 | `home-rsvp-hint` เป็น id ไม่ใช่ testid | เพิ่ม `data-testid="home-rsvp-hint"` ใน `HomeView.tsx` (คง id ไว้ เพราะ `aria-describedby` ใช้) | — |
 | E8 | qa-r6c L2 — ไฟล์ตัวอย่างดีไซน์ยังใช้ `data-slot` | `docs/design/samples/*.html` (11 ไฟล์) เปลี่ยนเป็น `data-color` / `data-shape` ให้ตรงโค้ดจริง | — |
 | E9 | ADR 0009 ไม่ตรงโค้ด | §5 body เป็น `{ gid }` · ลบ/ปิดหมายเหตุ "ให้ main ยืนยัน" เรื่องเลข 0008→0009 (main ยืนยันแล้ว: ใช้ **0009**) · ไม่แก้ contract/commit เก่า | — |
-| E10 | F5 หน้า /privacy | **รอ boss เลือก (§4)** · ข้อความเตือนตอนนี้ (`privacy.draft`) ตรงกับคำใน NEXT_PHASE แล้ว | ไม่แก้เนื้อหานโยบาย |
+| E10 | F5 หน้า /privacy | **boss เลือก (ก) คงไว้** — ข้อความ `privacy.draft` ตรงกับ NEXT_PHASE แล้ว → ปิด F5 โดยไม่แก้โค้ด (secretary บันทึก) | ไม่แตะ `privacy.*` / `src/app/privacy/**` |
 
 **ไม่อยู่ในรอบนี้:** security-r6d Info 5 (`myConflict` เพดาน 500 ไม่มีธง truncated — ผลแค่ UI, เก็บไว้ hardening) · R6 hardening อื่น · F1/F2/F6
 
