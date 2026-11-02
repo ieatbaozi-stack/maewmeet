@@ -892,7 +892,15 @@
       },
       "error": {
         "save": "Couldn’t save. What you typed is still here — try again.",
-        "gone": "This entry no longer exists. It may have been deleted on another device."
+        "gone": "This entry no longer exists. It may have been deleted on another device.",
+        "daily": {
+          "count": "That would go over the {max} entries we allow, so none of these days were saved. Delete old ones you don’t need, or pick fewer days.",
+          "span": "You can add up to {max} days at a time, and none of these were saved. Try splitting it into a few.",
+          "end": "The end has to be after the start on the same day (we can’t do past midnight yet). Pick a new end time.",
+          "backdate": "You can add busy time up to {max} days back, and none of these days were saved. Pick a more recent start day.",
+          "rate": "You’re adding a lot at once. Wait a moment and try again. None of these days were saved.",
+          "generic": "Couldn’t save, and none of these days were saved. What you typed is still here, so try again."
+        }
       },
       "overlap": {
         "title": "You already have busy time then",
@@ -903,6 +911,24 @@
         "more": "and more",
         "confirm": "Add it again",
         "back": "Back to edit"
+      },
+      "scope": {
+        "label": "Time each day",
+        "allDay": "All day",
+        "daily": "Certain hours",
+        "help": {
+          "allDay": "Busy the whole day, every day in this range, like a trip abroad",
+          "daily": "The same hours every day in this range, like an evening class. The rest of each day stays free."
+        },
+        "timeHint": "Applies to every day you pick. It has to end the same day (23:30 at the latest)."
+      },
+      "summary": {
+        "daily": "{count, plural, one {# day} other {# days}} · {start}–{end} every day",
+        "dailyNote": "Saved as {count, plural, one {# separate entry} other {# separate entries}}, one per day. Time outside these hours stays free.",
+        "dailyAria": "Summary: {count, plural, one {# day} other {# days}}, {start} to {end} every day"
+      },
+      "series": {
+        "editNote": "If you save changes, this day leaves its series. The other days stay as they are."
       }
     },
     "delete": {
@@ -913,7 +939,31 @@
     "toast": {
       "saved": "Busy time saved",
       "updated": "Changes saved",
-      "deleted": "Busy time deleted"
+      "deleted": "Busy time deleted",
+      "savedDaily": "Saved {count, plural, one {# day} other {# days}}",
+      "deletedDay": "Day deleted. The rest of the series is still there.",
+      "deletedSeries": "Whole series deleted",
+      "deletedSeriesCount": "Whole series deleted ({count, plural, one {# day} other {# days}})"
+    },
+    "series": {
+      "tag": "In a series",
+      "tagCount": "Series · {count, plural, one {# day} other {# days}}",
+      "tagAria": "This entry is part of a daily busy series",
+      "detail": "One of {count, plural, one {# day} other {# days}} in this series ({start}–{end} every day)",
+      "detailPlain": "One day in a daily busy series",
+      "deleteTitle": "Delete just this day, or the whole series?",
+      "deleteBody": "This entry is part of a series you added over several days. Delete only this day, or the whole series.",
+      "deleteBodyCount": "This entry is one of {count, plural, one {# day} other {# days}} in a series. Delete only this day, or the whole series.",
+      "deleteOne": "Delete this day",
+      "deleteOneHelp": "The other days in the series stay",
+      "deleteAll": "Delete the whole series",
+      "deleteAllHelp": "Removes every day in the series, including days that have passed. You can’t undo it.",
+      "deleteAllCount": "Delete the whole series ({count, plural, one {# day} other {# days}})",
+      "confirmAllTitle": "Delete the whole series?",
+      "confirmAllBody": "Every day in this series goes, including days that have passed, and disappears from every friend’s calendar right away. You can’t undo it.",
+      "confirmAllBodyCount": "All {count, plural, one {# day} other {# days}} in this series go, including days that have passed, and disappear from every friend’s calendar right away. You can’t undo it.",
+      "confirmAll": "Delete the whole series",
+      "cancel": "Cancel"
     }
   },
   "home": {
