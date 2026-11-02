@@ -27,7 +27,7 @@
 ## 2. ไฟล์ (บทบาท)
 | บทบาท | ไฟล์ | งาน |
 |---|---|---|
-| ux | `messages/th.json`, `messages/en.json`, `docs/design/UI_DIRECTION*` (ส่วน motion/loading) | E1, E2 (คำ), E4 (ถ้าต้องปรับคำ), E11 (คำ popup), E12 (เลือกแบบ progress/วงหมุน, ระยะเวลา, token motion) |
+| ux | `messages/th.json`, `messages/en.json`, `docs/design/UI_DIRECTION*` (ส่วน motion/loading), `docs/design/R6E_POLISH.md`, `src/styles/tokens*` (token progress/spinner/skeleton ของ E12) | E1, E2 (คำ), E4 (ถ้าต้องปรับคำ), E11 (คำ popup), E12 (เลือกแบบ progress/วงหมุน, ระยะเวลา, token motion) |
 | frontend | `src/components/appointments/RsvpConfirm.tsx`, `RsvpControl.tsx`, ไฟล์มุมมองวันใน `src/components/calendar/**` (DayPanel/BusyItemLine), `src/components/home/HomeView.tsx`, `src/components/busy/BusyFormSheet.tsx` (+ dialog), `src/components/shell/**` (LoadingState, ตัวแสดง progress การนำทาง), CSS ของปุ่ม/sheet, `src/app/**/loading.tsx` + เทสต์ ui/e2e ที่เกี่ยว | E1, E2 (ตรรกะเลือกคำ), E3, E4, E7, E11, E12 · e2e/screenshot ของ E3/E4/E11 |
 | test | `tests/e2e/appt-story.spec.ts`, `tests/security/authorize-first.test.ts` | E5, E6 |
 | architect | `docs/adr/0009-going-counts-as-busy.md`, `docs/design/samples/*.html` | E8, E9 |
