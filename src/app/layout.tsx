@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
+import { NavProgress } from "@/components/shell/NavProgress";
 import { THEME_COOKIE, parseTheme } from "@/i18n/config";
 import { THEME_COLOR } from "@/styles/tokens.meta";
 import "./globals.css";
@@ -41,7 +42,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <a className="skip-link" href="#main">
           {t("skipToContent")}
         </a>
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          <NavProgress />
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );

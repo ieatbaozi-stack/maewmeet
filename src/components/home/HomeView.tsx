@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/shell/EmptyState";
 import { Icon, type IconName } from "@/components/icons/Icon";
 import { format, type CalendarLocale } from "@/lib/calendar";
 import { callApiFull } from "@/components/appointments/api";
+import { Spinner } from "@/components/shell/Spinner";
 import { RsvpConfirm } from "@/components/appointments/RsvpConfirm";
 import { rsvpConfirmKind, type MyConflict } from "@/components/appointments/model";
 import type { AppointmentDetailDto } from "@/lib/data/serializers/appointments";
@@ -434,9 +435,11 @@ function NextCard({
                 data-answer={c}
                 data-testid={`home-rsvp-${c}`}
                 aria-pressed={summary.mine === c}
+                aria-disabled={saving !== null ? true : undefined}
+                aria-busy={saving === c ? true : undefined}
                 onClick={() => void onChoose(a, c)}
               >
-                <Icon name={ANSWER_ICON[c]} size="sm" />
+                {saving === c ? <Spinner /> : <Icon name={ANSWER_ICON[c]} size="sm" />}
                 <span>{t(`appointments.rsvp.answer.${c}`)}</span>
               </button>
             ))}
@@ -446,7 +449,7 @@ function NextCard({
           </p>
           {saving ? (
             <p className="rsvp-note" role="status">
-              <Icon name="refresh-cw" size="sm" />
+              <Spinner />
               <span>{t("appointments.rsvp.saving")}</span>
             </p>
           ) : null}

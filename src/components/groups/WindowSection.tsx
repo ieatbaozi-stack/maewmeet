@@ -15,6 +15,7 @@ import {
 } from "./helpers";
 import type { SectionProps } from "./NameSection";
 import { SelectField } from "./SelectField";
+import { BusyButton } from "@/components/shell/BusyButton";
 
 export interface WindowValue {
   start: number;
@@ -100,9 +101,7 @@ export function WindowSection({ groupId, editable, notify, saved }: SectionProps
               {error}
             </p>
           ) : null}
-          <button type="submit" className="btn btn-primary" disabled={busy || !valid || unchanged}>
-            {tAll("common.save")}
-          </button>
+          <BusyButton type="submit" className="btn btn-primary" busy={busy} disabled={!valid || unchanged} busyLabel={tAll("common.save")} label={tAll("common.save")} />
         </form>
       ) : (
         <p className="readonly">{summary(saved)}</p>

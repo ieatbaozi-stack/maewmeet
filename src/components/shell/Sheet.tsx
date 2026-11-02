@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import { Icon } from "@/components/icons/Icon";
@@ -32,6 +32,31 @@ export function Sheet({ title, onClose, children, footer, center = false, alert 
   const t = useTranslations("a11y");
   const id = useId();
   const ref = useRef<HTMLElement>(null);
+  // R6E E12: ปิด = เล่นแอนิเมชันออก (--dur-fast) แล้วค่อยเรียก onClose · reduced-motion (0ms) = ปิดทันที
+  const [closing, setClosing] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+  useEffect(() => () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  }, []);
+  function requestClose() {
+    if (closeTimer.current) return;
+    const raw = getComputedStyle(document.documentElement).getPropertyValue("--dur-fast").trim();
+    const ms = raw.endsWith("ms") ? parseFloat(raw) : raw.endsWith("s") ? parseFloat(raw) * 1000 : 0;
+    if (!(ms > 0)) {
+      onCloseRef.current();
+      return;
+    }
+    setClosing(true);
+    closeTimer.current = setTimeout(() => {
+      closeTimer.current = null;
+      setClosing(false);
+      onCloseRef.current();
+    }, ms);
+  }
 
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
@@ -45,7 +70,7 @@ export function Sheet({ title, onClose, children, footer, center = false, alert 
   function onKeyDown(e: KeyboardEvent<HTMLElement>) {
     if (e.key === "Escape") {
       e.stopPropagation();
-      onClose();
+      requestClose();
       return;
     }
     if (e.key !== "Tab" || !ref.current) return;
@@ -66,7 +91,7 @@ export function Sheet({ title, onClose, children, footer, center = false, alert 
   if (typeof document === "undefined") return null;
   return createPortal(
     <>
-      <div className="scrim" aria-hidden="true" onClick={onClose} />
+      <div className="scrim" aria-hidden="true" data-closing={closing || undefined} onClick={requestClose} />
       <section
         ref={ref}
         className={["sheet", center || alert ? "center" : "", alert ? "alert-sheet" : "", tall ? "tall" : "", className ?? ""].filter(Boolean).join(" ")}
@@ -74,6 +99,7 @@ export function Sheet({ title, onClose, children, footer, center = false, alert 
         aria-modal="true"
         aria-labelledby={`${id}-t`}
         tabIndex={-1}
+        data-closing={closing || undefined}
         onKeyDown={onKeyDown}
       >
         <div className="sheet-handle" aria-hidden="true" />
@@ -81,7 +107,7 @@ export function Sheet({ title, onClose, children, footer, center = false, alert 
           <div className="t">
             <h2 id={`${id}-t`}>{title}</h2>
           </div>
-          <button type="button" className="icon-btn" aria-label={t("close")} onClick={onClose}>
+          <button type="button" className="icon-btn" aria-label={t("close")} onClick={requestClose}>
             <Icon name="x" />
           </button>
         </div>

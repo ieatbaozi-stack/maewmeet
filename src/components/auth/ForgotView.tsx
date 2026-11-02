@@ -6,6 +6,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { Icon, type IconName } from "@/components/icons/Icon";
 import { callApi } from "./api";
 import { failureText } from "./errors";
+import { BusyButton } from "@/components/shell/BusyButton";
 
 export type ResetStatus =
   | { status: "none" }
@@ -107,9 +108,7 @@ export function ForgotView({ initial }: { initial: ResetStatus }) {
               <span>{t("forgot.deviceNote")}</span>
             </p>
             <div className="auth-actions">
-              <button type="submit" className="btn btn-primary btn-block" disabled={busy || username.trim() === ""} aria-busy={busy}>
-                {busy ? t("forgot.submitting") : t("forgot.submit")}
-              </button>
+              <BusyButton type="submit" className="btn btn-primary btn-block" busy={busy} disabled={username.trim() === ""} busyLabel={t("forgot.submitting")} label={t("forgot.submit")} />
             </div>
           </form>
         </section>
