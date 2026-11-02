@@ -140,6 +140,8 @@ describe('R6F-2 — หลายวัน + เฉพาะช่วงเวล
 describe('R6F-3 — ว่างตรงกัน: ช่วงก่อน 17:00 / หลัง 20:00 ของวันในชุดยังว่าง', () => {
   it('หน้าต่างกลุ่ม 08:00–22:00 → ว่างร่วม 08:00–17:00 และ 20:00–22:00 ทุกวันในชุด', async () => {
     const gid = await makeGroup(a, 'กลุ่ม');
+    // R7 G1: กลุ่มใหม่ได้ขั้นต่ำ 240 นาที — ผลที่คาดของ R6F-3 (20:00–22:00 = 120 นาที) คำนวณที่ขั้นต่ำ 120 จึงตั้งกลับตรง ๆ
+    await h.rows('UPDATE groups SET min_free_minutes = 120 WHERE id = ?', [gid]);
     await join(a, b, gid);
     expect((await createSeries(a, daily())).status).toBe(201);
     type Day = { date: string; segments: { start: string; end: string }[]; allFree: boolean };
