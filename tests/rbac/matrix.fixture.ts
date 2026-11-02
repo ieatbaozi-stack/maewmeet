@@ -219,6 +219,11 @@ export const MATRIX = {
     resource: 'group',
     cases: { any: r(FB, OK, OK, OK, OK, NF, AUTH) },
   },
+  'member.setCurrentGroup': {
+    ref: 'R6D G1 / ADR 0009 §5: จำกลุ่มปัจจุบัน (คุกกี้ mm_group) · สมาชิกทุก role · SA นอกกลุ่ม 403 · NM 404',
+    resource: 'group',
+    cases: { any: r(FB, OK, OK, OK, OK, NF, AUTH) },
+  },
 
   // ───────── §3 แถว 18–19 ─────────
   'pinReset.list': { ref: '§3 อนุมัติ/ปฏิเสธ reset PIN', resource: 'none', cases: { any: SA_ONLY } },

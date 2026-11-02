@@ -20,7 +20,7 @@ export type CurrentGroupInput = z.output<typeof currentGroupInputSchema>;
 
 export async function rememberCurrentGroup(actor: Actor, input: CurrentGroupInput, ctx: DataCtx): Promise<{ result: { ok: true }; cookies: CurrentGroupCookie[] }> {
   const group = await loadGroupCtx(ctx.db, actor, input.gid);
-  authorize(actor, 'member.setOwnAppearance', { type: 'group', group });
+  authorize(actor, 'member.setCurrentGroup', { type: 'group', group });
   const me = asUser(actor);
   await takeUserSlot(ctx.db, CURRENT_GROUP_RATE_LIMIT, me.id, ctx.now);
   return { result: { ok: true }, cookies: [currentGroupCookie(input.gid)] };

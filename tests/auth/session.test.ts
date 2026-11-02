@@ -156,6 +156,7 @@ describe('logout / logout-all', () => {
     const r = await phone.post('/api/auth/logout');
     expect(r.status).toBe(200);
     expect(r.setCookies.find((s) => s.startsWith(`${SESSION_COOKIE}=`))).toMatch(/Max-Age=0/);
+    expect(r.setCookies.find((s) => s.startsWith('mm_group='))).toMatch(/^mm_group=;.*Max-Age=0/); // R6D G1
     expect(phone.get(SESSION_COOKIE)).toBeUndefined();
     expect(await sessions()).toHaveLength(1);
     expect((await stolen.getJson('/api/auth/session')).status).toBe(401);
@@ -177,6 +178,7 @@ describe('logout / logout-all', () => {
     const r = await a2.post<{ revoked: number }>('/api/auth/logout-all');
     expect(r.status).toBe(200);
     expect(r.data.revoked).toBe(3);
+    expect(r.setCookies.find((s) => s.startsWith('mm_group='))).toMatch(/^mm_group=;.*Max-Age=0/); // R6D G1
     const left = await sessions();
     expect(left).toHaveLength(1);
     const [bob] = await h.rows<{ id: string }>("SELECT id FROM user WHERE username = 'bob'");

@@ -61,6 +61,8 @@ export const ACTIONS = [
   'group.leave',
   // R6C: สี/รูปร่างของตัวเองในกลุ่ม (F3a)
   'member.setOwnAppearance',
+  // R6D G1: จำกลุ่มปัจจุบันของเครื่อง (คุกกี้ mm_group · ADR 0009 §5)
+  'member.setCurrentGroup',
 
   // ── §3 แถว 18–19: super admin ──
   'pinReset.list',
@@ -190,6 +192,7 @@ export const ACTION_RESOURCE = {
   'group.delete': ['group'],
   'group.leave': ['group'],
   'member.setOwnAppearance': ['group'],
+  'member.setCurrentGroup': ['group'],
 
   'pinReset.list': ['none'],
   'pinReset.decide': ['none'],
