@@ -3,7 +3,7 @@
 - **Status**: Proposed (Architect, 2026-11-02) · รอบ R6D · ไม่มี migration
 - **เกี่ยวข้อง**: [R6D_CONTRACT](../../R6D_CONTRACT.md) G1/G2 · [ADR 0005](0005-common-free-time-algorithm.md) §4 · [ADR 0006](0006-busy-visibility.md) §1–3 · [ADR 0003](0003-rbac.md) · [ADR 0004](0004-time-and-timezone.md) · [ARCHITECTURE](../design/ARCHITECTURE.md) Q8 (ถูกแทนที่ด้วย ADR นี้)
 - **เจ้าของการ implement**: Platform (repos/services/serializers, คุกกี้กลุ่ม) · Auth (ลบคุกกี้ตอน logout) · Frontend (UI) · ตรวจโดย Security & Privacy
-- **หมายเหตุเลข**: contract ระบุ `0008-going-counts-as-busy.md` แต่ 0008 ถูกใช้แล้ว (`0008-i18n-and-theme.md`) จึงใช้ 0009 — **ให้ main ยืนยัน**
+- **หมายเหตุเลข**: contract ระบุ `0008-going-counts-as-busy.md` แต่ 0008 ถูกใช้แล้ว (`0008-i18n-and-theme.md`) จึงใช้ 0009 — main ยืนยันแล้ว 2026-11-02 (รอบ R6E E9): ใช้ **0009**
 
 ## Context
 ARCHITECTURE Q8 เดิม: v1 ไม่นับ RSVP เป็น busy · R6D G2 (boss เห็นชอบ 2026-11-02): RSVP `going` ของนัด active = ไม่ว่างจริงทุกกลุ่ม คำนวณสด ไม่คัดลอกเป็นแถว `busy_block` · ข้อมูลข้ามกลุ่มต้องเหลือแค่ช่วงเวลา (ตรวจที่เซิร์ฟเวอร์) · G1: `/calendar` ไม่มี `?g=` ต้องจำกลุ่มล่าสุดต่อเครื่อง
@@ -71,9 +71,9 @@ type MyConflictDto =
 - going ถูกตัดที่เพดาน → `status: 'unknown'` เหมือน busy
 
 ### 5. G1 คุกกี้ `mm_group` (ตัดสินแล้ว ยกเว้นที่ระบุ)
-- **ตั้งผ่าน Route Handler** `PUT /api/me/current-group` `{ groupId: uuid }` (route wrapper เดิม: CSRF Origin + JSON, zod `.strict()`) → service `rememberCurrentGroup`: `loadGroupCtx` แล้วต้องเป็น **สมาชิกจริง** (`actorRole !== null`, กลุ่มไม่ถูกลบ — super admin ที่ไม่ใช่สมาชิกไม่ได้) ไม่ผ่าน → `404 NOT_FOUND` ไม่ตั้งคุกกี้ · ผ่าน → `{ok:true}` + `Set-Cookie: mm_group=<gid>; Path=/; Max-Age=31536000; SameSite=Lax; Secure; HttpOnly` (รูปเดียวกับ `/api/prefs`) · เพิ่มใน `src/app/api/_lib/manifest.ts`
+- **ตั้งผ่าน Route Handler** `PUT /api/me/current-group` `{ gid: uuid }` (`currentGroupInputSchema` ใน `src/lib/data/services/current-group.ts`) (route wrapper เดิม: CSRF Origin + JSON, zod `.strict()`) → service `rememberCurrentGroup`: `loadGroupCtx` แล้วต้องเป็น **สมาชิกจริง** (`actorRole !== null`, กลุ่มไม่ถูกลบ — super admin ที่ไม่ใช่สมาชิกไม่ได้) ไม่ผ่าน → `404 NOT_FOUND` ไม่ตั้งคุกกี้ · ผ่าน → `{ok:true}` + `Set-Cookie: mm_group=<gid>; Path=/; Max-Age=31536000; SameSite=Lax; Secure; HttpOnly` (รูปเดียวกับ `/api/prefs`) · เพิ่มใน `src/app/api/_lib/manifest.ts`
 - ไม่ใช้ `proxy.ts` (ตรวจสมาชิกภาพต้องแตะ DB ทุก request ที่ match, Next แนะนำเป็นทางสุดท้าย) · ไม่ใช้ Server Action (รีโปไม่มี `"use server"` เลย — คง pattern API เดียว)
-- **จุดเรียก (frontend)**: (1) `/groups/[gid]/page.tsx` หลัง `loadGroup` สำเร็จ ถ้าคุกกี้ ≠ gid → เรนเดอร์ client component `<RememberGroup gid>` ที่ PUT ครั้งเดียวตอน mount (ผิดพลาด = เงียบ) (2) dropdown กลุ่มบนปฏิทิน: PUT แล้วนำทางด้วย `?g=` (3) `loadCalendarPage` เมื่อ `?g=` ตรงกลุ่มของฉันและ ≠ คุกกี้ → คืน `rememberGid` ให้หน้าเรนเดอร์ `<RememberGroup>`
+- **จุดเรียก (frontend)**: (1) `/groups/[gid]/page.tsx` หลัง `loadGroup` สำเร็จ อ่านคุกกี้ฝั่งเซิร์ฟเวอร์ (`parseCurrentGroupCookie`) ถ้า `myRole !== null` และคุกกี้ ≠ gid → เรนเดอร์ client component `<RememberGroup gid>` ที่ PUT ครั้งเดียวตอน mount (ผิดพลาด = เงียบ) (2) dropdown กลุ่มบนปฏิทิน: PUT แล้วนำทางด้วย `?g=` (3) `loadCalendarPage` เมื่อ `?g=` ตรงกลุ่มของฉันและ ≠ คุกกี้ → คืน `rememberGid` ให้หน้าเรนเดอร์ `<RememberGroup>`
 - **อ่าน** ใน `loadCalendarPage`: `(await cookies()).get('mm_group')` → ลำดับ `?g=` (ถ้าเป็นกลุ่มของฉัน) → คุกกี้ (ต้องผ่าน `z.uuid()` **และ** อยู่ใน `listMyGroups` ที่โหลดอยู่แล้ว — 0 query เพิ่ม) → กลุ่มแรก · คุกกี้ใช้ไม่ได้ → เงียบ **`groupMissing` เป็น true เฉพาะกรณี `?g=`** (R6D-2 ไม่รั่วว่ากลุ่มมีอยู่) · ค่าคุกกี้ไม่ถูก log/สะท้อนกลับ
 - **ลบ**: `POST /api/auth/logout`, `/api/auth/logout-all`, `/api/me/delete` เพิ่ม `clearCurrentGroupCookie()` (maxAge 0) ใน `cookies` ของ reply · ค่าคงที่/ฟังก์ชันอยู่ไฟล์เดียว (platform) auth import ใช้
 - ไม่เข้ารหัส/ไม่เซ็น: id ไม่ลับ และค่าถูกตรวจทุกครั้งที่อ่าน · ชื่อ `mm_group` ตาม contract (เสนอ: ใช้ `__Host-mm_group` บน prod แบบ session cookie ได้ — ให้ main ตัดสิน (ค))
@@ -112,4 +112,4 @@ type MyConflictDto =
 8. `Cache-Control: private, no-store` ยังอยู่ทุก endpoint ที่มี going/conflicts
 
 ## ให้ main ตัดสิน
-- (ก) ผู้ใช้ออกจากกลุ่มนัดแล้ว → **ไม่นับ** (เสนอ) · (ข) ป้าย "ชนกับนัดอื่น" บน **การ์ดในรายการ**: เพิ่ม `myConflict?: boolean` ใน `AppointmentDto` (+1 query ต่อรายการ เฉพาะเมื่อมีนัดที่ฉันตอบไป) — เสนอ: ทำ (contract ระบุการ์ด) · (ค) ชื่อคุกกี้ `mm_group` vs `__Host-mm_group` บน prod — เสนอ: `mm_group` ตาม contract · (ง) เลข ADR 0009 แทน 0008
+- (ก) ผู้ใช้ออกจากกลุ่มนัดแล้ว → **ไม่นับ** (เสนอ) · (ข) ป้าย "ชนกับนัดอื่น" บน **การ์ดในรายการ**: เพิ่ม `myConflict?: boolean` ใน `AppointmentDto` (+1 query ต่อรายการ เฉพาะเมื่อมีนัดที่ฉันตอบไป) — เสนอ: ทำ (contract ระบุการ์ด) · (ค) ชื่อคุกกี้ `mm_group` vs `__Host-mm_group` บน prod — เสนอ: `mm_group` ตาม contract · (ง) เลข ADR 0009 แทน 0008 — ตัดสินแล้ว: ใช้ 0009 (main 2026-11-02)
