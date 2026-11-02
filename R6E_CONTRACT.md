@@ -2,6 +2,7 @@
 
 > ผู้เขียน: main · 2026-11-02 · สถานะ: **boss เห็นชอบแล้ว** 2026-11-02 · E10 = (ก) คงไว้ · v0.8.1
 > ที่มา: PROGRESS.md "เหลือ" · `docs/reports/qa-r6d.md` L1–L4 · `security-r6d.md` L1 · `security-r6c.md` L2 · `qa-r6c.md` L2 · NEXT_PHASE F5
+> เพิ่ม E11–E12 ตาม feedback boss 2026-11-02 ("แทรกได้ถ้าไม่เยอะ") — ยังเป็น PATCH/ไม่มี API ใหม่
 > branch: `chore/r6e-cleanup` · ข้อเสนอเลขเวอร์ชัน: **v0.8.1** (PATCH — แก้ข้อความ/เลย์เอาต์/เทสต์/เอกสาร ไม่มีพฤติกรรมใหม่) · **ไม่มี migration · ไม่แตะ API/schema/RBAC**
 
 ## 1. งาน
@@ -18,13 +19,16 @@
 | E9 | ADR 0009 ไม่ตรงโค้ด | §5 body เป็น `{ gid }` · ลบ/ปิดหมายเหตุ "ให้ main ยืนยัน" เรื่องเลข 0008→0009 (main ยืนยันแล้ว: ใช้ **0009**) · ไม่แก้ contract/commit เก่า | — |
 | E10 | F5 หน้า /privacy | **boss เลือก (ก) คงไว้** — ข้อความ `privacy.draft` ตรงกับ NEXT_PHASE แล้ว → ปิด F5 โดยไม่แก้โค้ด (secretary บันทึก) | ไม่แตะ `privacy.*` / `src/app/privacy/**` |
 
+| E11 | **ใหม่ (boss 2026-11-02)** ลง busy ทับช่วงที่มี busy อยู่แล้ว | ลงได้ แต่ก่อนบันทึกขึ้น popup ถาม "ช่วงนี้มีในตารางไม่ว่างอยู่แล้ว จะลงซ้ำไหม" พร้อมบอกรายการที่ทับ (ชื่อ/เวลาของเจ้าตัวเอง) · ปุ่มเป็นชื่อผลลัพธ์ (เช่น "ลงซ้ำ" / "กลับไปแก้") · ใช้ทั้งสร้างและแก้ (ตอนแก้ไม่นับรายการตัวเอง) · เช็กฝั่ง client จาก `GET /api/me/busy` ช่วงเดียวกัน (มีอยู่แล้ว) + `overlapsRange` ของ `src/lib/calendar` (ชนขอบพอดีไม่นับ, ทั้งวันเทียบตามวันท้องถิ่น) · โหลดเช็กไม่สำเร็จ → บันทึกตามเดิมไม่บล็อก · popup ใช้ dialog เดิม (focus trap, Esc = กลับไปแก้) | ไม่บล็อก · ไม่นับนัดที่ตอบ "ไป" (นั่นมี popup ของ R6D แล้ว) · ไม่เปลี่ยน API/เซิร์ฟเวอร์ |
+| E12 | **ใหม่ (boss 2026-11-02)** ระหว่างโหลดให้ดูลื่น ไม่ค้าง | (ก) กดแท็บล่าง/ลิงก์ภายใน → มีสัญญาณทันที: แถบ progress บางด้านบน หรือวงหมุนเล็ก (ux เลือก 1 แบบใช้ทั้งแอป) ขึ้นเมื่อรอ > ~150 ms เพื่อไม่กระพริบ · (ข) ปุ่มบันทึก/ส่ง/RSVP ที่รอเซิร์ฟเวอร์ แสดงวงหมุนในปุ่ม + `aria-busy` (หลายปุ่มมี `aria-busy` แล้วแต่ไม่มีภาพ) · (ค) `LoadingState` / `cal-loading` / รายการที่กำลังโหลด ใช้ skeleton หรือวงหมุนชุดเดียวกัน ไม่กระโดดเลย์เอาต์ · (ง) transition สั้น (≤ 200 ms) ตอนเปิด/ปิด sheet และสลับแท็บ · ทั้งหมดปิดเมื่อ `prefers-reduced-motion` (เหลือแบบไม่เคลื่อนไหว) · ใช้ CSS ล้วน ไม่เพิ่ม lib | ไม่แก้ความช้าที่เซิร์ฟเวอร์/query (นั่นคือ F2 รอบหน้า) · ไม่ทำ optimistic update |
+
 **ไม่อยู่ในรอบนี้:** security-r6d Info 5 (`myConflict` เพดาน 500 ไม่มีธง truncated — ผลแค่ UI, เก็บไว้ hardening) · R6 hardening อื่น · F1/F2/F6
 
 ## 2. ไฟล์ (บทบาท)
 | บทบาท | ไฟล์ | งาน |
 |---|---|---|
-| ux | `messages/th.json`, `messages/en.json` (+ `privacy.*` ถ้า E10 ต้องแก้) | E1, E2 (คำ), E4 (ถ้าต้องปรับคำ), E10 |
-| frontend | `src/components/appointments/RsvpConfirm.tsx`, `RsvpControl.tsx`, ไฟล์มุมมองวันใน `src/components/calendar/**` (DayPanel/BusyItemLine), `src/components/home/HomeView.tsx`, `src/app/privacy/page.tsx` (ถ้า E10 = ลบป้าย) + เทสต์ ui ที่เกี่ยว | E1, E2 (ตรรกะเลือกคำ), E3, E4, E7, E10 · e2e/screenshot ของ E3/E4 |
+| ux | `messages/th.json`, `messages/en.json`, `docs/design/UI_DIRECTION*` (ส่วน motion/loading) | E1, E2 (คำ), E4 (ถ้าต้องปรับคำ), E11 (คำ popup), E12 (เลือกแบบ progress/วงหมุน, ระยะเวลา, token motion) |
+| frontend | `src/components/appointments/RsvpConfirm.tsx`, `RsvpControl.tsx`, ไฟล์มุมมองวันใน `src/components/calendar/**` (DayPanel/BusyItemLine), `src/components/home/HomeView.tsx`, `src/components/busy/BusyFormSheet.tsx` (+ dialog), `src/components/shell/**` (LoadingState, ตัวแสดง progress การนำทาง), CSS ของปุ่ม/sheet, `src/app/**/loading.tsx` + เทสต์ ui/e2e ที่เกี่ยว | E1, E2 (ตรรกะเลือกคำ), E3, E4, E7, E11, E12 · e2e/screenshot ของ E3/E4/E11 |
 | test | `tests/e2e/appt-story.spec.ts`, `tests/security/authorize-first.test.ts` | E5, E6 |
 | architect | `docs/adr/0009-going-counts-as-busy.md`, `docs/design/samples/*.html` | E8, E9 |
 | ops | `CHANGELOG.md` (ส่วน `[Unreleased]`) | สรุปรอบ |
@@ -44,6 +48,8 @@
 | R6E-5 | assertion ใหม่ใน `appt-story.spec.ts` ผ่าน และ**ล้ม**เมื่อจำลองให้ `CT` หลุดไปทางอื่น (security/test ลองแก้ชั่วคราวแล้วรันให้เห็นว่าล้ม แล้วคืนค่า) | e2e + รายงาน security |
 | R6E-6 | `npx vitest run tests/security/authorize-first.test.ts` ผ่านบนเครื่อง Windows และใน CI · จำนวน route ที่สแกน ≥ 20 | รันจริง (แนบผล) |
 | R6E-7 | `grep -rn data-slot docs/design/samples` ว่าง · ADR 0009 ไม่มี `groupId` ใน body ของ current-group | รันจริง |
+| R6E-9 | ลง busy ทับ busy เดิม → popup แสดงรายการที่ทับ · "ลงซ้ำ" = บันทึก · "กลับไปแก้" = ไม่บันทึก ฟอร์มยังอยู่ · ไม่ทับ/ชนขอบพอดี/แก้รายการเดิมโดยไม่ทับรายการอื่น → ไม่มี popup · โหลดเช็กล้ม → บันทึกได้ · คีย์บอร์ด/Esc ใช้ได้ | Vitest (ฟังก์ชันหาที่ทับ) + e2e |
+| R6E-10 | นำทางที่ช้า (จำลองหน่วง) → เห็น progress/วงหมุนภายใน ~150 ms · นำทางเร็วไม่กระพริบ · ปุ่มที่กำลังส่งมีวงหมุน + `aria-busy` + กดซ้ำไม่ได้ · reduced-motion → ไม่มี animation · ไม่มี layout shift ตอนโหลดเสร็จ | e2e (route delay) + ตรวจด้วยตา qa |
 | R6E-8 | ไม่ถอยหลัง: lint · typecheck · `npm test` · e2e · CI เขียว · Vercel preview เขียว | CI + รันจริง |
 
 ## 4. ต้องให้ boss ตัดสิน (ก่อนเริ่ม)
