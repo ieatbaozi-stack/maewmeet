@@ -202,6 +202,16 @@
       "title": "You’re not in this group any more",
       "body": "The group may have been deleted, or you were removed. Pick another group, or head back to Groups.",
       "cta": "Go to groups"
+    },
+    "kind": {
+      "title": "Why someone is busy",
+      "busy": "Busy (added by them)",
+      "appointment": "A plan in this group",
+      "other": "In another group’s plan",
+      "appointmentLabel": "Plan: {title}",
+      "otherLabel": "In another group’s plan",
+      "appointmentAria": "{name} is going to {title} {time}",
+      "otherAria": "{name} is in another group’s plan {time}"
     }
   },
   "availability": {
@@ -799,6 +809,14 @@
       "error": {
         "title": "Couldn’t load your list",
         "body": "Check your connection and try again. Nothing you added is lost."
+      },
+      "going": {
+        "title": "Plans I’m going to",
+        "lead": "Plans you’ve said “Going” to also count as busy time.",
+        "row": "{title} · {group}",
+        "openAria": "Open {title} in {group}, {when}",
+        "editNote": "Change your answer or the time on the plan’s page.",
+        "empty": "You haven’t said “Going” to any plans yet."
       }
     },
     "when": {
@@ -983,7 +1001,8 @@
         "nobody": "No one has answered yet. Be the first.",
         "nobodyClosed": "Nobody answered before this plan closed."
       },
-      "facesMore": "and {count} more"
+      "facesMore": "and {count} more",
+      "goingHint": "Saying “Going” marks this time as busy in every group."
     },
     "detail": {
       "title": "Plan",
@@ -1096,7 +1115,27 @@
       "body": "{count, plural, =0 {It’s in the group’s list now.} one {1 other member has been notified.} other {# other members have been notified.}}",
       "view": "See the plan",
       "done": "Done"
-    }
+    },
+    "goingConfirm": {
+      "toTitle": "Sure you’re going?",
+      "toBody": "This time will show as busy for you in every group. Friends in other groups see only that you’re tied up, not what for.",
+      "toConfirm": "Going · mark me busy",
+      "keep": "{prev, select, maybe {Keep as maybe} not_going {Keep as can’t go} other {Not yet}}",
+      "conflictTitle": "Clashes with",
+      "conflictAppt": "{title} · {time}",
+      "conflictApptGroup": "{title} · {group} · {time}",
+      "conflictBusy": "{title} · {time}",
+      "conflictBusyPlain": "Busy time you added · {time}",
+      "conflictMore": "and {count} more",
+      "conflictNote": "You can still say you’re going. This is just a heads-up.",
+      "conflictConfirm": "Going to both",
+      "fromTitle": "Changing your mind?",
+      "fromBody": "This time will be free again in your calendar.",
+      "fromConfirm": "{next, select, maybe {Change to maybe} other {Change to can’t go}}",
+      "fromKeep": "Still going"
+    },
+    "conflictBadge": "Clashes with another plan",
+    "conflictAria": "This plan clashes with another one you’re going to"
   },
   "places": {
     "label": "Place",
