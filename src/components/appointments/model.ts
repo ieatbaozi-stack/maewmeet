@@ -513,6 +513,16 @@ export function conflictWhen(c: MyConflict, locale: CalendarLocale): MessageRef 
   return appointmentWhen(c, locale);
 }
 
+/**
+ * คีย์ปุ่มยืนยัน "ไป" (R6E E2): ไม่ชนอะไร = toConfirm · ชนเฉพาะ busy ที่ลงเอง (ไม่มีนัดอื่น) = conflictConfirmBusy ("ไปนัดนี้") ·
+ * ชนนัด (มีหรือไม่มี busy ร่วม) = conflictConfirm ("ไปทั้งสองนัด") · รายการถูกตัด (truncated) = ยังมีที่มองไม่เห็น อาจเป็นนัด → conflictConfirm
+ */
+export function goingConfirmKey(conflicts: readonly Pick<MyConflict, "kind">[], truncated = false): "toConfirm" | "conflictConfirm" | "conflictConfirmBusy" {
+  if (conflicts.length === 0) return "toConfirm";
+  if (truncated || conflicts.some((c) => c.kind === "appointment")) return "conflictConfirm";
+  return "conflictConfirmBusy";
+}
+
 /** ต้องมี popup ยืนยันไหม: เป็น "ไป" (จากอย่างอื่น/ยังไม่ตอบ) = to · จาก "ไป" เป็นอย่างอื่น = from · นอกนั้น (maybe↔not_going/ตอบครั้งแรกเป็นสองอย่างนี้) = null */
 export function rsvpConfirmKind(prev: Rsvp | null, next: Rsvp): "to" | "from" | null {
   if (prev === next) return null;

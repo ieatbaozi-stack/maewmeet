@@ -7,6 +7,7 @@ import { DISPLAY_NAME_MAX } from "@/lib/auth/pin-rules";
 import { ACCOUNT_RATE_LIMITS } from "@/lib/shared/limits";
 import { callApiRaw } from "./api";
 import { renameErrorRef, renameLocalProblem } from "./model";
+import { BusyButton } from "@/components/shell/BusyButton";
 
 /** เปลี่ยนชื่อที่แสดง (PATCH /api/me) — กติกาเดียวกับสมัคร ตรวจที่เซิร์ฟเวอร์ · ที่เครื่องกันแค่ชื่อว่าง/ยาวเกิน */
 export function RenameSheet({ current, onClose, onDone }: { current: string; onClose: () => void; onDone: () => void }) {
@@ -42,9 +43,7 @@ export function RenameSheet({ current, onClose, onDone }: { current: string; onC
       onClose={() => (busy ? undefined : onClose())}
       footer={
         <>
-          <button type="submit" form={`${id}-f`} className="btn btn-primary btn-block" disabled={busy} aria-busy={busy}>
-            {busy ? t("account.rename.saving") : t("account.rename.save")}
-          </button>
+          <BusyButton type="submit" form={`${id}-f`} className="btn btn-primary btn-block" busy={busy} busyLabel={t("account.rename.saving")} idleLabel={t("account.rename.save")} />
           <button type="button" className="btn btn-secondary btn-block" disabled={busy} onClick={onClose}>
             {t("common.cancel")}
           </button>

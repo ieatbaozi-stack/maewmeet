@@ -189,6 +189,17 @@
   --dur: 180ms;
   --dur-slow: 220ms;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ---------- E12 (R6E): สัญญาณโหลด · อ้างสีเดิม จึงตามธีมสว่าง/มืดเอง ---------- */
+  --progress-fill: var(--accent);       /* แถบนำทางด้านบน · กราฟิก ≥ 3:1 (contrast.mjs) */
+  --progress-track: var(--accent-soft);
+  --progress-h: 3px;
+  --spinner-arc: var(--accent);         /* ในปุ่มพื้น accent ใช้ currentColor แทน */
+  --spinner-track: var(--line);
+  --spinner-size: 16px;
+  --spinner-size-lg: 24px;
+  --skeleton: var(--surface-2);
+  --loading-delay: 150ms;               /* หน่วงก่อนแสดง กันกะพริบ · reduced-motion ไม่ต้องเป็น 0 */
 }
 
 /* ภาษาอังกฤษ: ไม่มีวรรณยุกต์ซ้อน ใช้ line-height แน่นขึ้นเล็กน้อย */

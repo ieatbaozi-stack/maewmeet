@@ -199,7 +199,7 @@
   .empty p { max-width: 30ch; }
   .empty .mm-cat { margin-bottom: var(--space-2); }
   .loading { padding-top: var(--space-3); }
-  .skeleton { background: var(--surface-2); border-radius: var(--radius-sm); }
+  .skeleton { background: var(--skeleton); border-radius: var(--radius-sm); }
   .skeleton-title { height: var(--space-5); width: 40%; margin: var(--space-3) 0; }
   .skeleton-card { height: calc(var(--space-7) * 5); border-radius: var(--radius-lg); }
   .loading-note { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--ink); margin-top: var(--space-3); padding: var(--space-1) var(--space-3); background: var(--surface); border-radius: var(--radius-sm); }
@@ -388,5 +388,83 @@
     .req-facts { grid-column: 1; grid-template-columns: repeat(3, auto); justify-content: start; column-gap: var(--space-5); }
     .req-actions { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; min-width: calc(var(--space-7) * 4); }
     .sheet { left: 50%; right: auto; width: var(--content-max); transform: translateX(-50%); }
+  }
+
+  /* ---------- R6E E12: สัญญาณโหลด / การเคลื่อนไหว (docs/design/R6E_POLISH.md §3) · CSS ล้วน · ค่ามาจาก token ---------- */
+  /* วงหมุน: เส้นหนา (--border-strong) · ในปุ่ม/ข้อความใช้สีของข้อความ (currentColor) */
+  .spinner {
+    display: inline-block; flex: none; box-sizing: border-box;
+    width: var(--spinner-size); height: var(--spinner-size);
+    border: var(--border-strong) solid var(--spinner-track); border-top-color: var(--spinner-arc);
+    border-radius: var(--radius-full); animation: spinner-turn 0.8s linear infinite;
+  }
+  .spinner-lg { width: var(--spinner-size-lg); height: var(--spinner-size-lg); }
+  .btn .spinner { border-color: color-mix(in srgb, currentColor 30%, transparent); border-top-color: currentColor; }
+  @keyframes spinner-turn { to { transform: rotate(360deg); } }
+
+  /* ข้อความ "กำลังโหลด…" ทุกที่มีวงหมุนนำหน้าอัตโนมัติ (ตกแต่ง ไม่อยู่ใน a11y tree) */
+  .loading-note::before {
+    content: ""; flex: none; box-sizing: border-box; display: inline-block;
+    width: var(--spinner-size); height: var(--spinner-size);
+    border: var(--border-strong) solid var(--spinner-track); border-top-color: var(--spinner-arc);
+    border-radius: var(--radius-full); animation: spinner-turn 0.8s linear infinite;
+  }
+
+  /* ปุ่มกำลังส่ง: ความกว้างคงที่ — ข้อความอีกแบบถูกจองที่ไว้ (ghost) ปุ่มไม่ขยับตอนสลับ */
+  .btn-label { display: inline-grid; justify-items: center; align-items: center; min-width: 0; }
+  .btn-label > *, .btn-label::after { grid-area: 1 / 1; }
+  .btn-label-row { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); }
+  .btn-label::after { content: attr(data-ghost); visibility: hidden; height: 0; overflow: hidden; padding-inline-start: calc(var(--spinner-size) + var(--space-2)); }
+  .btn-label[data-state="busy"]::after { padding-inline-start: 0; }
+  .btn[aria-busy="true"] { cursor: progress; }
+
+  /* skeleton นิ่ง (ไม่มี shimmer) ขนาดเท่าของจริง · ขึ้นเมื่อรอ > --loading-delay (ข้อมูลมาเร็ว = ไม่เห็นเลย · เลย์เอาต์จองที่ไว้แล้ว) */
+  .loading, [data-testid="cal-loading"], [data-testid="home-loading"] > * { animation: loading-in var(--dur-fast) var(--ease-out) var(--loading-delay) both; }
+  @keyframes loading-in { from { opacity: 0; } }
+
+  /* แถบ progress นำทางด้านบน */
+  .nav-progress {
+    position: fixed; z-index: var(--z-nav); top: 0; left: 0; right: 0; height: var(--progress-h);
+    pointer-events: none; background: transparent; opacity: 1; transition: opacity var(--dur-fast) var(--ease-out);
+  }
+  .nav-progress[data-phase="active"], .nav-progress[data-phase="done"] { background: var(--progress-track); }
+  .nav-progress[data-phase="done"] { opacity: 0; }
+  .nav-progress-bar { position: absolute; inset: 0; background: var(--progress-fill); transform-origin: left center; animation: nav-progress-grow 2s var(--ease-out) forwards; }
+  .nav-progress[data-phase="done"] .nav-progress-bar { animation: none; transform: scaleX(1); }
+  @keyframes nav-progress-grow { from { transform: scaleX(0); } to { transform: scaleX(0.8); } }
+
+  /* transition: สลับแท็บ (เนื้อหาใหม่ fade + ขยับขึ้นเล็กน้อย) · sheet เข้า/ออก · dialog (opacity + scale) — transform/opacity เท่านั้น */
+  .main { animation: view-in var(--dur-fast) var(--ease-out); }
+  @keyframes view-in { from { opacity: 0; transform: translateY(var(--space-1)); } }
+  .scrim { animation: fade-in var(--dur) var(--ease-out); }
+  @keyframes fade-in { from { opacity: 0; } }
+  .sheet { animation: sheet-in var(--dur) var(--ease-out); }
+  @keyframes sheet-in { from { transform: translateY(100%); } }
+  @keyframes sheet-out { to { transform: translateY(100%); } }
+  .sheet.alert-sheet { animation: dialog-in var(--dur-fast) var(--ease-out); }
+  @keyframes dialog-in { from { opacity: 0; transform: scale(0.98); } }
+  @keyframes dialog-out { to { opacity: 0; transform: scale(0.98); } }
+  .scrim[data-closing="true"] { animation: fade-out var(--dur-fast) cubic-bezier(0.4, 0, 1, 1) forwards; }
+  @keyframes fade-out { to { opacity: 0; } }
+  .sheet[data-closing="true"] { animation: sheet-out var(--dur-fast) cubic-bezier(0.4, 0, 1, 1) forwards; }
+  .sheet.alert-sheet[data-closing="true"] { animation: dialog-out var(--dur-fast) cubic-bezier(0.4, 0, 1, 1) forwards; }
+  @media (min-width: 48em) {
+    .sheet { animation-name: sheet-in-wide; }
+    .sheet.alert-sheet { animation-name: dialog-in-wide; }
+    .sheet[data-closing="true"] { animation-name: sheet-out-wide; }
+    .sheet.alert-sheet[data-closing="true"] { animation-name: dialog-out-wide; }
+  }
+  @keyframes sheet-in-wide { from { transform: translate(-50%, 100%); } }
+  @keyframes sheet-out-wide { to { transform: translate(-50%, 100%); } }
+  @keyframes dialog-in-wide { from { opacity: 0; transform: translateX(-50%) scale(0.98); } }
+  @keyframes dialog-out-wide { to { opacity: 0; transform: translateX(-50%) scale(0.98); } }
+
+  /* reduced-motion: --dur* เป็น 0 อยู่แล้ว · วงหมุน = ครึ่งวงนิ่ง · progress = แถบเต็มนิ่ง opacity 0.6 ตลอดช่วงรอ แล้วหายทันที */
+  @media (prefers-reduced-motion: reduce) {
+    .spinner, .loading-note::before { animation: none; border-color: var(--spinner-track); border-top-color: var(--spinner-arc); border-right-color: var(--spinner-arc); }
+    .btn .spinner { border-color: color-mix(in srgb, currentColor 30%, transparent); border-top-color: currentColor; border-right-color: currentColor; }
+    .nav-progress-bar { animation: none; transform: none; opacity: 0.6; }
+    .nav-progress[data-phase="done"] { opacity: 0; transition: none; }
+    .nav-progress[data-phase="done"] .nav-progress-bar { opacity: 0.6; }
   }
 }

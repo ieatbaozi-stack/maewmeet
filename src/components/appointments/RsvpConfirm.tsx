@@ -6,7 +6,8 @@ import { Icon } from "@/components/icons/Icon";
 import { withNames } from "@/components/Name";
 import { Sheet } from "@/components/shell/Sheet";
 import type { CalendarLocale } from "@/lib/calendar";
-import { conflictWhen, type MyConflict, type Rsvp } from "./model";
+import { conflictWhen, goingConfirmKey, type MyConflict, type Rsvp } from "./model";
+import { BusyButton } from "@/components/shell/BusyButton";
 
 export interface RsvpConfirmProps {
   /** to = เปลี่ยนเป็น "ไป" · from = เปลี่ยนจาก "ไป" */
@@ -38,7 +39,7 @@ export function RsvpConfirm({ direction, prev, next, conflicts, truncated, group
   const to = direction === "to";
   const hasConflict = to && conflicts.length > 0;
   const confirmLabel = to
-    ? t(hasConflict ? "appointments.goingConfirm.conflictConfirm" : "appointments.goingConfirm.toConfirm")
+    ? t(`appointments.goingConfirm.${goingConfirmKey(conflicts, truncated)}`)
     : t("appointments.goingConfirm.fromConfirm", { next: next === "maybe" ? "maybe" : "notGoing" });
   const keepLabel = to ? t("appointments.goingConfirm.keep", { prev: prev === "maybe" || prev === "not_going" ? prev : "none" }) : t("appointments.goingConfirm.fromKeep");
 
@@ -52,9 +53,7 @@ export function RsvpConfirm({ direction, prev, next, conflicts, truncated, group
           <button ref={keepRef} type="button" className="btn btn-secondary btn-block" style={{ minHeight: "var(--tap-lg)" }} disabled={saving} data-testid="rsvp-confirm-cancel" onClick={onCancel}>
             {keepLabel}
           </button>
-          <button type="button" className="btn btn-primary btn-block" style={{ minHeight: "var(--tap-lg)" }} disabled={saving} data-testid="rsvp-confirm-ok" onClick={onConfirm}>
-            {confirmLabel}
-          </button>
+          <BusyButton className="btn btn-primary btn-block" style={{ minHeight: "var(--tap-lg)" }} busy={saving} data-testid="rsvp-confirm-ok" onClick={onConfirm} busyLabel={t("appointments.rsvp.saving")} idleLabel={confirmLabel} />
         </>
       }
     >
@@ -87,7 +86,7 @@ export function RsvpConfirm({ direction, prev, next, conflicts, truncated, group
                 );
               })}
             </ul>
-            {truncated ? <p className="rsvp-conflicts-more">{t("appointments.goingConfirm.conflictMore", { count: "1+" })}</p> : null}
+            {truncated ? <p className="rsvp-conflicts-more">{t("appointments.goingConfirm.conflictMore")}</p> : null}
             <p className="rsvp-conflicts-note">{t("appointments.goingConfirm.conflictNote")}</p>
           </div>
         ) : null}

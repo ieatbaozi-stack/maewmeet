@@ -3,6 +3,7 @@
 import { useRef, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { Sheet } from "@/components/shell/Sheet";
+import { BusyButton } from "@/components/shell/BusyButton";
 
 export interface ConfirmDialogProps {
   title: string;
@@ -34,14 +35,7 @@ export function ConfirmDialog({ title, body, confirmLabel, onConfirm, onClose, b
       initialFocusRef={cancelRef}
       footer={
         <>
-          <button
-            type="button"
-            className={tone === "danger" ? "btn btn-danger btn-block" : "btn btn-primary btn-block"}
-            disabled={busy || confirmDisabled}
-            onClick={onConfirm}
-          >
-            {confirmLabel}
-          </button>
+          <BusyButton className={tone === "danger" ? "btn btn-danger btn-block" : "btn btn-primary btn-block"} busy={busy} disabled={confirmDisabled} onClick={onConfirm} busyLabel={confirmLabel} idleLabel={confirmLabel} />
           <button ref={cancelRef} type="button" className="btn btn-secondary btn-block" onClick={onClose}>
             {t("common.cancel")}
           </button>

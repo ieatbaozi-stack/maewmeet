@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 export async function LoadingState() {
   const t = await getTranslations("states");
   return (
-    <div className="loading" aria-busy="true">
+    <div className="loading" aria-busy="true" data-nav-loading="true">
       <div className="skeleton skeleton-title" />
       <div className="skeleton skeleton-card" />
       <p className="loading-note" role="status">

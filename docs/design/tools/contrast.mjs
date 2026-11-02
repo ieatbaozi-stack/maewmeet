@@ -124,6 +124,13 @@ const pairs = [
   ['--accent', '--surface', 'ขอบเขตปุ่มหลักบน sheet', UI],
   ['--accent', '--bg', 'ขอบเขตปุ่มหลักบนพื้นหน้า', UI],
   ['--cat-line', '--bg', 'เส้นแมวบนพื้นหน้า', UI],
+  // R6E E12 สัญญาณโหลด (WCAG 1.4.11)
+  ['--progress-fill', '--bg', 'แถบ progress นำทางบนพื้นหน้า', UI],
+  ['--progress-fill', '--surface', 'แถบ progress เมื่อซ้อนบนแถบ/การ์ด', UI],
+  ['--spinner-arc', '--surface', 'วงหมุนบนการ์ด/sheet', UI],
+  ['--spinner-arc', '--bg', 'วงหมุนบนพื้นหน้า', UI],
+  ['--spinner-arc', '--skeleton', 'วงหมุนกลางกล่อง skeleton', UI],
+  ['--ink-muted', '--skeleton', 'ข้อความ "กำลังโหลด…" บนกล่อง skeleton', T],
 ];
 
 let fails = 0;

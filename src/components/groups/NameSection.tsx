@@ -7,6 +7,7 @@ import { callApi } from "@/components/auth/api";
 import { Icon } from "@/components/icons/Icon";
 import { failureMessage, isGone } from "./errors";
 import { GROUP_NAME_MAX, groupNameLength } from "./helpers";
+import { BusyButton } from "@/components/shell/BusyButton";
 
 export interface SectionProps {
   groupId: string;
@@ -74,9 +75,7 @@ export function NameSection({ groupId, name, editable, notify }: SectionProps & 
               </p>
             ) : null}
           </div>
-          <button type="submit" className="btn btn-primary" disabled={busy || len === 0 || unchanged}>
-            {tAll("common.save")}
-          </button>
+          <BusyButton type="submit" className="btn btn-primary" busy={busy} disabled={len === 0 || unchanged} busyLabel={tAll("common.save")} idleLabel={tAll("common.save")} />
         </form>
       ) : (
         <p className="readonly">{name}</p>
