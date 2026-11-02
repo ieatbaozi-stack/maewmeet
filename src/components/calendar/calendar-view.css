@@ -132,3 +132,4 @@
 .busy-series-note { margin-top: var(--space-3); }
 .busy-series-note .tag { width: fit-content; max-width: 100%; margin: 0; }
 .busy-series-note .field-hint { margin-top: var(--space-2); }
+.busy-delete-detail { overflow-wrap: anywhere; word-break: break-word; }

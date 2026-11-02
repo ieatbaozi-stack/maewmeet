@@ -561,7 +561,7 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
             setDeleteError(null);
           }}
         >
-          <p className="small muted" data-testid="busy-delete-summary">
+          <p className="small muted busy-delete-detail" data-testid="busy-delete-summary">
             <b>{summaryText}</b>
             {edit.title ? (
               <>
@@ -601,7 +601,7 @@ function SeriesDeleteDialog({
   const t = useTranslations();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const detail = (
-    <p className="small muted" data-testid="busy-delete-summary">
+    <p className="small muted busy-delete-detail" data-testid="busy-delete-summary">
       <b>{summaryText}</b>
       {title ? (
         <>
