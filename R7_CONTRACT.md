@@ -48,6 +48,16 @@
 | R7-6 | optimistic (ถ้าทำ) ย้อนกลับถูกต้องเมื่อเซิร์ฟเวอร์ปฏิเสธ + แจ้งผู้ใช้ TH/EN | e2e |
 | R7-7 | ไม่ถอยหลัง: CI เขียว + Vercel preview เขียว | CI |
 
+## 3.1 เฟส B ที่เลือก (main · boss เห็นชอบ 2026-11-03 "เริ่มเฟส B")
+อ้างผลวัด `docs/reports/perf-r7-baseline.md`:
+- **B-1** session/actor อ่านครั้งเดียวต่อ request (`React.cache` ใน `src/lib/auth/**` โดย auth · หน้า/loader ใช้ตัวเดียวโดย frontend) · `findUserById` ซ้ำหลัง `findSessionWithUser` ตัดออก · touchSession เขียนไม่เกิน 1 ครั้งต่อ request
+- **B-2** `/calendar` ไม่เรียก `getGroup` ซ้ำก่อน calendar/availability (platform เปิด service ที่คืนข้อมูลที่ต้องใช้ · frontend ปรับ loader)
+- **B-3** ด่านกลุ่มคืนแถวกลุ่มมาด้วย แล้ว `listMembers` ∥ busy หลัง authorize (platform)
+- **B-4** รายการนัด: groupNames + memberCounts query เดียว, commitments ไม่รอ rsvps · RSVP ไม่อ่าน access ซ้ำหลัง commit · `POST /api/me/busy` ใช้ RETURNING · `loadHome` groups ∥ appointments (platform)
+- **B-5** ฝั่ง client (frontend): แท็บ "ของฉัน" ข้อมูลแรกจาก server · เพิ่ม busy ใช้ผลของ POST ไม่ GET ซ้ำก่อน/หลังเท่าที่ทำได้ (คง E11 เช็กทับ) · RSVP จากหน้าหลักไม่ GET detail ก่อน · prefetch แถบล่าง
+- **ไม่ทำรอบนี้:** optimistic update (R7-6 ข้าม) · header Server-Timing บนหน้า RSC (ใช้ harness วัดแทน) · prod ปิด Server-Timing ไว้ (`SERVER_TIMING_ENABLED` ไม่ตั้ง = ปิดบน production)
+- test แก้ e2e ที่ผูกค่า minFree 120 ของกลุ่มใหม่ (เช่น `free-story.spec.ts`) โดย PATCH กลุ่มเป็น 120 ในเทสต์ — ไม่เปลี่ยน G1
+
 ## 7. ลำดับงาน
 secretary + platform (G1 + ตัวนับ) + ops (Server-Timing) → platform baseline → **main สรุปผลวัด + เลือกเฟส B → แจ้ง boss** → ผู้ทำเฟส B → วัดหลัง → ops CHANGELOG → **qa + security** → secretary → main เปิด PR
 
