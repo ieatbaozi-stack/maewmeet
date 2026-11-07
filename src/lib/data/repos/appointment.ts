@@ -171,6 +171,16 @@ export async function cancelAppointmentGuarded(
 export type AppointmentScope = 'upcoming' | 'past' | 'all';
 export type AppointmentCursor = { startAt: number; id: string };
 
+/** แถวรายการ + "ผู้ดูตอบ going นัดนี้" (R7 B-4: ให้ service เริ่มคิวรีคำมั่นของฉันได้โดยไม่รอ listCurrentRsvps) */
+export type ListedAppointment = { row: AppointmentRow; viewerGoing: boolean };
+
+/**
+ * ผู้ดูตอบ going นัดแถวนี้ ตามกติกาเดียวกับ listCurrentRsvps (ADR 0009 §1): เป็นสมาชิกปัจจุบันของกลุ่มของนัด และ updated_at >= joined_at
+ * อ้าง appointment.id / appointment.group_id ด้วยชื่อตารางตรง ๆ (คิวรีภายนอกต้อง FROM/JOIN appointment โดยไม่ตั้ง alias)
+ */
+const viewerGoing = (viewerId: string) =>
+  sql<number>`EXISTS (SELECT 1 FROM appointment_rsvp vg_r JOIN group_member vg_m ON vg_m.group_id = appointment.group_id AND vg_m.user_id = vg_r.user_id AND vg_r.updated_at >= vg_m.joined_at WHERE vg_r.appointment_id = appointment.id AND vg_r.user_id = ${viewerId} AND vg_r.response = 'going')`;
+
 /**
  * นัดของกลุ่ม (ผู้เรียกผ่านด่านกลุ่มมาแล้ว) — keyset (start_at, id) · ขอ limit+1 เพื่อรู้ว่ามีหน้าถัดไป
  *   upcoming: end_at > now (รวมที่ยกเลิก — แสดงสถานะ) เรียงเริ่มเร็วสุดก่อน · past: end_at <= now ใหม่สุดก่อน · all: ทั้งหมด ใหม่สุดก่อน
@@ -178,8 +188,8 @@ export type AppointmentCursor = { startAt: number; id: string };
 export async function listGroupAppointmentRows(
   db: DbOrTx,
   groupId: string,
-  q: { scope: AppointmentScope; now: number; limit: number; cursor: AppointmentCursor | null },
-): Promise<AppointmentRow[]> {
+  q: { scope: AppointmentScope; now: number; limit: number; cursor: AppointmentCursor | null; viewerId: string },
+): Promise<ListedAppointment[]> {
   const asc_ = q.scope === 'upcoming';
   const conds: SQL[] = [eq(appointment.groupId, groupId)];
   if (q.scope === 'upcoming') conds.push(gt(appointment.endAt, q.now));
@@ -191,38 +201,48 @@ export async function listGroupAppointmentRows(
         : sql`(${appointment.startAt}, ${appointment.id}) < (${q.cursor.startAt}, ${q.cursor.id})`,
     );
   }
-  return db
-    .select()
+  const rows = await db
+    .select({ a: appointment, going: viewerGoing(q.viewerId) })
     .from(appointment)
     .where(and(...conds))
     .orderBy(...(asc_ ? [asc(appointment.startAt), asc(appointment.id)] : [desc(appointment.startAt), desc(appointment.id)]))
     .limit(q.limit);
+  return rows.map((r) => ({ row: r.a, viewerGoing: Number(r.going) === 1 }));
 }
 
 /**
  * นัด active ที่ยังไม่จบ ข้ามทุกกลุ่มที่ฉันเป็นสมาชิก (กลุ่มที่ลบแล้วไม่รวม) เรียงเริ่มเร็วสุดก่อน
  * `onlyGoing` (R6D แท็บ "ของฉัน"): เฉพาะนัดที่ฉันตอบ going ตามกติกา ADR 0009 §1 (updated_at >= joined_at ของสมาชิกภาพปัจจุบัน) — กรองในคิวรีเดิม (+0 query)
  */
-export async function listMyUpcomingAppointmentRows(db: DbOrTx, userId: string, now: number, limit: number, opts: { onlyGoing?: boolean } = {}): Promise<AppointmentRow[]> {
+export async function listMyUpcomingAppointmentRows(db: DbOrTx, userId: string, now: number, limit: number, opts: { onlyGoing?: boolean } = {}): Promise<ListedAppointment[]> {
   const conds: SQL[] = [eq(groupMember.userId, userId), eq(appointment.status, 'active'), gt(appointment.endAt, now)];
   if (opts.onlyGoing) {
     conds.push(sql`EXISTS (SELECT 1 FROM appointment_rsvp r WHERE r.appointment_id = ${appointment.id} AND r.user_id = ${userId} AND r.response = 'going' AND r.updated_at >= ${groupMember.joinedAt})`);
   }
   const rows = await db
-    .select({ a: appointment })
+    .select({ a: appointment, going: viewerGoing(userId) })
     .from(groupMember)
     .innerJoin(groups, and(eq(groups.id, groupMember.groupId), sql`${groups.deletedAt} IS NULL`))
     .innerJoin(appointment, eq(appointment.groupId, groupMember.groupId))
     .where(and(...conds))
     .orderBy(asc(appointment.startAt), asc(appointment.id))
     .limit(limit);
-  return rows.map((r) => r.a);
+  return rows.map((r) => ({ row: r.a, viewerGoing: Number(r.going) === 1 }));
 }
 
-export async function groupNames(db: DbOrTx, groupIds: string[]): Promise<Map<string, string>> {
+export type GroupNameCount = { name: string; memberCount: number };
+
+/**
+ * R7 B-4: ชื่อกลุ่ม + จำนวนสมาชิกปัจจุบัน ใน query เดียว (เดิม groupNames ∥ memberCountsByGroup) · กลุ่มที่ไม่มีอยู่ไม่อยู่ใน Map
+ * ไม่กรองกลุ่มที่ลบ (เหมือนเดิม — ผู้เรียกส่งเฉพาะกลุ่มของแถวนัดที่อ่านมาแล้ว) · กลุ่มไม่มีสมาชิก → 0
+ */
+export async function groupNamesAndMemberCounts(db: DbOrTx, groupIds: string[]): Promise<Map<string, GroupNameCount>> {
   if (groupIds.length === 0) return new Map();
-  const rows = await db.select({ id: groups.id, name: groups.name }).from(groups).where(inArray(groups.id, groupIds));
-  return new Map(rows.map((r) => [r.id, r.name]));
+  const rows = await db
+    .select({ id: groups.id, name: groups.name, n: sql<number>`(SELECT count(*) FROM group_member gm WHERE gm.group_id = groups.id)` })
+    .from(groups)
+    .where(inArray(groups.id, groupIds));
+  return new Map(rows.map((r) => [r.id, { name: r.name, memberCount: Number(r.n) }]));
 }
 
 export type MemberName = { groupId: string; userId: string; displayName: string; colorSlot: number | null; shapeSlot: number | null };
@@ -235,16 +255,6 @@ export async function currentMemberNames(db: DbOrTx, groupIds: string[], userIds
     .from(groupMember)
     .innerJoin(user, eq(user.id, groupMember.userId))
     .where(and(inArray(groupMember.groupId, groupIds), inArray(groupMember.userId, userIds)));
-}
-
-export async function memberCountsByGroup(db: DbOrTx, groupIds: string[]): Promise<Map<string, number>> {
-  if (groupIds.length === 0) return new Map();
-  const rows = await db
-    .select({ groupId: groupMember.groupId, n: sql<number>`count(*)` })
-    .from(groupMember)
-    .where(inArray(groupMember.groupId, groupIds))
-    .groupBy(groupMember.groupId);
-  return new Map(rows.map((r) => [r.groupId, Number(r.n)]));
 }
 
 // ───────── RSVP ─────────
