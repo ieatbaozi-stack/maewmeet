@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-08
+
 ### Added
 - header `Server-Timing` ของ API (เฉพาะผู้ใช้ล็อกอิน + คำตอบสำเร็จ, ไม่มีข้อมูลผู้ใช้) + env `SERVER_TIMING_ENABLED` (ไม่ตั้ง = ปิดบน production) (R7)
 - เทสต์เพดานจำนวน query ต่อเส้นทาง (R7)
