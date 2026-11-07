@@ -2,22 +2,13 @@
 //  - ใช้ getActor ของ Auth (อ่าน session/is_admin/must_change_pin สดจาก DB ทุก request — ADR 0002 §4)
 //  - guard อยู่ในหน้า/เลย์เอาต์ ไม่ใช่ proxy (ADR 0001 §1: ไม่ใช้ proxy.ts ใน v1) · สิทธิ์จริงของ API ตรวจที่ route เสมอ
 import { cache } from "react";
-import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { authCtx } from "@/lib/auth/context";
 import { getPinResetStatus, type PinResetStatus } from "@/lib/auth/services/pin-reset";
-import { getActor } from "@/lib/auth/session";
-import { getDb } from "@/db/client";
-import { findUserById, type UserRow } from "@/lib/data/repos/user";
-import type { UserActor } from "@/lib/rbac/types";
+import { getPageRequest, getRequestSession } from "@/lib/auth/page-session";
+import type { UserRow } from "@/lib/data/repos/user";
 import { clock } from "@/lib/shared/clock";
 import { sanitizeDisplayText } from "@/lib/shared/name-rules";
-
-/** Request เทียมที่มีแต่ cookie ของ request ปัจจุบัน — ให้ getActor/service อ่าน cookie ชุดเดียวกับ route handler */
-export async function pageRequest(): Promise<Request> {
-  const header = (await cookies()).toString();
-  return new Request("http://internal.invalid/", { headers: header ? { cookie: header } : {} });
-}
 
 export type PageUser = Pick<UserRow, "id" | "username" | "displayName" | "isAdmin" | "mustChangePin">;
 
@@ -35,14 +26,12 @@ export class SessionUnavailableError extends Error {
 }
 
 export const getPageUser = cache(async (): Promise<PageUser | null> => {
-  const req = await pageRequest();
   // เฉพาะการอ่านจาก DB อยู่ใน try — null (= ไม่มี session จริง) ต้องคืนตามเดิมเพื่อให้ guard redirect ไป /login
   // redirect()/notFound() ของ Next โยน error พิเศษ จึงถูกเรียกนอก try เสมอ (ใน requireUser ฯลฯ)
   try {
-    const actor = await getActor(req);
-    if (actor.kind !== "user") return null;
-    const row = await findUserById(getDb(), (actor as UserActor).id);
-    if (!row || row.status !== "active") return null;
+    // user มาจาก JOIN เดียวกับ session (R7 B-1) ไม่ findUserById ซ้ำ · status สดจาก DB ของ request นี้
+    const { actor, user: row } = await getRequestSession();
+    if (actor.kind !== "user" || !row || row.status !== "active") return null;
     return {
       id: row.id,
       username: row.username,
@@ -86,6 +75,6 @@ export async function redirectIfSignedIn(): Promise<void> {
 
 /** สถานะคำขอ reset ของเครื่องนี้ (cookie mm_reset) — ใช้แสดงแบนเนอร์ที่ /login และสถานะเริ่มต้นที่ /forgot */
 export async function getResetStatus(): Promise<PinResetStatus> {
-  const req = await pageRequest();
+  const req = await getPageRequest();
   return getPinResetStatus({ kind: "anonymous" }, authCtx(req, clock.now()));
 }

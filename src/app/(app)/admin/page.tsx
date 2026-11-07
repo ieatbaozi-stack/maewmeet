@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { pageRequest, requireSuperAdmin } from "@/app/_lib/session";
+import { requireSuperAdmin } from "@/app/_lib/session";
 import { Icon, type IconName } from "@/components/icons/Icon";
 import { TopBar } from "@/components/shell/TopBar";
 import { authCtx } from "@/lib/auth/context";
 import { listPinResets } from "@/lib/auth/services/admin-resets";
-import { getActor } from "@/lib/auth/session";
+import { getRequestSession } from "@/lib/auth/page-session";
 import { clock } from "@/lib/shared/clock";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -17,8 +17,8 @@ export async function generateMetadata(): Promise<Metadata> {
 /** จำนวนคำขอ reset ที่รออนุมัติ — ล้มเหลวเงียบ ๆ แล้วไม่แสดงตัวเลข (ลิงก์ยังใช้ได้) */
 async function pendingResetCount(): Promise<number | null> {
   try {
-    const req = await pageRequest();
-    const { items } = await listPinResets(await getActor(req), authCtx(req, clock.now()));
+    const { req, actor } = await getRequestSession();
+    const { items } = await listPinResets(actor, authCtx(req, clock.now()));
     return items.length;
   } catch {
     return null;
