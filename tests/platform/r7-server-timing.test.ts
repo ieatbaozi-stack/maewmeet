@@ -5,6 +5,8 @@
 import { randomBytes } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { shouldExposeServerTiming } from '@/app/api/_lib/route';
+import { ROUTE_MANIFEST } from '@/app/api/_lib/manifest';
+import { ACTIONS, PUBLIC_ACTIONS, isPublicAction } from '@/lib/rbac/actions';
 import { currentRequestMetrics, metricsLogLine, runWithRequestMetrics, serverTimingValue } from '@/db/request-metrics';
 import { inTx } from '@/lib/data/tx';
 import { EnvError, loadEnv, serverTimingEnabled } from '@/lib/shared/env';
@@ -52,8 +54,21 @@ describe('serverTimingValue / metricsLogLine / shouldExposeServerTiming', () => 
     expect(metricsLogLine('/groups/[gid]', { queries: 2, dbMs: 1, startedAt: 0 }, 5)).toBe('[perf] /groups/[gid] queries=2 db=1.0ms total=5.0ms');
     expect(metricsLogLine('/groups/x y"<script>', { queries: 2, dbMs: 1, startedAt: 0 }, 5)).toMatch(/^\[perf\] _ /);
   });
-  it('แนบเฉพาะผู้ใช้ + < 400', () => {
-    expect([shouldExposeServerTiming(true, 200), shouldExposeServerTiming(true, 201), shouldExposeServerTiming(true, 404), shouldExposeServerTiming(false, 200)]).toEqual([true, true, false, false]);
+  it('แนบเฉพาะผู้ใช้ + < 400 (action ที่ไม่ใช่สาธารณะ)', () => {
+    const a = 'group.view' as const;
+    expect([shouldExposeServerTiming(a, true, 200), shouldExposeServerTiming(a, true, 201), shouldExposeServerTiming(a, true, 404), shouldExposeServerTiming(a, false, 200)]).toEqual([true, true, false, false]);
+  });
+  it('security-r7 Low 1: ทุก action ใน PUBLIC_ACTIONS → ไม่แนบ แม้ผู้ใช้ล็อกอิน + 2xx · route ไม่มี action (health/cron) → ไม่แนบ', () => {
+    expect(PUBLIC_ACTIONS.length).toBeGreaterThanOrEqual(5);
+    for (const a of PUBLIC_ACTIONS) for (const status of [200, 201, 202, 204]) expect(shouldExposeServerTiming(a, true, status), a).toBe(false);
+    expect(shouldExposeServerTiming(null, true, 200)).toBe(false);
+    // action อื่นทุกตัวยังแนบได้ (ไม่ได้ปิดทั้งระบบโดยไม่ตั้งใจ)
+    for (const a of ACTIONS.filter((x) => !isPublicAction(x))) expect(shouldExposeServerTiming(a, true, 200), a).toBe(true);
+    // ทุก route ใน manifest ที่ผูก action สาธารณะ ถูกครอบด้วยกฎนี้ (ตัดสินจาก entry.action ไม่ใช่ actor.kind)
+    const publicRoutes = ROUTE_MANIFEST.filter((e) => e.action !== null && isPublicAction(e.action));
+    expect(publicRoutes.map((e) => `${e.method} ${e.path}`).sort()).toEqual(
+      expect.arrayContaining(['GET /api/auth/pin-reset/status', 'POST /api/auth/login', 'POST /api/auth/pin-reset', 'POST /api/auth/signup']),
+    );
   });
 });
 
@@ -141,7 +156,7 @@ describe('Server-Timing บน API (route wrapper)', () => {
     await h.seedUser('bob', undefined, {});
     const login = await bob.login('bob', '135792');
     expect(login.status).toBe(200);
-    expect(login.headers.get('server-timing')).toBeNull(); // ตอน login actor ยังเป็น anonymous
+    expect(login.headers.get('server-timing')).toBeNull(); // auth.login เป็น action สาธารณะ → ไม่แนบเสมอ
     const gid = await makeGroup(alice);
     const nf = await get(bob, `/api/groups/${gid}`);
     expect(nf.status).toBe(404);
@@ -149,6 +164,26 @@ describe('Server-Timing บน API (route wrapper)', () => {
     process.env.SERVER_TIMING_ENABLED = 'false';
     expect((await get(alice.c, '/api/groups')).headers.get('server-timing')).toBeNull();
     process.env.SERVER_TIMING_ENABLED = 'true';
+    expect((await get(alice.c, '/api/groups')).headers.get('server-timing')).toMatch(HEADER_RE);
+  });
+
+  it('security-r7 Low 1: ผู้ใช้ที่ล็อกอินแล้วเรียก pin-reset / pin-reset status / login / signup / prefs → ไม่มี header (ไม่เป็น oracle ว่ามีบัญชี)', async () => {
+    await h.seedUser('victim_active');
+    // มีบัญชี active / ไม่มีบัญชี — คำตอบ 202 เหมือนกัน และไม่มี Server-Timing ทั้งคู่
+    for (const username of ['victim_active', 'nobody_here']) {
+      const r = await post(alice.c, '/api/auth/pin-reset', { username });
+      expect(r.status, r.text).toBe(202);
+      expect(r.headers.get('server-timing'), username).toBeNull();
+    }
+    const st = await get(alice.c, '/api/auth/pin-reset/status');
+    expect(st.headers.get('server-timing')).toBeNull();
+    const login = await post(alice.c, '/api/auth/login', { username: 'victim_active', pin: '135792' });
+    expect(login.headers.get('server-timing')).toBeNull();
+    const signup = await post(alice.c, '/api/auth/signup', { username: 'newbie_st', displayName: 'newbie', pin: '135792', pinConfirm: '135792' });
+    expect(signup.headers.get('server-timing')).toBeNull();
+    const prefs = await post(alice.c, '/api/prefs', { theme: 'dark' });
+    expect(prefs.headers.get('server-timing')).toBeNull();
+    // route ที่ไม่ใช่สาธารณะของผู้ใช้คนเดิมยังมี header
     expect((await get(alice.c, '/api/groups')).headers.get('server-timing')).toMatch(HEADER_RE);
   });
 });

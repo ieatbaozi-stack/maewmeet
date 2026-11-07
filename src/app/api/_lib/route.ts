@@ -11,6 +11,7 @@
 //              4. handler/service → 5. {data} | {error:{code,params}} + Cache-Control: private, no-store
 // R7 §2: ครอบทั้งหมดด้วยตัวนับ query/เวลาต่อ request (ปิดได้ด้วย SERVER_TIMING_ENABLED=false) → header Server-Timing (ดู shouldExposeServerTiming)
 import type { z } from 'zod';
+import { isPublicAction, type Action } from '@/lib/rbac/actions';
 import type { Actor } from '@/lib/rbac/types';
 import { clock } from '@/lib/shared/clock';
 import { runWithRequestMetrics, serverTimingValue } from '@/db/request-metrics';
@@ -307,19 +308,23 @@ export function route<S extends AnySchema | undefined = undefined, PS extends An
     return runWithRequestMetrics(async (m) => {
       const seen = { user: false };
       const res = await handle(req, ctx, seen);
-      if (shouldExposeServerTiming(seen.user, res.status)) res.headers.set('Server-Timing', serverTimingValue(m));
+      if (shouldExposeServerTiming(entry.action, seen.user, res.status)) res.headers.set('Server-Timing', serverTimingValue(m));
       return res;
     });
   };
 }
 
 /**
- * แนบ Server-Timing เฉพาะ: ผู้ใช้ที่ล็อกอินแล้ว + คำตอบสำเร็จ (< 400) — R7-3
- * - ไม่แนบให้ anonymous (login / signup / pin-reset / health / cron): จำนวน query ของเส้นทางที่ตั้งใจตอบเหมือนกันทุกกรณี
- *   (เช่น pin-reset ตอบเหมือนกันทั้งมีและไม่มีผู้ใช้) อาจต่างกันตามข้อมูล → กลายเป็น oracle บอกว่ามีบัญชี
+ * แนบ Server-Timing เฉพาะ: route ที่ไม่ใช่ action สาธารณะ + ผู้ใช้ที่ล็อกอินแล้ว + คำตอบสำเร็จ (< 400) — R7-3
+ * - ไม่แนบให้ route ที่ action อยู่ใน PUBLIC_ACTIONS (signup / login / pin-reset / pin-reset status / prefs cookie) **ไม่ว่าผู้เรียก
+ *   ล็อกอินอยู่หรือไม่** — ตัดสินจาก action ของ route ไม่ใช่ actor: ผู้ใช้ที่ล็อกอินแล้วยิง pin-reset ได้ (route ใช้ auth 'actor')
+ *   และจำนวน query ของเส้นทางที่ตั้งใจตอบเหมือนกันทุกกรณี (เช่น pin-reset ตอบเหมือนกันทั้งมีและไม่มีบัญชี) ต่างกันตามข้อมูล
+ *   → เป็น oracle บอกว่า username มีบัญชี active (security-r7 Low 1)
+ * - ไม่แนบให้ anonymous และ route ที่ไม่มี action (health / cron)
  * - ไม่แนบให้คำตอบ error: NOT_FOUND ของคนนอกกลุ่ม/กลุ่มไม่มี/ลบแล้ว ต้องเหมือนกันทุกไบต์ (ADR 0003 IDOR) — จำนวน query อาจต่างกัน
  * ค่าใน header มีแค่ตัวเลข (ดู serverTimingValue) ไม่มี SQL/พารามิเตอร์/id/ข้อมูลผู้ใช้
  */
-export function shouldExposeServerTiming(actorIsUser: boolean, status: number): boolean {
+export function shouldExposeServerTiming(action: Action | null, actorIsUser: boolean, status: number): boolean {
+  if (action === null || isPublicAction(action)) return false;
   return actorIsUser && status < 400;
 }
