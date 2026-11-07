@@ -56,6 +56,7 @@
 - **B-4** รายการนัด: groupNames + memberCounts query เดียว, commitments ไม่รอ rsvps · RSVP ไม่อ่าน access ซ้ำหลัง commit · `POST /api/me/busy` ใช้ RETURNING · `loadHome` groups ∥ appointments (platform)
 - **B-5** ฝั่ง client (frontend): แท็บ "ของฉัน" ข้อมูลแรกจาก server · เพิ่ม busy ใช้ผลของ POST ไม่ GET ซ้ำก่อน/หลังเท่าที่ทำได้ (คง E11 เช็กทับ) · RSVP จากหน้าหลักไม่ GET detail ก่อน · prefetch แถบล่าง
 - **ไม่ทำรอบนี้:** optimistic update (R7-6 ข้าม) · header Server-Timing บนหน้า RSC (ใช้ harness วัดแทน) · prod ปิด Server-Timing ไว้ (`SERVER_TIMING_ENABLED` ไม่ตั้ง = ปิดบน production)
+- (main 2026-11-08) RSVP "ไป" จากหน้าหลักยังเป็น 2 คำขอ (GET detail → PUT) — popup ต้องใช้ `myConflicts` ก่อนยืนยัน (R6D) และสองคำขอคั่นด้วยการกดยืนยันของผู้ใช้ ไม่ใช่ waterfall · เก็บเข้า backlog (ถ้าจะลดต้องเพิ่มข้อมูลชนแบบย่อใน list DTO)
 - test แก้ e2e ที่ผูกค่า minFree 120 ของกลุ่มใหม่ (เช่น `free-story.spec.ts`) โดย PATCH กลุ่มเป็น 120 ในเทสต์ — ไม่เปลี่ยน G1
 
 ## 7. ลำดับงาน
