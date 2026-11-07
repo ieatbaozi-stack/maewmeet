@@ -1,7 +1,7 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](docs/NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-03 05:24 (เวลาไทย) · ตรวจด้วย `git log`, `git tag`, `gh pr view 18`
+> อัปเดตล่าสุด: 2026-11-08 05:20 (เวลาไทย) · ตรวจด้วย `git log`, `git tag`, `docs/reports/perf-r7-*.md`, `qa-r7.md`, `security-r7.md`
 
 ## เสร็จแล้ว
 - R0–R5: foundation, บัญชี PIN, กลุ่ม, ปฏิทิน + busy, วันว่างร่วม + สร้างนัด, หน้า super admin + audit log (ดู CHANGELOG)
@@ -27,21 +27,44 @@
 - ผู้ทำ R6F ตาม commit author: architect (`258334a`, `a7f66c0`) · main (`3123a0f`, `87264dd`, `313e016`, `7aabdf4`) · platform (`8bed164`, `d125181`, `a93ba6f`) · ux (`7d97edd`) · test (`3a9bd73`) · frontend (`f903665`, `8391d79`) · ops (`438beab`, `ca104a0`) · qa (`2a33843`) · security (`286bee8`)
 - **ยังไม่ยืนยัน:** CI และ Vercel ของ `main` หลัง merge (เลขาไม่ได้ตรวจ) · ผล `npm test` ในเครื่องเลขาไม่มี (เลขาไม่ได้รัน)
 
-## R7 — กำลังทำ (branch `perf/r7-speed`, ยังไม่มีโค้ด) 🔄
-- contract: `R7_CONTRACT.md` (commit `f44551a` โดย main, 2026-11-03 05:24) · boss เห็นชอบทิศทางแล้ว 2026-11-03
-- branch `perf/r7-speed` แตกจาก `ea1bf5f` (v0.9.0) · checkout หลัก `maewmeet-git` · ไม่มี push / PR
-- เนื้อหา: **F2 ความเร็ว** (เฟส A วัด baseline → เฟส B แก้ → วัดหลัง) + **G1** กลุ่มใหม่ "ว่างอย่างน้อย" ค่าเริ่มต้น 240 นาที (4 ชม.) · ไม่มี migration · ไม่แก้ DB default
-- เลขเวอร์ชันที่เสนอ: **v0.9.1** (ถ้ามีแค่ G1 + ความเร็วที่ไม่เปลี่ยนรูป API) — ยังไม่ออก
-- ขั้นต่อไป: platform (G1 + ตัวนับ query/Server-Timing) + ops + secretary ตามลำดับใน R7 §7 → baseline → main สรุปแจ้ง boss ก่อนเฟส B
-- **ยังไม่มีผลวัดใดในรอบนี้** (ยังไม่มี `docs/reports/perf-r7-baseline.md`)
+## R7 — เสร็จแล้ว รอ boss (branch `perf/r7-speed`, HEAD `603f21c`) ✅
+- contract: `R7_CONTRACT.md` (`f44551a`, main) · branch แตกจาก `ea1bf5f` (v0.9.0) · **ยังไม่ push / ยังไม่มี PR** · **ไม่มี migration** (`git diff main..HEAD -- drizzle` = 0 บรรทัด)
+- เนื้อหา: **G1** กลุ่มใหม่ "ว่างอย่างน้อย" 240 นาที (`73bd68d`, `14a7f2c`) · **F2 ความเร็ว** วัดก่อน (`b721a22` baseline) → เฟส B ตาม §3.1 (`2c4167e` `896720c` `6c3ef87` `5361858` `6c64caa` `45660c2` `a18cd83`) → วัดหลัง (`cb15b59`) · Server-Timing + env `SERVER_TIMING_ENABLED` (`ecc91dd`, `7c5b2f9`) · CHANGELOG `[Unreleased]` (`ef3026a`)
+- **ตัวเลขหลัก** (จาก `perf-r7-after.md` · จำนวน query, ในเครื่อง libSQL ไฟล์):
+  - home `/` 13 → 9 (−31%) · waves 7 → 3 · **ผ่าน**
+  - ปฏิทินเดือน `/calendar?v=month` 15 → 8 (−47%) · **ผ่าน**
+  - ว่างตรงกัน `?v=free` 15 → 8 (−47%) · **ผ่าน**
+  - แท็บของฉัน `?v=mine` 3 HTTP → 1 HTTP (24 → 11 query)
+  - เพิ่ม busy 3 คำขอต่อกัน → 2 คำขอ (14 → 7 query)
+  - RSVP `PUT rsvp` 10 → 9 (−10%) · **ไม่ถึงเกณฑ์ 30%** (ตั้งใจคงไว้: ด่านสิทธิ์, rate limit นอกธุรกรรม, BEGIN/upsert/COMMIT, session, DTO) — ต้องให้ boss ตัดสิน
+- **ผลตรวจอิสระ:**
+  - qa **ผ่านแบบมีข้อสังเกต** (`docs/reports/qa-r7.md`, 0H/0M/3L · รันที่ HEAD `cb15b59`) — L1 RSVP ไม่ถึงเกณฑ์ · L2 `/groups/[gid]` ผ่านด่านกลุ่ม 2 ครั้ง · L3 e2e บน Windows 15 ล้มจาก ENOENT ของ path ยาว + server หลุด 1 ครั้ง (รันซ้ำด้วย path สั้น 329 passed / 0 failed)
+  - security **ผ่าน** (`docs/reports/security-r7.md`) — Low 1 (Server-Timing เป็น oracle "username active" ผ่าน pin-reset เมื่อผู้เรียกล็อกอิน) **แก้แล้ว `c563097`** (platform) และตรวจซ้ำผ่าน `4eb3f15` · Info 5
+  - ⚠️ qa รันที่ `cb15b59` ก่อน fix `c563097` — การแก้ครั้งนั้น security ตรวจซ้ำแล้ว แต่ qa ยังไม่ได้รันซ้ำ (ไม่ใช่ข้อบกพร่อง แค่ข้อสังเกต)
+- **เกณฑ์ contract:** R7-1 / R7-2 / R7-3 / R7-5 ผ่าน (ตามรายงาน qa/security) · R7-4 ผ่าน 3 เส้นทางหลัก · RSVP ไม่ผ่าน · R7-6 ข้าม (optimistic ไม่ทำตาม contract §3.1) · R7-7 **ยังไม่ยืนยัน** (CI / Vercel preview ยังไม่ได้ตรวจ)
+- **ข้อเสนอเลขเวอร์ชัน: v0.9.1** (ยังไม่ออก)
+- **ยังไม่ยืนยัน:** เวลาจริงบน Turso ญี่ปุ่น (ยังไม่ได้วัด) · CI และ Vercel preview ของ branch · ผลเทสต์ทั้งชุดบน Windows (ยังมี EPERM/timeout/ENOENT ตามปกติ)
+
+### รอ boss ตัดสิน (R7)
+1. **ยอมรับ RSVP ที่ลด 10 → 9 query (ไม่ถึงเกณฑ์ 30%) หรือไม่** — ถ้าจะลดต่อต้องเปลี่ยนการออกแบบ (ย้าย rate limit เข้าธุรกรรม / คืน DTO แบบย่อจาก PUT ซึ่งเปลี่ยนรูป API)
+2. **merge PR** (Create a merge commit) — main เปิด PR เมื่อ boss สั่ง
+3. **ออก v0.9.1** — `npx tsx scripts/release.ts 0.9.1` (ใช้ `--skip-gates` เมื่อ CI ของ main เขียว) · boss รันและ push tag เอง
+- ไม่มี migration รอบนี้ → ไม่ต้องรันฐาน Turso
+
+### backlog ใหม่จาก R7 (ไม่บล็อก)
+- RSVP ลดได้อีกถ้าออกแบบใหม่ (ดูข้อ 1 ด้านบน) · หน้า RSVP จากหน้าหลักยังเป็น 2 คำขอ (GET detail → PUT) เพราะ popup นัดชนของ R6D ต้องใช้ `myConflicts` ก่อนยืนยัน
+- `/groups/[gid]` ผ่านด่านกลุ่ม 2 ครั้ง (`getGroup` + `listGroupAppointments`) ราว −1 query (qa-r7 L2)
+- Server-Timing บนหน้า RSC ยังไม่มี (ใช้ harness วัดแทน) · วัดเวลาจริงบน Turso ญี่ปุ่นยังไม่ได้ทำ
+- security-r7 Info 1–5: Info 1 หน้าต่างหลัง commit ของ RSVP (ยอมรับได้) · Info 2 `resolvedUsers` ระวังถ้ามีผู้เรียกใหม่หลังเขียน · Info 3 audit super admin บนหน้า `/calendar` (ยอมรับได้) · Info 4 ค่าเริ่มต้น Server-Timing "เปิด" เมื่อไม่มี `VERCEL_ENV` · Info 5 `total;dur` เป็นเวลาจริง (oracle หลักคือจำนวน query ซึ่งแก้แล้วใน Low 1)
+- ข้อสังเกตเครื่อง Windows (R7): **Node v26.13.0** ในเครื่อง (เทสต์ `ops/health` คาด v24 → ล้ม) · path ยาวของ Playwright `--output` ทำ ENOENT · config Vitest ชั่วคราวข้าม EPERM (เสนอทำถาวร — ข้อเสนอเดิมจาก R6F)
 
 ## รอ boss
-- R7 เฟส A: เมื่อ main ส่งขั้นตอน ให้เปิดหน้า preview แล้วอ่าน `Server-Timing` ใน DevTools (เพื่อเวลาจริงกับ Turso ญี่ปุ่น)
-- R7: ตรวจผลวัด baseline + เลือกรายการเฟส B ที่ main เสนอ
+- **R7** — ตัดสิน 3 ข้อด้านบน (RSVP 10→9 · merge PR · ออก v0.9.1)
+- R7 เฟส A เดิม (เปิด preview อ่าน Server-Timing ด้วย DevTools เพื่อเวลาจริงกับ Turso ญี่ปุ่น) — ยังไม่ได้ทำ ถ้าต้องการตัวเลขจริงก่อน merge
 - ตัดสินช่องทางแจ้งเตือนก่อนนัด (F6) — ยังค้างจากเดิม
 
 ## เหลือ
-- ตาม `docs/NEXT_PHASE.md`: F1 onboarding · F2 ความช้า (อยู่ใน R7) · F6 แจ้งเตือนก่อนนัด (**boss ยังไม่ตัดสินช่องทาง**) · R6 hardening (ดู NEXT_PHASE)
+- ตาม `docs/NEXT_PHASE.md`: F1 onboarding · F2 ความช้า (R7 เสร็จ รอ boss ตัดสิน) · F6 แจ้งเตือนก่อนนัด (**boss ยังไม่ตัดสินช่องทาง**) · R6 hardening (ดู NEXT_PHASE)
 - **backlog R6F (ไม่บล็อก):**
   - qa-r6f L1: ป้ายชุดใน `MineList.tsx:99` เป็น `<span aria-label>` ไม่มี role — screen reader อาจไม่อ่าน aria-label (ข้อความที่มองเห็นยังอ่านได้) · ตัดสินใจโดย ux/frontend
   - qa-r6f L2: "Certain hours" ในปุ่ม segmented ขึ้น 2 บรรทัดที่ 375 EN (ไม่ล้น ปุ่มสูงกว่า 44px) — เชิงรูปลักษณ์
