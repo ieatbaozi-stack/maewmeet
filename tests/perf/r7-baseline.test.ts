@@ -102,6 +102,9 @@ vi.mock('react', async (importOriginal) => {
 });
 
 import { getDb } from '@/db/client';
+import { dataCtx } from '@/lib/data/context';
+import { openGroupAvailability } from '@/lib/data/services/availability';
+import { openGroupCalendar } from '@/lib/data/services/calendar';
 import { runWithRequestMetrics, type RequestMetrics } from '@/db/request-metrics';
 import { addDays, monthGrid } from '@/lib/calendar';
 import { fetchRange } from '@/components/calendar/model';
@@ -229,33 +232,36 @@ async function measure(route: string, kind: Row['kind'], run: () => Promise<Samp
   return row;
 }
 
-// ───────── เพดานจำนวน query = ค่าปัจจุบัน (เฟส A) · เฟส B ลดแล้วปรับลง ─────────
+// ───────── เพดานจำนวน query = ค่าปัจจุบัน · เฟส A → เฟส B (platform B-2/B-3/B-4) ลดแล้ว · B-1/B-5 จะลดหน้าลงอีก ─────────
 const CEILINGS: Record<string, number> = {
-  'PAGE /': 13,
-  'PAGE /calendar?v=month': 15,
-  'PAGE /calendar?v=free': 15,
-  'PAGE /calendar?v=day': 15,
-  'PAGE /calendar?v=mine': 15,
+  'PAGE /': 12,
+  'PAGE /calendar?v=month': 13,
+  'PAGE /calendar?v=free': 13,
+  'PAGE /calendar?v=day': 13,
+  'PAGE /calendar?v=mine': 13,
   'PAGE /groups': 8,
-  'PAGE /groups/[gid]': 17,
+  'PAGE /groups/[gid]': 15,
   'PAGE /appointments/[id]': 10,
   'PAGE /me': 5,
-  'GET /api/groups/:gid/calendar (เดือน)': 6,
-  'GET /api/groups/:gid/availability (เดือน)': 6,
+  'GET /api/groups/:gid/calendar (เดือน)': 5,
+  'GET /api/groups/:gid/availability (เดือน)': 5,
   'GET /api/me/busy': 2,
-  'GET /api/me/appointments?rsvp=going': 7,
-  'GET /api/me/appointments?limit=5 (home refresh)': 7,
+  'GET /api/me/appointments?rsvp=going': 6,
+  'GET /api/me/appointments?limit=5 (home refresh)': 6,
   'GET /api/me/notifications?limit=1 (bell)': 3,
   'GET /api/groups': 2,
-  'GET /api/groups/:gid': 4,
-  'GET /api/groups/:gid/appointments': 8,
+  'GET /api/groups/:gid': 3,
+  'GET /api/groups/:gid/appointments': 7,
   'GET /api/me/invites': 2,
   'GET /api/appointments/:id': 5,
   'PUT /api/me/current-group': 3,
-  'POST /api/groups/:gid/appointments/check': 6,
-  'PUT /api/appointments/:id/rsvp': 10,
-  'POST /api/me/busy (timed)': 6,
+  'POST /api/groups/:gid/appointments/check': 5,
+  'PUT /api/appointments/:id/rsvp': 9,
+  'POST /api/me/busy (timed)': 5,
   'DELETE /api/me/busy/:id': 5,
+  // R7 B-2: service ใหม่ให้ loader ของ /calendar (frontend ยังไม่เปลี่ยน loader) — ไม่รวม session/layout · actor สร้างตรง
+  'SVC openGroupCalendar → load (เดือน · B-2)': 4,
+  'SVC openGroupAvailability → load (เดือน · B-2)': 4,
 };
 
 // ───────── seed ─────────
@@ -385,6 +391,12 @@ describe('R7 baseline — จำนวน query + เวลา ต่อเส�
     await measure('POST /api/groups/:gid/appointments/check', 'api', () =>
       sampleApi(() => post(A.c, `/api/groups/${G}/appointments/check`, { startDate: day(5), startTime: '19:00', endDate: day(5), endTime: '21:00' })),
     );
+
+    // ── R7 B-2: service ที่ loader ของ /calendar จะใช้ (ด่านกลุ่มครั้งเดียว → tz/role → load) ──
+    const actorA = { kind: 'user', id: A.id, isSuperAdmin: false, status: 'active', mustChangePin: false } as const;
+    const svcCtx = () => dataCtx(new Request('https://maewmeet.test/calendar'), h.clock.now());
+    await measure('SVC openGroupCalendar → load (เดือน · B-2)', 'page', () => samplePage(A, async () => (await openGroupCalendar(actorA, G, svcCtx())).load(OCT)));
+    await measure('SVC openGroupAvailability → load (เดือน · B-2)', 'page', () => samplePage(A, async () => (await openGroupAvailability(actorA, G, svcCtx())).load(OCT)));
 
     // ── เขียน: RSVP สลับ going/maybe · เพิ่ม busy แล้วลบคืน (ลบนับแยก) ──
     let flip = false;
