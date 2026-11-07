@@ -1,11 +1,9 @@
 // โหลดข้อมูลหน้าหลักฝั่งเซิร์ฟเวอร์ — เรียก service ตรง (authorize ที่ service) · ไม่มีกลุ่ม → "no-group" · ล้มเหลว → "error"
 // (ให้ UI ขึ้นสถานะผิดพลาด + ลองอีกครั้ง ไม่โยนทั้งหน้า) · นัดที่ยกเลิกไม่ถูกส่งมาจาก API นี้จึงไม่แสดงบนหน้าหลัก
-import { pageRequest } from "@/app/_lib/session";
+import { getRequestSession } from "@/lib/auth/page-session";
 import { HOME_LIMIT, type HomeAppointment } from "@/components/home/model";
-import { getActor } from "@/lib/auth/session";
 import { dataCtx } from "@/lib/data/context";
-import { listMyAppointments } from "@/lib/data/services/appointments";
-import { listMyGroups } from "@/lib/data/services/groups";
+import { getHomeFeed } from "@/lib/data/services/home";
 import { clock } from "@/lib/shared/clock";
 
 export type HomeData =
@@ -16,12 +14,9 @@ export type HomeData =
 export async function loadHome(): Promise<HomeData> {
   const nowMs = clock.now();
   try {
-    const req = await pageRequest();
-    const actor = await getActor(req);
-    const ctx = dataCtx(req, nowMs);
-    const { groups } = await listMyGroups(actor, ctx);
-    if (groups.length === 0) return { kind: "no-group", nowMs };
-    const { appointments } = await listMyAppointments(actor, { limit: String(HOME_LIMIT) }, ctx);
+    const { req, actor } = await getRequestSession();
+    const { hasGroups, appointments } = await getHomeFeed(actor, { limit: String(HOME_LIMIT) }, dataCtx(req, nowMs));
+    if (!hasGroups) return { kind: "no-group", nowMs };
     return { kind: "ready", nowMs, appointments: appointments as HomeAppointment[] };
   } catch {
     return { kind: "error", nowMs };

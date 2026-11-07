@@ -3,18 +3,16 @@
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { pageRequest } from "@/app/_lib/session";
 import { dataCtx } from "@/lib/data/context";
 import { getAppointment, listGroupAppointments } from "@/lib/data/services/appointments";
 import type { AppointmentDetailDto } from "@/lib/data/serializers/appointments";
 import type { AppointmentListDto } from "@/lib/data/services/appointments";
-import { getActor } from "@/lib/auth/session";
+import { getRequestSession } from "@/lib/auth/page-session";
 import { clock } from "@/lib/shared/clock";
 import { AppError } from "@/lib/shared/errors";
 
 async function scope() {
-  const req = await pageRequest();
-  const actor = await getActor(req);
+  const { req, actor } = await getRequestSession();
   return { actor, ctx: dataCtx(req, clock.now()) };
 }
 

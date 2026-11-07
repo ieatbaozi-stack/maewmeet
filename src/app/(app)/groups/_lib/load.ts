@@ -2,19 +2,16 @@
 // สิทธิ์ตัดสินที่ service เสมอ: ไม่ใช่สมาชิก / กลุ่มไม่มี / ถูกลบ → NOT_FOUND → notFound() (404 ไม่ยืนยันว่ากลุ่มมีอยู่)
 import { cache } from "react";
 import { notFound } from "next/navigation";
-import { pageRequest } from "@/app/_lib/session";
 import { dataCtx } from "@/lib/data/context";
 import { getGroup, groupParamsSchema, listMyGroups } from "@/lib/data/services/groups";
 import { listInvites, listMyInvites } from "@/lib/data/services/invites";
 import type { GroupDetailDto, GroupSummaryDto, InviteDto, PendingInviteDto } from "@/lib/data/serializers/groups";
-import { getActor } from "@/lib/auth/session";
+import { getRequestSession } from "@/lib/auth/page-session";
 import { clock } from "@/lib/shared/clock";
 import { AppError } from "@/lib/shared/errors";
-import type { Actor } from "@/lib/rbac/types";
 
 async function scope() {
-  const req = await pageRequest();
-  const actor: Actor = await getActor(req);
+  const { req, actor } = await getRequestSession();
   return { actor, ctx: dataCtx(req, clock.now()) };
 }
 

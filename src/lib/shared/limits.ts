@@ -18,6 +18,13 @@ export const GROUP_LIMITS = {
   nameMax: 40,
 } as const;
 
+/**
+ * R7 G1 (boss 2026-11-03): กลุ่มใหม่ "ว่างอย่างน้อย" = 4 ชม. — ส่งตอน insert ที่ service → repo (insertGroupIfUnderCap)
+ * ไม่ใช่ DB default: schema.ts ยัง `default(120)` เพราะ SQLite เปลี่ยน default ต้อง rebuild ตาราง (ความเสี่ยงแบบ migration 0002)
+ * กลุ่มที่มีอยู่ไม่เปลี่ยน · ช่วงเวลาว่างของกลุ่มใหม่ยังเป็น DB default 08:00–22:00 (480–1320)
+ */
+export const GROUP_DEFAULT_MIN_FREE_MINUTES = 240;
+
 // เพดาน busy / ปฏิทิน — R3_CONTRACT §2 (ค่าเริ่มต้นของ Lead) · lib เวลารับค่าเหล่านี้เป็นพารามิเตอร์ ไม่ฮาร์ดโค้ด
 /** busy ต่อผู้ใช้ที่ end_at > now − (BUSY_MAX_BACKDATE_DAYS + 1) วัน = ทุกแถวที่ยังสร้าง/แก้ได้ (รวมที่จบแล้วแต่ยังย้อนลงได้) — R3 H1 */
 export const BUSY_MAX_PER_USER = 300;

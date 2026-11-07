@@ -68,6 +68,8 @@ beforeEach(async () => {
     await person(h, 'nina'),
   ];
   gid = await makeGroup(alice, 'กลุ่มทดสอบ');
+  // ตาราง T1/T2/T24 ของ ADR 0005 คำนวณมือที่ขั้นต่ำ 120 นาที — R7 G1 ให้กลุ่มใหม่ได้ 240 จึงตั้งกลับเป็น 120 ตรง ๆ (ไม่ผ่าน API: ไม่เพิ่ม audit)
+  await h.rows('UPDATE groups SET min_free_minutes = 120 WHERE id = ?', [gid]);
   await join(alice, bob, gid);
   await join(alice, carol, gid);
 });

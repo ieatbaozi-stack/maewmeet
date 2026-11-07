@@ -13,6 +13,7 @@ import {
   revokeAllSessions,
   sessionUserDto,
   takeRenewedSessionCookie,
+  takeResolvedSessionUser,
   type AuthCookie,
   type SessionUserDto,
 } from '../session';
@@ -40,7 +41,9 @@ export async function getSessionInfo(
 ): Promise<{ user: SessionUserDto; cookies: AuthCookie[] }> {
   authorize(actor, 'self.read', { type: 'none' });
   const userId = userIdOf(actor);
-  const row = await loadUser(ctx.db, userId);
+  // แถวผู้ใช้ที่ getActor อ่านมาแล้วใน request นี้ (JOIN เดียวกัน ข้อมูลสด) · ไม่มี/id ไม่ตรง → อ่านจาก DB ตามเดิม
+  const cached = takeResolvedSessionUser(ctx.req);
+  const row = cached && cached.id === userId ? cached : await loadUser(ctx.db, userId);
   const renewed = takeRenewedSessionCookie(ctx.req);
   return { user: sessionUserDto(row), cookies: renewed ? [renewed] : [] };
 }

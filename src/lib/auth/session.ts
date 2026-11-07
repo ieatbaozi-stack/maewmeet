@@ -122,25 +122,50 @@ export function takeRenewedSessionCookie(req: Request): AuthCookie | null {
   return renewed.get(req) ?? null;
 }
 
+/** ผลการอ่าน session หนึ่งครั้ง: actor + ข้อมูลผู้ใช้จาก JOIN เดียวกัน (ไม่มี hash/token) · anonymous → user = null */
+export type ResolvedSession = {
+  readonly actor: Actor;
+  readonly user: SessionWithUser['user'] | null;
+};
+
+const ANONYMOUS_SESSION: ResolvedSession = Object.freeze({ actor: ANONYMOUS, user: null });
+
+// ผู้ใช้ที่อ่านแล้วใน request นี้ — ผูกกับวัตถุ Request (WeakMap: หายไปพร้อม request · ไม่ข้าม request/ผู้ใช้)
+// ให้ service ใน request เดียวกัน (GET /api/auth/session) ไม่ต้อง findUserById ซ้ำหลัง JOIN
+const resolvedUsers = new WeakMap<Request, SessionWithUser['user']>();
+
+/** ข้อมูลผู้ใช้ที่ resolveSession/getActor อ่านแล้วกับ Request ตัวนี้ (ถ้ามี) */
+export function takeResolvedSessionUser(req: Request): SessionWithUser['user'] | null {
+  return resolvedUsers.get(req) ?? null;
+}
+
 /**
- * ตัวหา actor ของ route wrapper (สัญญา GetActor — ดู src/app/api/_lib/actor.ts)
- * ไม่มี/หมดอายุ/รูปผิด → anonymous (ไม่โยน) · พบ → UserActor จาก DB สด · ไม่แตะ DB ถ้าไม่มี cookie
+ * อ่าน session หนึ่งครั้ง: cookie → SHA-256 → findSessionWithUser (JOIN เดียว ข้อมูลสด) → touchSession ≤ 1 ครั้ง
+ * ไม่มี/หมดอายุ/รูปผิด/ถูกเพิกถอน/บัญชีถูกลบ → anonymous (ไม่โยน) · ไม่แตะ DB ถ้าไม่มี cookie · ฐานล่ม → โยนต่อ
+ * ไม่ memo เอง: API เรียกผ่าน getActor ครั้งเดียวต่อ route · หน้า RSC ใช้ getRequestSession (React.cache ต่อ request — ./page-session)
  */
-export const getActor: GetActor = async (req) => {
+export async function resolveSession(req: Request): Promise<ResolvedSession> {
   const token = readSessionToken(req);
-  if (!token) return ANONYMOUS;
+  if (!token) return ANONYMOUS_SESSION;
   const db: Db = getDb();
   const now = clock.now();
   const found = await findSessionWithUser(db, sha256Hex(token), now);
-  if (!found) return ANONYMOUS;
+  if (!found) return ANONYMOUS_SESSION;
   try {
     const touched = await touchSession(db, found.session, now);
     if (touched && touched.expiresAt !== found.session.expiresAt) renewed.set(req, sessionCookie(token));
   } catch {
     // การต่ออายุ/บันทึก last_seen ล้มเหลวไม่ควรทำให้ request ที่ถูกต้องล้ม
   }
-  return actorOf(found.user);
-};
+  resolvedUsers.set(req, found.user);
+  return { actor: actorOf(found.user), user: found.user };
+}
+
+/**
+ * ตัวหา actor ของ route wrapper (สัญญา GetActor — ดู src/app/api/_lib/actor.ts)
+ * ไม่มี/หมดอายุ/รูปผิด → anonymous (ไม่โยน) · พบ → UserActor จาก DB สด · ไม่แตะ DB ถ้าไม่มี cookie
+ */
+export const getActor: GetActor = async (req) => (await resolveSession(req)).actor;
 
 /** ข้อมูลผู้ใช้ที่ส่งออกจาก GET /api/auth/session, login, signup (ARCHITECTURE §5) — ไม่มี hash/token */
 export type SessionUserDto = {

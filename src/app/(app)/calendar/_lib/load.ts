@@ -2,18 +2,20 @@
 // สิทธิ์ตัดสินที่ service เสมอ: ไม่ใช่สมาชิก/กลุ่มถูกลบ → NOT_FOUND → สถานะ "gone" (UI ไม่เปิดเผยว่ากลุ่มมีอยู่)
 // R6D G1 (ADR 0009 §5): กลุ่มที่แสดง = ?g= (ถ้าเป็นกลุ่มของฉัน) → คุกกี้ mm_group (uuid + อยู่ใน listMyGroups ที่โหลดอยู่แล้ว — 0 query เพิ่ม) → กลุ่มแรก
 //   Server Component ตั้งคุกกี้ไม่ได้ → คืน rememberGid ให้หน้าเรนเดอร์ <RememberGroup> (PUT /api/me/current-group)
-import { pageRequest } from "@/app/_lib/session";
-import type { InitialAvailability, InitialCalendar, CalView } from "@/components/calendar/CalendarView";
+import { getRequestSession } from "@/lib/auth/page-session";
+import type { InitialAvailability, InitialCalendar, InitialMine, CalView } from "@/components/calendar/CalendarView";
 import { canEditSettings, viewerRole } from "@/components/groups/helpers";
 import { isValidDate, monthGrid, todayIn, type DateISO, type EpochMs } from "@/lib/calendar";
 import { dataCtx } from "@/lib/data/context";
-import { getGroupAvailability } from "@/lib/data/services/availability";
-import { getGroupCalendar } from "@/lib/data/services/calendar";
-import { getGroup, listMyGroups } from "@/lib/data/services/groups";
-import { getActor } from "@/lib/auth/session";
+import { openGroupAvailability } from "@/lib/data/services/availability";
+import { openGroupCalendar } from "@/lib/data/services/calendar";
+import { listMyAppointments } from "@/lib/data/services/appointments";
+import { listMyBusy } from "@/lib/data/services/busy";
+import { listMyGroups } from "@/lib/data/services/groups";
 import { readCookie } from "@/lib/auth/request";
 import { CURRENT_GROUP_COOKIE, chooseCalendarGroup } from "@/lib/shared/current-group-cookie";
-import { fetchRange } from "@/components/calendar/model";
+import { fetchRange, type OwnBusy } from "@/components/calendar/model";
+import type { AppointmentDto } from "@/lib/data/serializers/appointments";
 import { clock } from "@/lib/shared/clock";
 import { AppError } from "@/lib/shared/errors";
 
@@ -45,14 +47,15 @@ export type CalendarPageData =
       initial: InitialCalendar;
       /** ?v=free: โหลดผลว่างร่วมของเดือนแรกที่เซิร์ฟเวอร์ (ไม่โหลดปฏิทิน — โหลดเมื่อสลับไปมุมมองเดือน) */
       initialAvailability: InitialAvailability | null;
+      /** ?v=mine: busy ของฉัน + นัดที่ตอบ "ไป" โหลดที่เซิร์ฟเวอร์ (ไม่โหลดปฏิทินเดือนที่ยังไม่แสดง · client ไม่ fetch ซ้ำหลัง hydrate) */
+      initialMine: InitialMine | null;
     };
 
 const VIEWS: readonly CalView[] = ["month", "free", "day", "mine"];
 
 /** group ที่ขอมาไม่ใช่ของฉัน/ไม่มี → ใช้กลุ่มจากคุกกี้/กลุ่มแรก (ไม่เปิดเผยว่ามี) + groupMissing=true · d ที่ผิดรูปแบบ → วันนี้ · v ที่ไม่รู้จัก → เดือน */
 export async function loadCalendarPage(search: CalendarSearch): Promise<CalendarPageData> {
-  const req = await pageRequest();
-  const actor = await getActor(req);
+  const { req, actor } = await getRequestSession();
   const nowMs = clock.now();
   const ctx = dataCtx(req, nowMs);
 
@@ -69,17 +72,23 @@ export async function loadCalendarPage(search: CalendarSearch): Promise<Calendar
   const options = groups.map((g) => ({ id: g.id, name: g.name, memberCount: g.memberCount }));
   const view = VIEWS.find((v) => v === search.v) ?? "month";
 
+  // R7 B-2: ด่านสิทธิ์ครั้งเดียวคืน tz/myRole แล้ว load(range) อ่านสมาชิก ∥ busy (ไม่เรียก getGroup ซ้ำ)
   let tz: string;
   let canEditWindow = false;
+  let loadFree: Awaited<ReturnType<typeof openGroupAvailability>>["load"] | null = null;
+  let loadMonth: Awaited<ReturnType<typeof openGroupCalendar>>["load"] | null = null;
   try {
-    const detail = (await getGroup(actor, chosen.id, ctx)).group;
-    tz = detail.tz;
-    canEditWindow = canEditSettings(viewerRole(detail.myRole));
+    // ?v=mine: เปิดด่านสิทธิ์ของกลุ่ม (tz/role) แต่ไม่ load ปฏิทิน — ใช้ busy ของฉันแทน
+    const handle = view === "free" ? await openGroupAvailability(actor, chosen.id, ctx) : await openGroupCalendar(actor, chosen.id, ctx);
+    tz = handle.group.tz;
+    canEditWindow = canEditSettings(viewerRole(handle.group.myRole));
+    if (view === "free") loadFree = (handle as Awaited<ReturnType<typeof openGroupAvailability>>).load;
+    else loadMonth = (handle as Awaited<ReturnType<typeof openGroupCalendar>>).load;
   } catch (e) {
     if (e instanceof AppError && e.code === "NOT_FOUND") {
       // เพิ่งถูกนำออก/กลุ่มถูกลบระหว่างทาง
       const today = todayIn("Asia/Bangkok", nowMs);
-      return { kind: "ready", groups: options, gid: chosen.id, tz: "Asia/Bangkok", today, nowMs, date: today, view, groupMissing, rememberGid: null, dateGiven: false, canEditWindow: false, initial: { status: "gone" }, initialAvailability: view === "free" ? { status: "gone" } : null };
+      return { kind: "ready", groups: options, gid: chosen.id, tz: "Asia/Bangkok", today, nowMs, date: today, view, groupMissing, rememberGid: null, dateGiven: false, canEditWindow: false, initial: { status: "gone" }, initialAvailability: view === "free" ? { status: "gone" } : null, initialMine: null };
     }
     throw e;
   }
@@ -92,19 +101,28 @@ export async function loadCalendarPage(search: CalendarSearch): Promise<Calendar
   const failure = (e: unknown) => ({ status: e instanceof AppError && e.code === "NOT_FOUND" ? ("gone" as const) : ("error" as const) });
   let initial: InitialCalendar;
   let initialAvailability: InitialAvailability | null = null;
-  if (view === "free") {
+  let initialMine: InitialMine | null = null;
+  if (view === "mine") {
+    initial = { status: "skipped" };
+    // เหมือน GET /api/me/busy + GET /api/me/appointments?rsvp=going เดิม: นัด "ไป" ล้มเหลว → going:null (ไม่ทำให้รายการ busy หาย)
+    const [busy, going] = await Promise.allSettled([listMyBusy(actor, {}, ctx), listMyAppointments(actor, { rsvp: "going" }, ctx)]);
+    initialMine =
+      busy.status === "fulfilled"
+        ? { status: "ready", items: busy.value.busy as OwnBusy[], truncated: busy.value.truncated, going: going.status === "fulfilled" ? (going.value.appointments as AppointmentDto[]) : null }
+        : { status: "error" };
+  } else if (view === "free") {
     initial = { status: "skipped" };
     try {
-      initialAvailability = { status: "ready", data: await getGroupAvailability(actor, chosen.id, range, ctx) };
+      initialAvailability = { status: "ready", data: await loadFree!(range) };
     } catch (e) {
       initialAvailability = failure(e);
     }
   } else {
     try {
-      initial = { status: "ready", data: await getGroupCalendar(actor, chosen.id, range, ctx) };
+      initial = { status: "ready", data: await loadMonth!(range) };
     } catch (e) {
       initial = failure(e);
     }
   }
-  return { kind: "ready", groups: options, gid: chosen.id, tz, today, nowMs, date, view, groupMissing, rememberGid, dateGiven, canEditWindow, initial, initialAvailability };
+  return { kind: "ready", groups: options, gid: chosen.id, tz, today, nowMs, date, view, groupMissing, rememberGid, dateGiven, canEditWindow, initial, initialAvailability, initialMine };
 }

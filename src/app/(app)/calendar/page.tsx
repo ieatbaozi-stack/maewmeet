@@ -63,6 +63,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
         canEditWindow={data.canEditWindow}
         initial={data.initial}
         initialAvailability={data.initialAvailability}
+        initialMine={data.initialMine}
       />
     </>
   );

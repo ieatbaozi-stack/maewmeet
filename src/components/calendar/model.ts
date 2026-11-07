@@ -11,11 +11,13 @@ import {
   format,
   monthGrid,
   spanDays,
+  startOfDay,
   toLocal,
   type CalendarLocale,
   type DateISO,
   type EpochMs,
 } from "@/lib/calendar";
+import { CALENDAR_MAX_ITEMS } from "@/lib/shared/limits";
 
 // ───────── ชนิดข้อมูล (ตรงกับ GroupCalendarDto / BusyOwnView ของ API — ไม่ import ฝั่งเซิร์ฟเวอร์) ─────────
 export interface MemberInfo {
@@ -378,4 +380,53 @@ export function joinNames(names: readonly string[], and: string, locale: Calenda
   // ไทย: "ก ข และค" · ชื่อที่ขึ้นต้นด้วยตัวอักษรไทยติดคำเชื่อม ชื่อละติน/ตัวเลขเว้นวรรค ("และ Cat") — ถ้าไม่เว้น อ่านเป็น "และCat"
   const glue = /^[\u0E00-\u0E7F]/.test(last) ? "" : " ";
   return locale === "th" ? `${head.join(" ")} ${and}${glue}${last}` : `${head.join(", ")} ${and} ${last}`;
+}
+
+// ───────── R7 B-5: ใช้ผล POST /api/me/busy ต่อเข้าข้อมูลที่แสดงอยู่ (แทน GET ปฏิทินใหม่) ─────────
+const KIND_ORDER: Record<BusyKind, number> = { busy: 0, appointment: 1, other_group_appointment: 2 };
+const tieKeyOf = (v: ApiBusyItem): string => (v.kind === "busy" ? v.id : v.kind === "appointment" ? v.appointmentId : v.userId);
+
+/** ลำดับเดียวกับ compareBusyViews ฝั่งเซิร์ฟเวอร์ (ADR 0009 §2): startAt, endAt, kind, id|appointmentId|userId */
+export function compareApiBusy(a: ApiBusyItem, b: ApiBusyItem): number {
+  if (a.startAt !== b.startAt) return a.startAt - b.startAt;
+  if (a.endAt !== b.endAt) return a.endAt - b.endAt;
+  if (a.kind !== b.kind) return KIND_ORDER[a.kind] - KIND_ORDER[b.kind];
+  const ka = tieKeyOf(a);
+  const kb = tieKeyOf(b);
+  return ka < kb ? -1 : ka > kb ? 1 : 0;
+}
+
+/**
+ * busy ของฉันที่เพิ่งสร้าง → ใส่ในรายการ busy[] ของปฏิทิน (มุมมองที่เพื่อนเห็น: ไม่มี note · ซ่อน/ไม่มี title → ไม่มีฟิลด์ title)
+ * ช่วงที่ทับ [เที่ยงคืนต้น from, เที่ยงคืนต้นวันหลัง to) ตาม tz กลุ่ม เหมือนเซิร์ฟเวอร์ · คืน null = ทำถูกไม่ได้ (ข้อมูลถูกตัดที่เพดาน) → ให้โหลดใหม่
+ */
+export function addCreatedBusy<T extends { group: { tz: string }; busy: ApiBusyItem[]; truncated?: boolean }>(
+  data: T,
+  created: readonly OwnBusy[],
+  userId: string,
+  range: { from: DateISO; to: DateISO },
+): T | null {
+  if (data.truncated) return null;
+  const fromMs = startOfDay(range.from, data.group.tz);
+  const toMs = startOfDay(addDays(range.to, 1), data.group.tz);
+  const have = new Set(data.busy.map((b) => (b.kind === "busy" ? b.id : "")));
+  const added: ApiBusyItem[] = [];
+  for (const c of created) {
+    if (have.has(c.id) || !(c.startAt < toMs && c.endAt > fromMs)) continue;
+    const item: ApiBusyItem = {
+      kind: "busy",
+      id: c.id,
+      userId,
+      allDay: c.allDay,
+      startAt: c.startAt,
+      endAt: c.endAt,
+      localStartDate: c.localStartDate,
+      localEndDate: c.localEndDate,
+      tz: c.tz,
+      ...(c.hidden || !c.title ? {} : { title: c.title }),
+    };
+    added.push(item);
+  }
+  if (data.busy.length + added.length > CALENDAR_MAX_ITEMS) return null; // เซิร์ฟเวอร์จะตัดที่เพดาน + ส่ง truncated → ให้โหลดใหม่
+  return { ...data, busy: [...data.busy, ...added].sort(compareApiBusy) };
 }

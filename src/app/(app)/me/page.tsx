@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { getLocale, getTranslations } from "next-intl/server";
-import { pageRequest, requireUser } from "@/app/_lib/session";
+import { requireUser } from "@/app/_lib/session";
 import { AccountSection } from "@/components/account/AccountSection";
 import { AccountActions } from "@/components/auth/AccountActions";
 import { Aurora } from "@/components/brand";
@@ -12,7 +12,7 @@ import { TopBar } from "@/components/shell/TopBar";
 import { THEME_COOKIE, parseLocale, parseTheme } from "@/i18n/config";
 import { authCtx } from "@/lib/auth/context";
 import { listPinResets } from "@/lib/auth/services/admin-resets";
-import { getActor } from "@/lib/auth/session";
+import { getRequestSession } from "@/lib/auth/page-session";
 import { clock } from "@/lib/shared/clock";
 import { Name } from "@/components/Name";
 
@@ -24,8 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
 /** จำนวนคำขอ reset ที่รออนุมัติ (เฉพาะ super admin) — ล้มเหลวเงียบ ๆ แล้วไม่แสดงตัวเลข (ลิงก์ยังใช้ได้) */
 async function pendingResetCount(): Promise<number | null> {
   try {
-    const req = await pageRequest();
-    const actor = await getActor(req);
+    const { req, actor } = await getRequestSession();
     const { items } = await listPinResets(actor, authCtx(req, clock.now()));
     return items.length;
   } catch {

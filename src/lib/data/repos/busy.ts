@@ -71,9 +71,31 @@ export async function insertBusyIfUnderCap(
            ${input.localStartDate}, ${input.localEndDate}, ${input.tz}, ${input.hideDetail ? 1 : 0}, ${now}, ${now}
     WHERE EXISTS (SELECT 1 FROM user WHERE id = ${input.userId} AND status = 'active')
       AND ${windowCount(input.userId, now)} < ${input.cap}
-    RETURNING id`);
-  if (rows.length !== 1) return null;
-  return findOwnBusy(db, input.id, input.userId);
+    RETURNING id, user_id, title, note, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at, series_id`);
+  // R7 B-4: RETURNING ทุกคอลัมน์ แทนการอ่านกลับด้วย findOwnBusy (−1 query) · แปลงชนิดเหมือน drizzle select (เทสต์เทียบกับ findOwnBusy)
+  const r = rows.length === 1 ? rows[0]! : null;
+  return r === null ? null : ownBusyFromRaw(r);
+}
+
+/** แถวดิบ (snake_case) จาก RETURNING ของ busy_block → OwnBusyRow (ลำดับคีย์/ชนิดเท่ากับ drizzle select() ของตาราง) */
+function ownBusyFromRaw(r: Record<string, unknown>): OwnBusyRow {
+  const text = (v: unknown): string | null => (v === null || v === undefined ? null : String(v));
+  return {
+    id: String(r.id),
+    userId: String(r.user_id),
+    title: text(r.title),
+    note: text(r.note),
+    allDay: Number(r.all_day) === 1,
+    startAt: Number(r.start_at),
+    endAt: Number(r.end_at),
+    localStartDate: String(r.local_start_date),
+    localEndDate: String(r.local_end_date),
+    tz: String(r.tz),
+    hideDetail: Number(r.hide_detail) === 1,
+    createdAt: Number(r.created_at),
+    updatedAt: Number(r.updated_at),
+    seriesId: text(r.series_id),
+  };
 }
 
 /** แถวหนึ่งวันของชุด (ผลของ expandDailyBusyInput + id ที่เซิร์ฟเวอร์สร้าง) */

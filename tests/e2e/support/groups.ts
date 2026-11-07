@@ -47,10 +47,19 @@ export async function api(request: APIRequestContext, method: 'GET' | 'POST' | '
   return { status: res.status(), json: json as ApiJson | undefined, text };
 }
 
-export async function createGroupApi(request: APIRequestContext, name: string): Promise<string> {
+/**
+ * สร้างกลุ่มผ่าน API · R7 G1: กลุ่มใหม่ได้ "ว่างอย่างน้อย" 240 นาที → เทสต์ส่วนใหญ่คาดผลที่ช่วง 120 นาที
+ * จึง PATCH เป็น 120 ทันทีหลังสร้าง (ผ่าน API จริง) · ส่ง { keepDefaultMinFree: true } เพื่อทดสอบค่าดีฟอลต์จริง
+ */
+export async function createGroupApi(request: APIRequestContext, name: string, opts: { keepDefaultMinFree?: boolean } = {}): Promise<string> {
   const r = await api(request, 'POST', '/api/groups', { name });
   expect(r.status, `create group: ${r.text}`).toBe(201);
-  return r.json!.data!.group.id;
+  const gid = r.json!.data!.group.id;
+  if (!opts.keepDefaultMinFree) {
+    const p = await api(request, 'PATCH', `/api/groups/${gid}`, { minFreeMinutes: 120 });
+    expect(p.status, `set minFree 120: ${p.text}`).toBe(200);
+  }
+  return gid;
 }
 
 export type MemberRow = { userId: string; displayName: string; role: Role };

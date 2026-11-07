@@ -22,7 +22,13 @@ function base64Secret(minBytes: number) {
     });
 }
 
-const DB_URL_SCHEMES = ['file:', 'libsql:', 'http:', 'https:', 'ws:', 'wss:'] as const;
+/** SERVER_TIMING_ENABLED: 'true' | 'false' | ไม่ตั้ง (R7_CONTRACT §2) — ใช้ทั้งใน schema กลางและ serverTimingEnabled() */
+const serverTimingFlagSchema = z.preprocess(
+  (v) => (typeof v === 'string' ? (v.trim() === '' ? undefined : v.trim()) : v),
+  z.enum(['true', 'false']).optional(),
+);
+
+const DB_URL_SCHEMES =['file:', 'libsql:', 'http:', 'https:', 'ws:', 'wss:'] as const;
 const REMOTE_DB_URL_SCHEMES = ['libsql:', 'https:', 'wss:'] as const;
 
 const originString = z.string().refine(
@@ -71,6 +77,8 @@ const envObject = z.object({
   ),
   NOMINATIM_BASE_URL: z.preprocess(blankToUndefined, z.url().default('https://nominatim.openstreetmap.org')),
   NOMINATIM_CONTACT: optionalString,
+  // ── R7 §2: ตัวนับ query + header Server-Timing (ไม่ตั้ง = เปิด ยกเว้น production — ดู serverTimingEnabled) ──
+  SERVER_TIMING_ENABLED: serverTimingFlagSchema,
   // ── อื่น ๆ ──
   LOG_LEVEL: z.preprocess(blankToUndefined, z.enum(['debug', 'info', 'warn', 'error']).default('info')),
   NODE_ENV: optionalString,
@@ -140,6 +148,17 @@ export function isDeployed(source: EnvSource): boolean {
 export function trustsProxyHeaders(source: EnvSource = process.env): boolean {
   const vercel = source.VERCEL?.trim();
   return (vercel !== undefined && vercel !== '' && vercel !== '0') || source.TRUST_PROXY_HEADERS?.trim() === '1';
+}
+
+/**
+ * R7 §2: เปิดตัวนับ query/เวลา + header Server-Timing ไหม — อ่านจาก source ตรง (ไม่ผ่าน getEnv: env ส่วนอื่นผิดต้องไม่ทำให้ route wrapper ล้ม เช่น /api/health)
+ * 'true' / 'false' = ตามนั้น · ไม่ตั้ง = เปิด ยกเว้น VERCEL_ENV=production (เฟส B ตัดสินค่าบน prod) · ค่าแปลก = ปิด (assertEnv รายงานชื่อตัวแปรเอง)
+ */
+export function serverTimingEnabled(source: EnvSource = process.env): boolean {
+  const parsed = serverTimingFlagSchema.safeParse(source.SERVER_TIMING_ENABLED);
+  if (!parsed.success) return false;
+  if (parsed.data !== undefined) return parsed.data === 'true';
+  return source.VERCEL_ENV !== 'production';
 }
 
 /** ตรวจ env จาก source ที่ให้ (ค่าเริ่มต้น process.env) — โยน EnvError ถ้าไม่ผ่าน */

@@ -15,12 +15,11 @@ import {
   countActiveFutureAppointments,
   countCreatedLastDay,
   currentMemberNames,
-  groupNames,
+  groupNamesAndMemberCounts,
   insertAppointmentIfUnderCap,
   listCurrentRsvps,
   listGroupAppointmentRows,
   listMyUpcomingAppointmentRows,
-  memberCountsByGroup,
   myCommitmentsOverlapping,
   updateAppointmentGuarded,
   upsertRsvpIfOpen,
@@ -29,6 +28,7 @@ import {
   type AppointmentRow,
   type AppointmentScope,
   type AppointmentWrite,
+  type ListedAppointment,
 } from '@/lib/data/repos/appointment';
 import { rateKey, type RateSpec } from '@/lib/auth/throttle';
 import { refundBucket, reserveBucket } from '@/lib/data/repos/rate-limit-bucket';
@@ -55,7 +55,7 @@ import { memberAppearance } from '@/lib/shared/member-color';
 import { checkVisibleName, hasForbiddenChars, sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
 import { notify } from '../notifications/notify';
-import { loadAppointmentCtx, loadGroupCtx, type AppointmentCtx } from '../policy-context';
+import { groupRowOf, loadAppointmentCtx, loadGroupCtx, type AppointmentCtx } from '../policy-context';
 import {
   toAppointmentDetailDto,
   toAppointmentDto,
@@ -272,14 +272,9 @@ type Reader = Parameters<typeof listMembers>[0];
 /**
  * myConflict ของการ์ดในรายการ (main ตัดสิน (ข)): นัด active ที่ฉันตอบ going และทับนัด going อื่นของฉัน/busy ของฉัน (ชนขอบไม่นับ)
  * ไม่มีนัดที่ฉันตอบ going ในหน้านี้ → 0 query · มี → +1 query (คำมั่นของฉันในช่วงรวมของนัดเหล่านั้น เพดาน APPOINTMENT_LIST_CONFLICT_SCAN_MAX)
+ * R7 B-4: "นัดที่ฉันตอบ going" มากับแถวรายการ (viewerGoing — กติกาเดียวกับ listCurrentRsvps) จึงไม่ต้องรอ rsvps → เริ่มพร้อม query อื่น
  */
-async function listConflictFlags(
-  db: Reader,
-  viewerId: string,
-  rows: AppointmentRow[],
-  rsvps: readonly { appointmentId: string; userId: string; response: string }[],
-): Promise<Set<string>> {
-  const goingIds = new Set(rsvps.filter((r) => r.userId === viewerId && r.response === 'going').map((r) => r.appointmentId));
+async function listConflictFlags(db: Reader, viewerId: string, rows: AppointmentRow[], goingIds: ReadonlySet<string>): Promise<Set<string>> {
   const mine = rows.filter((r) => r.status === 'active' && goingIds.has(r.id));
   const flagged = new Set<string>();
   if (mine.length === 0) return flagged;
@@ -293,16 +288,21 @@ async function listConflictFlags(
   return flagged;
 }
 
-/** DTO รายการ (หลายกลุ่มได้) — จำนวน RSVP + ของฉัน · ไม่มีรายชื่อ · myConflict ของผู้ขอ */
-async function toListDtos(db: Reader, viewerId: string, now: number, rows: AppointmentRow[]): Promise<AppointmentDto[]> {
-  if (rows.length === 0) return [];
+/**
+ * DTO รายการ (หลายกลุ่มได้) — จำนวน RSVP + ของฉัน · ไม่มีรายชื่อ · myConflict ของผู้ขอ
+ * R7 B-4: ชื่อกลุ่ม+จำนวนสมาชิก (query เดียว) ∥ ชื่อคน ∥ rsvps ∥ คำมั่นของฉัน — ทุก query หลังได้แถวนัดเริ่มพร้อมกัน (1 wave)
+ */
+async function toListDtos(db: Reader, viewerId: string, now: number, listed: readonly ListedAppointment[]): Promise<AppointmentDto[]> {
+  if (listed.length === 0) return [];
+  const rows = listed.map((l) => l.row);
+  const goingIds = new Set(listed.filter((l) => l.viewerGoing).map((l) => l.row.id));
   const groupIds = [...new Set(rows.map((r) => r.groupId))];
   const people = [...new Set(rows.flatMap((r) => [r.createdBy, ...(r.cancelledBy ? [r.cancelledBy] : [])]))];
-  const [names, counts, members, rsvps] = await Promise.all([
-    groupNames(db, groupIds),
-    memberCountsByGroup(db, groupIds),
+  const [info, members, rsvps, conflicts] = await Promise.all([
+    groupNamesAndMemberCounts(db, groupIds),
     currentMemberNames(db, groupIds, people),
     listCurrentRsvps(db, rows.map((r) => r.id)),
+    listConflictFlags(db, viewerId, rows, goingIds),
   ]);
   const byGroup = new Map<string, Map<string, MemberLook>>();
   for (const m of members) {
@@ -310,16 +310,15 @@ async function toListDtos(db: Reader, viewerId: string, now: number, rows: Appoi
     g.set(m.userId, m);
     byGroup.set(m.groupId, g);
   }
-  const conflicts = await listConflictFlags(db, viewerId, rows, rsvps);
   return rows.map((r) =>
     toAppointmentDto(
       r,
       {
         viewerId,
         now,
-        groupName: names.get(r.groupId) ?? '',
+        groupName: info.get(r.groupId)?.name ?? '',
         members: byGroup.get(r.groupId) ?? new Map(),
-        memberCount: counts.get(r.groupId) ?? 0,
+        memberCount: info.get(r.groupId)?.memberCount ?? 0,
         rsvps,
       },
       conflicts.has(r.id),
@@ -451,8 +450,7 @@ export async function createAppointment(actor: Actor, groupId: string, input: Cr
   const allow = authorize(actor, 'appointment.create', groupRes(group));
   const me = asUser(actor);
   const { db, now } = ctx;
-  const groupRow = await findGroupById(db, groupId);
-  if (!groupRow || groupRow.deletedAt !== null) throw new AppError('NOT_FOUND');
+  const groupRow = groupRowOf(group); // R7 B-3: แถวกลุ่มมากับด่านกลุ่มแล้ว
   const fields = newFields(input, groupRow.tz, now);
 
   await takeWriteSlots(db, me.id, [APPOINTMENT_WRITE_RATE_LIMITS.createShort, APPOINTMENT_WRITE_RATE_LIMITS.createDay], now);
@@ -497,8 +495,7 @@ export async function checkAppointmentOverlap(actor: Actor, groupId: string, inp
   const allow = authorize(actor, 'appointment.create', groupRes(group));
   const me = asUser(actor);
   const { db, now } = ctx;
-  const groupRow = await findGroupById(db, groupId);
-  if (!groupRow || groupRow.deletedAt !== null) throw new AppError('NOT_FOUND');
+  const groupRow = groupRowOf(group); // R7 B-3: แถวกลุ่มมากับด่านกลุ่มแล้ว
   const s = scheduleOf(input, groupRow.tz, now);
   const overlap = await computeOverlap(db, groupId, s.tz, s.startAt, s.endAt, input.appointmentId);
   await auditRead(db, me, allow, { action: 'appointment.check', targetType: 'group', targetId: groupId, groupId }, now);
@@ -517,12 +514,12 @@ export async function listGroupAppointments(actor: Actor, groupId: string, query
   if (scope !== 'upcoming' && scope !== 'past' && scope !== 'all') throw new AppError('VALIDATION', { fields: { scope: 'INVALID' } });
   const limit = parseLimit(query.limit, APPOINTMENT_LIST_DEFAULT, APPOINTMENT_LIST_MAX);
   const cursor = decodeCursor(query.cursor);
-  const rows = await listGroupAppointmentRows(db, groupId, { scope: scope as AppointmentScope, now, limit: limit + 1, cursor });
+  const rows = await listGroupAppointmentRows(db, groupId, { scope: scope as AppointmentScope, now, limit: limit + 1, cursor, viewerId: me.id });
   const page = rows.slice(0, limit);
   await auditRead(db, me, allow, { action: 'appointment.view', targetType: 'group', targetId: groupId, groupId, meta: { scope } }, now);
   return {
     appointments: await toListDtos(db, me.id, now, page),
-    nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1]!) : null,
+    nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1]!.row) : null,
   };
 }
 
@@ -610,10 +607,9 @@ export async function setRsvp(actor: Actor, id: string, input: RsvpInput, ctx: D
     const ok = await upsertRsvpIfOpen(tx, { appointmentId: id, userId: me.id, response: input.response }, now);
     if (!ok) throw await whyRsvpRejected(tx, me, id, now);
   });
-  // อ่านนัดใหม่แล้วประกอบ DTO ให้เห็นผลล่าสุดรวมคำตอบของคนอื่นที่เพิ่งเข้ามา
-  const fresh = await loadAppointmentCtx(db, me, id);
-  if (!fresh.appointment) throw new AppError('NOT_FOUND');
-  return { appointment: await toDetailDto(db, me, now, fresh.appointment, fresh.group, fresh.groupName, true) };
+  // R7 B-4: ไม่อ่าน access ซ้ำหลัง commit — upsert สำเร็จ ⇒ ในคำสั่งเดียวกันนัดยัง active/ยังไม่จบ · กลุ่มยังอยู่ · ฉันยังเป็นสมาชิก
+  // RSVP ไม่แตะแถวนัด จึงใช้แถว/บริบทที่อ่านไว้ก่อนเขียนได้ · คำตอบของทุกคน (รวมที่เพิ่งเข้ามา) + สมาชิก + myConflicts ยังอ่านใหม่ใน toDetailDto
+  return { appointment: await toDetailDto(db, me, now, current, c.group, c.groupName, true) };
 }
 
 async function whyRsvpRejected(db: Reader, actor: UserActor, id: string, now: number): Promise<AppError> {
