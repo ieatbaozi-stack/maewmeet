@@ -52,8 +52,8 @@ export interface BusyFormSheetProps {
   groupCount: number;
   userId: string;
   onClose: () => void;
-  /** count = จำนวนวันจาก response (สร้างชุด / ลบทั้งชุด) */
-  onDone: (result: BusyDone, count?: number) => void;
+  /** count = จำนวนวันจาก response (สร้างชุด / ลบทั้งชุด) · created = busy ที่เพิ่งสร้างจาก response ของ POST (R7 B-5 — ให้หน้าอัปเดตเองโดยไม่ GET ซ้ำ) */
+  onDone: (result: BusyDone, count?: number, created?: OwnBusy[]) => void;
 }
 
 interface Problems {
@@ -72,6 +72,14 @@ const clip = (v: string, max: number): string => {
   const chars = [...v];
   return chars.length > max ? chars.slice(0, max).join("") : v;
 };
+
+/** busy ที่สร้างจาก response ของ POST (เดี่ยว: { busy } · ชุดรายวัน: { items }) — รูปไม่ตรงที่คาด → undefined (หน้าจะโหลดใหม่เอง) */
+function createdFrom(data: unknown): OwnBusy[] | undefined {
+  const d = data as { busy?: OwnBusy; items?: OwnBusy[] } | undefined;
+  if (d?.busy && typeof d.busy.id === "string") return [d.busy];
+  if (Array.isArray(d?.items) && d.items.every((i) => typeof i?.id === "string")) return d.items;
+  return undefined;
+}
 
 /** ฟอร์มลง/แก้ช่วงไม่ว่าง (UX §7 X30–X33) — sheet สูง · ทุกข้อความมาจาก messages · วันที่ส่ง ISO ค.ศ. */
 export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, onClose, onDone }: BusyFormSheetProps) {
@@ -187,7 +195,8 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
     setSaving(false);
     if (res.ok) {
       const made = payload.kind === "daily" ? (res.data as { count?: number } | undefined)?.count : undefined;
-      onDone(edit ? "updated" : "created", typeof made === "number" ? made : undefined);
+      const created = edit ? undefined : createdFrom(res.data);
+      onDone(edit ? "updated" : "created", typeof made === "number" ? made : undefined, created);
       return;
     }
     const f = payload.kind === "daily" ? mapDailySaveFailure(res) : mapSaveFailure(res, s.kind);

@@ -27,7 +27,7 @@ import { GroupSwitchSheet, type GroupOption } from "./GroupSwitchSheet";
 import { KindLegend, MemberLegend, MonthGrid } from "./MonthGrid";
 import { MineList } from "./MineList";
 import { classifyDay, isSelectable, planFromDate, urlDayParam } from "@/components/availability/model";
-import { buildMonth, busyUsersByDate, fetchRange, monthStart, shiftMonth, spanOf, toSharedBusy, ymOf, type OwnBusy } from "./model";
+import { addCreatedBusy, buildMonth, busyUsersByDate, fetchRange, monthStart, shiftMonth, spanOf, toSharedBusy, ymOf, type OwnBusy } from "./model";
 
 export type CalView = "month" | "free" | "day" | "mine";
 /** ลำดับปุ่ม (UX X34): เดือน | ว่างตรงกัน | วัน | ของฉัน */
@@ -35,6 +35,8 @@ const VIEWS: readonly CalView[] = ["month", "free", "day", "mine"];
 
 /** skipped = เซิร์ฟเวอร์ไม่ได้โหลดปฏิทิน (เปิดมาที่ ?v=free) → โหลดเมื่อสลับไปมุมมองเดือน/วัน */
 export type InitialCalendar = { status: "ready"; data: GroupCalendarDto } | { status: "error" } | { status: "gone" } | { status: "skipped" };
+/** ข้อมูลแท็บ "ของฉัน" จากเซิร์ฟเวอร์ (?v=mine) */
+export type InitialMine = { status: "ready"; items: OwnBusy[]; truncated: boolean; going: AppointmentDto[] | null } | { status: "error" };
 export type InitialAvailability = { status: "ready"; data: GroupAvailabilityDto } | { status: "error" } | { status: "gone" };
 
 export interface CalendarViewProps {
@@ -56,6 +58,7 @@ export interface CalendarViewProps {
   canEditWindow?: boolean;
   initial: InitialCalendar;
   initialAvailability?: InitialAvailability | null;
+  initialMine?: InitialMine | null;
 }
 
 type CalState = { key: string; nowMs: EpochMs; status: "ready"; data: GroupCalendarDto } | { key: string; nowMs: EpochMs; status: "error" | "gone" };
@@ -99,7 +102,7 @@ const avKeyOf = (gid: string, from: DateISO, to: DateISO, version: number) => `a
  * แท็บปฏิทิน (UX §7, §8): ตัวเลือกกลุ่ม · เดือน | ว่างตรงกัน | วัน | ของฉัน · ฟอร์มลง busy
  * ข้อมูลโหลดครั้งแรกจากเซิร์ฟเวอร์ (page) แล้วขอใหม่ตามช่วงของตารางที่เห็น (≤ 42 วัน) · สิทธิ์ตรวจที่เซิร์ฟเวอร์ทุก API — UI แค่แสดงผล
  */
-export function CalendarView({ groups, gid, tz, userId, initialToday, initialNowMs, initialDate, initialView, groupMissing = false, dateGiven = false, canEditWindow = false, initial, initialAvailability = null }: CalendarViewProps) {
+export function CalendarView({ groups, gid, tz, userId, initialToday, initialNowMs, initialDate, initialView, groupMissing = false, dateGiven = false, canEditWindow = false, initial, initialAvailability = null, initialMine = null }: CalendarViewProps) {
   const t = useTranslations();
   const locale = useLocale() as CalendarLocale;
   const router = useRouter();
@@ -141,7 +144,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     return initialAvailability.status === "ready" ? { key, nowMs: initialNowMs, status: "ready", data: initialAvailability.data } : { key, nowMs: initialNowMs, status: initialAvailability.status };
   });
   const mineKey = `mine|${version}`;
-  const [mine, setMine] = useState<MineState | null>(null);
+  const [mine, setMine] = useState<MineState | null>(() => (initialMine ? { key: "mine|0", nowMs: initialNowMs, ...initialMine } : null));
 
   // ───────── โหลดข้อมูล (setState เฉพาะใน callback หลัง await — ไม่ซิงก์ใน effect) ─────────
   useEffect(() => {
@@ -280,11 +283,22 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     setForm({ edit, today: formToday, defaultDate: view === "day" ? selected : formToday });
   }
 
-  function onDone(result: BusyDone, count?: number) {
+  function onDone(result: BusyDone, count?: number, created?: OwnBusy[]) {
     setForm(null);
     // R6F: สร้างชุด → "บันทึก N วัน" · ลบทั้งชุด → "ลบทั้งชุด (N วัน)" (N จาก response)
     setToast(count === undefined ? { result } : { result, count });
-    setVersion((v) => v + 1);
+    const next = version + 1;
+    setVersion(next);
+    // R7 B-5: เพิ่ม busy สำเร็จ → ใช้ผลของ POST ต่อเข้าข้อมูลที่แสดงอยู่ (เดือน/วัน/ของฉัน) ไม่ GET ซ้ำ · ทำถูกไม่ได้ (ข้อมูลไม่ตรงคีย์/ถูกตัดที่เพดาน)
+    // → ปล่อยให้คีย์เปลี่ยนแล้วโหลดใหม่ตามเดิม · ว่างตรงกัน (คำนวณที่เซิร์ฟเวอร์) โหลดใหม่เสมอเพราะคีย์มี version
+    if (result !== "created" || !created || created.length === 0) return;
+    if (cal.status === "ready" && cal.key === calKey) {
+      const patched = addCreatedBusy(cal.data, created, userId, range);
+      if (patched) setCal({ key: calKeyOf(gid, month.from, month.to, next), nowMs: cal.nowMs, status: "ready", data: patched });
+    }
+    if (mine?.status === "ready" && mine.key === mineKey && !mine.truncated) {
+      setMine({ ...mine, key: `mine|${next}`, items: [...mine.items, ...created] });
+    }
   }
 
   function toastText(result: BusyDone, count: number | undefined): string {
