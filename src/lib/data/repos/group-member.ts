@@ -4,7 +4,7 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { groupMember, groups, user } from '@/db/schema';
 import type { DbOrTx } from '@/db/client';
-import type { GroupRole } from './group';
+import type { GroupRole, GroupRow } from './group';
 
 export type MemberRow = typeof groupMember.$inferSelect;
 
@@ -32,6 +32,20 @@ export type GroupAccessRow = { id: string; deletedAt: number | null; role: Group
 export async function findGroupAccess(db: DbOrTx, groupId: string, userId: string): Promise<GroupAccessRow | null> {
   const rows = await db
     .select({ id: groups.id, deletedAt: groups.deletedAt, role: groupMember.role })
+    .from(groups)
+    .leftJoin(groupMember, and(eq(groupMember.groupId, groups.id), eq(groupMember.userId, userId)))
+    .where(eq(groups.id, groupId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * R7 B-3: แถวกลุ่มเต็ม + role ของ user ใน query เดียว (policy-context) — ตัด findGroupById ที่ตามหลังด่านกลุ่ม · ไม่มีกลุ่ม = null
+ * แถวนี้ใช้สร้าง GroupCtx ให้ can() และให้ service ใช้ *หลัง* authorize ผ่านแล้วเท่านั้น (คอลัมน์ของ groups ไม่มีความลับ)
+ */
+export async function findGroupWithAccess(db: DbOrTx, groupId: string, userId: string): Promise<{ group: GroupRow; role: GroupRole | null } | null> {
+  const rows = await db
+    .select({ group: groups, role: groupMember.role })
     .from(groups)
     .leftJoin(groupMember, and(eq(groupMember.groupId, groups.id), eq(groupMember.userId, userId)))
     .where(eq(groups.id, groupId))

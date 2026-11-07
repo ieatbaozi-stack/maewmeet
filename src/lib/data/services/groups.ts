@@ -27,7 +27,7 @@ import { takeUserSlot } from '../admin-input';
 import type { DbOrTx } from '@/db/client';
 import type { DataCtx } from '../context';
 import { parseGroupName } from '../group-name';
-import { loadGroupCtx } from '../policy-context';
+import { groupRowOf, loadGroupCtx } from '../policy-context';
 import { toGroupDetail, toGroupSummary, toMyAppearance, type GroupDetailDto, type GroupSummaryDto, type MyAppearanceDto } from '../serializers/groups';
 import { inTx } from '../tx';
 import { asUser, audit, auditRead } from './group-common';
@@ -122,8 +122,7 @@ export async function getGroup(actor: Actor, groupId: string, ctx: DataCtx): Pro
   const group = await loadGroupCtx(ctx.db, actor, groupId);
   const allow = authorize(actor, 'group.view', groupRes(group));
   const me = asUser(actor);
-  const row = await findGroupById(ctx.db, groupId);
-  if (!row || row.deletedAt !== null) throw new AppError('NOT_FOUND');
+  const row = groupRowOf(group); // R7 B-3: แถวกลุ่มมากับด่านกลุ่มแล้ว
   const members = await listMembers(ctx.db, groupId);
   await auditRead(ctx.db, me, allow, { action: 'group.view', targetType: 'group', targetId: groupId, groupId }, ctx.now);
   return { group: toGroupDetail(row, group.actorRole, members, me.id) };
@@ -134,8 +133,7 @@ export async function updateGroupSettings(actor: Actor, groupId: string, input: 
   const group = await loadGroupCtx(ctx.db, actor, groupId);
   const allow = authorize(actor, 'group.update', groupRes(group));
   const me = asUser(actor);
-  const current = await findGroupById(ctx.db, groupId);
-  if (!current || current.deletedAt !== null) throw new AppError('NOT_FOUND');
+  const current = groupRowOf(group); // R7 B-3 · การเขียนยังมี ActorGuard + เงื่อนไขในคำสั่ง UPDATE เอง
 
   const patch: GroupPatch = {};
   if (input.name !== undefined) patch.name = parseGroupName(input.name);

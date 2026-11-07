@@ -6,17 +6,17 @@
 //  - super admin ที่ไม่ใช่สมาชิก → audit `group.calendar.view` (ตามกติกาอ่านของ R2: auditRead)
 import { z } from 'zod';
 import { addDays, compareDates, isValidDate, spanDays, startOfDay } from '@/lib/calendar';
-import { findGroupById } from '@/lib/data/repos/group';
+import type { GroupRole, GroupRow } from '@/lib/data/repos/group';
 import { listMembers } from '@/lib/data/repos/group-member';
 import { loadMemberBusy } from './member-busy';
 import { authorize } from '@/lib/rbac/can';
-import type { Actor } from '@/lib/rbac/types';
+import type { Actor, Allow, UserActor } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
 import { CALENDAR_MAX_RANGE_DAYS } from '@/lib/shared/limits';
 import { memberAppearance } from '@/lib/shared/member-color';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
-import { loadGroupCtx } from '../policy-context';
+import { groupRowOf, loadGroupCtx } from '../policy-context';
 import type { MemberBusyView } from '../serializers/busy';
 import { asUser, auditRead } from './group-common';
 
@@ -68,17 +68,40 @@ export type GroupCalendarDto = {
 export async function getGroupCalendar(actor: Actor, groupId: string, query: CalendarQuery, ctx: DataCtx): Promise<GroupCalendarDto> {
   const group = await loadGroupCtx(ctx.db, actor, groupId);
   const allow = authorize(actor, 'group.calendar.view', { type: 'group', group });
+  return calendarFor(ctx, asUser(actor), allow, groupRowOf(group), query);
+}
+
+/** ข้อมูลกลุ่มที่หน้า /calendar ต้องใช้ก่อนรู้ช่วงวันที่ (tz → วันนี้/เดือน · role → ลิงก์ "ปรับช่วงเวลา") — R7 B-2 */
+export type CalendarGroupInfo = { id: string; tz: string; myRole: GroupRole | null };
+
+/** ด่านกลุ่มผ่านแล้ว 1 ครั้ง · `load(query)` = ผลเดียวกับ getGroupCalendar(…, query) ทุกไบต์ (ตรวจช่วงวันที่ + audit SA ทุกครั้งที่เรียก) */
+export type GroupCalendarHandle = { group: CalendarGroupInfo; load: (query: CalendarQuery) => Promise<GroupCalendarDto> };
+
+/**
+ * R7 B-2: เปิดปฏิทินกลุ่มสำหรับ loader ของหน้า (แทน getGroup → getGroupCalendar ที่อ่านด่านกลุ่ม/แถวกลุ่มซ้ำ)
+ * loadGroupCtx + authorize('group.calendar.view') ครั้งเดียว (1 query) → คืน tz/role ทันที แล้ว `load(range)` อ่านสมาชิก ∥ busy
+ * ไม่ใช่สมาชิก/กลุ่มไม่มี/ลบแล้ว → NOT_FOUND ตอนเปิด (ก่อนแตะข้อมูลอื่น) · handle ผูกกับ request เดียว — ห้ามเก็บข้าม request
+ */
+export async function openGroupCalendar(actor: Actor, groupId: string, ctx: DataCtx): Promise<GroupCalendarHandle> {
+  const group = await loadGroupCtx(ctx.db, actor, groupId);
+  const allow = authorize(actor, 'group.calendar.view', { type: 'group', group });
   const me = asUser(actor);
+  const row = groupRowOf(group);
+  return { group: { id: row.id, tz: row.tz, myRole: group.actorRole }, load: (query) => calendarFor(ctx, me, allow, row, query) };
+}
+
+/**
+ * ส่วนหลังด่านสิทธิ์ (R7 B-3) — เรียกได้จาก getGroupCalendar/openGroupCalendar เท่านั้น (ไม่ export: ต้องมี `allow` จาก authorize('group.calendar.view'))
+ * row = แถวกลุ่มจาก loadGroupCtx (ไม่อ่านกลุ่มซ้ำ) · ตรวจช่วงวันที่หลังด่าน · สมาชิก ∥ busy (อิสระกันหลังผ่านด่าน)
+ */
+async function calendarFor(ctx: DataCtx, me: UserActor, allow: Allow, row: GroupRow, query: CalendarQuery): Promise<GroupCalendarDto> {
   for (const f of ['from', 'to'] as const) if (query[f] === undefined) throw new AppError('VALIDATION', { fields: { [f]: 'REQUIRED' } });
   const range = parseDateRange(query.from!, query.to!);
-  const row = await findGroupById(ctx.db, groupId);
-  if (!row || row.deletedAt !== null) throw new AppError('NOT_FOUND');
-
-  const members = await listMembers(ctx.db, groupId);
+  const groupId = row.id;
   // ช่วง [from, to] รวมปลาย ตามวันท้องถิ่นของ *กลุ่ม* → epoch [เที่ยงคืนต้น from, เที่ยงคืนต้นวันหลัง to) — ตรงกับที่ UI วางรายการตาม tz กลุ่ม (L3)
   const fromMs = startOfDay(range.from, row.tz);
   const toMs = startOfDay(addDays(range.to, 1), row.tz);
-  const { items, truncated } = await loadMemberBusy(ctx.db, groupId, row.tz, fromMs, toMs);
+  const [members, { items, truncated }] = await Promise.all([listMembers(ctx.db, groupId), loadMemberBusy(ctx.db, groupId, row.tz, fromMs, toMs)]);
   await auditRead(ctx.db, me, allow, { action: 'group.calendar.view', targetType: 'group', targetId: groupId, groupId, meta: { from: range.from, to: range.to } }, ctx.now);
 
   const dtos: CalendarMemberDto[] = members.map((m) => ({

@@ -13,19 +13,19 @@ import {
   type DateISO,
   type FreeSegment,
 } from '@/lib/calendar';
-import { findGroupById } from '@/lib/data/repos/group';
+import type { GroupRow } from '@/lib/data/repos/group';
 import { listMembers } from '@/lib/data/repos/group-member';
 import { authorize } from '@/lib/rbac/can';
-import type { Actor } from '@/lib/rbac/types';
+import type { Actor, Allow, UserActor } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
 import { memberAppearance } from '@/lib/shared/member-color';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
-import { loadGroupCtx } from '../policy-context';
+import { groupRowOf, loadGroupCtx } from '../policy-context';
 import type { AvailabilityBusyView, BlockerRef } from '../serializers/busy';
 import { loadMemberBusy, type MemberBusyItem } from './member-busy';
 import { asUser, auditRead } from './group-common';
-import { parseDateRange } from './calendar';
+import { parseDateRange, type CalendarGroupInfo } from './calendar';
 
 export const availabilityParamsSchema = z.object({ gid: z.uuid() });
 /** รูปร่างเท่านั้น — ความหมายของวันที่ตรวจหลังด่านสิทธิ์ (เหมือนปฏิทิน) */
@@ -86,13 +86,35 @@ export function availabilityFetchRange(range: { from: DateISO; to: DateISO }, g:
 export async function getGroupAvailability(actor: Actor, groupId: string, query: AvailabilityQuery, ctx: DataCtx): Promise<GroupAvailabilityDto> {
   const group = await loadGroupCtx(ctx.db, actor, groupId);
   const allow = authorize(actor, 'group.availability.view', { type: 'group', group });
+  return availabilityFor(ctx, asUser(actor), allow, groupRowOf(group), query);
+}
+
+/** ด่านกลุ่มผ่านแล้ว 1 ครั้ง · `load(query)` = ผลเดียวกับ getGroupAvailability(…, query) ทุกไบต์ (ตรวจช่วงวันที่ + audit SA ทุกครั้งที่เรียก) */
+export type GroupAvailabilityHandle = { group: CalendarGroupInfo; load: (query: AvailabilityQuery) => Promise<GroupAvailabilityDto> };
+
+/**
+ * R7 B-2: เปิด "ว่างตรงกัน" ของกลุ่มสำหรับ loader ของหน้า (แทน getGroup → getGroupAvailability ที่อ่านด่านกลุ่ม/แถวกลุ่มซ้ำ)
+ * loadGroupCtx + authorize('group.availability.view') ครั้งเดียว (1 query) → คืน tz/role ทันที แล้ว `load(range)` อ่านสมาชิก ∥ busy
+ * ไม่ใช่สมาชิก/กลุ่มไม่มี/ลบแล้ว → NOT_FOUND ตอนเปิด · handle ผูกกับ request เดียว — ห้ามเก็บข้าม request
+ */
+export async function openGroupAvailability(actor: Actor, groupId: string, ctx: DataCtx): Promise<GroupAvailabilityHandle> {
+  const group = await loadGroupCtx(ctx.db, actor, groupId);
+  const allow = authorize(actor, 'group.availability.view', { type: 'group', group });
   const me = asUser(actor);
+  const row = groupRowOf(group);
+  return { group: { id: row.id, tz: row.tz, myRole: group.actorRole }, load: (query) => availabilityFor(ctx, me, allow, row, query) };
+}
+
+/**
+ * ส่วนหลังด่านสิทธิ์ (R7 B-3) — เรียกได้จาก getGroupAvailability/openGroupAvailability เท่านั้น (ไม่ export: ต้องมี `allow` จาก authorize('group.availability.view'))
+ * row = แถวกลุ่มจาก loadGroupCtx (ไม่อ่านกลุ่มซ้ำ) · ตรวจช่วงวันที่หลังด่าน · สมาชิก ∥ busy (อิสระกันหลังผ่านด่าน)
+ */
+async function availabilityFor(ctx: DataCtx, me: UserActor, allow: Allow, row: GroupRow, query: AvailabilityQuery): Promise<GroupAvailabilityDto> {
   for (const f of ['from', 'to'] as const) if (query[f] === undefined) throw new AppError('VALIDATION', { fields: { [f]: 'REQUIRED' } });
   const range = parseDateRange(query.from!, query.to!);
-  const row = await findGroupById(ctx.db, groupId);
-  if (!row || row.deletedAt !== null) throw new AppError('NOT_FOUND');
-
-  const memberRows = await listMembers(ctx.db, groupId);
+  const groupId = row.id;
+  const { fromMs, toMs } = availabilityFetchRange(range, row);
+  const [memberRows, { items, truncated }] = await Promise.all([listMembers(ctx.db, groupId), loadMemberBusy(ctx.db, groupId, row.tz, fromMs, toMs)]);
   const members: AvailabilityMemberDto[] = memberRows.map((m) => ({
     userId: m.userId,
     displayName: sanitizeDisplayText(m.displayName),
@@ -105,9 +127,6 @@ export async function getGroupAvailability(actor: Actor, groupId: string, query:
       (a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0),
   );
   const memberIds = members.map((m) => m.userId);
-
-  const { fromMs, toMs } = availabilityFetchRange(range, row);
-  const { items, truncated } = await loadMemberBusy(ctx.db, groupId, row.tz, fromMs, toMs);
   await auditRead(ctx.db, me, allow, { action: 'group.availability.view', targetType: 'group', targetId: groupId, groupId, meta: { from: range.from, to: range.to } }, ctx.now);
 
   const win = { tz: row.tz, winStartMin: row.freeWindowStartMin, winEndMin: row.freeWindowEndMin, minFreeMin: row.minFreeMinutes };
