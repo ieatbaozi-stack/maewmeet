@@ -1,6 +1,6 @@
 # Security review — R7 (F2 ความเร็ว: แคช session ต่อ request · ด่านกลุ่มคืนแถวกลุ่ม · RSVP ไม่อ่านซ้ำ · Server-Timing · G1 minFree 240)
 
-- ผู้ตรวจ: Security (อิสระ ไม่ได้เขียนโค้ดนี้) · 2026-11-08 · branch `perf/r7-speed` HEAD `cb15b59` · ช่วง `main..HEAD` · เทียบ R7_CONTRACT §2–§3.1, §6 (R7-3, R7-5), §8 + ADR 0002 §5, 0003, 0006, 0009, 0010 + กฎเหล็ก CLAUDE.md ข้อ 6–8
+- ผู้ตรวจ: Security (อิสระ ไม่ได้เขียนโค้ดนี้) · 2026-11-08 · branch `perf/r7-speed` HEAD `cb15b59` (ตรวจซ้ำ Low 1 ที่ `c563097`) · ช่วง `main..HEAD` · เทียบ R7_CONTRACT §2–§3.1, §6 (R7-3, R7-5), §8 + ADR 0002 §5, 0003, 0006, 0009, 0010 + กฎเหล็ก CLAUDE.md ข้อ 6–8
 - วิธี: อ่าน `git diff main..HEAD -- src` ทุกบรรทัด (32 ไฟล์ +595/−178) + รันเทสต์ของทีม + PoC ของผู้ตรวจ (นอก repo ใน scratchpad `poc7/r7-api.test.ts`, `poc7/r7-page.test.ts`, `poc7/vitest.poc7.config.mjs` — ไม่ commit) · ไม่แก้ `src/`/`tests/`/config
 - เครื่อง: Windows (checkout CRLF) · Vitest ใช้ config ชั่วคราวใน scratchpad (ข้าม EPERM ตอนลบ DB ชั่วคราว) · qa ทำงานพร้อมกันใน checkout เดียวกัน
 - สัญลักษณ์: ✅ = ยืนยันด้วยการรันจริง · 📖 = ยืนยันจากการอ่านโค้ดเท่านั้น
@@ -11,10 +11,10 @@
 | Critical | 0 |
 | High | 0 |
 | Medium | 0 |
-| Low | 1 |
+| Low | 1 (แก้แล้ว `c563097` · ตรวจซ้ำผ่าน) |
 | Info | 5 |
 
-**Verdict: ผ่านแบบมีข้อสังเกต** — แคช session ผูก request จริง (React.cache ต่อการเรนเดอร์ + WeakMap ผูก `Request`) ไม่มี module-level cache ข้อมูลผู้ใช้ใหม่ · เพิกถอน/หมดอายุ/ระงับ/must_change_pin/ลบบัญชี มีผลใน request ถัดไป · ด่านกลุ่มยังตัดสินก่อนใช้แถวกลุ่ม และ 404 ของคนนอก/ไม่มี/ลบแล้ว เท่ากันทุกไบต์และไม่มี Server-Timing · canary ข้ามกลุ่มไม่หลุด · `viewerGoing` ตรงกติกาเดิม · ไม่มี dependency/migration/ความลับใหม่ · **ข้อ Low 1:** Server-Timing แนบให้ผู้ใช้ที่ล็อกอินแล้วบน `POST /api/auth/pin-reset` ทำให้จำนวน query บอกได้ว่า username มีบัญชี active ไหม (ขัดคอมเมนต์ใน `route.ts` และหลัก ADR 0002 §5) — ค่าเริ่มต้นปิดบน production จึงไม่บล็อก แต่ควรแก้ก่อนเปิด `SERVER_TIMING_ENABLED=true` บน Production ตามที่ OPERATIONS แนะนำไว้
+**Verdict (อัปเดตหลังตรวจซ้ำ `c563097`): ผ่าน** — Low 1 แก้แล้วและยืนยันด้วย PoC เดิม (ดู "ตรวจซ้ำ") · ข้อความเดิมก่อนแก้: ผ่านแบบมีข้อสังเกต — แคช session ผูก request จริง (React.cache ต่อการเรนเดอร์ + WeakMap ผูก `Request`) ไม่มี module-level cache ข้อมูลผู้ใช้ใหม่ · เพิกถอน/หมดอายุ/ระงับ/must_change_pin/ลบบัญชี มีผลใน request ถัดไป · ด่านกลุ่มยังตัดสินก่อนใช้แถวกลุ่ม และ 404 ของคนนอก/ไม่มี/ลบแล้ว เท่ากันทุกไบต์และไม่มี Server-Timing · canary ข้ามกลุ่มไม่หลุด · `viewerGoing` ตรงกติกาเดิม · ไม่มี dependency/migration/ความลับใหม่ · **ข้อ Low 1:** Server-Timing แนบให้ผู้ใช้ที่ล็อกอินแล้วบน `POST /api/auth/pin-reset` ทำให้จำนวน query บอกได้ว่า username มีบัญชี active ไหม (ขัดคอมเมนต์ใน `route.ts` และหลัก ADR 0002 §5) — ค่าเริ่มต้นปิดบน production จึงไม่บล็อก แต่ควรแก้ก่อนเปิด `SERVER_TIMING_ENABLED=true` บน Production ตามที่ OPERATIONS แนะนำไว้
 
 ## Verdict ต่อเกต
 | เกต | ผล | หลักฐาน |
@@ -29,12 +29,19 @@
 
 ## Findings
 
-### Low 1 — Server-Timing เป็น oracle "username มีบัญชี active" ผ่าน `POST /api/auth/pin-reset` เมื่อผู้เรียกล็อกอินอยู่
+### Low 1 — [แก้แล้ว `c563097`] Server-Timing เป็น oracle "username มีบัญชี active" ผ่าน `POST /api/auth/pin-reset` เมื่อผู้เรียกล็อกอินอยู่
 - ที่: `src/app/api/_lib/route.ts:273` (`seen.user = actor.kind === 'user'`) + `:323` (`shouldExposeServerTiming`) · route `POST /api/auth/pin-reset` เป็น `auth: 'actor'` (`src/app/api/_lib/manifest.ts:40`) และ `auth.pinReset.request` อนุญาต `anyUser` (`src/lib/rbac/can.ts:172`) · งาน DB ต่างกัน 1 คำสั่ง: บัญชี active → `createPendingPinReset` (expire UPDATE + INSERT) · ไม่มี/ไม่ active → expire UPDATE อย่างเดียว (`src/lib/auth/services/pin-reset.ts:46-65`, ADR 0002 §5 ยอมรับไว้เฉพาะ "ส่วนต่างเวลา")
 - คอมเมนต์ใน `route.ts:318-319` อ้างว่า pin-reset ไม่ได้ header เพราะเป็น anonymous — จริงเฉพาะผู้เรียกที่ไม่ได้ล็อกอิน
 - ทำซ้ำ (✅ PoC): ล็อกอินเป็นผู้ใช้ใดก็ได้ → `POST /api/auth/pin-reset {"username":"victim_active"}` → 202 `Server-Timing: db;…;desc="6 queries"` · `{"username":"nobody_x"}` → 202 `desc="5 queries"` · body `{"data":{"accepted":true}}` เท่ากัน
 - ผลกระทบจำกัด: ค่าเริ่มต้นปิดบน production · จำกัด 3 ครั้ง/ชม./IP (`throttle.ts:37`, เกินแล้วทั้งสองทางตอบเท่ากัน) · ความมีอยู่ของ username active ก็รู้ได้อยู่แล้วจาก `USER_NOT_FOUND` ของเชิญตรง (`services/invites.ts`) และ `USERNAME_TAKEN` ของ signup · แต่ OPERATIONS §ภาคผนวก แนะนำวิธีเปิดบน Production ได้ → ถ้าเปิด ช่องนี้ใช้ได้จริงบน prod
 - แนะนำ (ให้ platform แก้): ไม่แนบ header สำหรับ route ที่ action อยู่ใน `PUBLIC_ACTIONS` (signup/login/pin-reset/status) ไม่ว่า actor เป็นใคร — หรือผูกกับ `entry.action` แทน `actor.kind` · เพิ่มเทสต์: ผู้ใช้ล็อกอิน + pin-reset → ไม่มี header
+
+- **ตรวจซ้ำหลังแก้ (`c563097`)**: `shouldExposeServerTiming(entry.action, …)` (`src/app/api/_lib/route.ts`) คืน false เมื่อ action = null (health/cron) หรืออยู่ใน `PUBLIC_ACTIONS` (`auth.signup`, `auth.login`, `auth.pinReset.request`, `auth.pinReset.status`, `prefs.cookie.set` — `src/lib/rbac/actions.ts:86`) ไม่ว่าผู้เรียกล็อกอินหรือไม่
+  - ✅ PoC เดิม (ล็อกอินอยู่): pin-reset username active / ไม่มีบัญชี / suspended → 202 ทั้งสามกรณี **ไม่มี header** (`st=null`) · `GET /api/auth/pin-reset/status` → 200 ไม่มี header (ก่อนแก้มี) · login ผิด 401 ไม่มี header
+  - ✅ route ปกติยังแนบ: สมาชิก `GET /api/groups/:gid/calendar` → `desc="5 queries"` · `GET /api/auth/session` ขนาน 30 ครั้ง → `desc="1 query"` ผิดคน 0 · 404 คนนอก/ไม่มี/ลบแล้วยังไม่มี header
+  - 📖 route อื่นที่ action ไม่อยู่ใน PUBLIC_ACTIONS แต่ตั้งใจตอบเหมือนกันทั้งมี/ไม่มีบัญชี: ไล่ manifest ทั้งหมดแล้ว **ไม่พบ** — ที่เหลือคืนข้อมูลของ actor เอง, ผ่านด่านกลุ่ม (คนนอก = 404 ไม่มี header), super admin เท่านั้น, หรือตอบ 4xx ตรง ๆ เมื่อไม่พบ (`USER_NOT_FOUND` ของเชิญตรง, `INVITE_INVALID` ของ redeem) ซึ่งไม่แนบ header อยู่แล้ว · `auth.logout`/`logout-all` ทำกับ session ของตัวเอง
+  - ✅ `tests/platform/r7-server-timing.test.ts` + `tests/security/authorize-first.test.ts` → 2 files, **157 passed**
+  - หมายเหตุ: ข้อ assert ใน PoC ของผู้ตรวจที่เขียนไว้ว่า "ต้องมี header" ล้มตามคาดหลังแก้ (1 failed / 3 passed ในกลุ่ม Server-Timing) — คือหลักฐานว่าช่องรั่วปิดแล้ว
 
 ## Info
 1. **RSVP หลัง commit ใช้บริบทเดิม** (`src/lib/data/services/appointments.ts:610-612`): ถ้าถูกนำออก/นัดถูกยกเลิก *ระหว่าง* commit กับการประกอบ DTO (หน้าต่างระดับมิลลิวินาที) คำขอนั้นยังได้ detail ของนัด (สถานะ `active` ค่าเก่า · รายชื่อผู้ตอบปัจจุบัน) — เป็นข้อมูลที่ผู้ใช้มีสิทธิ์อยู่ก่อนหน้าไม่กี่มิลลิวินาที คำขอถัดไปได้ 404/สถานะจริง · เดิมมีหน้าต่างแบบเดียวกันระหว่างอ่านซ้ำกับตอบอยู่แล้ว · ยอมรับได้
