@@ -25,6 +25,7 @@ export {
   startOfWeek,
 } from './date';
 export {
+  addDaysAt,
   dayWindow,
   daysUntil,
   isValidTimeZone,

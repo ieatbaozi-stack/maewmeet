@@ -2,7 +2,7 @@
 // รหัสผ่านของโค้ดเชิญ: DTO ของรายการไม่มีฟิลด์ code เลย (มีเฉพาะ codeHint) · โค้ดเต็มอยู่ใน CreatedCodeInviteDto ครั้งเดียวตอนสร้าง
 import type { GroupOfUser, GroupRow, GroupRole } from '@/lib/data/repos/group';
 import type { InviteListRow, PendingDirectInvite } from '@/lib/data/repos/group-invite';
-import type { MemberWithUser } from '@/lib/data/repos/group-member';
+import type { MemberWithBusyFlag } from '@/lib/data/repos/group-member';
 import { memberAppearance, type AppearanceSlots, type MemberAppearance } from '@/lib/shared/member-color';
 import { sanitizeDisplayText as clean } from '@/lib/shared/name-rules';
 
@@ -32,6 +32,8 @@ export type MemberDto = {
   /** 0–9 · รูปทรง (R6C) — ไม่ตั้ง = เท่ากับ hash ของสี */
   shapeIndex: number;
   joinedAt: number;
+  /** R8 F1 §2.2: มี busy ที่ลงเองทับช่วง [ตอนนี้, +30 วัน) ไหม — boolean อย่างเดียว ไม่มีเวลา/ชื่อ busy (ADR 0006) */
+  hasUpcomingBusy: boolean;
 };
 
 export type GroupDetailDto = {
@@ -62,7 +64,7 @@ export const toMyAppearance = (groupId: string, userId: string, slots: Appearanc
   shape: slots.shapeSlot,
 });
 
-export const toGroupDetail = (g: GroupRow, myRole: GroupRole | null, members: MemberWithUser[], viewerId: string): GroupDetailDto => {
+export const toGroupDetail = (g: GroupRow, myRole: GroupRole | null, members: MemberWithBusyFlag[], viewerId: string): GroupDetailDto => {
   const mine = members.find((m) => m.userId === viewerId);
   return {
     id: g.id,
@@ -80,6 +82,7 @@ export const toGroupDetail = (g: GroupRow, myRole: GroupRole | null, members: Me
       role: m.role,
       ...memberAppearance(g.id, m.userId, m),
       joinedAt: m.joinedAt,
+      hasUpcomingBusy: m.hasUpcomingBusy === true,
     })),
     myAppearance: mine === undefined ? null : toMyAppearance(g.id, viewerId, mine),
   };

@@ -42,6 +42,8 @@ export const CALENDAR_MAX_ITEMS = 5000;
 export const ME_BUSY_RANGE_MAX_ITEMS = 1000;
 /** แถว busy ที่จบนานกว่านี้ถูก cron รายวันลบถาวร (วัน) — ต้องมากกว่า BUSY_MAX_BACKDATE_DAYS มาก */
 export const BUSY_RETENTION_DAYS = 90;
+/** R8 F1 §2.2: "ลงวันไม่ว่างแล้ว" = มี busy_block ทับช่วง [ตอนนี้, ตอนนี้ + N วันปฏิทินใน tz ของกลุ่ม) */
+export const UPCOMING_BUSY_LOOKAHEAD_DAYS = 30;
 /** ความยาวสูงสุดของ title / note (อักขระ = code point) */
 export const BUSY_TITLE_MAX = 80;
 export const BUSY_NOTE_MAX = 500;
