@@ -232,17 +232,17 @@ async function measure(route: string, kind: Row['kind'], run: () => Promise<Samp
   return row;
 }
 
-// ───────── เพดานจำนวน query = ค่าปัจจุบัน · เฟส A → เฟส B (platform B-2/B-3/B-4) ลดแล้ว · B-1/B-5 จะลดหน้าลงอีก ─────────
+// ───────── เพดานจำนวน query = ค่าหลังเฟส B ครบ (B-1…B-5) · เฟส A อยู่ใน docs/reports/perf-r7-baseline.md · ห้ามขึ้น ─────────
 const CEILINGS: Record<string, number> = {
-  'PAGE /': 12,
-  'PAGE /calendar?v=month': 13,
-  'PAGE /calendar?v=free': 13,
-  'PAGE /calendar?v=day': 13,
-  'PAGE /calendar?v=mine': 13,
-  'PAGE /groups': 8,
-  'PAGE /groups/[gid]': 15,
-  'PAGE /appointments/[id]': 10,
-  'PAGE /me': 5,
+  'PAGE /': 9,
+  'PAGE /calendar?v=month': 8,
+  'PAGE /calendar?v=free': 8,
+  'PAGE /calendar?v=day': 8,
+  'PAGE /calendar?v=mine': 11,
+  'PAGE /groups': 5,
+  'PAGE /groups/[gid]': 11,
+  'PAGE /appointments/[id]': 7,
+  'PAGE /me': 3,
   'GET /api/groups/:gid/calendar (เดือน)': 5,
   'GET /api/groups/:gid/availability (เดือน)': 5,
   'GET /api/me/busy': 2,
@@ -259,7 +259,7 @@ const CEILINGS: Record<string, number> = {
   'PUT /api/appointments/:id/rsvp': 9,
   'POST /api/me/busy (timed)': 5,
   'DELETE /api/me/busy/:id': 5,
-  // R7 B-2: service ใหม่ให้ loader ของ /calendar (frontend ยังไม่เปลี่ยน loader) — ไม่รวม session/layout · actor สร้างตรง
+  // R7 B-2: service ที่ loader ของ /calendar ใช้ (วัดแยก ไม่รวม session/layout · actor สร้างตรง)
   'SVC openGroupCalendar → load (เดือน · B-2)': 4,
   'SVC openGroupAvailability → load (เดือน · B-2)': 4,
 };
