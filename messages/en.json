@@ -458,7 +458,9 @@
     "privacy": "Privacy",
     "deleteAccount": "Delete account",
     "deleteAccountHint": "This can’t be undone.",
-    "adminHub": "System admin console"
+    "adminHub": "System admin console",
+    "howTo": "How it works",
+    "howToHint": "See the 4 getting-started steps again"
   },
   "roles": {
     "admin": "Admin",
@@ -520,7 +522,10 @@
       "title": "Members",
       "you": "You",
       "rowAria": "{name}, {role}",
-      "actionsAria": "Manage {name}"
+      "actionsAria": "Manage {name}",
+      "noBusyBadge": "No busy days yet",
+      "noBusyHint": "No busy time in the next 30 days. Or maybe they’re just free all month.",
+      "noBusyAria": "{name} hasn’t added busy time for the next 30 days"
     },
     "solo": {
       "title": "It’s just you in this group",
@@ -539,6 +544,41 @@
       "appointments": {
         "title": "Group plans",
         "body": "{count, plural, =0 {No upcoming plans yet. Make the first one.} one {1 upcoming plan} other {# upcoming plans}}"
+      }
+    },
+    "steps": {
+      "heading": "Get this group going in 4 steps",
+      "listAria": "Group setup steps",
+      "progress": "{done} of {total} done",
+      "stepLabel": "Step {n}",
+      "done": "Done",
+      "next": "Up next",
+      "invite": {
+        "title": "Invite your friends",
+        "body": "Share the invite code with at least one friend.",
+        "soloBody": "It’s just you in here so far. Invite a friend first, then you can see which days work.",
+        "cta": "Invite friends"
+      },
+      "busy": {
+        "title": "Add your busy days",
+        "body": "Mark the days you’re tied up so friends can see.",
+        "cta": "Add busy time"
+      },
+      "free": {
+        "title": "See when everyone’s free",
+        "body": "Once everyone’s added theirs, the calendar shows the days you all line up.",
+        "cta": "Find a free day"
+      },
+      "plan": {
+        "title": "Make a plan",
+        "body": "Pick a good day and set it up.",
+        "cta": "Create plan"
+      },
+      "allDone": {
+        "title": "All four steps done",
+        "body": "Your group is good to go.",
+        "show": "Show steps",
+        "hide": "Hide steps"
       }
     }
   },
@@ -1503,8 +1543,8 @@
   "privacy": {
     "eyebrow": "maewmeet",
     "title": "Privacy",
-    "draft": "Drafted by the development team from how the app actually works. This isn’t legal advice, and the app owner must read and approve it before the app is opened to the public.",
-    "updated": "Last drafted 26 Oct 2026",
+    "draft": "This page explains, based on how the app actually works, what we keep and how we use it. It isn’t a legal document.",
+    "updated": "Last updated 26 Oct 2026",
     "back": "Back",
     "intro": "maewmeet is an app for making plans with friends. It keeps only what it needs to work, shows no ads, and never sells or shares your data for marketing.",
     "collect": {
@@ -1549,6 +1589,18 @@
     "contact": {
       "title": "Contact",
       "body": "Questions, or want more removed than the delete button does? Reach a system admin through one of your groups, or ask whoever invited you to the app."
+    }
+  },
+  "onboarding": {
+    "intro": {
+      "title": "Getting started with maewmeet",
+      "listAria": "4 steps to get started",
+      "s1": "Create a group or join one with friends",
+      "s2": "Everyone adds their own busy days",
+      "s3": "See which days everyone’s free",
+      "s4": "Make a plan for that day",
+      "dismiss": "Got it",
+      "reopenHint": "You can reopen this anytime from the Me tab."
     }
   }
 }
