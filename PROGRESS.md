@@ -1,7 +1,7 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](docs/NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-08 05:20 (เวลาไทย) · ตรวจด้วย `git log`, `git tag`, `docs/reports/perf-r7-*.md`, `qa-r7.md`, `security-r7.md`
+> อัปเดตล่าสุด: 2026-11-08 08:14 (เวลาไทย) · ตรวจด้วย `git log main..HEAD`, `git tag`, `R8_CONTRACT.md`, `docs/reports/qa-r8.md`, `security-r8.md`, `CHANGELOG.md`
 
 ## เสร็จแล้ว
 - R0–R5: foundation, บัญชี PIN, กลุ่ม, ปฏิทิน + busy, วันว่างร่วม + สร้างนัด, หน้า super admin + audit log (ดู CHANGELOG)
@@ -58,13 +58,41 @@
 - security-r7 Info 1–5: Info 1 หน้าต่างหลัง commit ของ RSVP (ยอมรับได้) · Info 2 `resolvedUsers` ระวังถ้ามีผู้เรียกใหม่หลังเขียน · Info 3 audit super admin บนหน้า `/calendar` (ยอมรับได้) · Info 4 ค่าเริ่มต้น Server-Timing "เปิด" เมื่อไม่มี `VERCEL_ENV` · Info 5 `total;dur` เป็นเวลาจริง (oracle หลักคือจำนวน query ซึ่งแก้แล้วใน Low 1)
 - ข้อสังเกตเครื่อง Windows (R7): **Node v26.13.0** ในเครื่อง (เทสต์ `ops/health` คาด v24 → ล้ม) · path ยาวของ Playwright `--output` ทำ ENOENT · config Vitest ชั่วคราวข้าม EPERM (เสนอทำถาวร — ข้อเสนอเดิมจาก R6F)
 
+## R8 — F1 onboarding + P1 privacy — เสร็จแล้ว รอ PR/merge (branch `feat/r8-onboarding`, HEAD `a0f63d6`) ✅
+- contract: `R8_CONTRACT.md` (`59661af`, main) · **boss อนุมัติ 2026-11-08** ("อนุมัติ เริ่มเลย") · branch แตกจาก main `628175d` (v0.9.1) · **ไม่มี migration** (`git diff main..HEAD -- drizzle` = ว่าง) · ข้อเสนอเลขเวอร์ชัน **v0.10.0** (ยังไม่ออก)
+- เนื้อหา:
+  - **P1** `/privacy`: ตัดข้อความ "เจ้าของแอปต้องรับรอง" · "ร่างล่าสุด" → "อัปเดตล่าสุด / Last updated" (`bd54b1c`, `d3c34db`)
+  - **F1 แถบ 4 ขั้น** บนหน้ากลุ่ม: ชวนเพื่อน → ลงวันไม่ว่าง → ดูวันว่างตรงกัน → สร้างนัด · ปุ่มสร้างนัดมีปุ่มเดียว (`d3c34db`, `c31f702`)
+  - **F1 ป้ายสมาชิก** "ยังไม่ได้ลงวันไม่ว่าง": ส่งเป็น boolean `hasUpcomingBusy` ใน query สมาชิกเดิม (EXISTS, ช่วง 30 วัน, นับเฉพาะ busy ที่ลงเอง ไม่นับ "ไป") · **+0 query** — `/groups/[gid]` ยังเป็น 11 query, API ยังเป็น 3 (`e3f0961`, ตาม qa R8-4 และ `r7-baseline` เทสต์ผ่าน)
+  - **การ์ดแนะนำหน้าหลัก** + ลิงก์ "วิธีใช้งาน" ในแท็บ "ฉัน" รีเซ็ตการ์ดได้ · จำการปิดด้วย localStorage key `mm_intro_seen` ค่า `"1"` (`d3c34db`, `792f203`)
+  - CHANGELOG `[Unreleased]` (`93ca6e0`, `a20aa31`) · เทสต์: platform 7 ข้อ, steps-model, e2e `r8-onboarding` (`4e7a29b`)
+- ขนาดรอบ (`git diff --stat main..HEAD`): 33 ไฟล์ · +1359 / −38 (รวม contract และรายงาน)
+- commit ตามผู้เขียน (13 commit ใน `git log main..HEAD`):
+  - main `59661af` contract · ux `bd54b1c` ถ้อยคำ TH/EN + wireframe `docs/design/R8_ONBOARDING.md` · platform `e3f0961` hasUpcomingBusy
+  - ops `93ca6e0`, `a20aa31` CHANGELOG · frontend `d3c34db`, `c31f702` UI · test `4e7a29b`, `a0f63d6` e2e
+  - security `863ee2a` รีวิว · qa `792f203`, `4fc403d`, `9294994` แก้ CSS/รายงาน/รีเช็ก
+- ผลตรวจอิสระ:
+  - **security ผ่าน** (`docs/reports/security-r8.md`) 0C/0H/0M/0L, **Info 3** · รีวิวถึง HEAD `4e7a29b` — commit หลังจากนั้นที่แตะ `src/` (`792f203` CSS, `c31f702` UI) **ยังไม่ได้รับรีวิว security**
+  - **qa ผ่านแบบมีข้อสังเกต** (`docs/reports/qa-r8.md`) · พบ M (การ์ดแนะนำ `<ol>` ไม่มีเลข 1–4) แก้แล้ว `792f203` · L (ปุ่มสร้างนัดซ้ำ) แก้แล้ว `c31f702` · รีเช็ก `c31f702` (`9294994`) พบ `groups-story` ล้ม 3 ข้อ จาก `memberRow` ที่ใช้ exact match กับ aria-label ที่มีประโยคต่อท้าย → **แก้แล้ว `a0f63d6`** (test)
+  - ⚠️ **qa ไม่ได้รันซ้ำหลัง `a0f63d6`** · ผล `167 passed / 10 skipped / 0 failed` บน 3 project เป็นรายงานของ test ตามที่ main แจ้ง — เลขาไม่ได้รันซ้ำ ยังไม่ยืนยัน
+- **backlog R8 (ไม่บล็อก):**
+  1. ขั้น 2 ปุ่ม "ลงวันไม่ว่าง" พาไปปฏิทิน ไม่ได้เปิดฟอร์มลง busy ตรง (qa L3) — ทำรอบหน้า
+  2. ขั้น 3 ค้าง "ถัดไป" จนกว่าจะมีนัด — ผู้ใช้ที่ดูวันว่างแล้วไม่ได้รับสัญญาณตอบกลับ (qa L4)
+  3. `/privacy` เพิ่มประโยคว่าสมาชิกในกลุ่มเห็นว่าลงวันไม่ว่างแล้วหรือยัง (security Info 1 · ข้อเสนอ — boss ตัดสิน)
+- **ยังไม่ยืนยัน:** CI และ Vercel preview ของ branch · ผลเทสต์หลัง `a0f63d6` (ดูข้อ qa ด้านบน) · PR ยังไม่ได้เปิด (ต้องให้ main push + เปิด PR)
+
+### รอ boss (R8)
+1. **merge PR** ของ `feat/r8-onboarding` เข้า `main` (main เปิด PR หลัง push)
+2. **ออก v0.10.0** (ถ้าเห็นชอบเลขเสนอ) — `npx tsx scripts/release.ts 0.10.0` · boss รันและ push tag เอง
+
 ## รอ boss
+- **R8** — ตัดสิน 2 ข้อด้านบน (merge PR · ออก v0.10.0)
 - **R7** — ตัดสิน 3 ข้อด้านบน (RSVP 10→9 · merge PR · ออก v0.9.1)
 - R7 เฟส A เดิม (เปิด preview อ่าน Server-Timing ด้วย DevTools เพื่อเวลาจริงกับ Turso ญี่ปุ่น) — ยังไม่ได้ทำ ถ้าต้องการตัวเลขจริงก่อน merge
 - ตัดสินช่องทางแจ้งเตือนก่อนนัด (F6) — ยังค้างจากเดิม
 
 ## เหลือ
-- ตาม `docs/NEXT_PHASE.md`: F1 onboarding · F2 ความช้า (R7 เสร็จ รอ boss ตัดสิน) · F6 แจ้งเตือนก่อนนัด (**boss ยังไม่ตัดสินช่องทาง**) · R6 hardening (ดู NEXT_PHASE)
+- ตาม `docs/NEXT_PHASE.md`: F1 onboarding (R8 เสร็จ รอ merge) · F2 ความช้า (R7 เสร็จ รอ boss ตัดสิน) · F6 แจ้งเตือนก่อนนัด (**boss ยังไม่ตัดสินช่องทาง**) · R6 hardening (ดู NEXT_PHASE)
 - **backlog R6F (ไม่บล็อก):**
   - qa-r6f L1: ป้ายชุดใน `MineList.tsx:99` เป็น `<span aria-label>` ไม่มี role — screen reader อาจไม่อ่าน aria-label (ข้อความที่มองเห็นยังอ่านได้) · ตัดสินใจโดย ux/frontend
   - qa-r6f L2: "Certain hours" ในปุ่ม segmented ขึ้น 2 บรรทัดที่ 375 EN (ไม่ล้น ปุ่มสูงกว่า 44px) — เชิงรูปลักษณ์
