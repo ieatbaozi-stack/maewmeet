@@ -1,36 +1,162 @@
-# แมวเจอกัน (maewmeet)
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-dark.svg">
+    <img src="docs/images/logo-light.svg" alt="แมวเจอกัน" height="56">
+  </picture>
+</p>
 
-เว็บแอปนัดหมายกลุ่มเพื่อน: ทุกคนลงว่า **ไม่ว่างวันไหน** → ระบบหา **วันที่ทุกคนว่าง** → สร้างนัด (กินข้าว/เที่ยว/กิจกรรม) พร้อมสถานที่และเวลา
-ใช้บนมือถือเกือบ 100% (iPad บ้าง) · UI คลีน พาสเทล professional ไม่ใช่ AI slop · ไทย/อังกฤษ · สว่าง/มืด
+<p align="center">
+  <a href="https://github.com/ieatbaozi-stack/maewmeet/actions/workflows/ci.yml"><img src="https://github.com/ieatbaozi-stack/maewmeet/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+</p>
 
-> เจ้าของงาน: **boss** · สร้างด้วยทีม AI agent แบบ software engineering full loop (ไม่ vibe code)
+<p align="center">
+  <strong>แมวเจอกัน (maewmeet)</strong> — เว็บแอปนัดหมายกลุ่มเพื่อน<br>
+  <em>A group scheduling web app: mark when you're busy, find the days everyone is free, then set up the meetup.</em>
+</p>
 
-## agent ใหม่ ให้เริ่มที่นี่
-1. อ่าน [CLAUDE.md](CLAUDE.md) (กติกาที่ต้องรู้ก่อนแตะอะไร)
-2. อ่าน [TEAM.md](TEAM.md) หา **บทบาทของตัวเอง** และขอบเขตไฟล์
-3. อ่าน [PROCESS.md](PROCESS.md) เฟส กติกา เกต และ **ใบรับรองงาน (Handoff Certificate)**
-4. อ่าน [docs/prd/PRD.md](docs/prd/PRD.md) (ความต้องการที่อนุมัติแล้ว สิทธิ์ตามบทบาท โมเดลข้อมูลร่าง)
-5. ถ้าทำงานหน้าจอ อ่าน [docs/design/UI_DIRECTION.md](docs/design/UI_DIRECTION.md) ให้จบก่อนเขียน UI
-6. ข้อมูลประกอบการตัดสินใจ: [docs/research/RESEARCH_REPORT.md](docs/research/RESEARCH_REPORT.md) (รวมคำตอบเรื่อง LINE)
-7. เลขา: [SECRETARY.md](SECRETARY.md)
+ลงว่าวันไหนไม่ว่าง ระบบหาวันที่ทุกคนว่างตรงกัน แล้วสร้างนัด (กินข้าว เที่ยว หรือกิจกรรมอื่นๆ) พร้อมสถานที่และเวลา ใช้บนมือถือเป็นหลัก ใช้ได้ทั้งภาษาไทยและอังกฤษ และมีธีมสว่างกับมืด
 
-## โครงโฟลเดอร์ (ปัจจุบันมีแค่เอกสาร)
+**เว็บที่ใช้งานจริง:** https://maewmeet.vercel.app
+
+## ภาพหน้าจอ
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/screenshot-home.png" width="260" alt="หน้าหลัก: นัดถัดไปและการตอบรับ"><br><sub>หน้าหลัก: นัดถัดไปและการตอบรับ</sub></td>
+    <td align="center"><img src="docs/images/screenshot-free-days.png" width="260" alt="ปฏิทิน: แท็บว่างตรงกัน"><br><sub>ปฏิทิน: แท็บ "ว่างตรงกัน"</sub></td>
+  </tr>
+</table>
+
+## วิธีใช้
+
+1. เข้าบัญชี (สมัครด้วยชื่อผู้ใช้และ PIN 6 หลัก)
+2. สร้างกลุ่มใหม่ หรือเข้ากลุ่มที่มีอยู่แล้ว
+3. ชวนเพื่อนเข้ากลุ่ม ด้วยชื่อผู้ใช้ หรือโค้ดเชิญ
+4. ลงวันที่ไม่ว่างของตัวเอง
+5. ดูแท็บ "ว่างตรงกัน" ในปฏิทินเพื่อหาวันที่ทุกคนว่างพร้อมกัน
+6. สร้างนัดจากวันนั้น แล้วเพื่อนตอบ ไป / อาจไป / ไม่ไป
+
+รายละเอียดครบทุกขั้นอยู่ใน [คู่มือเริ่มต้นใช้งาน (ภาษาไทย)](docs/guides/quickstart-th.html) — ไฟล์นี้เป็น HTML ดาวน์โหลดมาแล้วเปิดในเบราว์เซอร์ได้เลย (GitHub จะแสดงเป็นโค้ดถ้าเปิดในหน้าเว็บ)
+
+## ฟีเจอร์
+
+- **ลงวันไม่ว่าง** ทั้งวัน (วันเดียวหรือหลายวัน) หรือเฉพาะช่วงเวลาในแต่ละวัน (เช่น 17:00–20:00 ทุกวันในช่วงที่กำหนด) และลบได้ทั้งวันเดียวหรือทั้งชุด
+- **ปฏิทินกลุ่ม** มุมมองเดือน วัน และแท็บ "ว่างตรงกัน" ที่บอกวันที่ว่างตรงกันเร็วที่สุด
+- **นัด** สร้าง แก้ไข และตอบรับ ไป / อาจไป / ไม่ไป พร้อมเตือนเมื่อเวลาชนกับนัดหรือช่วงไม่ว่างที่ลงไว้
+- **สถานที่และแผนที่** ค้นหาสถานที่ด้วยปุ่มค้นหา (ข้อมูลจาก OpenStreetMap) หรือวางลิงก์แผนที่/พิกัด พร้อมภาพแผนที่และลิงก์ที่มา
+- **กลุ่ม** ตั้งชื่อกลุ่ม ชวนเพื่อนด้วยชื่อผู้ใช้หรือโค้ดเชิญ (โค้ดหมดอายุและเพิกถอนได้) กำหนดผู้ดูแลกลุ่ม และตั้งสี/รูปทรงของตัวเองในแต่ละกลุ่ม
+- **แจ้งเตือนในแอป** ผ่านกระดิ่ง: เมื่อมีนัดใหม่ในกลุ่ม และเมื่อได้รับคำเชิญเข้ากลุ่ม
+- **บัญชี** เข้าสู่ระบบด้วยชื่อผู้ใช้และ PIN, เปลี่ยน PIN, ออกจากระบบทุกเครื่อง, ขอรีเซ็ต PIN ผ่านผู้ดูแลระบบ และลบบัญชีได้เอง
+- **สองภาษาและสองธีม** ไทย/อังกฤษ และสว่าง/มืด (ตามระบบได้)
+
+## Tech Stack
+
+- [Next.js](https://nextjs.org/) (App Router) + [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Drizzle ORM](https://orm.drizzle.team/) + [Turso](https://turso.tech/) (libSQL)
+- [next-intl](https://next-intl.dev/) สำหรับสองภาษา
+- [Vitest](https://vitest.dev/) (unit/integration) และ [Playwright](https://playwright.dev/) (e2e)
+- [Vercel](https://vercel.com/) สำหรับ deploy
+
+## เริ่มต้นใช้งานในเครื่อง (Getting Started)
+
+ต้องมี **Node 24** (ตามไฟล์ `.nvmrc`) และ git
+
+```bash
+git clone https://github.com/ieatbaozi-stack/maewmeet.git
+cd maewmeet
+npm ci
+```
+
+**1. สร้างไฟล์ env จากแม่แบบ** (คำสั่งเดียวกันใช้ได้ทั้ง PowerShell และ bash)
+
+```bash
+cp .env.example .env.local
+```
+
+**2. สร้างค่าสุ่มสำหรับความลับ** รันคำสั่งเหล่านี้แล้วคัดลอกผลลัพธ์ไว้ (รันคำสั่งแรกสองครั้ง ได้ค่าสองค่า)
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
+```
+
+**3. แก้ `.env.local`** ใส่ค่าลงในบรรทัดต่อไปนี้ (ค่าอื่นในไฟล์ปล่อยว่างหรือค่าเริ่มต้นได้ เช่น `TURSO_AUTH_TOKEN=` ปล่อยว่างไว้ เพราะเครื่องนี้ใช้ไฟล์ฐานข้อมูลในเครื่อง ไม่ต้องใช้ token)
+
+```dotenv
+TURSO_DATABASE_URL=file:./local.db
+PIN_PEPPER_CURRENT_VERSION=1
+PIN_PEPPER_V1=<ค่าสุ่ม base64 ชุดที่ 1>
+APP_SECRET=<ค่าสุ่ม base64 ชุดที่ 2>
+CRON_SECRET=<ค่าสุ่ม hex>
+APP_ORIGIN=http://localhost:3000
+```
+
+ตอนแก้ ให้ตัดคอมเมนต์ (`# ...`) ท้ายบรรทัดออกด้วย เพื่อกันการอ่านค่าผิด
+
+**4. สร้างฐานข้อมูลในเครื่อง** (ไฟล์ `local.db` จะถูกสร้างที่โฟลเดอร์โปรเจกต์ และไม่ถูกเก็บใน git)
+
+```bash
+npx drizzle-kit migrate
+```
+
+**5. รันเว็บ** แล้วเปิด http://localhost:3000/login
+
+```bash
+npm run dev
+```
+
+> ถ้า PowerShell แจ้ง `running scripts is disabled` ให้ใช้ `npm.cmd` แทน `npm`
+> `drizzle-kit` ไม่อ่าน `.env.local` โดยตรง จึงใช้ค่าดีฟอลต์ `file:./local.db` ซึ่งตรงกับค่าในขั้นที่ 3 · ถ้าตั้ง `TURSO_DATABASE_URL` ไว้ในเชลล์ของคุณ คำสั่ง migrate จะใช้ค่านั้นแทน
+
+## Environment Variables
+
+ค่าจริงห้ามใส่ใน repo และห้ามแชร์ · รายการเต็มและคำอธิบายอยู่ที่ [`.env.example`](.env.example)
+
+| ตัวแปร | จำเป็นเมื่อ | ใช้ทำอะไร |
+|---|---|---|
+| `TURSO_DATABASE_URL` | ทุกสภาพแวดล้อม | ที่อยู่ฐานข้อมูล (`file:./local.db` ในเครื่อง · `libsql://…` บน Turso) |
+| `TURSO_AUTH_TOKEN` | ใช้ Turso ระยะไกลเท่านั้น | token ของฐานข้อมูล Turso |
+| `PIN_PEPPER_CURRENT_VERSION` + `PIN_PEPPER_V<n>` | ทุกสภาพแวดล้อม | pepper สำหรับแฮช PIN · หายหรือผิดค่า ระบบล็อกการเข้าสู่ระบบ |
+| `APP_SECRET` | ทุกสภาพแวดล้อม | ความลับสำหรับโค้ดเชิญและ rate limit (base64 อย่างน้อย 32 ไบต์) |
+| `CRON_SECRET` | ทุกสภาพแวดล้อม | ยืนยันการเรียก cron (อย่างน้อย 16 ตัวอักษร) |
+| `APP_ORIGIN` | deploy บน Vercel: production เสมอ · preview เมื่อไม่มี `VERCEL_URL` | origin ของเว็บ ใช้ตรวจ CSRF (ในเครื่องไม่บังคับ ตั้ง `http://localhost:3000` ก็ได้) |
+| `PLACE_SEARCH_ENABLED` | ไม่บังคับ | `false` เพื่อปิดการค้นหาสถานที่ |
+| `NOMINATIM_CONTACT` | เปิดค้นหาสถานที่ | อีเมลหรือ URL ติดต่อ ใส่ใน User-Agent ตามนโยบายการใช้งานของ Nominatim |
+
+## สคริปต์
+
+| คำสั่ง | ทำอะไร |
+|---|---|
+| `npm run dev` | รันโหมดพัฒนาที่ http://localhost:3000 |
+| `npm run build` | build สำหรับ production |
+| `npm test` | เทสต์ unit และ integration (Vitest) |
+| `npm run test:e2e` | เทสต์ e2e (Playwright) |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | ตรวจ TypeScript |
+
+## Project Structure
+
 ```
 maewmeet/
-  README.md  CLAUDE.md  TEAM.md  PROCESS.md  SECRETARY.md
-  docs/
-    prd/PRD.md
-    design/UI_DIRECTION.md
-    research/RESEARCH_REPORT.md
-    adr/  reports/  team/
-  Pre-start/                         (ข้อมูลตั้งต้นของ boss · ไม่ push · ห้ามแก้)
+├── src/          โค้ดแอป (app router, components, lib, db)
+├── messages/     ข้อความภาษาไทยและอังกฤษ
+├── drizzle/      migration ของฐานข้อมูล
+├── tests/        เทสต์ (unit, integration, e2e)
+├── scripts/      สคริปต์ดูแลระบบและการออกรุ่น
+├── public/brand/ โลโก้ แมว และฟอนต์
+├── docs/         เอกสาร (PRD, ADR, ARCHITECTURE, OPERATIONS, ฯลฯ)
+└── .github/      CI workflow
 ```
-โครง `src/`, `drizzle/`, `tests/`, `.github/` จะถูกสร้างในเฟส 3 (Foundation) ตาม ADR ของ Architect
 
-## สถานะ
-- เฟส 0 Discovery: เสร็จ
-- เฟส 1 Requirements: เสร็จ — [docs/prd/PRD.md](docs/prd/PRD.md) อนุมัติแล้ว 2026-10-15
-- เฟส 2 Design: **อนุมัติแล้ว** 2026-10-16 (aurora, สัปดาห์เริ่มจันทร์, กัน pepper หาย)
-  — ADR 0001–0008, ARCHITECTURE, UX, tokens, หน้าตัวอย่าง `docs/design/samples/`, ภาพหน้าจอ `docs/design/screenshots/` · คำตอบ Lead: [docs/prd/LEAD_DECISIONS.md](docs/prd/LEAD_DECISIONS.md)
-- R0 Foundation: [R0_CONTRACT.md](R0_CONTRACT.md) เห็นชอบแล้ว · **กำลังทำ** · repo: github.com/ieatbaozi-stack/maewmeet (private)
-- รายงานล่าสุด: [docs/reports/2026-10-16.md](docs/reports/2026-10-16.md)
+## เอกสาร
+
+- [PRD](docs/prd/PRD.md) — ความต้องการและสิทธิ์ตามบทบาท
+- [Architecture](docs/design/ARCHITECTURE.md) และ [UI Direction](docs/design/UI_DIRECTION.md)
+- [ADR](docs/adr/) — บันทึกการตัดสินใจทางเทคนิค
+- [Operations](docs/OPERATIONS.md) — การตั้งค่าครั้งแรกบน Turso, Vercel และ GitHub
+- [Changelog](CHANGELOG.md) และ [Versioning](docs/VERSIONING.md)
+
+## ทำงานยังไง
+
+โปรเจกต์นี้สร้างด้วยทีม AI agent ที่ทำงานแบบมี contract ต่อรอบ ผู้ตรวจอิสระที่ไม่ใช่คนทำงาน และ PR ก่อนรวมเข้า `main` ดูบทบาทและกติกาได้ที่ [docs/team/TEAM.md](docs/team/TEAM.md) และ [docs/team/PROCESS.md](docs/team/PROCESS.md)
