@@ -1,7 +1,7 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-09 (เวลาไทย) · ตรวจด้วย `git log`, `git tag`, `docs/contracts/R9_CONTRACT.md`, `docs/reports/qa-r9.md`, `CHANGELOG.md`, `docs/contracts/R8_CONTRACT.md`, `docs/reports/qa-r8.md`, `security-r8.md`, `docs/reports/perf-r7-*.md`, `qa-r7.md`, `security-r7.md` · เลขาไม่ได้รัน `gh` รอบนี้
+> อัปเดตล่าสุด: 2026-11-09 (เวลาไทย) · ตรวจด้วย `git log`, `git tag`, `docs/contracts/R9_CONTRACT.md`, `docs/reports/qa-r9.md`, `CHANGELOG.md`, `docs/contracts/R8_CONTRACT.md`, `docs/reports/qa-r8.md`, `security-r8.md`, `docs/reports/perf-r7-*.md`, `qa-r7.md`, `security-r7.md` · R9 merge ตรวจด้วย `gh pr view 23` / `gh pr checks 23` (2026-11-09)
 
 ## เสร็จแล้ว
 - R0–R5: foundation, บัญชี PIN, กลุ่ม, ปฏิทิน + busy, วันว่างร่วม + สร้างนัด, หน้า super admin + audit log (ดู CHANGELOG)
@@ -60,7 +60,7 @@
 - security-r7 Info 1–5: Info 1 หน้าต่างหลัง commit ของ RSVP (ยอมรับได้) · Info 2 `resolvedUsers` ระวังถ้ามีผู้เรียกใหม่หลังเขียน · Info 3 audit super admin บนหน้า `/calendar` (ยอมรับได้) · Info 4 ค่าเริ่มต้น Server-Timing "เปิด" เมื่อไม่มี `VERCEL_ENV` · Info 5 `total;dur` เป็นเวลาจริง (oracle หลักคือจำนวน query ซึ่งแก้แล้วใน Low 1)
 - ข้อสังเกตเครื่อง Windows (R7): **Node v26.13.0** ในเครื่อง (เทสต์ `ops/health` คาด v24 → ล้ม) · path ยาวของ Playwright `--output` ทำ ENOENT · config Vitest ชั่วคราวข้าม EPERM (เสนอทำถาวร — ข้อเสนอเดิมจาก R6F)
 
-## R9 — README สำหรับคนนอก + จัด root — เสร็จแล้ว · รอ boss merge PR (branch `docs/r9-readme`, HEAD `36ff749`) ⏳
+## R9 — README สำหรับคนนอก + จัด root — merge แล้ว (PR #23, merge commit `8b60634`, 2026-11-09 02:07 เวลาไทย) ✅
 - contract: `docs/contracts/R9_CONTRACT.md` (`3c720ae`, main) · **boss เห็นชอบ 2026-11-09** ("เห็นชอบ ไม่ใส่ License") · branch แตกจาก main `8fc15e6`
 - **ไม่แตะโค้ดแอป · ไม่มี migration · ไม่ออกรุ่น** (`git diff --name-only main..HEAD` ไม่มี `src/`, `drizzle/`, `CHANGELOG.md`) · เวอร์ชันปัจจุบัน **v0.9.1** (tag 2026-11-08) · `[Unreleased]` ยังเป็นของ R8 (ไม่เปลี่ยนในรอบนี้)
 - เนื้อหา (ตาม contract §1–§5):
@@ -78,11 +78,10 @@
 - **ตัวเลขเทสต์ (ตาม qa-r9 ไม่ใช่เลขาที่รัน):** lint exit 0, typecheck exit 0 · `vitest` branch ที่ `4572f84`: 3831 ผ่าน / 984 ล้ม (974 EPERM/EBUSY ตอนลบ temp) · main `8fc15e6`: 3833 ผ่าน / 982 ล้ม · ต่างกันไฟล์เดียว (`availability-perf`, รันเดี่ยวผ่านทั้งสอง) · ไม่มีอะไรล้มเพราะงาน R9
 - **ยังไม่ยืนยัน:**
   - หน้า README บน github.com จริงทั้งธีมสว่าง/มืด (qa render ด้วย Playwright ในเครื่องแทน)
-  - CI หลัง push (ยังไม่ push ตอนเลขาเขียนรายงาน)
   - Node 24 (qa รันด้วย Node v26.13.0 ในเครื่อง)
   - PowerShell จริง (qa ใช้ bash; คำสั่งใน README บอกว่าใช้ได้ทั้งสองเชลล์ แต่ยังไม่ได้รันบน PowerShell)
   - ตัวเลขลิงก์เสีย 37 ลิงก์ เป็นของ qa (เลขาไม่ได้นับซ้ำ)
-- **สถานะ:** รอ boss merge PR เข้า `main` (main เปิด PR; เลข PR ยังไม่ยืนยัน) · boss เป็นคนกด Merge
+- **สถานะ:** merge แล้ว · PR #23 (`docs/r9-readme` → `main`) · `gh pr view 23`: state MERGED, mergedAt 2026-11-08T19:07:04Z (= 2026-11-09 02:07 เวลาไทย), merge commit `8b60634` · `gh pr checks 23`: 11 checks ผ่าน (Vercel, Vercel Preview Comments, build, contrast, e2e (Playwright) 1–4, lint, test + migration, typecheck)
 
 ## R8 — F1 onboarding + P1 privacy — merge แล้ว (PR #21, merge commit `e41f9d2`) ✅
 - contract: `R8_CONTRACT.md` (`59661af`, main) · **boss อนุมัติ 2026-11-08** ("อนุมัติ เริ่มเลย") · branch แตกจาก main `628175d` (v0.9.1) · **ไม่มี migration** (`git diff main..HEAD -- drizzle` = ว่าง) · ข้อเสนอเลขเวอร์ชัน **v0.10.0** (ยังไม่ออก)
@@ -113,7 +112,6 @@
 2. **ออก v0.10.0** (ถ้าเห็นชอบเลขเสนอ) — `npx tsx scripts/release.ts 0.10.0` · boss รันและ push tag เอง
 
 ## รอ boss
-- **R9 merge PR** เข้า `main` (boss กด Merge เอง) · ตัดสินแล้ว: ไม่ใส่ License
 - **R7 RSVP 10→9** — ยอมรับตามที่ main เสนอ รอ boss ยืนยัน (ดูหัวข้อ R7 ด้านบน) · merge PR #19 และออก v0.9.1 เสร็จแล้ว
 - **F6 แจ้งเตือนก่อนนัด** — boss ต้องเลือกช่องทาง (ยังค้างจากเดิม)
 - R7 เฟส A เดิม (เปิด preview อ่าน Server-Timing ด้วย DevTools เพื่อวัดเวลาจริงกับ Turso ญี่ปุ่น) — ยังไม่ได้ทำ เลื่อนเป็น backlog ถ้าไม่ต้องการตัวเลขจริงก่อนงานถัดไป
@@ -121,7 +119,7 @@
 ## เหลือ
 - **งานหลักที่ค้าง** (ตาม `docs/NEXT_PHASE.md`):
   - **F1 onboarding** — R8 merge แล้ว (`e41f9d2`) · ออกรุ่น v0.10.0 ยังไม่ทำ
-  - **README สำหรับคนนอก (R9)** — เสร็จ รอ boss merge PR
+  - **README สำหรับคนนอก (R9)** — merge แล้ว (PR #23, `8b60634`)
   - **F2 ความช้า** — R7 เสร็จ รอ boss ตัดสิน RSVP 10→9
   - **F6 แจ้งเตือนก่อนนัด** — **boss ต้องเลือกช่องทางก่อน** (ยังไม่ตัดสิน)
 - **backlog R7 และ R8 (ไม่บล็อก):** ดูหัวข้อ "backlog ใหม่จาก R7" และ "backlog R8" ด้านบน · qa/security L/Info ที่เหลือจาก R7: ดู `docs/reports/qa-r7.md`, `docs/reports/security-r7.md`
