@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="public/brand/logo-th.svg" alt="แมวเจอกัน" height="56">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-dark.svg">
+    <img src="docs/images/logo-light.svg" alt="แมวเจอกัน" height="56">
+  </picture>
 </p>
 
 <p align="center">
@@ -78,7 +81,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
 ```
 
-**3. แก้ `.env.local`** ใส่ค่าลงในบรรทัดต่อไปนี้ (ค่าอื่นในไฟล์ปล่อยว่างหรือค่าเริ่มต้นได้) และ **ลบบรรทัด `TURSO_AUTH_TOKEN=` ออก** เพราะเครื่องนี้ใช้ไฟล์ฐานข้อมูลในเครื่อง ไม่ต้องใช้ token
+**3. แก้ `.env.local`** ใส่ค่าลงในบรรทัดต่อไปนี้ (ค่าอื่นในไฟล์ปล่อยว่างหรือค่าเริ่มต้นได้ เช่น `TURSO_AUTH_TOKEN=` ปล่อยว่างไว้ เพราะเครื่องนี้ใช้ไฟล์ฐานข้อมูลในเครื่อง ไม่ต้องใช้ token)
 
 ```dotenv
 TURSO_DATABASE_URL=file:./local.db
@@ -117,7 +120,7 @@ npm run dev
 | `PIN_PEPPER_CURRENT_VERSION` + `PIN_PEPPER_V<n>` | ทุกสภาพแวดล้อม | pepper สำหรับแฮช PIN · หายหรือผิดค่า ระบบล็อกการเข้าสู่ระบบ |
 | `APP_SECRET` | ทุกสภาพแวดล้อม | ความลับสำหรับโค้ดเชิญและ rate limit (base64 อย่างน้อย 32 ไบต์) |
 | `CRON_SECRET` | ทุกสภาพแวดล้อม | ยืนยันการเรียก cron (อย่างน้อย 16 ตัวอักษร) |
-| `APP_ORIGIN` | production | origin ของเว็บ ใช้ตรวจ CSRF (ในเครื่องใช้ `http://localhost:3000`) |
+| `APP_ORIGIN` | deploy บน Vercel: production เสมอ · preview เมื่อไม่มี `VERCEL_URL` | origin ของเว็บ ใช้ตรวจ CSRF (ในเครื่องไม่บังคับ ตั้ง `http://localhost:3000` ก็ได้) |
 | `PLACE_SEARCH_ENABLED` | ไม่บังคับ | `false` เพื่อปิดการค้นหาสถานที่ |
 | `NOMINATIM_CONTACT` | เปิดค้นหาสถานที่ | อีเมลหรือ URL ติดต่อ ใส่ใน User-Agent ตามนโยบายการใช้งานของ Nominatim |
 
