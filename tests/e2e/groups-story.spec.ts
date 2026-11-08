@@ -22,8 +22,10 @@ test.beforeEach(({}, testInfo) => {
 const status = (page: Page, text: string) => page.getByRole('status').filter({ hasText: text });
 const button = (scope: Pick<Page, 'getByRole'>, name: string) => scope.getByRole('button', { name, exact: true });
 const h1 = (page: Page) => page.getByRole('heading', { level: 1 });
+// R8: แถวของสมาชิกที่ยังไม่ลง busy ต่อประโยค noBusyAria ท้าย aria-label → จับตามคำนำหน้า (ขึ้นต้น rowAria แล้วตามด้วย "." หรือจบ) ไม่ใช้ exact
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const memberRow = (page: Page, locale: Locale, displayName: string, role: 'admin' | 'moderator' | 'member') =>
-  page.getByRole('group', { name: msg(locale, 'group.members.rowAria', { name: displayName, role: msg(locale, `roles.${role}`) }), exact: true });
+  page.getByRole('group', { name: new RegExp(`^${escapeRe(msg(locale, 'group.members.rowAria', { name: displayName, role: msg(locale, `roles.${role}`) }))}(\\.|$)`) });
 const manageBtn = (page: Page, locale: Locale, displayName: string) =>
   page.getByRole('button', { name: msg(locale, 'group.members.actionsAria', { name: displayName }), exact: true });
 const gidOf = (page: Page) => /\/groups\/([0-9a-f-]{36})/.exec(page.url())![1]!;
