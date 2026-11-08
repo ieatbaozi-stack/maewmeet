@@ -30,3 +30,16 @@
 
 ## ตรวจไม่ได้
 CI/Vercel บน GitHub · Node 24 (ใช้ v26.13.0) · PowerShell จริง · ไม่ได้รัน e2e/build (งานเอกสารล้วน ไม่แตะโค้ดแอป) · ไม่ได้ดู README บน GitHub จริงทั้งสองธีม (ใช้ render SVG ด้วย Playwright แทน)
+
+## ตรวจซ้ำรอบแก้ (R9 §2.1, `1880695..d51646c`)
+ผู้ตรวจ: qa (อิสระ) · 2026-11-09 · Node v26.13.0
+
+**Verdict สุดท้าย: ผ่าน** (M1 ปิด · ข้อ 4 และ 5 ปิด)
+
+1. **ขอบเขต diff** — `git diff --stat 1880695..HEAD`: `README.md` (9), `docs/contracts/R9_CONTRACT.md` (4), `docs/images/logo-dark.svg`, `docs/images/logo-light.svg` เท่านั้น · `public/brand/` ไม่ถูกแตะ (0 ไฟล์) ✓
+2. **M1 โลโก้** — render `<picture>` ชุดเดียวกับ README ด้วย Playwright (file://, temp นอก repo): colorScheme light บน `#ffffff` ได้ `logo-light.svg` (ตัวอักษรและเส้นแมวสีเข้ม อ่านชัด) · dark บน `#0d1117` ได้ `logo-dark.svg` (ตัวอักษรและเส้นสีอ่อน `#ECE9F1` อ่านชัด) · เปิดภาพดูแล้วทั้งสอง · grep ทั้งสองไฟล์: ไม่มี `<script`, `href=`, `url(`, `<image`, `foreignObject`, `onload`, `@import` · มี URL เดียวคือ `xmlns` `http://www.w3.org/2000/svg` ✓
+3. **APP_ORIGIN — ความเห็นรอบแรก (ข้อ 4) ผิด ผู้ทำถูก** · `deployedEnvSchema` (`env.ts:106-115`) ถูกเลือกด้วย `isDeployed()` = `VERCEL_ENV` เป็น production/preview เท่านั้น (`env.ts:140,166`) · ในเครื่อง ใช้ `baseEnvSchema` ที่ `APP_ORIGIN` เป็น optional (`env.ts:60`) และ `configuredAppOrigin` ระบุ "undefined = dev → เทียบกับ host ของ request" (`env.ts:200-207`) · ตารางใหม่ "production เสมอ · preview เมื่อไม่มี `VERCEL_URL` · ในเครื่องไม่บังคับ" ตรงโค้ด ✓
+4. **Getting Started ฉบับใหม่** — clone จาก HEAD `d51646c` ลง temp: `npm ci` ผ่าน → `cp .env.example .env.local` → แก้ 6 บรรทัด **คงบรรทัด `TURSO_AUTH_TOKEN=              # ...` ไว้ตามเดิม** (ไม่ลบ) พอร์ต 3230 และ `APP_ORIGIN=http://localhost:3230` → `npx drizzle-kit migrate` = `migrations applied successfully!` (local.db 270KB) → `npx next dev -p 3230`: `GET /login` 200 title "เข้าสู่ระบบ — แมวเจอกัน" · `POST /api/auth/signup` ด้วยข้อมูลทดสอบ (`qatest1`) ได้ 201 + user, `POST /api/auth/login` ได้ user กลับมา = อ่าน/เขียน DB ที่ migrate แล้วได้จริง (ครั้งแรกส่งขาด `pinConfirm` ได้ 400 VALIDATION ตามสเปก API ไม่ใช่บั๊ก) · ปิด server แล้ว (พอร์ต 3230 เหลือแค่ FIN_WAIT/TIME_WAIT ไม่มี LISTENING) · ไม่สร้าง `.env.local` ใน checkout หลัก
+5. **ลิงก์/รูป** — ลิงก์ relative ใน README ทุกตัว (`.env.example`, CHANGELOG, OPERATIONS, VERSIONING, adr/, ARCHITECTURE, UI_DIRECTION, quickstart-th.html, PRD, TEAM, PROCESS) และรูป `docs/images/*` (logo-light/dark, screenshot-home/free-days) มีไฟล์จริง ไม่เสีย ✓
+
+ตรวจไม่ได้: การแสดงผลบน github.com จริง (ใช้ render `<picture>` ในเครื่องแทน) · CI · Node 24 · PowerShell
