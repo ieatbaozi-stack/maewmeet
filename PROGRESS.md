@@ -1,7 +1,7 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](docs/NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-08 08:14 (เวลาไทย) · ตรวจด้วย `git log main..HEAD`, `git tag`, `R8_CONTRACT.md`, `docs/reports/qa-r8.md`, `security-r8.md`, `CHANGELOG.md`
+> อัปเดตล่าสุด: 2026-11-08 08:14 (เวลาไทย) · ตรวจด้วย `git log`, `git tag`, `git ls-remote --tags origin v0.9.1`, `R8_CONTRACT.md`, `docs/reports/qa-r8.md`, `security-r8.md`, `CHANGELOG.md`, `docs/reports/perf-r7-*.md`, `qa-r7.md`, `security-r7.md`, `gh pr view 21`
 
 ## เสร็จแล้ว
 - R0–R5: foundation, บัญชี PIN, กลุ่ม, ปฏิทิน + busy, วันว่างร่วม + สร้างนัด, หน้า super admin + audit log (ดู CHANGELOG)
@@ -27,8 +27,12 @@
 - ผู้ทำ R6F ตาม commit author: architect (`258334a`, `a7f66c0`) · main (`3123a0f`, `87264dd`, `313e016`, `7aabdf4`) · platform (`8bed164`, `d125181`, `a93ba6f`) · ux (`7d97edd`) · test (`3a9bd73`) · frontend (`f903665`, `8391d79`) · ops (`438beab`, `ca104a0`) · qa (`2a33843`) · security (`286bee8`)
 - **ยังไม่ยืนยัน:** CI และ Vercel ของ `main` หลัง merge (เลขาไม่ได้ตรวจ) · ผล `npm test` ในเครื่องเลขาไม่มี (เลขาไม่ได้รัน)
 
-## R7 — เสร็จแล้ว รอ boss (branch `perf/r7-speed`, HEAD `603f21c`) ✅
-- contract: `R7_CONTRACT.md` (`f44551a`, main) · branch แตกจาก `ea1bf5f` (v0.9.0) · **ยังไม่ push / ยังไม่มี PR** · **ไม่มี migration** (`git diff main..HEAD -- drizzle` = 0 บรรทัด)
+## R7 — merge + ออก v0.9.1 แล้ว (2026-11-08) ✅
+- **PR #19** (branch `perf/r7-speed`, HEAD `603f21c`) merge เข้า `main` ด้วย merge commit `c896b92` (`Merge pull request #19`, 2026-11-08 06:02 เวลาไทย)
+- **ออก v0.9.1 แล้ว** (2026-11-08, tag `v0.9.1` → commit `628175d` `chore(release): v0.9.1`; `git rev-parse v0.9.1^{commit}` = `628175d` · `git ls-remote --tags origin v0.9.1` เห็น tag บน GitHub แล้ว · หัวข้อ `[0.9.1] - 2026-11-08` ใน CHANGELOG) รวม R7 · `[Unreleased]` ว่างหลังออก
+- **PR #20** (`docs/v0.9.1-progress`) merge แล้ว (merge commit `9a53f1c`, ตรวจด้วย `git log origin/main` · รวม `d9e7950` `docs(progress): v0.9.1 released`)
+- **ไม่มี migration** รอบนี้ → ไม่ต้องรันฐาน Turso
+- contract: `R7_CONTRACT.md` (`f44551a`, main) · branch แตกจาก `ea1bf5f` (v0.9.0)
 - เนื้อหา: **G1** กลุ่มใหม่ "ว่างอย่างน้อย" 240 นาที (`73bd68d`, `14a7f2c`) · **F2 ความเร็ว** วัดก่อน (`b721a22` baseline) → เฟส B ตาม §3.1 (`2c4167e` `896720c` `6c3ef87` `5361858` `6c64caa` `45660c2` `a18cd83`) → วัดหลัง (`cb15b59`) · Server-Timing + env `SERVER_TIMING_ENABLED` (`ecc91dd`, `7c5b2f9`) · CHANGELOG `[Unreleased]` (`ef3026a`)
 - **ตัวเลขหลัก** (จาก `perf-r7-after.md` · จำนวน query, ในเครื่อง libSQL ไฟล์):
   - home `/` 13 → 9 (−31%) · waves 7 → 3 · **ผ่าน**
@@ -42,14 +46,12 @@
   - security **ผ่าน** (`docs/reports/security-r7.md`) — Low 1 (Server-Timing เป็น oracle "username active" ผ่าน pin-reset เมื่อผู้เรียกล็อกอิน) **แก้แล้ว `c563097`** (platform) และตรวจซ้ำผ่าน `4eb3f15` · Info 5
   - ⚠️ qa รันที่ `cb15b59` ก่อน fix `c563097` — การแก้ครั้งนั้น security ตรวจซ้ำแล้ว แต่ qa ยังไม่ได้รันซ้ำ (ไม่ใช่ข้อบกพร่อง แค่ข้อสังเกต)
 - **เกณฑ์ contract:** R7-1 / R7-2 / R7-3 / R7-5 ผ่าน (ตามรายงาน qa/security) · R7-4 ผ่าน 3 เส้นทางหลัก · RSVP ไม่ผ่าน · R7-6 ข้าม (optimistic ไม่ทำตาม contract §3.1) · R7-7 **ยังไม่ยืนยัน** (CI / Vercel preview ยังไม่ได้ตรวจ)
-- **ข้อเสนอเลขเวอร์ชัน: v0.9.1** (ยังไม่ออก)
-- **ยังไม่ยืนยัน:** เวลาจริงบน Turso ญี่ปุ่น (ยังไม่ได้วัด) · CI และ Vercel preview ของ branch · ผลเทสต์ทั้งชุดบน Windows (ยังมี EPERM/timeout/ENOENT ตามปกติ)
+- **ยังไม่ยืนยัน:** เวลาจริงบน Turso ญี่ปุ่น (ยังไม่ได้วัด) · CI และ Vercel preview ของ branch (ตอนนี้ merge/release แล้ว แต่เลขาไม่ได้ตรวจ CI ของ `main` หลัง v0.9.1) · ผลเทสต์ทั้งชุดบน Windows (ยังมี EPERM/timeout/ENOENT ตามปกติ)
 
-### รอ boss ตัดสิน (R7)
-1. **ยอมรับ RSVP ที่ลด 10 → 9 query (ไม่ถึงเกณฑ์ 30%) หรือไม่** — ถ้าจะลดต่อต้องเปลี่ยนการออกแบบ (ย้าย rate limit เข้าธุรกรรม / คืน DTO แบบย่อจาก PUT ซึ่งเปลี่ยนรูป API)
-2. **merge PR** (Create a merge commit) — main เปิด PR เมื่อ boss สั่ง
-3. **ออก v0.9.1** — `npx tsx scripts/release.ts 0.9.1` (ใช้ `--skip-gates` เมื่อ CI ของ main เขียว) · boss รันและ push tag เอง
-- ไม่มี migration รอบนี้ → ไม่ต้องรันฐาน Turso
+### การตัดสินของ boss (R7)
+1. **RSVP ลด 10 → 9 query (ไม่ถึงเกณฑ์ 30%)** — ยอมรับตามที่ main เสนอ รอ boss ยืนยัน (ยังไม่พบคำตอบของ boss ในรีโป) · การลดต่อต้องเปลี่ยนการออกแบบ (ย้าย rate limit เข้าธุรกรรม / คืน DTO แบบย่อจาก PUT ซึ่งเปลี่ยนรูป API) → เก็บไว้ใน backlog
+2. **merge PR #19** — เสร็จแล้ว (merge commit `c896b92`)
+3. **ออก v0.9.1** — เสร็จแล้ว (`628175d`, tag `v0.9.1`, 2026-11-08)
 
 ### backlog ใหม่จาก R7 (ไม่บล็อก)
 - RSVP ลดได้อีกถ้าออกแบบใหม่ (ดูข้อ 1 ด้านบน) · หน้า RSVP จากหน้าหลักยังเป็น 2 คำขอ (GET detail → PUT) เพราะ popup นัดชนของ R6D ต้องใช้ `myConflicts` ก่อนยืนยัน
@@ -58,7 +60,7 @@
 - security-r7 Info 1–5: Info 1 หน้าต่างหลัง commit ของ RSVP (ยอมรับได้) · Info 2 `resolvedUsers` ระวังถ้ามีผู้เรียกใหม่หลังเขียน · Info 3 audit super admin บนหน้า `/calendar` (ยอมรับได้) · Info 4 ค่าเริ่มต้น Server-Timing "เปิด" เมื่อไม่มี `VERCEL_ENV` · Info 5 `total;dur` เป็นเวลาจริง (oracle หลักคือจำนวน query ซึ่งแก้แล้วใน Low 1)
 - ข้อสังเกตเครื่อง Windows (R7): **Node v26.13.0** ในเครื่อง (เทสต์ `ops/health` คาด v24 → ล้ม) · path ยาวของ Playwright `--output` ทำ ENOENT · config Vitest ชั่วคราวข้าม EPERM (เสนอทำถาวร — ข้อเสนอเดิมจาก R6F)
 
-## R8 — F1 onboarding + P1 privacy — เสร็จแล้ว รอ PR/merge (branch `feat/r8-onboarding`, HEAD `a0f63d6`) ✅
+## R8 — F1 onboarding + P1 privacy — เสร็จแล้ว · PR #21 เปิดแล้ว รอ boss merge (branch `feat/r8-onboarding`, HEAD code `a0f63d6`) ✅
 - contract: `R8_CONTRACT.md` (`59661af`, main) · **boss อนุมัติ 2026-11-08** ("อนุมัติ เริ่มเลย") · branch แตกจาก main `628175d` (v0.9.1) · **ไม่มี migration** (`git diff main..HEAD -- drizzle` = ว่าง) · ข้อเสนอเลขเวอร์ชัน **v0.10.0** (ยังไม่ออก)
 - เนื้อหา:
   - **P1** `/privacy`: ตัดข้อความ "เจ้าของแอปต้องรับรอง" · "ร่างล่าสุด" → "อัปเดตล่าสุด / Last updated" (`bd54b1c`, `d3c34db`)
@@ -79,20 +81,26 @@
   1. ขั้น 2 ปุ่ม "ลงวันไม่ว่าง" พาไปปฏิทิน ไม่ได้เปิดฟอร์มลง busy ตรง (qa L3) — ทำรอบหน้า
   2. ขั้น 3 ค้าง "ถัดไป" จนกว่าจะมีนัด — ผู้ใช้ที่ดูวันว่างแล้วไม่ได้รับสัญญาณตอบกลับ (qa L4)
   3. `/privacy` เพิ่มประโยคว่าสมาชิกในกลุ่มเห็นว่าลงวันไม่ว่างแล้วหรือยัง (security Info 1 · ข้อเสนอ — boss ตัดสิน)
-- **ยังไม่ยืนยัน:** CI และ Vercel preview ของ branch · ผลเทสต์หลัง `a0f63d6` (ดูข้อ qa ด้านบน) · PR ยังไม่ได้เปิด (ต้องให้ main push + เปิด PR)
+- **ยังไม่ยืนยัน:** CI และ Vercel preview ของ branch · ผลเทสต์หลัง `a0f63d6` (ดูข้อ qa ด้านบน)
+- **PR #21** (`feat/r8-onboarding` → `main`, OPEN): https://github.com/ieatbaozi-stack/maewmeet/pull/21 (ตรวจด้วย `gh pr view 21`) · merge โดย boss เท่านั้น
 
 ### รอ boss (R8)
-1. **merge PR** ของ `feat/r8-onboarding` เข้า `main` (main เปิด PR หลัง push)
+1. **merge PR #21** เข้า `main` (boss กด Merge เอง)
 2. **ออก v0.10.0** (ถ้าเห็นชอบเลขเสนอ) — `npx tsx scripts/release.ts 0.10.0` · boss รันและ push tag เอง
 
 ## รอ boss
-- **R8** — ตัดสิน 2 ข้อด้านบน (merge PR · ออก v0.10.0)
-- **R7** — ตัดสิน 3 ข้อด้านบน (RSVP 10→9 · merge PR · ออก v0.9.1)
-- R7 เฟส A เดิม (เปิด preview อ่าน Server-Timing ด้วย DevTools เพื่อเวลาจริงกับ Turso ญี่ปุ่น) — ยังไม่ได้ทำ ถ้าต้องการตัวเลขจริงก่อน merge
-- ตัดสินช่องทางแจ้งเตือนก่อนนัด (F6) — ยังค้างจากเดิม
+- **R7 RSVP 10→9** — ยอมรับตามที่ main เสนอ รอ boss ยืนยัน (ดูหัวข้อ R7 ด้านบน) · merge PR #19 และออก v0.9.1 เสร็จแล้ว
+- **F6 แจ้งเตือนก่อนนัด** — boss ต้องเลือกช่องทาง (ยังค้างจากเดิม)
+- R7 เฟส A เดิม (เปิด preview อ่าน Server-Timing ด้วย DevTools เพื่อวัดเวลาจริงกับ Turso ญี่ปุ่น) — ยังไม่ได้ทำ เลื่อนเป็น backlog ถ้าไม่ต้องการตัวเลขจริงก่อนงานถัดไป
 
 ## เหลือ
-- ตาม `docs/NEXT_PHASE.md`: F1 onboarding (R8 เสร็จ รอ merge) · F2 ความช้า (R7 เสร็จ รอ boss ตัดสิน) · F6 แจ้งเตือนก่อนนัด (**boss ยังไม่ตัดสินช่องทาง**) · R6 hardening (ดู NEXT_PHASE)
+- **งานหลักที่ค้าง** (ตาม `docs/NEXT_PHASE.md`):
+  - **F1 onboarding** — R8 เสร็จ รอ boss merge PR #21
+  - **F2 ความช้า** — R7 เสร็จ รอ boss ตัดสิน RSVP 10→9
+  - **F6 แจ้งเตือนก่อนนัด** — **boss ต้องเลือกช่องทางก่อน** (ยังไม่ตัดสิน)
+- **backlog R7 และ R8 (ไม่บล็อก):** ดูหัวข้อ "backlog ใหม่จาก R7" และ "backlog R8" ด้านบน · qa/security L/Info ที่เหลือจาก R7: ดู `docs/reports/qa-r7.md`, `docs/reports/security-r7.md`
+- **ทำ config/helper ถาวรให้ Vitest ข้าม EPERM บน Windows** (ข้อเสนอเดิม)
+- **R6 hardening (ดู `docs/NEXT_PHASE.md` หัวข้อ backlog R6 hardening):** rate limit แบบ global/อ่าน · retention กลุ่ม/คำเชิญที่ลบ · e2e retries ซ่อน flake · guard stream HTTP 200 · CSP unsafe-inline · DST day strip · แจ้งเตือน appointment.cancelled · กู้กลุ่ม/บัญชีที่ลบ
 - **backlog R6F (ไม่บล็อก):**
   - qa-r6f L1: ป้ายชุดใน `MineList.tsx:99` เป็น `<span aria-label>` ไม่มี role — screen reader อาจไม่อ่าน aria-label (ข้อความที่มองเห็นยังอ่านได้) · ตัดสินใจโดย ux/frontend
   - qa-r6f L2: "Certain hours" ในปุ่ม segmented ขึ้น 2 บรรทัดที่ 375 EN (ไม่ล้น ปุ่มสูงกว่า 44px) — เชิงรูปลักษณ์
@@ -114,7 +122,6 @@
   - security-r6e Info 3: E11 เพิ่ม `GET /api/me/busy` 1 ครั้งต่อการบันทึก (อ่านของตัวเอง)
   - security-r6e Info 4: CSP ยังมี `'unsafe-inline'` ใน script-src/style-src (`next.config.ts`) — ของเดิม, nonce อยู่ใน hardening
   - security-r6d Info 5: การ์ดรายการ `myConflict` มีเพดาน 500 ไม่มีธง truncated (ผลแค่ UI)
-- **backlog R6 hardening (จาก NEXT_PHASE):** rate limit แบบ global/อ่าน, retention กลุ่ม/คำเชิญที่ลบ, e2e retries ซ่อน flake, guard stream HTTP 200, CSP unsafe-inline, DST day strip, แจ้งเตือน appointment.cancelled, กู้กลุ่ม/บัญชีที่ลบ
 
 ## ข้อสังเกต
 - **ลำดับ migration `0003` (ปิดแล้ว):** commit `ca104a0` (ops) แก้ `docs/OPERATIONS.md` ให้ตรงกับลำดับที่ main สั่ง (preview ก่อน PR, prod ก่อน merge) — ปิดตาม commit message
@@ -123,5 +130,5 @@
 - **vitest ทั้งชุดบน Windows ล้มหลายร้อยข้อ เป็นปัญหาเดิม** — qa รันเทียบ main แล้ว (main `37271af` ล้ม 908, branch R6E ล้ม 907) · รายงาน qa เป็นตัวเลขของ qa ไม่ใช่ของเลขา
 - `npm run lint` จาก root ไปสแกน worktree ที่ซ้อนใน `.claude/worktrees/` → ใช้ `npx eslint . --ignore-pattern ".claude/**"` แทน (qa รันแล้ว 0 problems) — ปัญหาการตั้งค่า
 - เครื่อง Windows ของ boss: เทสต์ฐานข้อมูลบางไฟล์ล้มด้วย EPERM ตอนลบโฟลเดอร์ชั่วคราว, `config-hygiene` ข้อ permissions ล้มบน CRLF, `tests/release` CLI ล้มเพราะ `.bin/tsx` ENOENT — เป็นปัญหาเดิม (ดูผลจริงจาก CI)
-- ยังไม่ยืนยัน: CI และ Vercel preview ของ R6E, R6F และ `main` หลัง v0.9.0 (เลขาไม่ได้ตรวจ) · ใบรับรอง Handoff ของแต่ละบทบาทไม่มีไฟล์ในรีโป (มีเฉพาะรายงาน qa/security)
+- ยังไม่ยืนยัน: CI และ Vercel preview ของ R6E, R6F และ `main` หลัง v0.9.0 / v0.9.1 (เลขาไม่ได้ตรวจ) · ใบรับรอง Handoff ของแต่ละบทบาทไม่มีไฟล์ในรีโป (มีเฉพาะรายงาน qa/security)
 - ช่องวันในปฏิทินจอ 360px กว้างประมาณ 43px (เป็นแบบนี้มาเดิม)
