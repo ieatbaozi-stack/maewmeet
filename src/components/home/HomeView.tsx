@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { EmptyState } from "@/components/shell/EmptyState";
+import { IntroCard } from "./IntroCard";
 import { Icon, type IconName } from "@/components/icons/Icon";
 import { format, type CalendarLocale } from "@/lib/calendar";
 import { callApiFull } from "@/components/appointments/api";
@@ -196,6 +197,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
   if (status === "error") {
     return (
       <main className="main home-main" id="main">
+        <IntroCard />
         <div className="alert" role="alert" style={{ marginTop: "var(--space-4)" }} data-testid="home-error">
           <Icon name="circle-alert" />
           <div>
@@ -214,6 +216,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
   if (noGroup) {
     return (
       <main className="main home-main" id="main">
+        <IntroCard />
         <div data-testid="home-nogroup">
           <EmptyState
             pose="tea"
@@ -236,6 +239,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
   if (!next) {
     return (
       <main className="main home-main" id="main">
+        <IntroCard />
         <div data-testid="home-empty">
           <EmptyState
             pose="tea"
@@ -251,6 +255,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
 
   return (
     <main className="main home-main" id="main">
+      <IntroCard />
       <h1 className="h-section home-h">{t("home.nextUp")}</h1>
       <NextCard a={next} rsvp={rsvp} nowMs={nowMs} locale={locale} onChoose={request} />
       {later.length > 0 ? (
