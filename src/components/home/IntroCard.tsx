@@ -30,7 +30,7 @@ export function IntroCard() {
   return (
     <section className="intro-card" aria-labelledby={`${id}-h`} data-testid="home-intro">
       <h2 id={`${id}-h`}>{t("onboarding.intro.title")}</h2>
-      <ol aria-label={t("onboarding.intro.listAria")}>
+      <ol role="list" aria-label={t("onboarding.intro.listAria")}>
         {STEPS.map((s) => (
           <li key={s}>{t(`onboarding.intro.${s}`)}</li>
         ))}

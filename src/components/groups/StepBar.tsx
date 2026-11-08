@@ -36,7 +36,7 @@ export function StepBar({ groupId, steps, doneCount, total, allDone, solo, planA
   };
 
   const list = (
-    <ol className="steps-list" id={listId} aria-label={t("group.steps.listAria")} hidden={allDone && !open} data-testid="group-steps-list">
+    <ol role="list" className="steps-list" id={listId} aria-label={t("group.steps.listAria")} hidden={allDone && !open} data-testid="group-steps-list">
       {steps.map((s) => {
         const title = t(`group.steps.${s.id}.title`);
         const label = t("group.steps.stepLabel", { n: s.n });

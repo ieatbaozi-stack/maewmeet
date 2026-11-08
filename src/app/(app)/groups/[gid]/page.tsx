@@ -92,7 +92,7 @@ export default async function GroupPage({ params }: { params: Promise<{ gid: str
             allDone={steps.allDone}
             solo={solo}
             planAction={
-              solo ? undefined : (
+              solo || steps.allDone ? undefined : (
                 <CreateAppointmentButton groupId={group.id} groupName={group.name} memberCount={group.memberCount} tz={group.tz} userId={user.id} className="btn btn-secondary" testId="group-step-create-appt" />
               )
             }
@@ -101,7 +101,10 @@ export default async function GroupPage({ params }: { params: Promise<{ gid: str
 
         {!solo ? (
           <div className="btn-row">
-            <CreateAppointmentButton groupId={group.id} groupName={group.name} memberCount={group.memberCount} tz={group.tz} userId={user.id} testId="group-create-appt" />
+            {/* ปุ่มสร้างนัดมีปุ่มเดียวเสมอ: แถบขั้นตอนยังไม่ครบ → อยู่ในแถวขั้น 4 · ครบแล้ว/ไม่มีแถบ → อยู่ที่นี่ */}
+            {group.myRole === null || steps.allDone ? (
+              <CreateAppointmentButton groupId={group.id} groupName={group.name} memberCount={group.memberCount} tz={group.tz} userId={user.id} testId="group-create-appt" />
+            ) : null}
             {inviteButton("btn-secondary")}
           </div>
         ) : null}
