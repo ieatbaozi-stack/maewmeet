@@ -83,7 +83,10 @@ for (const locale of LOCALES) {
     await expect(h1(a.page)).toHaveText(groupName);
     await expect(status(a.page, msg(locale, 'groups.createSheet.created', { name: groupName }))).toBeVisible();
     await expect(a.page.getByText(msg(locale, 'group.yourRole', { role: 'admin' }))).toBeVisible();
-    await expect(a.page.getByRole('heading', { level: 2, name: msg(locale, 'group.solo.title') })).toBeVisible();
+    // R8: แถบขั้นตอนแทนการ์ด solo — ขั้น 1 เป็นขั้นถัดไป ใช้ soloBody
+    await expect(a.page.getByTestId('group-steps')).toBeVisible();
+    await expect(a.page.locator('[data-step="invite"]')).toHaveAttribute('data-state', 'next');
+    await expect(a.page.getByText(msg(locale, 'group.steps.invite.soloBody'))).toBeVisible();
     await expect(memberRow(a.page, locale, pa.displayName, 'admin')).toBeVisible();
 
     // ───── 2) A สร้างโค้ดที่ตั้งค่ากลุ่ม ─────
