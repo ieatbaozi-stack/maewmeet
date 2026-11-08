@@ -98,6 +98,17 @@ function wallToEpoch(date: Temporal.PlainDate, minute: number, tz: string): Epoc
     .toZonedDateTime(tz, { disambiguation: 'compatible' }).epochMilliseconds;
 }
 
+/**
+ * instant + n วันปฏิทินใน tz (คงเวลาผนัง — วันที่มี DST ยาว/สั้นไม่ใช่ 24 ชม.) · n ต้องเป็นจำนวนเต็ม (ลบได้)
+ * เวลาผนังที่ไม่มีจริงในวันปลายทาง (DST gap) เลื่อนไปข้างหน้าแบบ 'compatible' · ซ้ำ (fold) เลือกตัวแรก
+ */
+export function addDaysAt(epochMs: EpochMs, n: number, tz: string): EpochMs {
+  failIf(!Number.isFinite(epochMs), 'INVALID_RANGE', undefined, 'epochMs must be finite');
+  failIf(!Number.isInteger(n), 'INVALID_RANGE', undefined, 'n must be an integer');
+  assertTimeZone(tz);
+  return Temporal.Instant.fromEpochMilliseconds(epochMs).toZonedDateTimeISO(tz).add({ days: n }).epochMilliseconds;
+}
+
 /** วันนี้ใน tz ณ เวลา nowMs (inject เสมอ — lib ไม่อ่านนาฬิกาเอง) */
 export function todayIn(tz: string, nowMs: EpochMs): DateISO {
   return toLocal(nowMs, tz).date;

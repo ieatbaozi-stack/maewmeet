@@ -81,6 +81,25 @@ export async function listMembers(db: DbOrTx, groupId: string): Promise<MemberWi
   return rows.map((r) => ({ ...r.m, displayName: r.displayName }));
 }
 
+export type MemberWithBusyFlag = MemberWithUser & { hasUpcomingBusy: boolean };
+
+/**
+ * R8 F1 §2.2: สมาชิกทั้งกลุ่ม (ลำดับเดียวกับ listMembers) + ธงว่ามี busy_block ที่ทับช่วง [from, to) หรือไม่ — **query เดียว** (EXISTS ต่อแถว ใช้ busy_user_end_idx)
+ * นับเฉพาะ busy ที่ลงเอง (busy_block) — ไม่นับนัดที่กด "ไป" (ADR 0009) · ทับ = end_at > from AND start_at < to (end exclusive)
+ * busy เป็นของผู้ใช้ ไม่ผูกกลุ่ม — สิ่งเดียวที่ออกจาก subquery คือ 0/1 (ไม่มีเวลา/ชื่อ busy — ADR 0006)
+ */
+export async function listMembersWithUpcomingBusy(db: DbOrTx, groupId: string, range: { from: number; to: number }): Promise<MemberWithBusyFlag[]> {
+  const rank = sql`CASE ${groupMember.role} WHEN 'admin' THEN 0 WHEN 'moderator' THEN 1 ELSE 2 END`;
+  const busy = sql<number>`EXISTS (SELECT 1 FROM busy_block bb WHERE bb.user_id = ${groupMember.userId} AND bb.end_at > ${range.from} AND bb.start_at < ${range.to})`;
+  const rows = await db
+    .select({ m: groupMember, displayName: user.displayName, busy })
+    .from(groupMember)
+    .innerJoin(user, eq(user.id, groupMember.userId))
+    .where(eq(groupMember.groupId, groupId))
+    .orderBy(asc(rank), asc(groupMember.joinedAt), asc(groupMember.userId));
+  return rows.map((r) => ({ ...r.m, displayName: r.displayName, hasUpcomingBusy: Number(r.busy) === 1 }));
+}
+
 /** user id ของสมาชิกปัจจุบันทั้งกลุ่ม (เบา — ไม่ join ตาราง user) */
 export async function listMemberIds(db: DbOrTx, groupId: string): Promise<string[]> {
   const rows = await db.select({ userId: groupMember.userId }).from(groupMember).where(eq(groupMember.groupId, groupId)).orderBy(asc(groupMember.userId));

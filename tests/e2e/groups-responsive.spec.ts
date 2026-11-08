@@ -159,7 +159,10 @@ for (const locale of LOCALES) {
         await check(adm.page, testInfo, 'group-home-admin');
 
         await go(adm.page, `/groups/${gworld.soloGid}`);
-        await expect(adm.page.getByRole('heading', { level: 2, name: msg(locale, 'group.solo.title') })).toBeVisible();
+        // R8: การ์ด solo ถูกแทนด้วยแถบขั้นตอน — ขั้น 1 เป็นขั้นถัดไปและใช้ soloBody
+        await expect(adm.page.getByTestId('group-steps')).toBeVisible();
+        await expect(adm.page.locator('[data-step="invite"]')).toHaveAttribute('data-state', 'next');
+        await expect(adm.page.getByText(msg(locale, 'group.steps.invite.soloBody'))).toBeVisible();
         await check(adm.page, testInfo, 'group-home-solo');
 
         const mem = await openAs(gworld.member, prefs);

@@ -10,18 +10,19 @@ import {
   deleteSelfMember,
   findMember,
   insertAdminMember,
-  listMembers,
+  listMembersWithUpcomingBusy,
   setMemberRoleGuarded,
   transferAdminSteps,
   updateOwnAppearance,
 } from '@/lib/data/repos/group-member';
 import { revokeActiveInvitesCreatedBy } from '@/lib/data/repos/group-invite';
 import { constraintKind } from '@/lib/data/repos/errors';
+import { addDaysAt } from '@/lib/calendar';
 import { authorize } from '@/lib/rbac/can';
 import type { Actor, GroupCtx } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
-import { GROUP_DEFAULT_MIN_FREE_MINUTES, GROUP_LIMITS, MEMBER_APPEARANCE_RATE_LIMIT } from '@/lib/shared/limits';
+import { GROUP_DEFAULT_MIN_FREE_MINUTES, GROUP_LIMITS, MEMBER_APPEARANCE_RATE_LIMIT, UPCOMING_BUSY_LOOKAHEAD_DAYS } from '@/lib/shared/limits';
 import { APPEARANCE_SLOT_MAX, APPEARANCE_SLOT_MIN } from '@/lib/shared/member-color';
 import { takeUserSlot } from '../admin-input';
 import type { DbOrTx } from '@/db/client';
@@ -123,7 +124,8 @@ export async function getGroup(actor: Actor, groupId: string, ctx: DataCtx): Pro
   const allow = authorize(actor, 'group.view', groupRes(group));
   const me = asUser(actor);
   const row = groupRowOf(group); // R7 B-3: แถวกลุ่มมากับด่านกลุ่มแล้ว
-  const members = await listMembers(ctx.db, groupId);
+  // R8 F1 §2.2: ธง "ลง busy แล้ว" มากับ query สมาชิกเดิม (EXISTS) — ไม่เพิ่ม query · ช่วง 30 วันปฏิทินตาม tz ของกลุ่ม (lib กลาง)
+  const members = await listMembersWithUpcomingBusy(ctx.db, groupId, { from: ctx.now, to: addDaysAt(ctx.now, UPCOMING_BUSY_LOOKAHEAD_DAYS, row.tz) });
   await auditRead(ctx.db, me, allow, { action: 'group.view', targetType: 'group', targetId: groupId, groupId }, ctx.now);
   return { group: toGroupDetail(row, group.actorRole, members, me.id) };
 }

@@ -30,7 +30,7 @@ describe('GET /api/groups/:gid', () => {
     expect(r.data.group.members.map((x) => x.role)).toEqual(['admin', 'moderator', 'member', 'member']);
     for (const x of r.data.group.members) {
       expect(Number.isInteger(x.colorIndex) && x.colorIndex >= 0 && x.colorIndex <= 9).toBe(true);
-      expect(Object.keys(x).sort()).toEqual(['colorIndex', 'displayName', 'joinedAt', 'role', 'shapeIndex', 'userId']); // R6C: + shapeIndex
+      expect(Object.keys(x).sort()).toEqual(['colorIndex', 'displayName', 'hasUpcomingBusy', 'joinedAt', 'role', 'shapeIndex', 'userId']); // R6C: + shapeIndex · R8: + hasUpcomingBusy
     }
     expect(r.text).not.toMatch(/pin_hash|pinHash|code_hash|codeHash|username/i);
     // สีคงที่ข้ามคำขอ และไม่ขึ้นกับสมาชิกคนอื่นเข้า/ออก

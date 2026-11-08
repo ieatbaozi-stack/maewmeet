@@ -240,7 +240,7 @@ const CEILINGS: Record<string, number> = {
   'PAGE /calendar?v=day': 8,
   'PAGE /calendar?v=mine': 11,
   'PAGE /groups': 5,
-  'PAGE /groups/[gid]': 11,
+  'PAGE /groups/[gid]': 11, // R8-4: hasUpcomingBusy มากับ query สมาชิกเดิม (EXISTS) → +0 (วัดจริง 11 ก่อน/หลัง)
   'PAGE /appointments/[id]': 7,
   'PAGE /me': 3,
   'GET /api/groups/:gid/calendar (เดือน)': 5,
@@ -250,7 +250,7 @@ const CEILINGS: Record<string, number> = {
   'GET /api/me/appointments?limit=5 (home refresh)': 6,
   'GET /api/me/notifications?limit=1 (bell)': 3,
   'GET /api/groups': 2,
-  'GET /api/groups/:gid': 3,
+  'GET /api/groups/:gid': 3, // R8-4: +0 (listMembers → listMembersWithUpcomingBusy · 3 ก่อน/หลัง)
   'GET /api/groups/:gid/appointments': 7,
   'GET /api/me/invites': 2,
   'GET /api/appointments/:id': 5,

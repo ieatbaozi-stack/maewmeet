@@ -7,6 +7,8 @@ import { getPageUser, requireUser } from "@/app/_lib/session";
 import { Aurora, Cat } from "@/components/brand";
 import { FlashNotice } from "@/components/groups/Notice";
 import { MemberList } from "@/components/groups/MemberList";
+import { StepBar } from "@/components/groups/StepBar";
+import { STEP_TOTAL, computeSteps } from "@/components/groups/steps-model";
 import { viewerRole } from "@/components/groups/helpers";
 import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
@@ -39,6 +41,9 @@ export default async function GroupPage({ params }: { params: Promise<{ gid: str
   // จำนวนนัดที่กำลังจะถึง (ไม่นับที่ยกเลิก) สำหรับการ์ดนัดของกลุ่ม · โหลดไม่ได้ → ไม่ทำให้หน้ากลุ่มล้ม (การ์ดแสดงข้อความ 0)
   const upcoming = solo ? null : await loadGroupAppointments(gid).catch(() => null);
   const upcomingCount = upcoming ? upcoming.appointments.filter((a) => a.status !== "cancelled").length : 0;
+  // R8: ขั้น 2 = แถวของผู้ดูเองมี busy ใน 30 วัน (ไม่ใช่สมาชิก/ไม่มีค่า → false) · ขั้น 4 = มีนัดที่กำลังจะถึง (กลุ่มคนเดียวไม่โหลด → 0)
+  const viewerHasBusy = group.members.find((m) => m.userId === user.id)?.hasUpcomingBusy === true;
+  const steps = computeSteps({ memberCount: group.memberCount, viewerHasBusy, upcomingCount });
   const invitePath = `/groups/${group.id}/settings#invite`;
   const inviteButton = (tone: "btn-primary" | "btn-secondary") => (
     <Link className={`btn ${tone}`} href={invitePath}>
@@ -77,19 +82,32 @@ export default async function GroupPage({ params }: { params: Promise<{ gid: str
 
         <FlashNotice />
 
-        {solo ? (
-          <section className="empty panel solo-panel">
-            <Cat pose="sit" size="md" />
-            <h2 className="h-section">{t("group.solo.title")}</h2>
-            <p className="muted">{t("group.solo.body")}</p>
-            {inviteButton("btn-primary")}
-          </section>
-        ) : (
+        {/* R8: แถบขั้นตอนแทนการ์ด solo เดิม · ซ่อนสำหรับ super admin ที่ไม่ใช่สมาชิก (ไม่มีแถวของตัวเอง ขั้นตอนไม่เกี่ยว) */}
+        {group.myRole !== null ? (
+          <StepBar
+            groupId={group.id}
+            steps={steps.steps}
+            doneCount={steps.doneCount}
+            total={STEP_TOTAL}
+            allDone={steps.allDone}
+            solo={solo}
+            planAction={
+              solo || steps.allDone ? undefined : (
+                <CreateAppointmentButton groupId={group.id} groupName={group.name} memberCount={group.memberCount} tz={group.tz} userId={user.id} className="btn btn-secondary" testId="group-step-create-appt" />
+              )
+            }
+          />
+        ) : null}
+
+        {!solo ? (
           <div className="btn-row">
-            <CreateAppointmentButton groupId={group.id} groupName={group.name} memberCount={group.memberCount} tz={group.tz} userId={user.id} testId="group-create-appt" />
+            {/* ปุ่มสร้างนัดมีปุ่มเดียวเสมอ: แถบขั้นตอนยังไม่ครบ → อยู่ในแถวขั้น 4 · ครบแล้ว/ไม่มีแถบ → อยู่ที่นี่ */}
+            {group.myRole === null || steps.allDone ? (
+              <CreateAppointmentButton groupId={group.id} groupName={group.name} memberCount={group.memberCount} tz={group.tz} userId={user.id} testId="group-create-appt" />
+            ) : null}
             {inviteButton("btn-secondary")}
           </div>
-        )}
+        ) : null}
 
         <section aria-labelledby="mem-h" className="members-section">
           <h2 className="h-section" id="mem-h">

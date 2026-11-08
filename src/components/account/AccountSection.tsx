@@ -6,6 +6,7 @@ import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
 import "@/components/groups/groups.css";
 import { Icon } from "@/components/icons/Icon";
+import { resetIntro } from "@/components/home/intro-flag";
 import { DeleteAccountSheet } from "./DeleteAccountSheet";
 import { RenameSheet } from "./RenameSheet";
 
@@ -45,6 +46,14 @@ export function AccountSection({ displayName, isSuperAdmin }: { displayName: str
         <Icon name="pencil" />
         <span>{t("me.rename")}</span>
       </button>
+      {/* R8: เปิดการ์ดแนะนำหน้าหลักอีกครั้ง — ล้างธงแล้วไปหน้าหลัก */}
+      <Link className="menu-row" href="/" onClick={resetIntro} data-testid="me-howto">
+        <span>
+          <span>{t("me.howTo")}</span>
+          <span className="field-hint">{t("me.howToHint")}</span>
+        </span>
+        <Icon name="chevron-right" />
+      </Link>
       <Link className="menu-row" href="/privacy" data-testid="me-privacy">
         <span>{t("me.privacy")}</span>
         <Icon name="chevron-right" />

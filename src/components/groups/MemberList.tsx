@@ -69,14 +69,29 @@ export function MemberList({ groupId, members, viewer, myId }: MemberListProps) 
           const acts = memberActions(viewer, m.role, isSelf);
           const canManage = acts.setRole !== null || acts.transfer || acts.remove;
           const roleLabel = t(`roles.${m.role}`);
+          // R8: เฉพาะสมาชิกคนอื่นที่ API บอกชัดว่า "ไม่มี busy ใน 30 วัน" (ไม่มีค่า = ไม่ป้าย · แถวของตัวเองไม่ป้าย)
+          const noBusy = !isSelf && m.hasUpcomingBusy === false;
+          const hintId = `nobusy-${m.userId}`;
+          const rowAria = t("group.members.rowAria", { name: m.displayName, role: roleLabel });
           return (
             <li key={m.userId}>
-              <div className="row" role="group" aria-label={t("group.members.rowAria", { name: m.displayName, role: roleLabel })}>
+              <div
+                className="row"
+                role="group"
+                aria-label={noBusy ? `${rowAria}. ${t("group.members.noBusyAria", { name: m.displayName })}` : rowAria}
+                aria-describedby={noBusy ? hintId : undefined}
+              >
                 <MemberAvatar displayName={m.displayName} colorIndex={m.colorIndex} shapeIndex={m.shapeIndex} size="lg" />
                 <span className="row-main">
                   <span className="row-title"><Name>{m.displayName}</Name></span>
                   {isSelf ? <span className="you">{t("group.members.you")}</span> : null}
                   <RoleTag role={m.role} label={roleLabel} />
+                  {noBusy ? (
+                    <span className="no-busy-line">
+                      <span className="tag tag-warn no-busy" data-testid="member-no-busy">{t("group.members.noBusyBadge")}</span>
+                      <span className="sr-only" id={hintId}>{t("group.members.noBusyHint")}</span>
+                    </span>
+                  ) : null}
                 </span>
                 {canManage ? (
                   <button

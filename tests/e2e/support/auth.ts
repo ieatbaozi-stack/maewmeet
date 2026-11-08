@@ -179,9 +179,28 @@ type Fixtures = {
   openAs: (jar: Jar, prefs?: { locale?: Locale; theme?: 'light' | 'dark' | 'system' }) => Promise<{ context: BrowserContext; page: Page }>;
   /** สร้าง "เครื่อง" (BrowserContext) ใหม่ — cookie jar แยก, IP สมมติแยก, ขนาดจอ/touch ตาม project */
   newDevice: () => Promise<{ context: BrowserContext; page: Page }>;
+  /** R8: ดีฟอลต์ true = ตั้ง localStorage `mm_intro_seen`=1 ก่อนโหลดหน้า (การ์ดแนะนำหน้าหลักไม่โผล่ในสเปกเก่า) · สเปก R8 ใช้ `test.use({ introSeen: false })` */
+  introSeen: boolean;
+};
+
+/** ชื่อ key เดียวกับ INTRO_KEY ใน src/components/home/intro-flag.ts */
+export const INTRO_KEY = 'mm_intro_seen';
+export const markIntroSeen = async (context: BrowserContext): Promise<void> => {
+  await context.addInitScript((k: string) => {
+    try {
+      window.localStorage.setItem(k, '1');
+    } catch {
+      /* เก็บไม่ได้ก็ข้าม */
+    }
+  }, INTRO_KEY);
 };
 
 export const test = base.extend<Fixtures, { world: World }>({
+  introSeen: [true, { option: true }],
+  context: async ({ context, introSeen }, provide) => {
+    if (introSeen) await markIntroSeen(context);
+    await provide(context);
+  },
   world: [
     async ({ playwright }, provide) => {
       await provide(await buildWorldWithRetry(playwright));
@@ -197,20 +216,20 @@ export const test = base.extend<Fixtures, { world: World }>({
     await signupViaApi(context.request, { username });
     await provide({ username, displayName: `E2E ${username}`, pin: GOOD_PIN });
   },
-  openAs: async ({ browser, baseURL }, provide, testInfo) => {
+  openAs: async ({ browser, baseURL, introSeen }, provide, testInfo) => {
     const opened: BrowserContext[] = [];
     await provide(async (jar, prefs) => {
-      const context = await newDeviceContext(browser, testInfo.project.use, jar);
+      const context = await newDeviceContext(browser, testInfo.project.use, jar, introSeen);
       opened.push(context);
       if (prefs) await setPrefs(context, baseURL!, prefs);
       return { context, page: await context.newPage() };
     });
     await Promise.all(opened.map((c) => c.close()));
   },
-  newDevice: async ({ browser }, provide, testInfo) => {
+  newDevice: async ({ browser, introSeen }, provide, testInfo) => {
     const opened: BrowserContext[] = [];
     await provide(async () => {
-      const context = await newDeviceContext(browser, testInfo.project.use);
+      const context = await newDeviceContext(browser, testInfo.project.use, undefined, introSeen);
       opened.push(context);
       return { context, page: await context.newPage() };
     });
@@ -226,8 +245,8 @@ type ProjectUse = {
   locale?: string;
   timezoneId?: string;
 };
-export function newDeviceContext(browser: Browser, use: ProjectUse, storageState?: Jar): Promise<BrowserContext> {
-  return browser.newContext({
+export async function newDeviceContext(browser: Browser, use: ProjectUse, storageState?: Jar, introSeen = true): Promise<BrowserContext> {
+  const context = await browser.newContext({
     storageState,
     baseURL: E2E_BASE_URL,
     viewport: use.viewport ?? undefined,
@@ -238,6 +257,8 @@ export function newDeviceContext(browser: Browser, use: ProjectUse, storageState
     timezoneId: use.timezoneId ?? 'Asia/Bangkok',
     extraHTTPHeaders: { 'x-real-ip': randomIp() },
   });
+  if (introSeen) await markIntroSeen(context);
+  return context;
 }
 
 // ───────── ท่าทางบนหน้าจอ ─────────

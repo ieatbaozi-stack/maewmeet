@@ -22,8 +22,10 @@ test.beforeEach(({}, testInfo) => {
 const status = (page: Page, text: string) => page.getByRole('status').filter({ hasText: text });
 const button = (scope: Pick<Page, 'getByRole'>, name: string) => scope.getByRole('button', { name, exact: true });
 const h1 = (page: Page) => page.getByRole('heading', { level: 1 });
+// R8: แถวของสมาชิกที่ยังไม่ลง busy ต่อประโยค noBusyAria ท้าย aria-label → จับตามคำนำหน้า (ขึ้นต้น rowAria แล้วตามด้วย "." หรือจบ) ไม่ใช้ exact
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const memberRow = (page: Page, locale: Locale, displayName: string, role: 'admin' | 'moderator' | 'member') =>
-  page.getByRole('group', { name: msg(locale, 'group.members.rowAria', { name: displayName, role: msg(locale, `roles.${role}`) }), exact: true });
+  page.getByRole('group', { name: new RegExp(`^${escapeRe(msg(locale, 'group.members.rowAria', { name: displayName, role: msg(locale, `roles.${role}`) }))}(\\.|$)`) });
 const manageBtn = (page: Page, locale: Locale, displayName: string) =>
   page.getByRole('button', { name: msg(locale, 'group.members.actionsAria', { name: displayName }), exact: true });
 const gidOf = (page: Page) => /\/groups\/([0-9a-f-]{36})/.exec(page.url())![1]!;
@@ -83,7 +85,10 @@ for (const locale of LOCALES) {
     await expect(h1(a.page)).toHaveText(groupName);
     await expect(status(a.page, msg(locale, 'groups.createSheet.created', { name: groupName }))).toBeVisible();
     await expect(a.page.getByText(msg(locale, 'group.yourRole', { role: 'admin' }))).toBeVisible();
-    await expect(a.page.getByRole('heading', { level: 2, name: msg(locale, 'group.solo.title') })).toBeVisible();
+    // R8: แถบขั้นตอนแทนการ์ด solo — ขั้น 1 เป็นขั้นถัดไป ใช้ soloBody
+    await expect(a.page.getByTestId('group-steps')).toBeVisible();
+    await expect(a.page.locator('[data-step="invite"]')).toHaveAttribute('data-state', 'next');
+    await expect(a.page.getByText(msg(locale, 'group.steps.invite.soloBody'))).toBeVisible();
     await expect(memberRow(a.page, locale, pa.displayName, 'admin')).toBeVisible();
 
     // ───── 2) A สร้างโค้ดที่ตั้งค่ากลุ่ม ─────
