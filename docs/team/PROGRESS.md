@@ -1,7 +1,7 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-09 (เวลาไทย) · ตรวจด้วย `git log`, `git tag`, `docs/contracts/R9_CONTRACT.md`, `docs/reports/qa-r9.md`, `CHANGELOG.md`, `docs/contracts/R8_CONTRACT.md`, `docs/reports/qa-r8.md`, `security-r8.md`, `docs/reports/perf-r7-*.md`, `qa-r7.md`, `security-r7.md` · R9 merge ตรวจด้วย `gh pr view 23` / `gh pr checks 23` (2026-11-09)
+> อัปเดตล่าสุด: 2026-11-09 (เวลาไทย) · ออก v0.10.0 + repo public ตรวจด้วย `git log`, `git tag`, `gh pr view 21`, `gh repo view`, `gh api` (ruleset/security), `gh run list`, `/api/health` (2026-11-09 04:38) · ก่อนหน้า: `docs/contracts/R9_CONTRACT.md`, `docs/reports/qa-r9.md`, `CHANGELOG.md`, `docs/contracts/R8_CONTRACT.md`, `docs/reports/qa-r8.md`, `security-r8.md`, `docs/reports/perf-r7-*.md`, `qa-r7.md`, `security-r7.md` · R9 merge ตรวจด้วย `gh pr view 23` / `gh pr checks 23` (2026-11-09)
 
 ## เสร็จแล้ว
 - R0–R5: foundation, บัญชี PIN, กลุ่ม, ปฏิทิน + busy, วันว่างร่วม + สร้างนัด, หน้า super admin + audit log (ดู CHANGELOG)
@@ -17,6 +17,23 @@
   - ผลตรวจอิสระ: qa **ผ่านแบบมีข้อสังเกต** (`docs/reports/qa-r6e.md`, 0H/0M/4L) · security **ผ่าน** (`docs/reports/security-r6e.md`, 0C/0H/0M/0L, Info 4)
   - **R6D L1/L2 ปิดแล้ว** · **F5 ปิดแล้ว** (boss เลือกคงข้อความ `privacy.draft` 2026-11-02 — ไม่แก้โค้ด)
 - **ออก v0.8.1 แล้ว** (tag `v0.8.1` → commit `72d7881` `chore(release): v0.8.1`, 2026-11-03 03:10 เวลาไทย) รวม R6E · รอบนี้ไม่มี migration
+- **ออก v0.10.0 แล้ว** (2026-11-09, tag `v0.10.0` → commit `d670fcc` `chore(release): v0.10.0`) รวม R8 · **repo เปลี่ยนเป็น public** (2026-11-08) · รายละเอียดหัวข้อ "v0.10.0 + repo public" ด้านล่าง
+
+## v0.10.0 ออกแล้ว + repo เป็น public — 2026-11-09 ✅
+- **R8 merge แล้ว** (PR #21, merge commit `e41f9d2`, 2026-11-08) — `gh pr view 21`: MERGED, mergedAt 2026-11-08T02:58:10Z · F1 onboarding + แก้ข้อความ `/privacy` · **ไม่มี migration** · ผลตรวจอิสระ: qa ผ่านแบบมีข้อสังเกต (`docs/reports/qa-r8.md`) · security ผ่าน (`docs/reports/security-r8.md`)
+- **ออก v0.10.0 แล้ว** (2026-11-09): tag `v0.10.0` → commit `d670fcc` `chore(release): v0.10.0` (`git rev-list -n1 v0.10.0` = `d670fcc`; `git ls-remote --tags origin v0.10.0` เห็น tag · หัวข้อ `[0.10.0] - 2026-11-09` ใน CHANGELOG) · boss รันคำสั่งเอง ด้วย `--skip-gates` หลัง CI บน main เขียว
+  - การ push ครั้งแรกถูก GitHub ปฏิเสธ (GH007 อีเมลส่วนตัวใน commit) boss จึงย้อน commit ออกรุ่นแล้วทำใหม่ด้วยอีเมล noreply (`git config user.email` ระดับ repo) · author ของ `d670fcc` ตรวจแล้วเป็น noreply
+- **repo เปลี่ยนเป็น public** (2026-11-08) — `gh repo view`: visibility `PUBLIC` (ตรวจ 2026-11-09)
+  - เหตุผล: โควตา GitHub Actions เดือน พ.ย. ($12) หมดใน 8 วัน ทำให้ CI ไม่เริ่ม · boss ตั้งใจเปิดชั่วคราว
+  - ผลสแกนก่อนเปิด: `docs/reports/security-public-scan.md` (PR #22, merge `8fc15e6`) สรุป "เปิด public ได้"
+- **การตั้งค่าหลังเปิด public:**
+  - ตรวจด้วย `gh api` แล้ว: Secret scanning `enabled` + Push protection `enabled` · Dependabot alerts เปิด (`vulnerability-alerts` ตอบ 204) · Private vulnerability reporting `true` · PR จาก fork ต้องอนุมัติ `all_external_contributors`
+  - ruleset `main` `active`: ต้องผ่าน PR (approvals 0) · status checks 9 ตัว (lint, typecheck, test + migration, build, contrast, e2e (Playwright) 1–4) · ห้าม force push / ลบ · bypass ได้เฉพาะ repository admin
+  - ตามภาพหน้าจอของ boss (เลขาไม่ได้ตรวจผ่าน API): Vercel Git Fork Protection เปิด · boss ตั้ง "Keep my email addresses private" แล้ว
+- **ยังไม่ยืนยัน:**
+  - CI ของ commit `d670fcc` (`gh run list`: `chore(release): v0.10.0` status `in_progress`) ตอนบันทึก — ยังไม่เสร็จ
+  - Deploy: ตอนที่ main ตรวจ `/api/health` ตอบ `0.9.1` (เพิ่ง push) · **เลขาตรวจซ้ำ 2026-11-09 04:38 เวลาไทย** `https://maewmeet.vercel.app/api/health` ตอบ `"version":"0.10.0"` (node v24.22.2) — เป็นหลักฐานระดับ endpoint ว่า prod รุ่นนี้ขึ้นแล้ว · ยังไม่ได้ตรวจหน้า Vercel dashboard หรือ CI ของ `d670fcc` จบ · **main ควรยืนยันอีกครั้ง** (ผลสองครั้งไม่ตรงกัน)
+- **ข้อสังเกตจาก security-public-scan (L1, L2):** อีเมลส่วนตัวของ boss อยู่ใน metadata commit/tag เก่า (เห็นได้จาก `git log` ตอนนี้ที่ repo public) · ไม่ได้แก้ประวัติ · ยังไม่ทราบว่า boss เลือกทางใด (ดู `docs/reports/security-public-scan.md`) · username ตัวอย่าง `boss` ใน `docs/OPERATIONS.md` (L2) ยังไม่แก้
 
 ## R6F — merge + ออก v0.9.0 แล้ว (2026-11-03) ✅
 - **PR #18** (branch `feat/r6f-daily-busy`) merge เข้า `main` ด้วย merge commit `3aaab63` · `gh pr view 18`: state MERGED, mergedAt 2026-11-02T22:06:07Z (= 05:06 เวลาไทย 2026-11-03)
@@ -84,7 +101,7 @@
 - **สถานะ:** merge แล้ว · PR #23 (`docs/r9-readme` → `main`) · `gh pr view 23`: state MERGED, mergedAt 2026-11-08T19:07:04Z (= 2026-11-09 02:07 เวลาไทย), merge commit `8b60634` · `gh pr checks 23`: 11 checks ผ่าน (Vercel, Vercel Preview Comments, build, contrast, e2e (Playwright) 1–4, lint, test + migration, typecheck)
 
 ## R8 — F1 onboarding + P1 privacy — merge แล้ว (PR #21, merge commit `e41f9d2`) ✅
-- contract: `R8_CONTRACT.md` (`59661af`, main) · **boss อนุมัติ 2026-11-08** ("อนุมัติ เริ่มเลย") · branch แตกจาก main `628175d` (v0.9.1) · **ไม่มี migration** (`git diff main..HEAD -- drizzle` = ว่าง) · ข้อเสนอเลขเวอร์ชัน **v0.10.0** (ยังไม่ออก)
+- contract: `R8_CONTRACT.md` (`59661af`, main) · **boss อนุมัติ 2026-11-08** ("อนุมัติ เริ่มเลย") · branch แตกจาก main `628175d` (v0.9.1) · **ไม่มี migration** (`git diff main..HEAD -- drizzle` = ว่าง) · ออกแล้วเป็น **v0.10.0** (2026-11-09, `d670fcc`)
 - เนื้อหา:
   - **P1** `/privacy`: ตัดข้อความ "เจ้าของแอปต้องรับรอง" · "ร่างล่าสุด" → "อัปเดตล่าสุด / Last updated" (`bd54b1c`, `d3c34db`)
   - **F1 แถบ 4 ขั้น** บนหน้ากลุ่ม: ชวนเพื่อน → ลงวันไม่ว่าง → ดูวันว่างตรงกัน → สร้างนัด · ปุ่มสร้างนัดมีปุ่มเดียว (`d3c34db`, `c31f702`)
@@ -109,7 +126,7 @@
 
 ### รอ boss (R8)
 1. ~~merge PR #21~~ — merge แล้ว (`e41f9d2`)
-2. **ออก v0.10.0** (ถ้าเห็นชอบเลขเสนอ) — `npx tsx scripts/release.ts 0.10.0` · boss รันและ push tag เอง
+2. ~~ออก v0.10.0~~ — ออกแล้ว (`d670fcc`, 2026-11-09 · ดูหัวข้อ "v0.10.0 ออกแล้ว + repo เป็น public")
 
 ## รอ boss
 - **R7 RSVP 10→9** — ยอมรับตามที่ main เสนอ รอ boss ยืนยัน (ดูหัวข้อ R7 ด้านบน) · merge PR #19 และออก v0.9.1 เสร็จแล้ว
@@ -118,7 +135,12 @@
 
 ## เหลือ
 - **งานหลักที่ค้าง** (ตาม `docs/NEXT_PHASE.md`):
-  - **F1 onboarding** — R8 merge แล้ว (`e41f9d2`) · ออกรุ่น v0.10.0 ยังไม่ทำ
+  - **F1 onboarding** — R8 merge แล้ว (`e41f9d2`) · **ออกแล้ว v0.10.0** (`d670fcc`, 2026-11-09)
+- **งานค้างหลังเปิด public (เพิ่ม 2026-11-09, ไม่บล็อก):**
+  - ทบทวนว่าจะกลับเป็น private ไหม — ถ้ากลับ ต้องแก้โควตา CI ก่อน (ผูกบัตร หรือลดการใช้ CI) · boss ตัดสิน
+  - ลดการใช้นาที CI — ยังไม่ได้ทำ
+  - L2 (security-public-scan): username ตัวอย่าง `boss` ใน `docs/OPERATIONS.md` — ยังไม่แก้ (ดู `docs/reports/security-public-scan.md`)
+  - backlog R8 (step-2 CTA ไปปฏิทิน, step 3 ค้าง "ถัดไป", ประโยคเสริมใน `/privacy`) — ดูหัวข้อ "backlog R8" ด้านบน
   - **README สำหรับคนนอก (R9)** — merge แล้ว (PR #23, `8b60634`)
   - **F2 ความช้า** — R7 เสร็จ รอ boss ตัดสิน RSVP 10→9
   - **F6 แจ้งเตือนก่อนนัด** — **boss ต้องเลือกช่องทางก่อน** (ยังไม่ตัดสิน)
