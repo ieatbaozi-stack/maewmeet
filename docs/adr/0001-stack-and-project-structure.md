@@ -4,7 +4,7 @@
 - **เกี่ยวข้อง**: [PRD §2 D12, §5, §7](../prd/PRD.md) · [ARCHITECTURE.md](../design/ARCHITECTURE.md) · ADR [0002](0002-auth-pin.md) [0004](0004-time-and-timezone.md) [0008](0008-i18n-and-theme.md)
 
 ## Context
-PRD กำหนดตายตัว: Next.js (App Router) + TypeScript · Drizzle + Turso (libSQL/SQLite) · Vercel Hobby · Vitest + Playwright · GitHub Actions · ต้นทุน ≈ $0 ที่หลักสิบ–ร้อยผู้ใช้ ADR นี้ล็อก **เวอร์ชัน**, เลือก **ไลบรารีวันเวลา 1 ตัว**, ระบุข้อจำกัดแพลตฟอร์มที่กระทบดีไซน์ และวางโครงโฟลเดอร์ให้ตรงขอบเขตไฟล์ใน [TEAM.md](../../TEAM.md)
+PRD กำหนดตายตัว: Next.js (App Router) + TypeScript · Drizzle + Turso (libSQL/SQLite) · Vercel Hobby · Vitest + Playwright · GitHub Actions · ต้นทุน ≈ $0 ที่หลักสิบ–ร้อยผู้ใช้ ADR นี้ล็อก **เวอร์ชัน**, เลือก **ไลบรารีวันเวลา 1 ตัว**, ระบุข้อจำกัดแพลตฟอร์มที่กระทบดีไซน์ และวางโครงโฟลเดอร์ให้ตรงขอบเขตไฟล์ใน [TEAM.md](../team/TEAM.md)
 
 ## Decision
 

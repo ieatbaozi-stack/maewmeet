@@ -1,6 +1,6 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
-> ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](docs/NEXT_PHASE.md)
+> ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
 > อัปเดตล่าสุด: 2026-11-08 08:14 (เวลาไทย) · ตรวจด้วย `git log`, `git tag`, `git ls-remote --tags origin v0.9.1`, `R8_CONTRACT.md`, `docs/reports/qa-r8.md`, `security-r8.md`, `CHANGELOG.md`, `docs/reports/perf-r7-*.md`, `qa-r7.md`, `security-r7.md`, `gh pr view 21`
 
 ## เสร็จแล้ว

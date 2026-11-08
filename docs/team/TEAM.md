@@ -3,7 +3,7 @@
 > เจ้าของงาน: **boss** · ทีมนี้เป็น **บทบาท (role)** ไม่ใช่คน — Lead สร้าง agent ตามงานแต่ละรอบ แล้วปิดเมื่อเสร็จ
 > ชื่อผู้เขียน commit (`lead`, `platform`, `frontend`, `calendar`, `qa` …) คือบทบาทที่ทำ
 > ปรับจากทีมโปรเจกต์ Fat Cat Fit: ตัด PWA-ออฟไลน์/คลังท่า (i18n TH/EN + dark/light กลับเข้า v1 ตามคำสั่ง boss 2026-10-15) → เพิ่ม **Calendar & Time Logic**, **Auth & Access (RBAC)**, **Integrations (LINE)**, และบทบาทตรวจ **UI ไม่ให้เป็น AI slop**
-> กระบวนการ: [PROCESS.md](PROCESS.md) · เลขา: [SECRETARY.md](SECRETARY.md) · ความต้องการ: [docs/prd/PRD.md](docs/prd/PRD.md)
+> กระบวนการ: [PROCESS.md](PROCESS.md) · เลขา: [SECRETARY.md](SECRETARY.md) · ความต้องการ: [docs/prd/PRD.md](../prd/PRD.md)
 
 ## รายชื่อบทบาท
 
