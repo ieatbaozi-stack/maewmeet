@@ -34,3 +34,18 @@
 
 ## ตรวจไม่ได้
 CI/Vercel preview · tests/security/config-hygiene (CRLF) · tests/release (tsx ENOENT) · npm test ทั้งชุด (EPERM) · ไม่ได้ดูภาพทุกชุด 30 ภาพด้วยตา (ดู 375/390/768 อย่างละ th/en × สว่าง/มืด ผสมกัน; ที่เหลือพึ่ง assertion layout/44px ของ e2e)
+
+## Re-check c31f702 (ปุ่มสร้างนัดเดียว + role="list")
+ผล: c31f702 เองผ่าน แต่ตรวจซ้ำพบ **e2e เดิมล้ม 3 ข้อ** (ไม่ได้มาจาก c31f702 · มาจาก d3c34db) — ไม่ผ่านจนกว่า `test` แก้สเปก
+
+1. grep `group-create-appt` / `group-step-create-appt` ทั้ง `tests/**`: ไม่มีสเปกอ้างถึง (มีเฉพาะ `src/app/(app)/groups/[gid]/page.tsx:96,106`) · สเปกที่คลิกปุ่มสร้างนัดผ่าน UI ใช้ `appt-create` บนหน้าปฏิทิน/รายการนัด ซึ่งไม่เปลี่ยน
+2. รัน (build ใหม่, workers=1, retries=0):
+   - `r8-onboarding.spec.ts` ทั้ง 3 project → 30 passed (3.8m)
+   - `groups-story + groups-responsive + privacy + appt-layout + account --project=mobile-390` → **54 passed, 3 failed**
+3. ที่ล้ม (ซ้ำได้ 3/3 เมื่อรันแยก):
+   - `tests/e2e/groups-story.spec.ts:62` (th และ en) ล้มที่บรรทัด 112 · `groups-story.spec.ts:250` ล้มที่บรรทัด 266
+   - สาเหตุ: helper `memberRow` (`groups-story.spec.ts:25-26`) ใช้ `getByRole('group', { name: rowAria, exact: true })` แต่ R8 เติมท้าย aria-label ของแถวสมาชิกที่ยังไม่ลง busy เป็น "ชื่อ, บทบาท. <noBusyAria>" (`MemberList.tsx` aria-label) → exact ไม่ตรง (error-context: `group "Ann db6305, Admin. Ann db6305 hasn’t added busy time for the next 30 days"`)
+   - ผลกระทบเช่นเดียวกันที่บรรทัดที่เรียก `memberRow` กับสมาชิกคนอื่น: 112, 168, 185-186, 266-267 · `r6c-appearance.spec.ts:133` ไม่ exact จึงไม่กระทบ
+   - ข้อเสนอให้ `test`: เปลี่ยน `exact: true` เป็น regexp ขึ้นต้นด้วย rowAria (`^…(\.|$)`) หรือใช้ `getByRole('group', { name: rowAria })` (substring)
+   - หมายเหตุตามจริง: รอบแรกของฉัน (mobile-375, `-g` กรอง) รายงาน story ผ่าน ซึ่งขัดกับผลนี้ — อธิบายไม่ได้ จึงถือผลล่าสุด (ซ้ำได้) เป็นหลัก และไม่ควรถือว่ารอบแรกยืนยัน groups-story
+4. ภาพ 390 en: ขั้น 4 (ยังไม่ครบ) มีปุ่ม "Create plan" เดียว อยู่ในแถว ชื่อขั้นไม่ตัดบรรทัด ไม่ล้น · btn-row เหลือ "Invite friends" เต็มแถว · allDone ขยาย: ขั้น 4 มีแค่ป้าย "Done" (ไม่มีปุ่มซ้ำ) ชื่อ "Make a plan" บรรทัดเดียว (ข้อ L-5 หาย) · btn-row กลับมามี "Create plan" + "Invite friends" ปุ่มสร้างนัดมีปุ่มเดียวเสมอ (L-a หาย)
