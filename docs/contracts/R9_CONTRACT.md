@@ -39,6 +39,10 @@
 - อัปเดต path ใน `CLAUDE.md` และ `.claude/agents/*.md` (รวม scope ของ secretary) และระบุใน `CLAUDE.md` ว่า contract รอบถัดไปอยู่ที่ `docs/contracts/`
 - ไม่แก้ `docs/reports/**` และ contract เก่า เพราะเป็นบันทึกประวัติ · คอมเมนต์ในโค้ด/CI ที่อ้างชื่อไฟล์เฉยๆ ไม่ต้องแก้
 
+## 2.1 แก้ตามผล qa รอบแรก (`docs/reports/qa-r9.md`)
+- M1 (`ux`): สร้าง `docs/images/logo-light.svg` และ `logo-dark.svg` สำหรับ README โดยใช้สีตายตัว ไม่แตะโลโก้ใน `public/brand/` ที่แอปใช้
+- `secretary`: ใช้โลโก้สองไฟล์ผ่าน `<picture>` · แก้ตาราง `APP_ORIGIN` ให้ตรง `src/lib/shared/env.ts` · ตัดขั้นตอนลบบรรทัด `TURSO_AUTH_TOKEN=` ถ้าคงบรรทัดว่างแล้ว migrate และ dev ผ่าน
+
 ## 3. ภาพหน้าจอ (ผู้ทำ: `test`)
 - 2 รูปมือถือ (หน้าหลัก และปฏิทินแท็บว่างตรงกัน) ที่ `docs/images/`
 - ถ่ายจากแอปในเครื่อง บน DB ใหม่ที่ใส่ข้อมูลสมมติเท่านั้น · **ห้ามถ่ายจาก production**
