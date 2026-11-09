@@ -170,14 +170,16 @@ Get-Clipboard | npx tsx scripts/pepper-fingerprint.ts
 | `NOMINATIM_CONTACT` | Config | ✔ | ✔ | อีเมลติดต่อของ boss (ส่งใน User-Agent ถึง OpenStreetMap) |
 | `PLACE_SEARCH_ENABLED` | Config | ✔ | ✔ | `true` (ตั้ง `false` = ปิดค้นหาสถานที่ทันทีโดยไม่ต้อง deploy โค้ดใหม่ แค่ Redeploy) |
 | `LOG_LEVEL` | Config | ✔ | ✔ | `info` |
+| `LINE_MESSAGING_ACCESS_TOKEN` | **Secret** | ✔ (ส่วน J) | ✘ (เว้นว่าง) | Channel access token ของ OA (R10) |
+| `LINE_MESSAGING_CHANNEL_SECRET` | **Secret** | ✔ (ส่วน J) | ✘ (เว้นว่าง) | Channel secret ของ OA (R10) |
 
-  ตัวแปรที่ไม่ต้องใส่ (มีค่าเริ่มต้นในโค้ดแล้ว): `NOMINATIM_BASE_URL`, `NEXT_PUBLIC_MAP_TILE_URL`, `NEXT_PUBLIC_MAP_ATTRIBUTION` · `VERCEL_URL`/`VERCEL_ENV` Vercel ใส่ให้เอง · ตัวแปร `LINE_*` ยังไม่ใช้ใน v1
+  ตัวแปรที่ไม่ต้องใส่ (มีค่าเริ่มต้นในโค้ดแล้ว): `NOMINATIM_BASE_URL`, `NEXT_PUBLIC_MAP_TILE_URL`, `NEXT_PUBLIC_MAP_ATTRIBUTION` · `VERCEL_URL`/`VERCEL_ENV` Vercel ใส่ให้เอง · ตัวแปร `LINE_MESSAGING_*` ใส่เฉพาะ Production ตามส่วน J (R10) · Preview เว้นว่าง
   ถ้าค่าใดใน `.env.example` เปลี่ยนในรอบหน้า Lead จะแจ้งในรายงาน
 
 ☐ **D4** กด **Deploy** → รอจน Status = Ready
 ☐ **D5** Project → **Settings → Build and Deployment → Node.js Version** = **24.x** (ปกติตรงอยู่แล้วเพราะ `package.json` ระบุ `"engines": {"node": "24.x"}` — ถ้าไม่ตรงให้แก้แล้ว Redeploy)
 ☐ **D6** Project → **Settings → Domains** ดูโดเมน production (ปกติ `https://maewmeet.vercel.app` ถ้าชื่อว่าง) — ถ้า**ไม่ตรง**กับ `APP_ORIGIN` ที่ใส่ใน D3 ให้แก้ `APP_ORIGIN` เป็นค่าจริง (ขึ้นต้น `https://` ไม่มี `/` ท้าย ไม่มี path) แล้ว **Deployments → … → Redeploy**
-☐ **D7** Project → **Settings → Cron Jobs** ควรเห็น `/api/cron/daily` ตาราง `0 19 * * *` (= ตี 2 เวลาไทย คลาดได้ถึง 59 นาที) · cron ทำงานเฉพาะ production deployment
+☐ **D7** Project → **Settings → Cron Jobs** ควรเห็น `/api/cron/daily` ตาราง `0 19 * * *` (= ตี 2 เวลาไทย คลาดได้ถึง 59 นาที) · cron ทำงานเฉพาะ production deployment · ตั้งแต่ R10 มี Schedule `reminders` อีกตัว ดูส่วน J
 
 > **IP ของผู้เรียก (rate limit — ADR 0002 §3):** แอปเชื่อ header `x-vercel-forwarded-for` / `x-real-ip` / `x-forwarded-for` **เฉพาะเมื่อมี env `VERCEL`** (Vercel ใส่ให้เอง — บน Vercel ไม่ต้องทำอะไร) หรือ **`TRUST_PROXY_HEADERS=1`** (ตั้งเองเฉพาะเมื่อ self-host หลัง reverse proxy ที่เขียนทับ header เหล่านี้เอง) · ถ้าไม่เข้าเงื่อนไขใด ๆ (เช่น `next start` ตรง ๆ บนเครื่อง dev) แอป**ไม่เชื่อ header** และทุกคำขอรวมอยู่ใน **ถัง `unknown` ถังเดียว** — เพดานต่อ IP ของถังนี้คูณ **50** (login 1,000 / signup 250 / reset 150 ต่อหน้าต่าง) เพื่อไม่ให้ทุกคนล็อกกันเองเมื่อไม่รู้ IP · ชั้นที่กัน brute-force จริงคือ lockout ต่อ username (ไม่ขึ้นกับ IP) · **อย่าตั้ง `TRUST_PROXY_HEADERS=1` ถ้าแอปเปิดรับคำขอจากอินเทอร์เน็ตโดยตรงโดยไม่มี proxy** (ผู้โจมตีปลอม IP หลบเพดานได้)
 
@@ -445,6 +447,26 @@ COMMIT;
 ☐ **I3.4** ตรวจ: `turso db shell maewmeet-prod "SELECT username, status, display_name, pin_hash IS NULL FROM user WHERE id = 'USER_ID';"` ต้องได้ `deleted-<id> | deleted | (ว่าง) | 1` · ใน `/admin/audit` กรอง "รหัสเป้าหมาย" = USER_ID ต้องเห็น "ลบบัญชีตัวเอง" โดยผู้ทำ = "ระบบ"
 - สิ่งที่ยังอยู่ (เหมือนลบในแอป): นัดที่ผู้นั้นสร้าง (ผู้สร้างแสดงเป็น "บัญชีที่ถูกลบ") · audit log เดิม · แถว `user` ที่ไม่มีชื่อ/PIN · **ไม่มีการกู้คืน** และไม่มี hard purge ใน R5
 
+## J. LINE OA — แจ้งเตือนก่อนนัด (R10)
+อ้างอิง R10_CONTRACT §1.5, §2, §8 · ถ้าไม่ใส่ env ทั้งสองตัว = ช่องทาง LINE ปิดเงียบ กระดิ่งในแอปยังทำงานปกติ
+
+### J1 ตั้งค่า LINE (ทำหลัง merge R10 — boss ทำ main บอกทีละขั้น)
+☐ **J1.1** รัน migration `0004` บนฐาน **preview ก่อน แล้ว prod** (วิธีเดียวกับส่วน B) ก่อนเปิดใช้งาน
+☐ **J1.2** LINE Developers Console → Provider `maewmeet` → Messaging API channel → ออก **Channel access token (long-lived)** · เก็บใน Bitwarden ทันที · **ห้ามส่งในแชท/ภาพหน้าจอ** (Channel secret อยู่แท็บ Basic settings)
+☐ **J1.3** Vercel → Settings → Environment Variables → เพิ่ม `LINE_MESSAGING_ACCESS_TOKEN` และ `LINE_MESSAGING_CHANNEL_SECRET` เป็น **Secret** เลือก environment **Production เท่านั้น** (Preview ไม่ติ๊ก) → **Redeploy** production
+☐ **J1.4** LINE Console → Messaging API → Webhook URL = `https://maewmeet.vercel.app/api/line/webhook` → กด **Verify** (ควรขึ้น Success) → เปิด **Use webhook**
+☐ **J1.5** ทดสอบ (R10-11): `/me` → เชื่อมต่อ LINE → ส่งโค้ดในแชท OA → ได้ข้อความยืนยัน → สร้างนัดที่ตอบ "ไป" แล้วรอเตือน → ต้องได้ 1 ครั้ง ไม่ซ้ำ · ค่อยชวนเพื่อน
+- แผนฟรีส่งได้ 300 ข้อความ/เดือน เกินแล้วส่งไม่ได้ (กระดิ่งยังทำงาน) · ข้อความตอบกลับ (reply) ตอนเชื่อมบัญชีไม่กินโควตา
+
+### J2 ตรวจว่า Schedules ทำงาน
+Schedule ชื่อ `reminders` อยู่ใน `vercel.json` ทุก 15 นาที (เวลา `Asia/Bangkok`) เรียก `GET /api/cron/reminders` พร้อม `Authorization: Bearer <CRON_SECRET>` · `/api/cron/daily` เดิมยังเป็น Cron Job (`crons`) ไม่เปลี่ยน
+☐ **J2.1** Vercel → Project → **Schedules** → ต้องเห็น `reminders` สถานะ Active (Production) · แถบ Cron Jobs ยังเห็น `/api/cron/daily`
+☐ **J2.2** เลือก `reminders` → ดู **execution history**: ต้องมีรอบใหม่ทุก ~15 นาที (เหลื่อมได้ในกรอบ jitter 15 นาทีบน Hobby) และสถานะ 200
+☐ **J2.3** ทดสอบทันที: ปุ่ม **Run Schedule** หรือ `vercel schedules invoke reminders` (นับ 1 รอบในโควตา) · ได้ 401 = `CRON_SECRET` ของ deployment นั้นไม่ตรง → Redeploy (Vercel ส่งค่า `CRON_SECRET` ของ deployment ปัจจุบัน)
+☐ **J2.4** โควตา: ~2,900 รอบ/เดือนจากเพดาน Hobby 5,000 รอบ/เดือน (รันด้วยมือก็นับ) · ถ้าเกิน Vercel จะบล็อกจนรอบบิลถัดไป
+- Preview: schedule บน branch preview เริ่มต้น **Inactive** (ไม่รันเอง) · ถ้าจะทดสอบให้ Enable ชั่วคราวใน Schedules แล้วปิดหลังทดสอบ · preview ไม่มี LINE env จึงไม่ส่งถึงคนจริงอยู่แล้ว
+- Schedules ยังเป็น beta ถ้าไม่ทำงาน → แจ้ง main เพื่อเปลี่ยนไปใช้ cron-job.org เรียก endpoint เดิม (ไม่ต้องแก้ endpoint)
+
 ## ภาคผนวก: ตารางสรุปตัวแปร env
 อ้างอิงเต็มใน `.env.example` (ARCHITECTURE §7) · ที่มาของกติกาเข้ม/ผ่อน: `src/lib/shared/env.ts`
 | ตัวแปร | ต้องมีเมื่อ | ถ้าขาด |
@@ -456,6 +478,7 @@ COMMIT;
 | `APP_ORIGIN` | production (preview ใช้ `VERCEL_URL` แทนได้) | แอปไม่เริ่ม: ทุก URL 500 (G1) |
 | `PIN_PEPPER_CURRENT_VERSION`, `PIN_PEPPER_V<n>` | ทุกที่ที่ต้อง login/สมัคร (บังคับตั้งแต่ R1) | แอปยังเริ่มได้ แต่ **health 503** (`pepper.ok:false`) และ login/สมัครตอบ `AUTH_MAINTENANCE` — ไม่มีใครถูกล็อก (G7) |
 | `TRUST_PROXY_HEADERS` | ไม่บังคับ — ตั้ง `1` เฉพาะ self-host หลัง proxy ที่เขียนทับ header IP (Vercel ไม่ต้องตั้ง) | ไม่เชื่อ header IP → ถัง `unknown` ร่วม เพดาน ×50 |
+| `LINE_MESSAGING_ACCESS_TOKEN`, `LINE_MESSAGING_CHANNEL_SECRET` | production เท่านั้น เมื่อจะเปิด LINE (ส่วน J) | ช่องทาง LINE ปิดเงียบ · กระดิ่งทำงานปกติ |
 | `PLACE_SEARCH_ENABLED`, `NOMINATIM_*`, `NEXT_PUBLIC_MAP_*`, `LOG_LEVEL` | ไม่บังคับ (มีค่าเริ่มต้น) | ใช้ค่าเริ่มต้น |
 
 ## ภาคผนวก — การเก็บกวาด busy (R3)

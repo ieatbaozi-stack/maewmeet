@@ -5,5 +5,13 @@
       "path": "/api/cron/daily",
       "schedule": "0 19 * * *"
     }
-  ]
+  ],
+  "schedules": {
+    "reminders": {
+      "schedule": "*/15 * * * *",
+      "timezone": "Asia/Bangkok",
+      "path": "/api/cron/reminders",
+      "requestMethod": "GET"
+    }
+  }
 }
