@@ -143,6 +143,14 @@ describe('notificationView — ข้อความ ปลายทาง ไ�
       'appointment.reminder_1d': { groupId: gid, groupName: 'ก๊วน', appointmentId: 'ap1', title: 'หมูกระทะ', startAt: at('2026-10-24', '18:00'), tz: TZ },
       'appointment.reminder_1h': { groupId: gid, groupName: 'ก๊วน', appointmentId: 'ap1', title: 'หมูกระทะ', startAt: at('2026-10-24', '18:00'), tz: TZ },
       'appointment.rsvp_nudge': { groupId: gid, groupName: 'ก๊วน', appointmentId: 'ap1', title: 'หมูกระทะ', startAt: at('2026-10-24', '18:00'), tz: TZ },
+      // R11 (params ตามสัญญา §1)
+      'appointment.cancelled': { groupId: gid, groupName: 'ก๊วน', appointmentId: 'ap1', title: 'หมูกระทะ', startAt: at('2026-10-24', '18:00'), tz: TZ, actorName: 'ปาล์ม' },
+      'appointment.updated': { groupId: gid, groupName: 'ก๊วน', appointmentId: 'ap1', title: 'หมูกระทะ', startAt: at('2026-10-24', '18:00'), tz: TZ, actorName: 'ปาล์ม', changes: 'both' },
+      'appointment.rsvp_changed': { groupId: gid, groupName: 'ก๊วน', appointmentId: 'ap1', title: 'หมูกระทะ', startAt: at('2026-10-24', '18:00'), tz: TZ, responderName: 'นุ่น', response: 'going' },
+      'group.member.joined': { groupId: gid, groupName: 'ก๊วน', memberName: 'นุ่น' },
+      'group.member.left': { groupId: gid, groupName: 'ก๊วน', memberName: 'นุ่น' },
+      'group.member.removed': { groupId: gid, groupName: 'ก๊วน' },
+      'group.member.role_changed': { groupId: gid, groupName: 'ก๊วน', role: 'moderator' },
       'pin_reset.approved': { expiresAt: at('2026-10-21', '17:42') },
       'pin_reset.cancelled_by_login': {},
     };

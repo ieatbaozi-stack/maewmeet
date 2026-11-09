@@ -213,7 +213,8 @@ describe('SEC M1(c) coalesce แจ้งเตือน appointment.created ท
     expect(r.status).toBe(201);
     expect((await notifs(w.c)).data.unreadCount).toBe(MAX);
     expect((await notifs(w.b)).data.unreadCount).toBe(1);
-    expect((await notifs(w.m)).data.unreadCount).toBe(1);
+    // m ได้ role_changed ตอนตั้งเป็น moderator (R11) → นับเฉพาะ appointment.created
+    expect((await notifs(w.m)).data.notifications.filter((n) => n.kind === 'appointment.created')).toHaveLength(1);
   });
 
   it('เพดานแยกต่อกลุ่ม · อ่านแล้วไม่นับ → กลับมารับได้', async () => {
@@ -243,7 +244,12 @@ describe('SEC M1(c) coalesce แจ้งเตือน appointment.created ท
       }
       h.clock.advance(10 * MIN);
     }
-    for (const p of [w.a, w.m, w.b, w.c]) expect((await notifs(p)).data.unreadCount).toBeLessThanOrEqual(MAX);
+    // R11: appointment.cancelled นับเพดานแยกชนิดจาก created → แต่ละชนิดไม่เกิน 20 ที่ยังไม่อ่านต่อกลุ่มต่อผู้รับ
+    for (const p of [w.a, w.m, w.b, w.c]) {
+      for (const kind of ['appointment.created', 'appointment.cancelled']) {
+        expect(await h.count('notification WHERE user_id = ? AND kind = ? AND read_at IS NULL', [p.id, kind]), `${kind} ${p.id}`).toBeLessThanOrEqual(MAX);
+      }
+    }
   });
 });
 

@@ -93,7 +93,7 @@ describe('แถวเก่า (ก่อนมีกติกา) ถูกต
     expect(mine.data.invites[0]!.inviterName).toBe(clean);
     const list = await get<{ invites: { creatorName: string }[] }>(a.c, `/api/groups/${gid}/invites`);
     expect(list.data.invites[0]!.creatorName).toBe(clean);
-    const notif = await h.rows<{ params: string }>('SELECT params FROM notification');
+    const notif = await h.rows<{ params: string }>("SELECT params FROM notification WHERE kind = 'group.invite.received'");
     expect(JSON.parse(notif[0]!.params).inviterName).toBe(clean);
 
     await new Client().post('/api/auth/pin-reset', { username: 'alice' });
