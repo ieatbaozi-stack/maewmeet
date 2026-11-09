@@ -181,6 +181,9 @@ export const appointment = sqliteTable('appointment', {
   updatedAt: ms('updated_at').notNull(),
   cancelledAt: ms('cancelled_at'),
   cancelledBy: text('cancelled_by').references(() => user.id, { onDelete: 'set null' }),
+  // R10 §4 (migration 0004): เวลาที่นัดถูกสร้าง/เปลี่ยน startAt ล่าสุด — ตัดสิน "สร้าง/เลื่อนหลังเวลาถึงกำหนด" · แถวเดิม backfill = created_at
+  // DEFAULT 0 มีไว้ให้ ALTER TABLE ADD ... NOT NULL ทำงานบนตารางที่มีข้อมูลโดยไม่ rebuild · insert ของแอปส่งค่าเองทุกครั้ง
+  scheduledAt: ms('scheduled_at').notNull().default(0),
 }, (t) => [
   index('appointment_group_start_idx').on(t.groupId, t.startAt),
   index('appointment_start_idx').on(t.status, t.startAt),            // U11 upcoming ข้ามกลุ่ม
@@ -200,6 +203,31 @@ export const appointmentRsvp = sqliteTable('appointment_rsvp', {
   primaryKey({ columns: [t.appointmentId, t.userId] }),
   index('rsvp_user_idx').on(t.userId),
   check('rsvp_response_ck', sql`${t.response} in ('going','maybe','not_going')`),
+]);
+
+// R10 §1.2: กันเตือนซ้ำต่อ (นัด, ชนิด, เวลาเริ่ม) — เลื่อนเวลานัด = startAt ใหม่ = เตือนใหม่ได้ · เขียนในธุรกรรมเดียวกับ notify()
+export const appointmentReminder = sqliteTable('appointment_reminder', {
+  appointmentId: text('appointment_id').notNull().references(() => appointment.id, { onDelete: 'cascade' }),
+  kind: text('kind', { enum: ['appointment.reminder_1d', 'appointment.reminder_1h', 'appointment.rsvp_nudge'] }).notNull(),
+  startAt: ms('start_at').notNull(),
+  createdAt: ms('created_at').notNull(),
+}, (t) => [
+  primaryKey({ columns: [t.appointmentId, t.kind, t.startAt] }),
+  check('appointment_reminder_kind_ck', sql`${t.kind} in ('appointment.reminder_1d','appointment.reminder_1h','appointment.rsvp_nudge')`),
+]);
+
+// R10 §2: โค้ดเชื่อม LINE — เก็บเฉพาะ HMAC ของโค้ด · ใช้ครั้งเดียว · อายุ 10 นาที · ผู้ใช้หนึ่งคนมีได้ทีละโค้ด (service ลบของเก่าก่อนสร้าง)
+export const lineLinkCode = sqliteTable('line_link_code', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  codeHash: text('code_hash').notNull(),
+  createdAt: ms('created_at').notNull(),
+  expiresAt: ms('expires_at').notNull(),
+  usedAt: ms('used_at'),
+}, (t) => [
+  uniqueIndex('line_link_code_hash_uq').on(t.codeHash),
+  index('line_link_code_user_idx').on(t.userId),
+  index('line_link_code_expires_idx').on(t.expiresAt),
 ]);
 
 // ───────── แจ้งเตือน (ADR 0007) ─────────
