@@ -392,6 +392,78 @@ describe('เพดาน unread ของ appointment.cancelled (SEC M1)', () =
   });
 });
 
+describe('กิจกรรมสมาชิกซ่อนเมื่อเจ้าของไม่อยู่ในกลุ่มแล้ว', () => {
+  type Box = { notifications: N[]; unreadCount: number };
+  const box = async (p: Person) => (await get<Box>(p.c, '/api/me/notifications')).data;
+  const kinds = (b: Box) => b.notifications.map((n) => n.kind).sort();
+  const HIDDEN_KINDS = ['group.member.joined', 'group.member.left', 'group.member.role_changed'];
+
+  /** m (moderator) มีครบ 3 ชนิดที่ต้องซ่อน: x เข้า · c ออก · ถูกลดสิทธิ์ */
+  async function seedMemberEvents(): Promise<void> {
+    const x = await person(h, 'xena');
+    await join(w.a, x, w.gid);
+    h.clock.advance(1000);
+    expect((await post(w.c.c, `/api/groups/${w.gid}/leave`)).status).toBe(200);
+    h.clock.advance(1000);
+    expect((await patch(w.a.c, `/api/groups/${w.gid}/members/${w.m.id}`, { role: 'member' })).status).toBe(200);
+    h.clock.advance(1000);
+    const before = await box(w.m);
+    expect(kinds(before)).toEqual(HIDDEN_KINDS);
+    expect(before.unreadCount).toBe(3);
+  }
+
+  it('ออกจากกลุ่มเอง: รายการหาย · unreadCount ตรงกับรายการ', async () => {
+    await seedMemberEvents();
+    expect((await post(w.m.c, `/api/groups/${w.gid}/leave`)).status).toBe(200);
+    expect(await box(w.m)).toMatchObject({ notifications: [], unreadCount: 0 });
+    expect(await h.count("notification WHERE user_id = ? AND kind LIKE 'group.member.%'", [w.m.id])).toBe(3); // ซ่อน ไม่ได้ลบ
+  });
+
+  it('ถูกนำออก: กิจกรรมเดิมหาย เหลือ group.member.removed · unreadCount = 1', async () => {
+    await seedMemberEvents();
+    expect((await call(w.a.c, 'DELETE', `/api/groups/${w.gid}/members/${w.m.id}`)).status).toBe(200);
+    const after = await box(w.m);
+    expect(kinds(after)).toEqual(['group.member.removed']);
+    expect(after.unreadCount).toBe(1);
+  });
+
+  it('กลุ่มถูกลบ: กิจกรรมหายทั้ง admin และ moderator · removed ของคนที่ถูกนำออกก่อนหน้ายังเห็น', async () => {
+    await seedMemberEvents();
+    expect((await call(w.a.c, 'DELETE', `/api/groups/${w.gid}/members/${w.b.id}`)).status).toBe(200);
+    expect((await box(w.a)).unreadCount).toBe(2); // joined + left
+    expect((await call(w.a.c, 'DELETE', `/api/groups/${w.gid}`)).status).toBe(200);
+    expect(await box(w.a)).toMatchObject({ notifications: [], unreadCount: 0 });
+    expect(await box(w.m)).toMatchObject({ notifications: [], unreadCount: 0 });
+    const removed = await box(w.b);
+    expect(kinds(removed)).toEqual(['group.member.removed']);
+    expect(removed.unreadCount).toBe(1);
+  });
+
+  it('removed ยังเห็นหลังกลับเข้ากลุ่ม · กิจกรรมของสมาชิกภาพรอบก่อนไม่ฟื้น', async () => {
+    await seedMemberEvents();
+    expect((await call(w.a.c, 'DELETE', `/api/groups/${w.gid}/members/${w.m.id}`)).status).toBe(200);
+    h.clock.advance(1000);
+    await join(w.a, w.m, w.gid);
+    const after = await box(w.m);
+    expect(kinds(after)).toEqual(['group.member.removed']);
+    expect(after.unreadCount).toBe(1);
+  });
+
+  it('คนที่ยังอยู่ในกลุ่มเห็นตามปกติ · กลุ่มอื่นของเจ้าของไม่กระทบ', async () => {
+    await seedMemberEvents();
+    const g2 = await makeGroup(w.m, 'กลุ่มของ m');
+    const y = await person(h, 'yuki');
+    await join(w.m, y, g2);
+    h.clock.advance(1000);
+    expect((await post(w.m.c, `/api/groups/${w.gid}/leave`)).status).toBe(200);
+    const after = await box(w.m);
+    expect(kinds(after)).toEqual(['group.member.joined']);
+    expect(after.notifications[0]!.params.groupId).toBe(g2);
+    expect(after.unreadCount).toBe(1);
+    expect((await box(w.a)).notifications.length).toBeGreaterThan(0);
+  });
+});
+
 describe('R11-6 transaction เดียวกับการกระทำ', () => {
   const failNotifications = () => h.rows("CREATE TRIGGER fail_notif BEFORE INSERT ON notification BEGIN SELECT RAISE(ABORT, 'BOOM'); END");
 

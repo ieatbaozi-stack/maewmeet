@@ -85,10 +85,11 @@ export async function deleteUnreadEventRows(
 }
 
 /**
- * แจ้งเตือนที่ผู้ใช้ "ควรเห็น": ชนิดที่เกี่ยวกับนัด (appointment.*) เห็นได้เฉพาะเมื่อยังเป็นสมาชิกของกลุ่มนั้นและกลุ่มยังไม่ถูกลบ
- * (ถูกลบออก/ออกเอง → ไม่เห็นชื่อนัดของกลุ่มเดิมอีก · เกิดก่อน joined_at ปัจจุบัน = ของสมาชิกภาพรอบก่อน ซ่อนแม้กลับเข้ากลุ่มแล้ว) · ชนิดอื่นเห็นเสมอ · ใช้ร่วมกันระหว่างรายการและจำนวนที่ยังไม่อ่าน
+ * แจ้งเตือนที่ผู้ใช้ "ควรเห็น": ชนิดที่เกี่ยวกับนัด (appointment.*) และกิจกรรมสมาชิก (group.member.joined/left/role_changed — R11) เห็นได้เฉพาะเมื่อยังเป็นสมาชิกของกลุ่มนั้นและกลุ่มยังไม่ถูกลบ
+ * (ถูกลบออก/ออกเอง → ไม่เห็นความเคลื่อนไหวของกลุ่มเดิมอีก · เกิดก่อน joined_at ปัจจุบัน = ของสมาชิกภาพรอบก่อน ซ่อนแม้กลับเข้ากลุ่มแล้ว)
+ * ชนิดอื่นเห็นเสมอ รวม group.member.removed ที่มีไว้บอกคนที่ถูกนำออกโดยเฉพาะ · ใช้ร่วมกันระหว่างรายการและจำนวนที่ยังไม่อ่าน
  */
-const visibleToOwner: SQL = sql`(${notification.kind} NOT LIKE 'appointment.%' OR EXISTS (
+const visibleToOwner: SQL = sql`((${notification.kind} NOT LIKE 'appointment.%' AND ${notification.kind} NOT IN ('group.member.joined', 'group.member.left', 'group.member.role_changed')) OR EXISTS (
   SELECT 1 FROM group_member gm INNER JOIN groups g ON g.id = gm.group_id
   WHERE gm.user_id = ${notification.userId} AND g.deleted_at IS NULL AND gm.group_id = json_extract(${notification.params}, '$.groupId')
     AND ${notification.createdAt} >= gm.joined_at))`;
