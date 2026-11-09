@@ -460,7 +460,19 @@
     "deleteAccountHint": "This can’t be undone.",
     "adminHub": "System admin console",
     "howTo": "How it works",
-    "howToHint": "See the 4 getting-started steps again"
+    "howToHint": "See the 4 getting-started steps again",
+    "line": {
+      "title": "LINE reminders",
+      "hint": "Get a reminder on LINE before plans you’ve said you’re going to, on top of the in-app bell.",
+      "connect": "Connect LINE",
+      "codeLabel": "Your connection code",
+      "codeHint": "Add the “แมวเจอกัน” account as a friend, then send this code in the chat. It works once and expires in 10 minutes.",
+      "addFriend": "Add friend on LINE",
+      "connected": "LINE connected",
+      "disconnect": "Disconnect",
+      "disconnectConfirm": "Disconnect LINE? You’ll stop getting reminders there, but they’ll still show in the bell.",
+      "error": "That didn’t work. Please try again in a moment."
+    }
   },
   "roles": {
     "admin": "Admin",
@@ -789,7 +801,10 @@
     },
     "unknown": "A notification we can’t show right now",
     "appointment": {
-      "created": "New plan: {title} ({when}) in “{groupName}”"
+      "created": "New plan: {title} ({when}) in “{groupName}”",
+      "reminder_1d": "One day to go: {title} ({when}) in “{groupName}”",
+      "reminder_1h": "Starting in about an hour: {title} ({when}) in “{groupName}”",
+      "rsvp_nudge": "You haven’t confirmed yet. Are you in? {title} ({when}) in “{groupName}”"
     }
   },
   "errors": {
@@ -1577,7 +1592,8 @@
       "sessions": "Sign-ins expire within 60 days of your last use.",
       "security": "PIN reset requests and the audit log are kept for security, with no deletion date yet.",
       "groups": "Groups and plans are kept until they’re deleted. A deleted group is hidden from its members, but system admins can still see its name and member list, and it isn’t removed from the database yet.",
-      "providers": "The app runs on outside hosting and database providers, so the data above is stored and processed by them."
+      "providers": "The app runs on outside hosting and database providers, so the data above is stored and processed by them.",
+      "line": "The linked LINE user ID is kept until you disconnect, delete your account, or unfollow our LINE account."
     },
     "delete": {
       "title": "Deleting your account",
@@ -1589,6 +1605,10 @@
     "contact": {
       "title": "Contact",
       "body": "Questions, or want more removed than the delete button does? Reach a system admin through one of your groups, or ask whoever invited you to the app."
+    },
+    "line": {
+      "title": "Messages on LINE",
+      "body": "If you connect LINE, we send pre-plan reminders there through LINE’s service. They contain only the plan title, date and time, group name and a link to the plan, and go only to you. No place, details or member names are sent. We keep your LINE user ID for this. You can disconnect any time from the Me tab. If you haven’t connected, nothing is sent to LINE."
     }
   },
   "onboarding": {
@@ -1601,6 +1621,17 @@
       "s4": "Make a plan for that day",
       "dismiss": "Got it",
       "reopenHint": "You can reopen this anytime from the Me tab."
+    }
+  },
+  "line": {
+    "message": {
+      "reminder_1d": "Coming up: {title}\n{when} · “{groupName}”\n{url}",
+      "reminder_1h": "Starting soon: {title}\n{when} · “{groupName}”\n{url}"
+    },
+    "link": {
+      "success": "LINE is now linked to maewmeet. We’ll remind you here about plans you’ve said you’re going to.",
+      "invalid": "That code doesn’t work. It may have expired or already been used. Get a new one from the Me tab in maewmeet.",
+      "alreadyLinked": "This LINE account is already linked to maewmeet. To change it, disconnect first from the Me tab."
     }
   }
 }
