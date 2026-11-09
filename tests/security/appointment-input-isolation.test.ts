@@ -224,6 +224,9 @@ describe('3. params ของ notification มีเฉพาะคีย์ใ�
     'group.invite.accepted': ['groupId', 'groupName', 'inviteeName', 'inviteId'],
     'group.invite.declined': ['groupId', 'groupName', 'inviteeName', 'inviteId'],
     'appointment.created': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz'],
+    'appointment.reminder_1d': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz'],
+    'appointment.reminder_1h': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz'],
+    'appointment.rsvp_nudge': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz'],
     'pin_reset.approved': ['expiresAt'],
     'pin_reset.cancelled_by_login': [],
   };

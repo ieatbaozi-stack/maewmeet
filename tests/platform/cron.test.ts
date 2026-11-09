@@ -198,6 +198,8 @@ describe('GET /api/cron/daily', () => {
       oldNotifications: 1,
       oldBusyBlocks: 1,
       stalePlaceSearchCache: 1,
+      oldLineOutbox: 0,
+      staleLineLinkCodes: 0,
     });
     expect(await heartbeats()).toEqual([{ source: 'vercel-cron', lastAt: NOW }]);
 
