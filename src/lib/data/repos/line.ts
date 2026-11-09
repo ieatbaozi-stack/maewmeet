@@ -3,9 +3,11 @@
 import { and, eq, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
 import { lineLinkCode, notificationOutbox, user } from '@/db/schema';
 import type { DbOrTx } from '@/db/client';
+import { LINE_SEND_CAPS } from '@/lib/shared/limits';
 import type { RsvpResponse } from './appointment';
 
 export const LINE_MONTHLY_LIMIT_ERROR = 'LINE_MONTHLY_LIMIT';
+export const LINE_CAP_ERROR = 'LINE_CAP';
 
 // ───────── โค้ดเชื่อม ─────────
 /** โค้ดใหม่แทนของเดิมทั้งหมดของผู้ใช้ (ผู้ใช้หนึ่งคนมีได้ทีละโค้ด) */
@@ -111,11 +113,42 @@ export async function listDueLineOutbox(db: DbOrTx, now: number, limit: number):
     .limit(limit);
 }
 
-/** จองรอบส่ง: เพิ่ม attempts + ตั้งเวลาลองใหม่ไว้ล่วงหน้า — คำสั่งเดียว รันพร้อมกันได้ผู้ชนะคนเดียว · ล้มกลางทาง = ลองรอบถัดไป (retry key เดิม LINE ไม่ส่งซ้ำ) */
-export async function claimOutboxRow(db: DbOrTx, row: Pick<OutboxRow, 'id' | 'attempts'>, nextAttemptAt: number, now: number): Promise<boolean> {
+/**
+ * จองรอบส่ง: เพิ่ม attempts + ตั้งเวลาลองใหม่ไว้ล่วงหน้า — คำสั่งเดียว รันพร้อมกันได้ผู้ชนะคนเดียว · ล้มกลางทาง = ลองรอบถัดไป (retry key เดิม LINE ไม่ส่งซ้ำ)
+ * เพดาน LINE_SEND_CAPS อยู่ในคำสั่งเดียวกัน (กัน race ข้าม instance): นับแถวอื่นที่ส่งแล้วใน 24 ชม. + แถวที่จองแล้วแต่ยังไม่จบ (attempts > 0) · แถวตัวเองไม่นับ
+ * คืน false = แพ้การจอง หรือเกินเพดาน (แยกด้วย capOutboxRow)
+ */
+export async function claimOutboxRow(
+  db: DbOrTx,
+  row: Pick<OutboxRow, 'id' | 'attempts' | 'userId'>,
+  target: { kind: string; appointmentId: string },
+  nextAttemptAt: number,
+  now: number,
+): Promise<boolean> {
+  const counted = sql`((o.status = 'sent' AND o.sent_at > ${now - LINE_SEND_CAPS.windowMs}) OR (o.status = 'pending' AND o.attempts > 0))`;
   const rows = await db
     .update(notificationOutbox)
     .set({ attempts: row.attempts + 1, nextAttemptAt })
+    .where(
+      and(
+        eq(notificationOutbox.id, row.id),
+        eq(notificationOutbox.status, 'pending'),
+        eq(notificationOutbox.attempts, row.attempts),
+        lte(notificationOutbox.nextAttemptAt, now),
+        sql`(SELECT count(*) FROM notification_outbox o WHERE o.user_id = ${row.userId} AND o.id <> ${row.id} AND ${counted}) < ${LINE_SEND_CAPS.perUser}`,
+        sql`(SELECT count(*) FROM notification_outbox o WHERE o.user_id = ${row.userId} AND o.id <> ${row.id} AND ${counted}
+              AND json_extract(o.payload, '$.kind') = ${target.kind} AND json_extract(o.payload, '$.params.appointmentId') = ${target.appointmentId}) < ${LINE_SEND_CAPS.perAppointmentKindUser}`,
+      ),
+    )
+    .returning({ id: notificationOutbox.id });
+  return rows.length === 1;
+}
+
+/** จองไม่ได้และแถวยังไม่ถูกใครแตะ = เกินเพดาน → dead · false = แพ้การจองให้รอบอื่น */
+export async function capOutboxRow(db: DbOrTx, row: Pick<OutboxRow, 'id' | 'attempts'>, now: number): Promise<boolean> {
+  const rows = await db
+    .update(notificationOutbox)
+    .set({ status: 'dead', lastError: LINE_CAP_ERROR })
     .where(and(eq(notificationOutbox.id, row.id), eq(notificationOutbox.status, 'pending'), eq(notificationOutbox.attempts, row.attempts), lte(notificationOutbox.nextAttemptAt, now)))
     .returning({ id: notificationOutbox.id });
   return rows.length === 1;
@@ -127,6 +160,11 @@ export async function finishOutboxRow(db: DbOrTx, id: string, status: 'sent' | '
     .update(notificationOutbox)
     .set({ status, lastError, sentAt: status === 'sent' ? now : null })
     .where(eq(notificationOutbox.id, id));
+}
+
+/** ชน 429 monthly limit: ตั้ง next_attempt_at = เวลาที่ชนจริง (ค่าจากตอนจองอาจล้ำไปเดือนถัดไป) ให้ lineMonthlyLimitHit นับถูกเดือน */
+export async function markOutboxMonthlyLimit(db: DbOrTx, id: string, now: number): Promise<void> {
+  await db.update(notificationOutbox).set({ status: 'dead', lastError: LINE_MONTHLY_LIMIT_ERROR, nextAttemptAt: now }).where(eq(notificationOutbox.id, id));
 }
 
 export async function markOutboxRetry(db: DbOrTx, id: string, lastError: string): Promise<void> {
@@ -143,7 +181,7 @@ export async function deadAllPendingLine(db: DbOrTx, now: number): Promise<numbe
   return rows.length;
 }
 
-/** เดือนนี้เคยชนโควตาแล้วหรือยัง (จากแถว dead รหัส monthly limit ตั้งแต่ต้นเดือน) */
+/** เดือนนี้เคยชนโควตาแล้วหรือยัง — next_attempt_at ของแถวรหัสนี้ = เวลาที่ชนจริง (markOutboxMonthlyLimit / deadAllPendingLine) */
 export async function lineMonthlyLimitHit(db: DbOrTx, monthStart: number): Promise<boolean> {
   const rows = await db
     .select({ id: notificationOutbox.id })

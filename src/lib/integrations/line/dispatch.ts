@@ -1,17 +1,19 @@
 // ส่ง notification_outbox ทาง LINE — ADR 0007 §2 · ADR 0011 §5 · R10 §1.4
 //  - จองแถวก่อนส่ง (claimOutboxRow) → รันซ้ำ/พร้อมกันไม่ส่งซ้ำ · retry key = id แถว
 //  - ตรวจซ้ำก่อนส่ง: นัด active · startAt ตรงกับตอนเข้าคิว · กลุ่มยังอยู่ · ผู้รับ active + ยังเชื่อม + ยังตอบ going · เหลือเวลา ≥ minLead — ไม่ผ่าน = dead รหัส STALE
+//  - เพดาน LINE_SEND_CAPS ตรวจตอนจองแถว (claimOutboxRow) เกิน = dead รหัส LINE_CAP ไม่ push · กระดิ่งเขียนไปแล้วไม่กระทบ
 //  - retry ≤ 5 ครั้ง backoff 2^attempts นาที · 429 monthly limit → dead ทั้งคิวและไม่ลองอีกจนสิ้นเดือน · log เฉพาะจำนวน
 import type { Db } from '@/db/client';
 import { DEFAULT_TZ, reminderStillSendable, startOfMonthAt } from '@/lib/calendar';
 import {
-  LINE_MONTHLY_LIMIT_ERROR,
+  capOutboxRow,
   claimOutboxRow,
   deadAllPendingLine,
   finishOutboxRow,
   lineMonthlyLimitHit,
   listDueLineOutbox,
   loadOutboxSendContext,
+  markOutboxMonthlyLimit,
   markOutboxRetry,
   type OutboxRow,
 } from '@/lib/data/repos/line';
@@ -29,6 +31,7 @@ export type LineDispatchResult = {
   retried: number;
   dead: number;
   stale: number;
+  capped: number;
   monthlyLimit: boolean;
   more: boolean;
 };
@@ -45,22 +48,23 @@ function parsePayload(raw: unknown): ReminderPayload | null {
   return { kind, appointmentId: p.appointmentId, startAt: p.startAt, tz: p.tz, title: p.title, groupName: p.groupName };
 }
 
-type RowResult = 'sent' | 'retried' | 'dead' | 'stale' | 'monthly_limit' | 'skipped';
+type RowResult = 'sent' | 'retried' | 'dead' | 'stale' | 'capped' | 'monthly_limit' | 'skipped';
 
 async function processRow(db: Db, config: LineConfig, row: OutboxRow, now: number): Promise<RowResult> {
   if (row.attempts >= LINE_DISPATCH.maxAttempts) {
     await serialized(db, () => finishOutboxRow(db, row.id, 'dead', row.lastError ?? 'LINE_MAX_ATTEMPTS', now));
     return 'dead';
   }
-  const attempt = row.attempts + 1;
-  const claimed = await serialized(db, () => claimOutboxRow(db, row, now + 2 ** attempt * MINUTE_MS, now));
-  if (!claimed) return 'skipped';
-
   const payload = parsePayload(row.payload);
   if (!payload) {
     await serialized(db, () => finishOutboxRow(db, row.id, 'dead', 'BAD_PAYLOAD', now));
     return 'dead';
   }
+  const attempt = row.attempts + 1;
+  const target = { kind: payload.kind, appointmentId: payload.appointmentId };
+  const claimed = await serialized(db, () => claimOutboxRow(db, row, target, now + 2 ** attempt * MINUTE_MS, now));
+  if (!claimed) return (await serialized(db, () => capOutboxRow(db, row, now))) ? 'capped' : 'skipped';
+
   const ctx = await loadOutboxSendContext(db, { userId: row.userId, appointmentId: payload.appointmentId });
   if (
     ctx === null ||
@@ -83,7 +87,7 @@ async function processRow(db: Db, config: LineConfig, row: OutboxRow, now: numbe
     return 'sent';
   }
   if (res.outcome === 'monthly_limit') {
-    await serialized(db, () => finishOutboxRow(db, row.id, 'dead', LINE_MONTHLY_LIMIT_ERROR, now));
+    await serialized(db, () => markOutboxMonthlyLimit(db, row.id, now));
     return 'monthly_limit';
   }
   if (res.outcome === 'dead' || attempt >= LINE_DISPATCH.maxAttempts) {
@@ -99,7 +103,7 @@ function logMonthlyLimit(dropped: number): void {
 }
 
 export async function dispatchLineOutbox(db: Db, now: number, opts: { shouldStop?: () => boolean } = {}): Promise<LineDispatchResult> {
-  const result: LineDispatchResult = { enabled: false, sent: 0, retried: 0, dead: 0, stale: 0, monthlyLimit: false, more: false };
+  const result: LineDispatchResult = { enabled: false, sent: 0, retried: 0, dead: 0, stale: 0, capped: 0, monthlyLimit: false, more: false };
   const config = lineConfig(getEnv());
   if (!config) return result;
   result.enabled = true;
@@ -130,6 +134,7 @@ export async function dispatchLineOutbox(db: Db, now: number, opts: { shouldStop
     else if (outcome === 'retried') result.retried += 1;
     else if (outcome === 'dead') result.dead += 1;
     else if (outcome === 'stale') result.stale += 1;
+    else if (outcome === 'capped') result.capped += 1;
     else if (outcome === 'monthly_limit') {
       result.monthlyLimit = true;
       const dropped = await serialized(db, () => deadAllPendingLine(db, now));

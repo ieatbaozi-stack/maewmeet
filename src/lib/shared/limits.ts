@@ -151,6 +151,15 @@ export const LINE_DISPATCH = {
   timeoutMs: 8_000,
 } as const;
 
+/** เพดานกันโควตา LINE หมด (R10 §1.4 · Security M1) — นับจากแถว outbox ตอนจองส่ง · เกิน = ไม่ push กระดิ่งปกติ */
+export const LINE_SEND_CAPS = {
+  /** นัด + ชนิด + ผู้รับเดียวกัน */
+  perAppointmentKindUser: 2,
+  /** ผู้รับหนึ่งคน */
+  perUser: 6,
+  windowMs: DAY_MS,
+} as const;
+
 export const LINE_LINK_CODE_TTL_MS = 10 * MINUTE_MS;
 export const LINE_WEBHOOK_MAX_BODY_BYTES = 256 * 1024;
 export const LINE_WEBHOOK_MAX_EVENTS = 20;

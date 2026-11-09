@@ -1,7 +1,7 @@
 // POST /api/line/webhook — R10 §2 · ADR 0011 §1 · อ่าน raw body แล้วตรวจลายเซ็นก่อน parse · ลายเซ็นผิด/ไม่ได้ตั้ง secret = 401 แบบเดียวกัน
 //  - message (ข้อความรูปโค้ดเท่านั้น): ผูกบัญชีแล้ว reply · ข้อความอื่นเงียบ (ไม่ทับ auto-response/แชทมือของ boss)
 //  - โค้ดผิด/หมดอายุ/ใช้แล้ว/โดน rate limit: reply line.link.invalid เหมือนกันทุกกรณี
-//  - unfollow: ยกเลิกการผูก + ล้างคิว pending · ห้าม log โค้ด/token/LINE user id/เนื้อหาข้อความ
+//  - unfollow: ยกเลิกการผูก + ล้างคิว pending (ไม่นับเพดาน event ต่อคำขอ · คงลำดับเดิมของ event) · ห้าม log โค้ด/token/LINE user id/เนื้อหาข้อความ
 import { z } from 'zod';
 import type { Db, Tx } from '@/db/client';
 import { rateKey } from '@/lib/auth/throttle';
@@ -94,10 +94,7 @@ async function handleText(event: LineEvent, lineUserId: string, config: LineConf
   if (event.replyToken) await replyText(config, { replyToken: event.replyToken, text: renderLineLinkReply(locale ?? 'th', reply) });
 }
 
-async function handleEvent(raw: unknown, config: LineConfig, ctx: WebhookCtx): Promise<void> {
-  const parsed = eventSchema.safeParse(raw);
-  if (!parsed.success) return;
-  const event = parsed.data;
+async function handleEvent(event: LineEvent, config: LineConfig, ctx: WebhookCtx): Promise<void> {
   const lineUserId = event.source?.userId;
   if (event.source?.type !== 'user' || lineUserId === undefined || !LINE_USER_ID.test(lineUserId)) return;
   if (event.type === 'message') await handleText(event, lineUserId, config, ctx);
@@ -109,12 +106,21 @@ export async function handleLineWebhook(req: Request, ctx: WebhookCtx): Promise<
   const raw = await readRawBody(req);
   if (!config || !verifyLineSignature(raw, req.headers.get('x-line-signature'), config.channelSecret)) throw new AppError('AUTH_REQUIRED');
   const events = parseBody(raw);
-  for (const event of events.slice(0, LINE_WEBHOOK_MAX_EVENTS)) {
+  let others = 0;
+  let dropped = 0;
+  for (const raw of events) {
+    const parsed = eventSchema.safeParse(raw);
+    if (!parsed.success) continue;
+    if (parsed.data.type !== 'unfollow' && ++others > LINE_WEBHOOK_MAX_EVENTS) {
+      dropped += 1;
+      continue;
+    }
     try {
-      await handleEvent(event, config, ctx);
+      await handleEvent(parsed.data, config, ctx);
     } catch (e) {
       console.error(`[line] webhook event failed ${e instanceof Error ? e.name : typeof e}`);
     }
   }
+  if (dropped > 0) console.warn(`[line] webhook events over cap; dropped=${dropped}`);
   return { ok: true };
 }
