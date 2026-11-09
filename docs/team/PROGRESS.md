@@ -1,7 +1,7 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-09 (เวลาไทย) · R10 (F6) ตรวจแล้ว รอ PR (ยังไม่ push) · ออก v0.10.0 + repo public ตรวจด้วย `git log`, `git tag`, `gh pr view 21`, `gh repo view`, `gh api` (ruleset/security), `gh run list`, `/api/health` (2026-11-09 04:38) · ก่อนหน้า: `docs/contracts/R9_CONTRACT.md`, `docs/reports/qa-r9.md`, `CHANGELOG.md`, `docs/contracts/R8_CONTRACT.md`, `docs/reports/qa-r8.md`, `security-r8.md`, `docs/reports/perf-r7-*.md`, `qa-r7.md`, `security-r7.md` · R9 merge ตรวจด้วย `gh pr view 23` / `gh pr checks 23` (2026-11-09)
+> อัปเดตล่าสุด: 2026-11-10 (เวลาไทย) · **R10 (F6) merge แล้ว (PR #26) และออก v0.11.0 แล้ว** · ตรวจด้วย `git log origin/main`, `git tag`, `git rev-list -n1 v0.11.0` (= `a77fc50`) และ `CHANGELOG.md` หัวข้อ `[0.11.0] - 2026-11-10` · ผลการทดสอบ LINE และ `/api/health` = ที่ boss รายงาน (เลขาไม่ได้ตรวจเอง) · รายงานวัน: `docs/reports/2026-11-10.md` · ก่อนหน้า: `docs/contracts/R10_CONTRACT.md`, `docs/reports/qa-r10.md`, `security-r10.md`, `docs/reports/2026-11-09.md`
 
 ## เสร็จแล้ว
 - R0–R5: foundation, บัญชี PIN, กลุ่ม, ปฏิทิน + busy, วันว่างร่วม + สร้างนัด, หน้า super admin + audit log (ดู CHANGELOG)
@@ -18,20 +18,31 @@
   - **R6D L1/L2 ปิดแล้ว** · **F5 ปิดแล้ว** (boss เลือกคงข้อความ `privacy.draft` 2026-11-02 — ไม่แก้โค้ด)
 - **ออก v0.8.1 แล้ว** (tag `v0.8.1` → commit `72d7881` `chore(release): v0.8.1`, 2026-11-03 03:10 เวลาไทย) รวม R6E · รอบนี้ไม่มี migration
 - **ออก v0.10.0 แล้ว** (2026-11-09, tag `v0.10.0` → commit `d670fcc` `chore(release): v0.10.0`) รวม R8 · **repo เปลี่ยนเป็น public** (2026-11-08) · รายละเอียดหัวข้อ "v0.10.0 + repo public" ด้านล่าง
+- **ออก v0.11.0 แล้ว** (2026-11-10, tag `v0.11.0` → commit `a77fc50` `chore(release): v0.11.0`) รวม **R10** (F6 เตือนก่อนนัดทาง LINE OA + กระดิ่ง, เชื่อม LINE, ปุ่มขั้น 2) · migration `0004` (รันหลัง merge — ดูหัวข้อ R10) · รายละเอียดด้านล่าง
 
-## R10 — F6 เตือนก่อนนัด (LINE OA + กระดิ่ง) + ปุ่มขั้น 2 — ตรวจแล้ว รอ PR (2026-11-09)
+## R10 — F6 เตือนก่อนนัด (LINE OA + กระดิ่ง) + ปุ่มขั้น 2 — merge แล้ว (PR #26) · ออก v0.11.0 แล้ว (2026-11-10) ✅
+- **merge แล้ว:** PR #26 (`feat/r10-line-reminders`) merge เป็น `dd6ff8e` เมื่อ 2026-11-09 23:39 เวลาไทย (รายงานโดย boss/main)
+- **ออก v0.11.0 แล้ว:** tag `v0.11.0` → commit `a77fc50` `chore(release): v0.11.0` (ตรวจด้วย `git rev-list -n1 v0.11.0`) · หัวข้อ `[0.11.0] - 2026-11-10` ใน CHANGELOG · `/api/health` ตอบ `0.11.0` (boss รายงาน)
+- **เหตุการณ์หลัง merge (boss รายงาน · ไม่มีข้อมูลหาย เพราะ migration เป็นการเพิ่มอย่างเดียว):**
+  - migration `0004` **ยังไม่ได้รันก่อน merge** (ลำดับที่ OPERATIONS กำหนดคือรันก่อน merge) → หลัง merge production โหลดนัดไม่สำเร็จ ("โหลดนัดไม่สำเร็จ") จน boss รัน `0004` บน prod แล้วจึงรันบน preview
+  - Schedule `reminders` รอบ 23:50 และ 00:05 ล้ม (รอบ 00:05 บันทึก HTTP 500 · ยังไม่ได้อ่านข้อความ error ที่แน่ชัด) · รอบ 00:20 และ 00:35 Completed
+  - **บทเรียน:** ลำดับ "migration ก่อน merge" ถูกบังคับด้วยคำสั่งอย่างเดียว · process หรือ CI guard ที่ตรวจ migration ที่ยังไม่รันเป็นรายการ backlog ที่ควรพิจารณา
+- **การตั้งค่า LINE (boss รายงาน):** long-lived token และ Channel secret เก็บใน Bitwarden · ตั้งใน Vercel Production แล้วและ redeploy · Webhook Verify Success · Use webhook เปิด · Webhook redelivery ปิด (ไม่มี webhookEventId dedupe) · Error statistics aggregation เปิดตามที่แนะนำ · หน้า Schedules ของ Vercel: เปิดด้วยการต่อ `/schedules` ท้าย URL โปรเจกต์ (boss หาเมนูไม่เจอ)
+- **ทดสอบ LINE จริง R10-11 (boss รายงาน ผ่าน):** รหัสเชื่อมในแชท OA · ข้อความยืนยันการเชื่อม · `/me` แสดงว่าเชื่อมแล้ว · คำค้น `วิธีใช้งาน` ยังได้การ์ด · `สวัสดี` ไม่ได้รับการตอบ · เตือน 1 ชม. ของนัดเวลา 02:00 วันที่ 10 พ.ย. ถึง LINE เวลา 01:05 และถึงกระดิ่ง · เห็นแต่ละช่องทางหนึ่งครั้ง ไม่พบข้อความซ้ำ
+- **ยังไม่ได้ทดสอบบน LINE จริง:** เตือน 1 วัน และ `rsvp_nudge`
 - contract `docs/contracts/R10_CONTRACT.md` (`b529819`, main) · **boss เห็นชอบ 2026-11-09** ("เพิ่ม แล้วเริ่มเลย") · แก้ตามผลรีวิว: `4ca32a2`, `767d6cc` (เพดาน LINE จาก security M1)
-- branch `feat/r10-line-reminders` · HEAD `87018b3` · **ยังไม่ push** (ไม่มี upstream) · ไม่มี PR · แตกจาก main · 21 commit · `git diff --stat main..HEAD`: 64 ไฟล์ +5901 / −34
+- branch `feat/r10-line-reminders` · HEAD `87018b3` ตอนรีวิว (ก่อน merge ที่ `dd6ff8e`) · แตกจาก main · 21 commit · `git diff --stat main..HEAD`: 64 ไฟล์ +5901 / −34
 - เนื้อหา: เตือน 1 วัน + 1 ชม. ในกระดิ่งและ LINE เฉพาะคนตอบ "ไป" · `rsvp_nudge` กระดิ่งอย่างเดียวสำหรับ "อาจไป"/ยังไม่ตอบ · เชื่อม LINE ที่แท็บ "ฉัน" (webhook, ยกเลิก) · เพดาน LINE (นัด+ชนิด+ผู้รับ ≤ 2 ใน 24 ชม. · ผู้รับ ≤ 6 ใน 24 ชม.) · ปุ่มขั้น 2 เปิดฟอร์มลงวันไม่ว่าง · migration `0004_r10_line_reminders.sql` (เพิ่มอย่างเดียว)
 - **ผลตรวจอิสระ:**
   - qa **ผ่าน** (`docs/reports/qa-r10.md`) · รอบแรกผ่านแบบมีข้อสังเกต (M1 ถ้อยคำ "อีกวันเดียว" ตายตัว) → แก้แล้ว `999b471`/`a75d7e8` · ตรวจซ้ำ `87018b3`: M1 ปิด · e2e `tests/e2e/r10-reminders.spec.ts` 60 passed (ตามรายงาน qa)
   - security **ผ่านแบบมีข้อสังเกต** (`docs/reports/security-r10.md`) · Critical 0 · High 0 · Medium 0 (M1 เพดาน LINE แก้แล้ว `73d85ac`) · Low ที่เปิดเป็น backlog: L1 ลิงก์ในชื่อนัด/ชื่อกลุ่มที่ LINE ทำให้กดได้ · L3 เพดานเป็นต่อผู้รับ ยังไม่มีเพดานรวมของ OA · L2 แก้แล้ว
 - ตัวเลขเทสต์ (ของ qa ไม่ใช่เลขาที่รันเอง): tsc/eslint/build ผ่าน · vitest ทั้งชุดหลังกลืน EPERM 4980 ผ่าน 4945 ล้ม 17 (ปัญหาเครื่อง Windows เดิม ไม่เกี่ยวกับ R10)
 - ผู้ทำ (ตาม `git log main..HEAD`): platform 4 · main 3 · ops 3 · ux 3 · architect 2 · qa 2 · security 2 · frontend 1 · test 1
-- **ยังไม่ยืนยัน / ยังไม่ทำ:** push · PR · CI · Vercel preview · migration `0004` บน Turso (ต้องรัน preview → prod ก่อน merge ตาม OPERATIONS) · Channel token/webhook/env LINE · Schedules ทำงานจริง · ทดสอบ LINE จริง (R10-11) · ออกรุ่น (เสนอ v0.11.0)
+- **ยังไม่ยืนยัน:** CI ของ `a77fc50` (ตอนตรวจล่าสุดยังรันอยู่) · เตือน 1 วันและ `rsvp_nudge` บน LINE จริง · ผลเทสต์ในรอบนี้ของเลขา (เลขาไม่ได้รันเอง)
 - ข้อสังเกตนอกขอบเขต (ไม่บล็อก): qa L2 Hobby Schedules มี jitter ~15 นาที (`reminder_1h` ยังทันถ้าพลาดไม่เกิน ~45 นาที) · qa L3 ภาพ fullPage ของ `/me` (อาการของเดิม) · security Info 5 แถว outbox `pending` ไม่ถูกลบตาม retention ถ้าเอา env LINE ออกหลังเข้าคิว · security Info 8 event ที่ล้มกลางทางตอบ 200 ไม่ retry
-- **ขั้นถัดไปของ boss (contract §8):** รัน migration `0004` preview → prod ก่อน merge → merge → ออก token และตั้ง env (Production) → ตั้ง webhook → ทดสอบ R10-11 แล้วค่อยชวนเพื่อน
-- Backlog R10: security L1, L3 · ถ้า repo กลับเป็น private ต้องลด CI
+- **ขั้นของ boss (contract §8) ตามที่รายงาน:** migration `0004` รันแล้ว (prod ก่อน แล้ว preview · หลัง merge ตามเหตุการณ์ด้านบน) · token/env/webhook ตั้งแล้ว · ทดสอบ R10-11 ผ่านตามที่ระบุ · **ยังไม่มีข้อมูลว่าชวนเพื่อนแล้วหรือยัง**
+- Backlog R10 (ไม่บล็อก): security L1 (ลิงก์ในชื่อนัด/ชื่อกลุ่มที่ LINE ทำให้กดได้ · เสนอกรองข้อความที่ออก LINE) · L3 (เพดานเป็นต่อผู้รับ ยังไม่มีเพดานรวมของ OA หรือการแจ้งเตือนโควตา) · ถ้า repo กลับเป็น private ต้องลด CI
+- ข้อเสนอ backlog จากเหตุการณ์ migration: process หรือ CI guard ตรวจ migration ที่ยังไม่รันบนฐานก่อน merge (ยังไม่ตัดสิน)
 
 ## v0.10.0 ออกแล้ว + repo เป็น public — 2026-11-09 ✅
 - **R8 merge แล้ว** (PR #21, merge commit `e41f9d2`, 2026-11-08) — `gh pr view 21`: MERGED, mergedAt 2026-11-08T02:58:10Z · F1 onboarding + แก้ข้อความ `/privacy` · **ไม่มี migration** · ผลตรวจอิสระ: qa ผ่านแบบมีข้อสังเกต (`docs/reports/qa-r8.md`) · security ผ่าน (`docs/reports/security-r8.md`)
@@ -144,7 +155,7 @@
 
 ## รอ boss
 - **R7 RSVP 10→9** — ยอมรับตามที่ main เสนอ รอ boss ยืนยัน (ดูหัวข้อ R7 ด้านบน) · merge PR #19 และออก v0.9.1 เสร็จแล้ว
-- **F6 แจ้งเตือนก่อนนัด** — boss เลือกแล้ว (LINE OA + กระดิ่ง, 2026-11-09) · R10 ตรวจแล้ว รอ PR · ดูหัวข้อ R10
+- **F6 แจ้งเตือนก่อนนัด** — boss เลือกแล้ว (LINE OA + กระดิ่ง, 2026-11-09) · R10 merge และออก v0.11.0 แล้ว (2026-11-10) · ค้างแค่ทดสอบเตือน 1 วันและ `rsvp_nudge` บน LINE จริง · ดูหัวข้อ R10
 - R7 เฟส A เดิม (เปิด preview อ่าน Server-Timing ด้วย DevTools เพื่อวัดเวลาจริงกับ Turso ญี่ปุ่น) — ยังไม่ได้ทำ เลื่อนเป็น backlog ถ้าไม่ต้องการตัวเลขจริงก่อนงานถัดไป
 
 ## เหลือ
@@ -157,7 +168,8 @@
   - backlog R8 (step-2 CTA ไปปฏิทิน, step 3 ค้าง "ถัดไป", ประโยคเสริมใน `/privacy`) — ดูหัวข้อ "backlog R8" ด้านบน
   - **README สำหรับคนนอก (R9)** — merge แล้ว (PR #23, `8b60634`)
   - **F2 ความช้า** — R7 เสร็จ รอ boss ตัดสิน RSVP 10→9
-  - **F6 แจ้งเตือนก่อนนัด** — R10 ตรวจแล้ว (qa ผ่าน · security ผ่านแบบมีข้อสังเกต) รอ PR และ boss ทำขั้นตั้งค่า LINE ตามหัวข้อ R10
+  - **F6 แจ้งเตือนก่อนนัด** — R10 merge + ออก v0.11.0 แล้ว · ค้าง: ทดสอบเตือน 1 วันและ `rsvp_nudge` บน LINE จริง · CI ของ `a77fc50` ยังไม่ยืนยันผล
+  - **Backlog R10:** security L1, L3 (ดูหัวข้อ R10)
 - **backlog R7 และ R8 (ไม่บล็อก):** ดูหัวข้อ "backlog ใหม่จาก R7" และ "backlog R8" ด้านบน · qa/security L/Info ที่เหลือจาก R7: ดู `docs/reports/qa-r7.md`, `docs/reports/security-r7.md`
 - **ทำ config/helper ถาวรให้ Vitest ข้าม EPERM บน Windows** (ข้อเสนอเดิม)
 - **R6 hardening (ดู `docs/NEXT_PHASE.md` หัวข้อ backlog R6 hardening):** rate limit แบบ global/อ่าน · retention กลุ่ม/คำเชิญที่ลบ · e2e retries ซ่อน flake · guard stream HTTP 200 · CSP unsafe-inline · DST day strip · แจ้งเตือน appointment.cancelled · กู้กลุ่ม/บัญชีที่ลบ
