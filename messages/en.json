@@ -803,7 +803,7 @@
     "appointment": {
       "created": "New plan: {title} ({when}) in “{groupName}”",
       "reminder_1d": "Coming up: {title} ({when}) in “{groupName}”",
-      "reminder_1h": "Starting in about an hour: {title} ({when}) in “{groupName}”",
+      "reminder_1h": "Starting soon: {title} ({when}) in “{groupName}”",
       "rsvp_nudge": "You haven’t confirmed yet. Are you in? {title} ({when}) in “{groupName}”"
     }
   },

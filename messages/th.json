@@ -803,7 +803,7 @@
     "appointment": {
       "created": "นัดใหม่: {title} ({when}) ในกลุ่ม “{groupName}”",
       "reminder_1d": "ใกล้ถึงนัดแล้ว: {title} ({when}) ในกลุ่ม “{groupName}”",
-      "reminder_1h": "อีกชั่วโมงเดียวถึงนัด: {title} ({when}) ในกลุ่ม “{groupName}”",
+      "reminder_1h": "ใกล้เริ่มแล้ว: {title} ({when}) ในกลุ่ม “{groupName}”",
       "rsvp_nudge": "คุณยังไม่ได้ยืนยัน จะไปไหม? {title} ({when}) ในกลุ่ม “{groupName}”"
     }
   },
