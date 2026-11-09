@@ -312,6 +312,19 @@ export async function upsertRsvpIfOpen(
   return rows.length === 1;
 }
 
+/**
+ * R11: คำตอบเดิมของผู้ตอบ ก่อน upsert — นับตามกติกาเดียวกับ listCurrentRsvps (ADR 0009 §1: สมาชิกปัจจุบัน + updated_at >= joined_at)
+ * คำตอบจากสมาชิกภาพรอบก่อน = ยังไม่ตอบ (null) · อ่านใน transaction เดียวกับการเขียน
+ */
+export async function findCurrentRsvpResponse(db: DbOrTx, input: { appointmentId: string; userId: string; groupId: string }): Promise<RsvpResponse | null> {
+  const rows = await db.all<{ response: RsvpResponse }>(sql`
+    SELECT r.response AS response
+    FROM appointment_rsvp r
+    JOIN group_member gm ON gm.group_id = ${input.groupId} AND gm.user_id = r.user_id AND r.updated_at >= gm.joined_at
+    WHERE r.appointment_id = ${input.appointmentId} AND r.user_id = ${input.userId}`);
+  return rows[0]?.response ?? null;
+}
+
 // ───────── R6D: นัด/busy ของฉันที่ทับช่วงเวลา (ADR 0009 §3) ─────────
 /**
  * แถวคำมั่นของ session user ที่ทับช่วง — ใช้เฉพาะ "ของฉัน" (WHERE user_id = me ทั้งสองฝั่ง) จึงส่งชื่อ/กลุ่มของตัวเองได้

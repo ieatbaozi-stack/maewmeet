@@ -4,17 +4,20 @@
 //  - การเขียนทุกอย่าง = คำสั่ง SQL เดียวมีเงื่อนไขในตัว + ActorGuard (repos/appointment.ts) · ไม่ผ่าน → วินิจฉัยเพื่อเลือกรหัสที่ถูก
 //  - เวลาทั้งหมดผ่าน src/lib/calendar (normalizeBusyInput แบบ timed ใน tz กลุ่ม · todayIn/daysUntil) — ไม่คำนวณวันเอง
 //  - สร้างนัด: notify(tx) 'appointment.created' ถึงสมาชิกทุกคนยกเว้นผู้สร้าง ใน transaction เดียวกัน (ล้ม → นัด rollback)
+//  - R11 §1: ยกเลิก/แก้เวลา-สถานที่/เปลี่ยนคำตอบ แจ้งใน transaction เดียวกันกับการกระทำ · ไม่แจ้งผู้กระทำ · ส่ง LINE ยกเลิกนัดทันทีหลัง commit (after) · cron เป็นทางลองซ้ำ
 //  - เตือนนัดทับ: busy ของสมาชิกปัจจุบันผ่านคิวรีฝั่งแชร์ + serializer เดียวกับปฏิทิน/วันว่าง (ไม่มี note · รายการซ่อนไม่มี title) · ไม่บล็อกการสร้าง/แก้
 //  - R6D (ADR 0009): busy รวมนัดที่ตอบ "ไป" จากทุกกลุ่ม (ตัดนัดตัวเองออก) · myConflicts ของ session user ในรายละเอียด · myConflict ในรายการ
 import { z } from 'zod';
 import { membersBlockedDuring, normalizeBusyInput, overlapsRange, type BusyInputError } from '@/lib/calendar';
 import { findGroupById } from '@/lib/data/repos/group';
-import { listMemberIds, listMembers } from '@/lib/data/repos/group-member';
+import { listActiveMemberIds, listMemberIds, listMembers } from '@/lib/data/repos/group-member';
 import {
   cancelAppointmentGuarded,
   countActiveFutureAppointments,
   countCreatedLastDay,
   currentMemberNames,
+  findAppointmentById,
+  findCurrentRsvpResponse,
   groupNamesAndMemberCounts,
   insertAppointmentIfUnderCap,
   listCurrentRsvps,
@@ -32,6 +35,9 @@ import {
 } from '@/lib/data/repos/appointment';
 import { rateKey, type RateSpec } from '@/lib/auth/throttle';
 import { refundBucket, reserveBucket } from '@/lib/data/repos/rate-limit-bucket';
+import { listReminderAudience } from '@/lib/data/repos/reminder';
+import { findUserById } from '@/lib/data/repos/user';
+import { dispatchCancelledLineAfterResponse } from '@/lib/integrations/line/dispatch-after';
 import { authorize, can } from '@/lib/rbac/can';
 import type { Actor, Allow, GroupCtx, UserActor } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
@@ -442,6 +448,21 @@ async function auditAppt(tx: Parameters<typeof audit>[0], me: UserActor, allow: 
   await audit(tx, me, allow, { action, targetType: 'appointment', targetId: row.id, groupId: row.groupId, meta: { appointmentId: row.id, ...meta } }, now);
 }
 
+/** R11 §1: ชื่อผู้กระทำ ณ ตอนเกิดเหตุ สำหรับ params */
+async function actorDisplayName(tx: Parameters<typeof audit>[0], userId: string): Promise<string> {
+  const row = await findUserById(tx, userId);
+  return sanitizeDisplayText(row?.displayName ?? '');
+}
+
+/** R11 §1: สิ่งที่เปลี่ยนจริงเมื่อเทียบกับแถวก่อนแก้ — แก้แค่ชื่อ/รายละเอียด = null (ไม่แจ้ง) */
+export function appointmentChanges(before: AppointmentRow, after: AppointmentRow): 'time' | 'place' | 'both' | null {
+  const time = before.startAt !== after.startAt || before.endAt !== after.endAt;
+  const place = before.placeName !== after.placeName || before.lat !== after.lat || before.lng !== after.lng || before.mapUrl !== after.mapUrl;
+  if (time && place) return 'both';
+  if (time) return 'time';
+  return place ? 'place' : null;
+}
+
 // ───────── U10: สร้าง ─────────
 export type AppointmentWithOverlapDto = { appointment: AppointmentDetailDto; overlap: OverlapDto };
 
@@ -559,6 +580,8 @@ export async function updateAppointment(actor: Actor, id: string, input: UpdateA
   await takeWriteSlots(db, me.id, [APPOINTMENT_WRITE_RATE_LIMITS.update], now);
 
   const row = await inTx(db, async (tx) => {
+    // R11: แถวก่อนแก้ อ่านในธุรกรรมเดียวกับการแก้ (`current` อาจเก่ากว่าถ้ามีคนแก้แข่งกัน)
+    const before = await findAppointmentById(tx, id);
     const updated = await updateAppointmentGuarded(
       tx,
       { id, groupId: current.groupId, patch, cap: APPOINTMENT_MAX_ACTIVE_PER_GROUP },
@@ -566,6 +589,19 @@ export async function updateAppointment(actor: Actor, id: string, input: UpdateA
       now,
     );
     if (!updated) throw await whyWriteRejected(tx, me, id, c.group, now);
+    const changes = before ? appointmentChanges(before, updated) : null;
+    if (changes) {
+      const recipients = (await listActiveMemberIds(tx, updated.groupId)).filter((uid) => uid !== me.id);
+      await notify(
+        tx,
+        {
+          userIds: recipients,
+          kind: 'appointment.updated',
+          params: { groupId: updated.groupId, groupName: sanitizeDisplayText(c.groupName), appointmentId: updated.id, title: sanitizeDisplayText(updated.title), startAt: updated.startAt, tz: updated.tz, actorName: await actorDisplayName(tx, me.id), actorId: me.id, changes },
+        },
+        now,
+      );
+    }
     await auditAppt(tx, me, allow, 'appointment.update', updated, now, { fields: Object.keys(input).filter((k) => (input as Record<string, unknown>)[k] !== undefined) });
     return updated;
   });
@@ -583,12 +619,31 @@ export async function cancelAppointment(actor: Actor, id: string, ctx: DataCtx):
   if (current.endAt <= now) throw new AppError('APPOINTMENT_PAST'); // จบแล้วยกเลิกไม่ได้ (QA L1)
   await takeWriteSlots(db, me.id, [APPOINTMENT_WRITE_RATE_LIMITS.cancel], now);
 
-  const row = await inTx(db, async (tx) => {
+  const { row, lineQueued } = await inTx(db, async (tx) => {
     const cancelled = await cancelAppointmentGuarded(tx, { id, groupId: current.groupId, cancelledBy: me.id }, activeGuard(me, c.group), now);
     if (!cancelled) throw await whyWriteRejected(tx, me, id, c.group, now);
+    // R11 §1: แจ้งเฉพาะยกเลิกก่อนเวลาเริ่ม · กระดิ่ง = ไป/อาจไป/ยังไม่ตอบ · LINE = ตอบไปเท่านั้น (แคบกว่า) · ผู้กระทำไม่ได้รับ
+    let lineQueued = false;
+    if (cancelled.startAt > now) {
+      const audience = (await listReminderAudience(tx, cancelled.id, cancelled.groupId)).filter((r) => r.userId !== me.id);
+      const bell = audience.filter((r) => r.response !== 'not_going').map((r) => r.userId);
+      const lineUserIds = audience.filter((r) => r.response === 'going').map((r) => r.userId);
+      await notify(
+        tx,
+        {
+          userIds: bell,
+          lineUserIds,
+          kind: 'appointment.cancelled',
+          params: { groupId: cancelled.groupId, groupName: sanitizeDisplayText(c.groupName), appointmentId: cancelled.id, title: sanitizeDisplayText(cancelled.title), startAt: cancelled.startAt, tz: cancelled.tz, actorName: await actorDisplayName(tx, me.id), actorId: me.id },
+        },
+        now,
+      );
+      lineQueued = lineUserIds.length > 0;
+    }
     await auditAppt(tx, me, allow, 'appointment.cancel', cancelled, now);
-    return cancelled;
+    return { row: cancelled, lineQueued };
   });
+  if (lineQueued) dispatchCancelledLineAfterResponse(db, row.id);
   return { appointment: await toDetailDto(db, me, now, row, c.group, c.groupName) };
 }
 
@@ -604,8 +659,22 @@ export async function setRsvp(actor: Actor, id: string, input: RsvpInput, ctx: D
   await takeWriteSlots(db, me.id, [APPOINTMENT_WRITE_RATE_LIMITS.rsvp], now);
 
   await inTx(db, async (tx) => {
+    const previous = await findCurrentRsvpResponse(tx, { appointmentId: id, userId: me.id, groupId: current.groupId });
     const ok = await upsertRsvpIfOpen(tx, { appointmentId: id, userId: me.id, response: input.response }, now);
     if (!ok) throw await whyRsvpRejected(tx, me, id, now);
+    // R11 §1: แจ้งผู้สร้างเมื่อคำตอบเปลี่ยนจริง (รวมตอบครั้งแรก) · ผู้สร้างตอบเองไม่แจ้ง · ผู้สร้างต้องยังเป็นสมาชิก active
+    if (previous !== input.response && current.createdBy !== me.id) {
+      const creator = await listActiveMemberIds(tx, current.groupId, { userIds: [current.createdBy] });
+      await notify(
+        tx,
+        {
+          userIds: creator,
+          kind: 'appointment.rsvp_changed',
+          params: { groupId: current.groupId, groupName: sanitizeDisplayText(c.groupName), appointmentId: id, title: sanitizeDisplayText(current.title), startAt: current.startAt, tz: current.tz, responderName: await actorDisplayName(tx, me.id), responderId: me.id, response: input.response },
+        },
+        now,
+      );
+    }
   });
   // R7 B-4: ไม่อ่าน access ซ้ำหลัง commit — upsert สำเร็จ ⇒ ในคำสั่งเดียวกันนัดยัง active/ยังไม่จบ · กลุ่มยังอยู่ · ฉันยังเป็นสมาชิก
   // RSVP ไม่แตะแถวนัด จึงใช้แถว/บริบทที่อ่านไว้ก่อนเขียนได้ · คำตอบของทุกคน (รวมที่เพิ่งเข้ามา) + สมาชิก + myConflicts ยังอ่านใหม่ใน toDetailDto

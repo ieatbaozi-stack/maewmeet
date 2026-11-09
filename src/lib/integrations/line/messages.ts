@@ -33,6 +33,19 @@ export function renderLineReminder(
   });
 }
 
+/** R11 §2: แจ้งยกเลิกนัด — ชื่อนัด วันเวลา ชื่อกลุ่ม ลิงก์ เท่านั้น (ไม่มีชื่อคนกดยกเลิก) */
+export function renderLineCancelled(
+  locale: LineLocale,
+  input: { title: string; groupName: string; startAt: number; tz: string; appointmentId: string; appOrigin: string },
+): string {
+  return translator(locale)('line.message.cancelled', {
+    title: sanitizeDisplayText(input.title),
+    groupName: sanitizeDisplayText(input.groupName),
+    when: format(input.startAt, { locale, style: 'datetime-full', tz: input.tz }),
+    url: `${input.appOrigin}/appointments/${input.appointmentId}?openExternalBrowser=1`,
+  });
+}
+
 export function renderLineLinkReply(locale: LineLocale, reply: LineLinkReply): string {
   return translator(locale)(`line.link.${reply}`);
 }

@@ -149,6 +149,8 @@ export const LINE_DISPATCH = {
   /** ADR 0007 §2: attempts สูงสุด 5 · backoff 2^attempts นาที */
   maxAttempts: 5,
   timeoutMs: 8_000,
+  /** ส่งทันทีหลังยกเลิกนัด (R11 §2 — ทำงานหลังตอบ API แล้ว) · เกินเวลา = เหลือให้ cron */
+  afterResponseBudgetMs: 20_000,
 } as const;
 
 /** เพดานกันโควตา LINE หมด (R10 §1.4 · Security M1) — นับจากแถว outbox ตอนจองส่ง · เกิน = ไม่ push กระดิ่งปกติ */

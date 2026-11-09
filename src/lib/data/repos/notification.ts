@@ -66,6 +66,25 @@ export async function insertNotificationRows(
 }
 
 /**
+ * R11 §1: ลบรายการที่ยังไม่อ่านของนัดเดียวกัน + ผู้รับเดียวกัน (rsvp_changed: + ผู้ตอบคนเดิม) ก่อนเขียนรายการใหม่แทน
+ * อ่านแล้วไม่ถูกแตะ — เหตุการณ์ถัดไปเป็นแถวใหม่ · เรียกใน transaction เดียวกับ notify
+ */
+export async function deleteUnreadEventRows(
+  db: DbOrTx,
+  input: { userIds: readonly string[]; kind: string; appointmentId: string; responderId?: string },
+): Promise<void> {
+  if (input.userIds.length === 0) return;
+  const conds: SQL[] = [
+    inArray(notification.userId, [...input.userIds]),
+    eq(notification.kind, input.kind),
+    isNull(notification.readAt),
+    sql`json_extract(${notification.params}, '$.appointmentId') = ${input.appointmentId}`,
+  ];
+  if (input.responderId !== undefined) conds.push(sql`json_extract(${notification.params}, '$.responderId') = ${input.responderId}`);
+  await db.delete(notification).where(and(...conds));
+}
+
+/**
  * แจ้งเตือนที่ผู้ใช้ "ควรเห็น": ชนิดที่เกี่ยวกับนัด (appointment.*) เห็นได้เฉพาะเมื่อยังเป็นสมาชิกของกลุ่มนั้นและกลุ่มยังไม่ถูกลบ
  * (ถูกลบออก/ออกเอง → ไม่เห็นชื่อนัดของกลุ่มเดิมอีก · เกิดก่อน joined_at ปัจจุบัน = ของสมาชิกภาพรอบก่อน ซ่อนแม้กลับเข้ากลุ่มแล้ว) · ชนิดอื่นเห็นเสมอ · ใช้ร่วมกันระหว่างรายการและจำนวนที่ยังไม่อ่าน
  */

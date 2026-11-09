@@ -104,11 +104,17 @@ export async function usersWithLine(db: DbOrTx, userIds: readonly string[]): Pro
 
 export type OutboxRow = typeof notificationOutbox.$inferSelect;
 
-export async function listDueLineOutbox(db: DbOrTx, now: number, limit: number): Promise<OutboxRow[]> {
+/** scope = เฉพาะแถวของชนิด + นัดนี้ (ส่งทันทีหลังยกเลิกนัด R11 §2) · ไม่ระบุ = ทุกแถวที่ถึงกำหนด (cron) */
+export type OutboxScope = { kind: string; appointmentId: string };
+
+export async function listDueLineOutbox(db: DbOrTx, now: number, limit: number, scope?: OutboxScope): Promise<OutboxRow[]> {
+  const scoped = scope
+    ? [sql`json_extract(${notificationOutbox.payload}, '$.kind') = ${scope.kind}`, sql`json_extract(${notificationOutbox.payload}, '$.params.appointmentId') = ${scope.appointmentId}`]
+    : [];
   return db
     .select()
     .from(notificationOutbox)
-    .where(and(eq(notificationOutbox.status, 'pending'), eq(notificationOutbox.channel, 'line'), lte(notificationOutbox.nextAttemptAt, now)))
+    .where(and(eq(notificationOutbox.status, 'pending'), eq(notificationOutbox.channel, 'line'), lte(notificationOutbox.nextAttemptAt, now), ...scoped))
     .orderBy(notificationOutbox.nextAttemptAt, notificationOutbox.id)
     .limit(limit);
 }
