@@ -79,6 +79,9 @@ const envObject = z.object({
   NOMINATIM_CONTACT: optionalString,
   // ── R7 §2: ตัวนับ query + header Server-Timing (ไม่ตั้ง = เปิด ยกเว้น production — ดู serverTimingEnabled) ──
   SERVER_TIMING_ENABLED: serverTimingFlagSchema,
+  // ── R10: LINE Messaging API (ไม่ตั้ง = ช่องทางปิดเงียบ · ค่าลับ ห้าม log) ──
+  LINE_MESSAGING_ACCESS_TOKEN: optionalString,
+  LINE_MESSAGING_CHANNEL_SECRET: optionalString,
   // ── อื่น ๆ ──
   LOG_LEVEL: z.preprocess(blankToUndefined, z.enum(['debug', 'info', 'warn', 'error']).default('info')),
   NODE_ENV: optionalString,

@@ -133,3 +133,40 @@ export const AUDIT_LIST_DEFAULT = 50;
 export const AUDIT_LIST_MAX = 100;
 /** การเปิดดู audit เขียน `admin.audit.view` ไม่เกิน 1 แถว/ช่วงนี้/ผู้ใช้ (กัน audit บวมจากการรีเฟรช) */
 export const AUDIT_VIEW_LOG_INTERVAL_MS = 10 * MINUTE_MS;
+
+// ───────── เตือนก่อนนัด / LINE — R10_CONTRACT §1, §2 · ADR 0011 §4 ─────────
+export const REMINDER_CRON = {
+  /** นัดที่ตรวจต่อรอบ (เรียงเริ่มเร็วสุดก่อน · query ตัดนัดที่ทำครบแล้วออกก่อน LIMIT) */
+  scanMax: 500,
+  /** จำนวนคู่ (นัด, ชนิด) ที่ถึงกำหนดและเขียนต่อรอบ ที่เหลือไปรอบถัดไป */
+  maxClaimsPerRun: 40,
+  /** เวลาทำงานสูงสุดต่อรอบ (ms) — ต่ำกว่า timeout 30 วินาทีของ fallback cron-job.org (ADR 0011 §4) */
+  budgetMs: 20_000,
+} as const;
+
+export const LINE_DISPATCH = {
+  perRun: 40,
+  /** ADR 0007 §2: attempts สูงสุด 5 · backoff 2^attempts นาที */
+  maxAttempts: 5,
+  timeoutMs: 8_000,
+} as const;
+
+/** เพดานกันโควตา LINE หมด (R10 §1.4 · Security M1) — นับจากแถว outbox ตอนจองส่ง · เกิน = ไม่ push กระดิ่งปกติ */
+export const LINE_SEND_CAPS = {
+  /** นัด + ชนิด + ผู้รับเดียวกัน */
+  perAppointmentKindUser: 2,
+  /** ผู้รับหนึ่งคน */
+  perUser: 6,
+  windowMs: DAY_MS,
+} as const;
+
+export const LINE_LINK_CODE_TTL_MS = 10 * MINUTE_MS;
+export const LINE_WEBHOOK_MAX_BODY_BYTES = 256 * 1024;
+export const LINE_WEBHOOK_MAX_EVENTS = 20;
+
+export const LINE_LINK_RATE_LIMITS = {
+  /** POST /api/me/line ต่อผู้ใช้ */
+  create: { prefix: 'line:code:create', limit: 10, windowMs: 60 * MINUTE_MS },
+  /** ข้อความรูปโค้ดใน webhook ต่อบัญชี LINE (คีย์เป็น HMAC ของ LINE user id) */
+  attempt: { prefix: 'line:code:try', limit: 10, windowMs: 10 * MINUTE_MS },
+} as const;

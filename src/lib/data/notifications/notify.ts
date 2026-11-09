@@ -4,7 +4,10 @@
 //  - เขียนล้ม → โยน → transaction ของเหตุการณ์หลัก rollback ทั้งก้อน (ADR 0007 test 4)
 //  - เพิ่มชนิดใหม่ = เพิ่มใน union + ตาราง params + คีย์ข้อความ th/en (เทสต์วนจาก NOTIFICATION_KINDS) + เสนอ Lead/ADR ก่อน
 import type { DbOrTx } from '@/db/client';
+import { insertLineOutboxRows, usersWithLine } from '@/lib/data/repos/line';
 import { insertNotificationRows, usersUnderUnreadCreatedCap } from '@/lib/data/repos/notification';
+import { lineConfig } from '@/lib/integrations/line/config';
+import { getEnv } from '@/lib/shared/env';
 import { newId } from '@/lib/shared/id';
 import { APPOINTMENT_NOTIFY_UNREAD_PER_GROUP_MAX } from '@/lib/shared/limits';
 
@@ -13,11 +16,17 @@ export const NOTIFICATION_KINDS = [
   'group.invite.accepted',
   'group.invite.declined',
   'appointment.created',
+  'appointment.reminder_1d',
+  'appointment.reminder_1h',
+  'appointment.rsvp_nudge',
   'pin_reset.approved',
   'pin_reset.cancelled_by_login',
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
+
+/** R10 §1.3: ค่าดิบของการเตือนก่อนนัด */
+type AppointmentReminderParams = { groupId: string; groupName: string; appointmentId: string; title: string; startAt: number; tz: string };
 
 /** params ต่อชนิด — ตรงกับ ADR 0007 §1 (ชื่อ ณ เวลาเกิดเหตุ · instant = epoch ms) */
 export type NotificationParamsByKind = {
@@ -25,6 +34,9 @@ export type NotificationParamsByKind = {
   'group.invite.accepted': { groupId: string; groupName: string; inviteeName: string; inviteId: string };
   'group.invite.declined': { groupId: string; groupName: string; inviteeName: string; inviteId: string };
   'appointment.created': { groupId: string; groupName: string; appointmentId: string; title: string; startAt: number; tz: string };
+  'appointment.reminder_1d': AppointmentReminderParams;
+  'appointment.reminder_1h': AppointmentReminderParams;
+  'appointment.rsvp_nudge': AppointmentReminderParams;
   'pin_reset.approved': { expiresAt: number };
   'pin_reset.cancelled_by_login': Record<string, never>;
 };
@@ -32,6 +44,9 @@ export type NotificationParamsByKind = {
 export function isNotificationKind(value: unknown): value is NotificationKind {
   return typeof value === 'string' && (NOTIFICATION_KINDS as readonly string[]).includes(value);
 }
+
+/** ชนิดที่ส่งทาง LINE (R10 §1.4) — ชนิดอื่นทั้งหมดไม่เข้า outbox · rsvp_nudge เป็นกระดิ่งเท่านั้น */
+const LINE_KINDS: ReadonlySet<NotificationKind> = new Set<NotificationKind>(['appointment.reminder_1d', 'appointment.reminder_1h']);
 
 /** คีย์ที่ห้ามอยู่ใน params เด็ดขาด (ชั้นสุดท้าย — allowlist จริงอยู่ที่ชนิดด้านบน) */
 const FORBIDDEN_PARAM_KEY = /pin|token|hash|secret|pepper|code|password/i;
@@ -63,10 +78,16 @@ export async function notify<K extends NotificationKind>(
     userIds = userIds.filter((u) => open.has(u));
     if (userIds.length === 0) return 0;
   }
-  await insertNotificationRows(
-    tx,
-    userIds.map((userId) => ({ id: newId(), userId, kind: input.kind, params: { ...input.params } })),
-    now,
-  );
+  const rows = userIds.map((userId) => ({ id: newId(), userId, kind: input.kind, params: { ...input.params } as Record<string, unknown> }));
+  await insertNotificationRows(tx, rows, now);
+  // ADR 0011 §5: ไม่มี env LINE = ไม่เขียน outbox (ไม่สะสมแถวเก่าไว้ส่งทีหลัง) · payload = {kind, params} แปลตอนส่ง
+  if (LINE_KINDS.has(input.kind) && lineConfig(getEnv()) !== null) {
+    const linked = await usersWithLine(tx, userIds);
+    await insertLineOutboxRows(
+      tx,
+      rows.filter((r) => linked.has(r.userId)).map((r) => ({ id: newId(), notificationId: r.id, userId: r.userId, payload: { kind: r.kind, params: r.params } })),
+      now,
+    );
+  }
   return userIds.length;
 }

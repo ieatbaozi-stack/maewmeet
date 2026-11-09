@@ -42,3 +42,6 @@ export function computeSteps({ memberCount, viewerHasBusy, upcomingCount }: Step
   }));
   return { steps, doneCount: STEP_IDS.filter((id) => done[id]).length, allDone };
 }
+
+/** R10: ปุ่มขั้น 2 "ลงวันไม่ว่าง" → ปฏิทินพร้อมเปิดฟอร์มลง busy (add=1 อ่านครั้งเดียวที่ CalendarView แล้วลบออกจาก URL) */
+export const stepBusyAddHref = (groupId: string): string => `/calendar?g=${encodeURIComponent(groupId)}&v=month&add=1`;

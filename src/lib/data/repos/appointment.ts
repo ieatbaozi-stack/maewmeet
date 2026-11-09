@@ -56,9 +56,9 @@ export async function insertAppointmentIfUnderCap(
   now: number,
 ): Promise<AppointmentRow | null> {
   const rows = await db.all<{ id: string }>(sql`
-    INSERT INTO appointment (id, group_id, title, description, place_name, lat, lng, map_url, start_at, end_at, tz, local_date, status, created_by, created_at, updated_at)
+    INSERT INTO appointment (id, group_id, title, description, place_name, lat, lng, map_url, start_at, end_at, tz, local_date, status, created_by, created_at, updated_at, scheduled_at)
     SELECT ${input.id}, ${input.groupId}, ${input.title}, ${input.description}, ${input.placeName}, ${input.lat}, ${input.lng}, ${input.mapUrl},
-           ${input.startAt}, ${input.endAt}, ${input.tz}, ${input.localDate}, 'active', ${input.createdBy}, ${now}, ${now}
+           ${input.startAt}, ${input.endAt}, ${input.tz}, ${input.localDate}, 'active', ${input.createdBy}, ${now}, ${now}, ${now}
     WHERE ${groupAlive(input.groupId)}
       AND EXISTS (SELECT 1 FROM user WHERE id = ${input.createdBy} AND status = 'active')
       AND ${actorGuardClause(input.groupId, guard)}
@@ -112,14 +112,18 @@ export async function updateAppointmentGuarded(
   now: number,
 ): Promise<AppointmentRow | null> {
   const p = input.patch;
-  const set: Partial<typeof appointment.$inferInsert> = { updatedAt: now };
+  const set: Partial<Omit<typeof appointment.$inferInsert, 'scheduledAt'>> & { scheduledAt?: SQL } = { updatedAt: now };
   if (p.title !== undefined) set.title = p.title;
   if (p.description !== undefined) set.description = p.description;
   if (p.placeName !== undefined) set.placeName = p.placeName;
   if (p.lat !== undefined) set.lat = p.lat;
   if (p.lng !== undefined) set.lng = p.lng;
   if (p.mapUrl !== undefined) set.mapUrl = p.mapUrl;
-  if (p.startAt !== undefined) set.startAt = p.startAt;
+  if (p.startAt !== undefined) {
+    set.startAt = p.startAt;
+    // R10 §4: อัปเดตเฉพาะเมื่อ startAt เปลี่ยนจริง — ตัดสินในคำสั่งเดียวกับการแก้ (ค่าเก่าอ่านจากแถว)
+    set.scheduledAt = sql`CASE WHEN ${appointment.startAt} <> ${p.startAt} THEN ${now} ELSE ${appointment.scheduledAt} END`;
+  }
   if (p.endAt !== undefined) set.endAt = p.endAt;
   if (p.tz !== undefined) set.tz = p.tz;
   if (p.localDate !== undefined) set.localDate = p.localDate;

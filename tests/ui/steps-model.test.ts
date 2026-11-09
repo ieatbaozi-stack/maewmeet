@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeSteps } from "@/components/groups/steps-model";
+import { computeSteps, stepBusyAddHref } from "@/components/groups/steps-model";
 
 const states = (r: ReturnType<typeof computeSteps>) => r.steps.map((s) => s.state);
 
@@ -50,5 +50,14 @@ describe("computeSteps (R8 แถบขั้นตอน)", () => {
 
   it("ขั้น 3 ไม่เคยเป็น done", () => {
     expect(computeSteps({ memberCount: 9, viewerHasBusy: true, upcomingCount: 9 }).steps[2]!.state).not.toBe("done");
+  });
+});
+
+describe("stepBusyAddHref (R10 ปุ่มขั้น 2)", () => {
+  it("ไปปฏิทินของกลุ่มพร้อม add=1 (เปิดฟอร์มทันที)", () => {
+    expect(stepBusyAddHref("g_1")).toBe("/calendar?g=g_1&v=month&add=1");
+  });
+  it("id แปลก ๆ ถูก encode", () => {
+    expect(stepBusyAddHref("a&b")).toBe("/calendar?g=a%26b&v=month&add=1");
   });
 });

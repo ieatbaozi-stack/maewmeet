@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { getLocale, getTranslations } from "next-intl/server";
 import { requireUser } from "@/app/_lib/session";
+import { LineSection } from "@/components/account/LineSection";
 import { AccountSection } from "@/components/account/AccountSection";
 import { AccountActions } from "@/components/auth/AccountActions";
 import { Aurora } from "@/components/brand";
@@ -51,6 +52,7 @@ export default async function MePage() {
         <AccountSection displayName={user.displayName} isSuperAdmin={user.isAdmin} />
         <PrefsSettings current={{ locale, theme }} />
         <AccountActions />
+        <LineSection />
         {user.isAdmin ? (
           <section className="settings" aria-labelledby="me-admin">
             <h2 className="h-section" id="me-admin">
