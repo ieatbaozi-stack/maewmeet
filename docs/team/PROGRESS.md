@@ -1,7 +1,7 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-09 (เวลาไทย) · ออก v0.10.0 + repo public ตรวจด้วย `git log`, `git tag`, `gh pr view 21`, `gh repo view`, `gh api` (ruleset/security), `gh run list`, `/api/health` (2026-11-09 04:38) · ก่อนหน้า: `docs/contracts/R9_CONTRACT.md`, `docs/reports/qa-r9.md`, `CHANGELOG.md`, `docs/contracts/R8_CONTRACT.md`, `docs/reports/qa-r8.md`, `security-r8.md`, `docs/reports/perf-r7-*.md`, `qa-r7.md`, `security-r7.md` · R9 merge ตรวจด้วย `gh pr view 23` / `gh pr checks 23` (2026-11-09)
+> อัปเดตล่าสุด: 2026-11-09 (เวลาไทย) · R10 (F6) ตรวจแล้ว รอ PR (ยังไม่ push) · ออก v0.10.0 + repo public ตรวจด้วย `git log`, `git tag`, `gh pr view 21`, `gh repo view`, `gh api` (ruleset/security), `gh run list`, `/api/health` (2026-11-09 04:38) · ก่อนหน้า: `docs/contracts/R9_CONTRACT.md`, `docs/reports/qa-r9.md`, `CHANGELOG.md`, `docs/contracts/R8_CONTRACT.md`, `docs/reports/qa-r8.md`, `security-r8.md`, `docs/reports/perf-r7-*.md`, `qa-r7.md`, `security-r7.md` · R9 merge ตรวจด้วย `gh pr view 23` / `gh pr checks 23` (2026-11-09)
 
 ## เสร็จแล้ว
 - R0–R5: foundation, บัญชี PIN, กลุ่ม, ปฏิทิน + busy, วันว่างร่วม + สร้างนัด, หน้า super admin + audit log (ดู CHANGELOG)
@@ -18,6 +18,20 @@
   - **R6D L1/L2 ปิดแล้ว** · **F5 ปิดแล้ว** (boss เลือกคงข้อความ `privacy.draft` 2026-11-02 — ไม่แก้โค้ด)
 - **ออก v0.8.1 แล้ว** (tag `v0.8.1` → commit `72d7881` `chore(release): v0.8.1`, 2026-11-03 03:10 เวลาไทย) รวม R6E · รอบนี้ไม่มี migration
 - **ออก v0.10.0 แล้ว** (2026-11-09, tag `v0.10.0` → commit `d670fcc` `chore(release): v0.10.0`) รวม R8 · **repo เปลี่ยนเป็น public** (2026-11-08) · รายละเอียดหัวข้อ "v0.10.0 + repo public" ด้านล่าง
+
+## R10 — F6 เตือนก่อนนัด (LINE OA + กระดิ่ง) + ปุ่มขั้น 2 — ตรวจแล้ว รอ PR (2026-11-09)
+- contract `docs/contracts/R10_CONTRACT.md` (`b529819`, main) · **boss เห็นชอบ 2026-11-09** ("เพิ่ม แล้วเริ่มเลย") · แก้ตามผลรีวิว: `4ca32a2`, `767d6cc` (เพดาน LINE จาก security M1)
+- branch `feat/r10-line-reminders` · HEAD `87018b3` · **ยังไม่ push** (ไม่มี upstream) · ไม่มี PR · แตกจาก main · 21 commit · `git diff --stat main..HEAD`: 64 ไฟล์ +5901 / −34
+- เนื้อหา: เตือน 1 วัน + 1 ชม. ในกระดิ่งและ LINE เฉพาะคนตอบ "ไป" · `rsvp_nudge` กระดิ่งอย่างเดียวสำหรับ "อาจไป"/ยังไม่ตอบ · เชื่อม LINE ที่แท็บ "ฉัน" (webhook, ยกเลิก) · เพดาน LINE (นัด+ชนิด+ผู้รับ ≤ 2 ใน 24 ชม. · ผู้รับ ≤ 6 ใน 24 ชม.) · ปุ่มขั้น 2 เปิดฟอร์มลงวันไม่ว่าง · migration `0004_r10_line_reminders.sql` (เพิ่มอย่างเดียว)
+- **ผลตรวจอิสระ:**
+  - qa **ผ่าน** (`docs/reports/qa-r10.md`) · รอบแรกผ่านแบบมีข้อสังเกต (M1 ถ้อยคำ "อีกวันเดียว" ตายตัว) → แก้แล้ว `999b471`/`a75d7e8` · ตรวจซ้ำ `87018b3`: M1 ปิด · e2e `tests/e2e/r10-reminders.spec.ts` 60 passed (ตามรายงาน qa)
+  - security **ผ่านแบบมีข้อสังเกต** (`docs/reports/security-r10.md`) · Critical 0 · High 0 · Medium 0 (M1 เพดาน LINE แก้แล้ว `73d85ac`) · Low ที่เปิดเป็น backlog: L1 ลิงก์ในชื่อนัด/ชื่อกลุ่มที่ LINE ทำให้กดได้ · L3 เพดานเป็นต่อผู้รับ ยังไม่มีเพดานรวมของ OA · L2 แก้แล้ว
+- ตัวเลขเทสต์ (ของ qa ไม่ใช่เลขาที่รันเอง): tsc/eslint/build ผ่าน · vitest ทั้งชุดหลังกลืน EPERM 4980 ผ่าน 4945 ล้ม 17 (ปัญหาเครื่อง Windows เดิม ไม่เกี่ยวกับ R10)
+- ผู้ทำ (ตาม `git log main..HEAD`): platform 4 · main 3 · ops 3 · ux 3 · architect 2 · qa 2 · security 2 · frontend 1 · test 1
+- **ยังไม่ยืนยัน / ยังไม่ทำ:** push · PR · CI · Vercel preview · migration `0004` บน Turso (ต้องรัน preview → prod ก่อน merge ตาม OPERATIONS) · Channel token/webhook/env LINE · Schedules ทำงานจริง · ทดสอบ LINE จริง (R10-11) · ออกรุ่น (เสนอ v0.11.0)
+- ข้อสังเกตนอกขอบเขต (ไม่บล็อก): qa L2 Hobby Schedules มี jitter ~15 นาที (`reminder_1h` ยังทันถ้าพลาดไม่เกิน ~45 นาที) · qa L3 ภาพ fullPage ของ `/me` (อาการของเดิม) · security Info 5 แถว outbox `pending` ไม่ถูกลบตาม retention ถ้าเอา env LINE ออกหลังเข้าคิว · security Info 8 event ที่ล้มกลางทางตอบ 200 ไม่ retry
+- **ขั้นถัดไปของ boss (contract §8):** รัน migration `0004` preview → prod ก่อน merge → merge → ออก token และตั้ง env (Production) → ตั้ง webhook → ทดสอบ R10-11 แล้วค่อยชวนเพื่อน
+- Backlog R10: security L1, L3 · ถ้า repo กลับเป็น private ต้องลด CI
 
 ## v0.10.0 ออกแล้ว + repo เป็น public — 2026-11-09 ✅
 - **R8 merge แล้ว** (PR #21, merge commit `e41f9d2`, 2026-11-08) — `gh pr view 21`: MERGED, mergedAt 2026-11-08T02:58:10Z · F1 onboarding + แก้ข้อความ `/privacy` · **ไม่มี migration** · ผลตรวจอิสระ: qa ผ่านแบบมีข้อสังเกต (`docs/reports/qa-r8.md`) · security ผ่าน (`docs/reports/security-r8.md`)
@@ -130,7 +144,7 @@
 
 ## รอ boss
 - **R7 RSVP 10→9** — ยอมรับตามที่ main เสนอ รอ boss ยืนยัน (ดูหัวข้อ R7 ด้านบน) · merge PR #19 และออก v0.9.1 เสร็จแล้ว
-- **F6 แจ้งเตือนก่อนนัด** — boss ต้องเลือกช่องทาง (ยังค้างจากเดิม)
+- **F6 แจ้งเตือนก่อนนัด** — boss เลือกแล้ว (LINE OA + กระดิ่ง, 2026-11-09) · R10 ตรวจแล้ว รอ PR · ดูหัวข้อ R10
 - R7 เฟส A เดิม (เปิด preview อ่าน Server-Timing ด้วย DevTools เพื่อวัดเวลาจริงกับ Turso ญี่ปุ่น) — ยังไม่ได้ทำ เลื่อนเป็น backlog ถ้าไม่ต้องการตัวเลขจริงก่อนงานถัดไป
 
 ## เหลือ
@@ -143,7 +157,7 @@
   - backlog R8 (step-2 CTA ไปปฏิทิน, step 3 ค้าง "ถัดไป", ประโยคเสริมใน `/privacy`) — ดูหัวข้อ "backlog R8" ด้านบน
   - **README สำหรับคนนอก (R9)** — merge แล้ว (PR #23, `8b60634`)
   - **F2 ความช้า** — R7 เสร็จ รอ boss ตัดสิน RSVP 10→9
-  - **F6 แจ้งเตือนก่อนนัด** — **boss ต้องเลือกช่องทางก่อน** (ยังไม่ตัดสิน)
+  - **F6 แจ้งเตือนก่อนนัด** — R10 ตรวจแล้ว (qa ผ่าน · security ผ่านแบบมีข้อสังเกต) รอ PR และ boss ทำขั้นตั้งค่า LINE ตามหัวข้อ R10
 - **backlog R7 และ R8 (ไม่บล็อก):** ดูหัวข้อ "backlog ใหม่จาก R7" และ "backlog R8" ด้านบน · qa/security L/Info ที่เหลือจาก R7: ดู `docs/reports/qa-r7.md`, `docs/reports/security-r7.md`
 - **ทำ config/helper ถาวรให้ Vitest ข้าม EPERM บน Windows** (ข้อเสนอเดิม)
 - **R6 hardening (ดู `docs/NEXT_PHASE.md` หัวข้อ backlog R6 hardening):** rate limit แบบ global/อ่าน · retention กลุ่ม/คำเชิญที่ลบ · e2e retries ซ่อน flake · guard stream HTTP 200 · CSP unsafe-inline · DST day strip · แจ้งเตือน appointment.cancelled · กู้กลุ่ม/บัญชีที่ลบ
