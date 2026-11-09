@@ -7,7 +7,7 @@
 import type { DbOrTx } from '@/db/client';
 import type { RsvpResponse } from '@/lib/data/repos/appointment';
 import { insertLineOutboxRows, usersWithLine } from '@/lib/data/repos/line';
-import { deleteUnreadEventRows, insertNotificationRows, usersUnderUnreadCap } from '@/lib/data/repos/notification';
+import { deleteUnreadEventRows, insertNotificationRows, usersUnderUnreadCap, type UnreadCappedKind } from '@/lib/data/repos/notification';
 import { lineConfig } from '@/lib/integrations/line/config';
 import { getEnv } from '@/lib/shared/env';
 import { newId } from '@/lib/shared/id';
@@ -127,7 +127,8 @@ async function replaceUnread(tx: DbOrTx, kind: NotificationKind, userIds: readon
 }
 
 /** R11 §1: ชนิดที่มีเพดาน unread ต่อกลุ่มต่อผู้รับ (นับแยกชนิด — created ที่ค้างอ่านไม่บังการแจ้งยกเลิก) · เกิน = ไม่มีทั้งกระดิ่งและ LINE ของผู้รับคนนั้น */
-const cappedKind = (kind: NotificationKind): kind is 'appointment.created' | 'appointment.cancelled' => kind === 'appointment.created' || kind === 'appointment.cancelled';
+const UNREAD_CAPPED_KINDS: ReadonlySet<NotificationKind> = new Set<UnreadCappedKind>(['appointment.created', 'appointment.cancelled', 'group.member.joined', 'group.member.left', 'group.member.role_changed']);
+const cappedKind = (kind: NotificationKind): kind is UnreadCappedKind => UNREAD_CAPPED_KINDS.has(kind);
 
 /**
  * LINE ของ appointment.cancelled แคบกว่ากระดิ่ง จึงบังคับระบุ lineUserIds ทั้งชนิดข้อมูลและตอนรันจริง · ชนิดอื่นห้ามระบุ

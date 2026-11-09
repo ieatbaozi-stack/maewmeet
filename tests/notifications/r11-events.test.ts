@@ -392,6 +392,121 @@ describe('เพดาน unread ของ appointment.cancelled (SEC M1)', () =
   });
 });
 
+describe('เพดาน unread ของกิจกรรมสมาชิก (security R11 M1, L1)', () => {
+  const MAX = APPOINTMENT_NOTIFY_UNREAD_PER_GROUP_MAX;
+  const seed = async (userId: string, gid: string, kind: string, n: number) => {
+    h.clock.advance(1000);
+    for (let i = 0; i < n; i++) {
+      await h.rows('INSERT INTO notification (id, user_id, kind, params, created_at) VALUES (?, ?, ?, ?, ?)', [
+        newId(),
+        userId,
+        kind,
+        JSON.stringify({ groupId: gid, groupName: 'ก๊วนแมว', memberName: 'เก่า', memberId: newId() }),
+        h.clock.now(),
+      ]);
+    }
+    h.clock.advance(1000);
+  };
+  const countOf = (userId: string, kind: string, gid = w.gid) =>
+    h.count("notification WHERE user_id = ? AND kind = ? AND json_extract(params, '$.groupId') = ?", [userId, kind, gid]);
+  const roleOf = async (userId: string) => (await h.rows<{ role: string }>('SELECT role FROM group_member WHERE group_id = ? AND user_id = ?', [w.gid, userId]))[0]?.role ?? null;
+  const joinX = async (name: string, gid = w.gid, by = w.a) => {
+    const x = await person(h, name);
+    await join(by, x, gid);
+    return x;
+  };
+
+  it('joined: ผู้รับที่ครบเพดานไม่ได้แถวเพิ่ม · คนอื่นได้ · การเข้ากลุ่มยังสำเร็จ', async () => {
+    await seed(w.m.id, w.gid, 'group.member.joined', MAX);
+    const x = await joinX('xena');
+    expect(await countOf(w.m.id, 'group.member.joined')).toBe(MAX);
+    expect(await countOf(w.a.id, 'group.member.joined')).toBe(1);
+    expect(await roleOf(x.id)).toBe('member');
+  });
+
+  it('joined ทางคำเชิญตรง: ครบเพดานไม่ได้แถวเพิ่ม · การรับคำเชิญยังสำเร็จ', async () => {
+    await seed(w.a.id, w.gid, 'group.member.joined', MAX);
+    const x = await person(h, 'xena');
+    const inv = await post<{ invite: { id: string } }>(w.m.c, `/api/groups/${w.gid}/invites/direct`, { username: 'xena' });
+    expect(inv.status, inv.text).toBe(201);
+    expect((await post(x.c, `/api/me/invites/${inv.data.invite.id}/accept`)).status).toBe(200);
+    expect(await countOf(w.a.id, 'group.member.joined')).toBe(MAX);
+    expect(await roleOf(x.id)).toBe('member');
+  });
+
+  it('left: ผู้รับที่ครบเพดานไม่ได้แถวเพิ่ม · คนอื่นได้ · การออกจากกลุ่มยังสำเร็จ', async () => {
+    await seed(w.m.id, w.gid, 'group.member.left', MAX);
+    expect((await post(w.c.c, `/api/groups/${w.gid}/leave`)).status).toBe(200);
+    expect(await countOf(w.m.id, 'group.member.left')).toBe(MAX);
+    expect(await countOf(w.a.id, 'group.member.left')).toBe(1);
+    expect(await roleOf(w.c.id)).toBeNull();
+  });
+
+  it('role_changed: ครบเพดานไม่ได้แถวเพิ่ม · การเปลี่ยน role ยังสำเร็จ', async () => {
+    await seed(w.b.id, w.gid, 'group.member.role_changed', MAX);
+    expect((await patch(w.a.c, `/api/groups/${w.gid}/members/${w.b.id}`, { role: 'moderator' })).status).toBe(200);
+    expect(await countOf(w.b.id, 'group.member.role_changed')).toBe(MAX);
+    expect(await roleOf(w.b.id)).toBe('moderator');
+  });
+
+  it('role_changed จากการโอน admin: ครบเพดานไม่ได้แถวเพิ่ม · การโอนยังสำเร็จ · อีกฝ่ายยังได้', async () => {
+    await seed(w.a.id, w.gid, 'group.member.role_changed', MAX);
+    expect((await post(w.boss.c, `/api/groups/${w.gid}/transfer-admin`, { toUserId: w.c.id })).status).toBe(200);
+    expect(await countOf(w.a.id, 'group.member.role_changed')).toBe(MAX);
+    expect(await countOf(w.c.id, 'group.member.role_changed')).toBe(1);
+    expect(await roleOf(w.c.id)).toBe('admin');
+    expect(await roleOf(w.a.id)).toBe('moderator');
+  });
+
+  it('ขอบเพดาน: เหลือที่ 1 แถวได้แถวนั้น · แถวถัดไปถูกข้าม', async () => {
+    await seed(w.m.id, w.gid, 'group.member.joined', MAX - 1);
+    await joinX('xena');
+    expect(await countOf(w.m.id, 'group.member.joined')).toBe(MAX);
+    h.clock.advance(1000);
+    await joinX('yuki');
+    expect(await countOf(w.m.id, 'group.member.joined')).toBe(MAX);
+  });
+
+  it('นับแยกชนิด: ชนิดหนึ่งเต็มไม่บังชนิดอื่น · แจ้งเตือนนัดเต็มไม่บังกิจกรรมสมาชิก', async () => {
+    await seed(w.m.id, w.gid, 'group.member.joined', MAX);
+    await seed(w.m.id, w.gid, 'appointment.created', MAX);
+    await seed(w.m.id, w.gid, 'appointment.cancelled', MAX);
+    expect((await post(w.c.c, `/api/groups/${w.gid}/leave`)).status).toBe(200);
+    expect(await countOf(w.m.id, 'group.member.left')).toBe(1);
+    await seed(w.m.id, w.gid, 'group.member.left', MAX);
+    expect((await patch(w.a.c, `/api/groups/${w.gid}/members/${w.m.id}`, { role: 'member' })).status).toBe(200);
+    expect(await countOf(w.m.id, 'group.member.role_changed')).toBe(1);
+  });
+
+  it('เพดานแยกต่อกลุ่ม: กลุ่มอื่นเต็มไม่บังกลุ่มนี้', async () => {
+    const g2 = await makeGroup(w.m, 'กลุ่มของ m');
+    await h.rows('DELETE FROM notification');
+    await seed(w.m.id, g2, 'group.member.joined', MAX);
+    await joinX('xena');
+    expect(await countOf(w.m.id, 'group.member.joined')).toBe(1);
+    expect(await countOf(w.m.id, 'group.member.joined', g2)).toBe(MAX);
+    await joinX('yuki', g2, w.m);
+    expect(await countOf(w.m.id, 'group.member.joined', g2)).toBe(MAX);
+  });
+
+  it('อ่านแล้วคืนที่ว่าง → รับแถวใหม่ได้', async () => {
+    await seed(w.m.id, w.gid, 'group.member.left', MAX);
+    expect((await post(w.c.c, `/api/groups/${w.gid}/leave`)).status).toBe(200);
+    expect(await countOf(w.m.id, 'group.member.left')).toBe(MAX);
+    await markAllRead(w.m);
+    h.clock.advance(1000);
+    expect((await post(w.b.c, `/api/groups/${w.gid}/leave`)).status).toBe(200);
+    expect(await countOf(w.m.id, 'group.member.left')).toBe(MAX + 1);
+    expect(await h.count("notification WHERE user_id = ? AND kind = 'group.member.left' AND read_at IS NULL", [w.m.id])).toBe(1);
+  });
+
+  it('group.member.removed ไม่มีเพดาน', async () => {
+    await seed(w.c.id, w.gid, 'group.member.removed', MAX);
+    expect((await call(w.a.c, 'DELETE', `/api/groups/${w.gid}/members/${w.c.id}`)).status).toBe(200);
+    expect(await countOf(w.c.id, 'group.member.removed')).toBe(MAX + 1);
+  });
+});
+
 describe('กิจกรรมสมาชิกซ่อนเมื่อเจ้าของไม่อยู่ในกลุ่มแล้ว', () => {
   type Box = { notifications: N[]; unreadCount: number };
   const box = async (p: Person) => (await get<Box>(p.c, '/api/me/notifications')).data;

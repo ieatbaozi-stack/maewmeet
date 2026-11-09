@@ -96,6 +96,9 @@ const visibleToOwner: SQL = sql`((${notification.kind} NOT LIKE 'appointment.%' 
 
 export type NotificationCursor = { createdAt: number; id: string };
 
+/** ชนิดที่มีเพดาน unread ต่อกลุ่มต่อผู้รับ นับแยกชนิด (SEC M1 · R11 §1, security R11 M1/L1) — group.member.removed ไม่มีเพดาน */
+export type UnreadCappedKind = 'appointment.created' | 'appointment.cancelled' | 'group.member.joined' | 'group.member.left' | 'group.member.role_changed';
+
 /** ใหม่สุดก่อน keyset (created_at, id) · ขอ limit+1 เพื่อรู้ว่ามีหน้าถัดไป */
 export async function listVisibleNotifications(
   db: DbOrTx,
@@ -135,7 +138,7 @@ export async function markNotificationsReadByIds(db: DbOrTx, userId: string, ids
  * ผู้ใช้ (ใน userIds) ที่ยังรับชนิดนี้ของกลุ่มนี้เพิ่มได้ = unread ที่ "เห็นได้" ของชนิดนั้นในกลุ่มนั้น < max (ใช้ coalesce กันกระดิ่งท่วม · นับแยกชนิด)
  * นับด้วยคำสั่งเดียว แล้วผู้เรียกเขียนทีเดียว — แข่งกันได้เกินเพดานไม่เกินจำนวนนัดที่สร้างพร้อมกัน ซึ่งถูก limiter ต่อผู้ใช้/ต่อกลุ่มจำกัดอยู่แล้ว
  */
-export async function usersUnderUnreadCap(db: DbOrTx, userIds: readonly string[], kind: 'appointment.created' | 'appointment.cancelled', groupId: string, max: number): Promise<Set<string>> {
+export async function usersUnderUnreadCap(db: DbOrTx, userIds: readonly string[], kind: UnreadCappedKind, groupId: string, max: number): Promise<Set<string>> {
   if (userIds.length === 0) return new Set();
   const rows = await db
     .select({ userId: notification.userId, n: count() })

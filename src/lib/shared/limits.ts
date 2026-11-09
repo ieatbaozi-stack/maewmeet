@@ -93,7 +93,7 @@ export const NOTIFICATION_READ_IDS_MAX = 100;
 
 /** นัดที่ "สร้าง" ในกลุ่มภายใน 24 ชม.ล่าสุด (rolling) — นับรวมนัดที่ยกเลิกแล้ว กันวน create/cancel · เกิน → LIMIT_REACHED { limit: 'appointmentsPerDay', max } (R4B SEC M1) */
 export const APPOINTMENT_MAX_CREATED_PER_GROUP_PER_DAY = 30;
-/** แจ้งเตือน appointment.created ที่ยังไม่อ่านต่อผู้ใช้ต่อกลุ่ม — ครบแล้วไม่เขียนเพิ่ม (coalesce; ผู้ใช้เห็น 20+ อยู่แล้ว) · นับเฉพาะที่เห็นได้ */
+/** แจ้งเตือนที่ยังไม่อ่านต่อผู้ใช้ต่อกลุ่มต่อชนิด (ชนิดที่มีเพดาน: UnreadCappedKind) — ครบแล้วไม่เขียนเพิ่ม (coalesce; ผู้ใช้เห็น 20+ อยู่แล้ว) · นับเฉพาะที่เห็นได้ */
 export const APPOINTMENT_NOTIFY_UNREAD_PER_GROUP_MAX = 20;
 /** limiter เขียนต่อผู้ใช้ (ทุกกลุ่มรวมกัน) — fixed window ผ่าน rate_limit_bucket · เกิน → RATE_LIMITED + Retry-After */
 export const APPOINTMENT_WRITE_RATE_LIMITS = {
