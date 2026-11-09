@@ -432,6 +432,7 @@ DELETE FROM group_member WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM use
 DELETE FROM busy_block WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
 DELETE FROM appointment_rsvp WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
 DELETE FROM notification_outbox WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
+DELETE FROM line_link_code WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
 DELETE FROM notification WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
 UPDATE group_invite SET status = 'revoked', revoked_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000, revoked_by = 'USER_ID'
  WHERE created_by = 'USER_ID' AND status = 'active' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
