@@ -463,7 +463,7 @@
     "howToHint": "See the 4 getting-started steps again",
     "line": {
       "title": "LINE reminders",
-      "hint": "Get a reminder on LINE before plans you’ve said you’re going to, on top of the in-app bell.",
+      "hint": "On LINE, get a reminder before plans you’re going to, and a heads-up if one gets cancelled. The in-app bell still works too.",
       "connect": "Connect LINE",
       "codeLabel": "Your connection code",
       "codeHint": "Add the “แมวเจอกัน” account as a friend, then send this code in the chat. It works once and expires in 10 minutes.",
@@ -1639,7 +1639,7 @@
       "cancelled": "Cancelled: {title}\n{when} · “{groupName}”\n{url}"
     },
     "link": {
-      "success": "LINE is now linked to maewmeet. We’ll remind you here about plans you’ve said you’re going to.",
+      "success": "LINE is now linked to maewmeet. We’ll remind you here about plans you’re going to, and let you know if one is cancelled.",
       "invalid": "That code doesn’t work. It may have expired or already been used. Get a new one from the Me tab in maewmeet.",
       "alreadyLinked": "This LINE account is already linked to maewmeet. To change it, disconnect first from the Me tab."
     }
