@@ -450,12 +450,14 @@ COMMIT;
 ## J. LINE OA — แจ้งเตือนก่อนนัด (R10)
 อ้างอิง R10_CONTRACT §1.5, §2, §8 · ถ้าไม่ใส่ env ทั้งสองตัว = ช่องทาง LINE ปิดเงียบ กระดิ่งในแอปยังทำงานปกติ
 
-### J1 ตั้งค่า LINE (ทำหลัง merge R10 — boss ทำ main บอกทีละขั้น)
-☐ **J1.1** รัน migration `0004` บนฐาน **preview ก่อน แล้ว prod** (วิธีเดียวกับส่วน B) ก่อนเปิดใช้งาน
-☐ **J1.2** LINE Developers Console → Provider `maewmeet` → Messaging API channel → ออก **Channel access token (long-lived)** · เก็บใน Bitwarden ทันที · **ห้ามส่งในแชท/ภาพหน้าจอ** (Channel secret อยู่แท็บ Basic settings)
-☐ **J1.3** Vercel → Settings → Environment Variables → เพิ่ม `LINE_MESSAGING_ACCESS_TOKEN` และ `LINE_MESSAGING_CHANNEL_SECRET` เป็น **Secret** เลือก environment **Production เท่านั้น** (Preview ไม่ติ๊ก) → **Redeploy** production
-☐ **J1.4** LINE Console → Messaging API → Webhook URL = `https://maewmeet.vercel.app/api/line/webhook` → กด **Verify** (ควรขึ้น Success) → เปิด **Use webhook**
-☐ **J1.5** ทดสอบ (R10-11): `/me` → เชื่อมต่อ LINE → ส่งโค้ดในแชท OA → ได้ข้อความยืนยัน → สร้างนัดที่ตอบ "ไป" แล้วรอเตือน → ต้องได้ 1 ครั้ง ไม่ซ้ำ · ค่อยชวนเพื่อน
+### J1 ตั้งค่า LINE (boss ทำ main บอกทีละขั้น)
+**ลำดับ:** J1.1 ทำ **ก่อน merge** · J1.2–J1.5 ทำ **หลัง merge** (merge แล้ว Vercel deploy ทันที โค้ดใหม่ต้องมีคอลัมน์ `appointment.scheduled_at` ในฐานแล้ว ไม่งั้น production พัง)
+
+☐ **J1.1 (ก่อน merge)** รัน migration `0004` กับฐาน **preview (`maewmeet-preview`) ก่อน แล้วค่อย prod (`maewmeet-prod`)** ด้วยคำสั่งแบบ B6 (เปลี่ยน URL/token เป็นของแต่ละฐาน) · ตรวจว่าจบไม่มี error และมีตาราง `appointment_reminder`, `line_link_code` กับคอลัมน์ `scheduled_at` · migration เพิ่มอย่างเดียว โค้ดรุ่นเก่ายังใช้ฐานนี้ได้
+☐ **J1.2 (หลัง merge)** LINE Developers Console → Provider `maewmeet` → Messaging API channel → ออก **Channel access token (long-lived)** · เก็บใน Bitwarden ทันที · **ห้ามส่งในแชท/ภาพหน้าจอ** (Channel secret อยู่แท็บ Basic settings)
+☐ **J1.3 (หลัง merge)** Vercel → Settings → Environment Variables → เพิ่ม `LINE_MESSAGING_ACCESS_TOKEN` และ `LINE_MESSAGING_CHANNEL_SECRET` เป็น **Secret** เลือก environment **Production เท่านั้น** (Preview ไม่ติ๊ก) → **Redeploy** production
+☐ **J1.4 (หลัง merge)** LINE Console → Messaging API → Webhook URL = `https://maewmeet.vercel.app/api/line/webhook` → กด **Verify** (ควรขึ้น Success) → เปิด **Use webhook**
+☐ **J1.5 (หลัง merge)** ทดสอบ (R10-11): `/me` → เชื่อมต่อ LINE → ส่งโค้ดในแชท OA → ได้ข้อความยืนยัน → สร้างนัดที่ตอบ "ไป" แล้วรอเตือน → ต้องได้ 1 ครั้ง ไม่ซ้ำ · ค่อยชวนเพื่อน
 - แผนฟรีส่งได้ 300 ข้อความ/เดือน เกินแล้วส่งไม่ได้ (กระดิ่งยังทำงาน) · ข้อความตอบกลับ (reply) ตอนเชื่อมบัญชีไม่กินโควตา
 
 ### J2 ตรวจว่า Schedules ทำงาน
