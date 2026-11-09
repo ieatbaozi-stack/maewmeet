@@ -93,10 +93,12 @@ test('th: A สร้างนัดจากวันว่างร่วม �
     expect(await pageDump(a.page), `DOM ของ A ต้องไม่มี ${s}`).not.toContain(s);
     expect(seenA.texts.filter((t) => t.includes(s)).length, `response ของ A ต้องไม่มี ${s}`).toBe(0);
   }
-  // A ไม่ได้แจ้งเตือนของนัดตัวเอง
+  // A ไม่ได้แจ้งเตือนของนัดตัวเอง (R11): เหลือแค่ 2 รายการที่ยังไม่อ่านจากคนที่เข้ากลุ่ม (B, C) — ไม่มีรายการของนัดนี้
   await go(a.page, '/');
-  await expect(bell(a.page)).toHaveAttribute('aria-label', T('notifications.bell.aria', { count: 0 }));
-  await expect(bellBadge(a.page)).toHaveCount(0);
+  await expect(bell(a.page)).toHaveAttribute('aria-label', T('notifications.bell.aria', { count: 2 }));
+  await go(a.page, '/notifications');
+  await expect(a.page.getByTestId('notif-row')).toHaveCount(2);
+  await expect(a.page.getByTestId('notif-row').filter({ hasText: title })).toHaveCount(0);
 
   // ───── 4) B: กระดิ่ง 1 → รายการแจ้งเตือน → เปิดนัด ─────
   const seenB = recordResponses(b.page);
