@@ -8,6 +8,7 @@ import {
   busyBlock,
   groupInvite,
   groupMember,
+  lineLinkCode,
   loginThrottle,
   notification,
   notificationOutbox,
@@ -109,6 +110,7 @@ export async function purgeDeletedUserFootprint(
   const busy = await db.delete(busyBlock).where(eq(busyBlock.userId, userId)).returning({ id: busyBlock.id });
   const rsvps = await db.delete(appointmentRsvp).where(eq(appointmentRsvp.userId, userId)).returning({ a: appointmentRsvp.appointmentId });
   await db.delete(notificationOutbox).where(eq(notificationOutbox.userId, userId));
+  await db.delete(lineLinkCode).where(eq(lineLinkCode.userId, userId));
   const notifications = await db.delete(notification).where(eq(notification.userId, userId)).returning({ id: notification.id });
   const invitesRevoked = await db
     .update(groupInvite)

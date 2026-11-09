@@ -93,6 +93,13 @@ export const ROUTE_MANIFEST = [
   { method: 'GET', path: '/api/admin/audit', action: 'admin.audit.view', auth: 'actor', owner: 'platform' },
   // ── R6D G1 (Platform) — คุกกี้กลุ่มปัจจุบัน · ใช้กฎ member.setOwnAppearance (ค่าตั้งส่วนตัวของสมาชิกในกลุ่ม: สมาชิกเท่านั้น) ──
   { method: 'PUT', path: '/api/me/current-group', action: 'member.setCurrentGroup', auth: 'actor', owner: 'platform' },
+  // ── R10 (Platform + Integrations) — เตือนก่อนนัด / เชื่อม LINE · webhook ตรวจ X-Line-Signature ใน handler (raw body) ──
+  { method: 'GET', path: '/api/cron/reminders', action: null, auth: 'cron', owner: 'platform' },
+  { method: 'POST', path: '/api/cron/reminders', action: null, auth: 'cron', owner: 'platform' },
+  { method: 'POST', path: '/api/line/webhook', action: null, auth: 'public', owner: 'integrations' },
+  { method: 'GET', path: '/api/me/line', action: 'self.read', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/me/line', action: 'self.update', auth: 'actor', owner: 'platform' },
+  { method: 'DELETE', path: '/api/me/line', action: 'self.update', auth: 'actor', owner: 'platform' },
 ] as const satisfies readonly ManifestEntry[];
 
 export function findRoute(method: string, path: string): ManifestEntry | undefined {
