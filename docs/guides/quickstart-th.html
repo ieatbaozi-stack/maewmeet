@@ -724,9 +724,16 @@
       <h2>กระดิ่งและการเตือนก่อนนัด</h2>
       <div class="rows">
         <div class="row"><span class="rlbl">นัดใหม่</span><span class="rtext">เมื่อมีนัดใหม่ในกลุ่มของคุณ</span></div>
-        <div class="row"><span class="rlbl">คำเชิญ</span><span class="rtext">เมื่อมีคนชวนเข้ากลุ่ม รับหรือปฏิเสธได้ที่แท็บ “กลุ่ม”</span></div>
+        <div class="row"><span class="rlbl">นัดเปลี่ยน</span><span class="rtext">ยกเลิกนัด: คนที่ตอบ “ไป” “อาจไป” หรือยังไม่ตอบ (ถ้าตอบ “ไม่ไป” จะไม่ได้รับ) · เปลี่ยนเวลาหรือสถานที่: สมาชิกทุกคนในกลุ่ม · แก้แค่ชื่อหรือรายละเอียดไม่แจ้ง และยกเลิกหลังเริ่มนัดแล้วก็ไม่แจ้ง</span></div>
         <div class="row"><span class="rlbl on">เตือนก่อนนัด</span><span class="rtext">1 วันและ 1 ชั่วโมงก่อนเริ่ม สำหรับคนที่ตอบ “ไป” · เตือน 1 วันจะไม่ส่งระหว่าง 22:00–07:59 และเลื่อนไปส่ง 08:00</span></div>
         <div class="row"><span class="rlbl">ยังไม่ได้ตอบ</span><span class="rtext">ถ้าตอบ “อาจไป” หรือยังไม่ตอบ จะได้คำถาม “คุณยังไม่ได้ยืนยัน จะไปไหม?” ในกระดิ่ง 1 ครั้ง · ถ้าตอบ “ไม่ไป” จะไม่ได้รับ</span></div>
+        <div class="row"><span class="rlbl">คำตอบนัด</span><span class="rtext">ในนัดที่คุณสร้าง จะได้แจ้งเมื่อมีคนตอบหรือเปลี่ยนคำตอบ “ไป” “อาจไป” “ไม่ไป” (ตอบครั้งแรกก็แจ้ง) · ตอบนัดของตัวเองไม่แจ้ง</span></div>
+        <div class="row"><span class="rlbl">คำเชิญ</span><span class="rtext">เมื่อมีคนชวนเข้ากลุ่ม รับหรือปฏิเสธได้ที่แท็บ “กลุ่ม”</span></div>
+        <div class="row"><span class="rlbl">ผลคำเชิญ</span><span class="rtext">ถ้าคุณชวนด้วยชื่อผู้ใช้ จะได้แจ้งเมื่อคนนั้นรับหรือปฏิเสธคำเชิญ</span></div>
+        <div class="row"><span class="rlbl">สมาชิก</span><span class="rtext">ผู้ดูแลและผู้ช่วยดูแลได้แจ้งเมื่อมีคนเข้าหรือออกจากกลุ่ม</span></div>
+        <div class="row"><span class="rlbl">ถูกนำออก</span><span class="rtext">ถ้าคุณถูกนำออกจากกลุ่ม จะได้แจ้ง (ไม่บอกว่าใครเป็นคนนำออก)</span></div>
+        <div class="row"><span class="rlbl">สิทธิ์</span><span class="rtext">เมื่อสิทธิ์ของคุณในกลุ่มเปลี่ยน รวมถึงตอนรับโอนความเป็นผู้ดูแล</span></div>
+        <div class="row"><span class="rlbl">รีเซ็ต PIN</span><span class="rtext">ผลคำขอ “ลืม PIN”: ได้รับอนุมัติแล้ว หรือถูกยกเลิกเพราะเข้าสู่ระบบด้วย PIN เดิมได้</span></div>
       </div>
       <p class="tip">นัดที่สร้างกระชั้นมาก อาจไม่ได้รับการเตือนบางรอบ · กดไอคอนกระดิ่งเพื่อดูรายการทั้งหมด</p>
     </div>
@@ -745,7 +752,9 @@
       <div class="rows">
         <div class="row"><span class="rlbl">โค้ด</span><span class="rtext">ใช้ได้ครั้งเดียว หมดอายุใน 10 นาที</span></div>
         <div class="row"><span class="rlbl">ยืนยัน</span><span class="rtext">เมื่อเชื่อมสำเร็จ LINE จะตอบกลับข้อความยืนยัน</span></div>
-        <div class="row"><span class="rlbl">ข้อความเตือน</span><span class="rtext">มีแค่ชื่อนัด วันเวลา ชื่อกลุ่ม และลิงก์นัด</span></div>
+        <div class="row"><span class="rlbl">ข้อความเตือน</span><span class="rtext">เตือนก่อนนัด 1 วันและ 1 ชั่วโมง มีแค่ชื่อนัด วันเวลา ชื่อกลุ่ม และลิงก์นัด</span></div>
+        <div class="row"><span class="rlbl">นัดถูกยกเลิก</span><span class="rtext">ส่งเมื่อมีคนยกเลิกนัดที่คุณตอบ “ไป” ข้อความไม่มีชื่อคนที่ยกเลิก</span></div>
+        <div class="row"><span class="rlbl">ไม่ส่ง</span><span class="rtext">นัดที่คุณตอบ “อาจไป” หรือยังไม่ตอบ การเปลี่ยนเวลาหรือสถานที่ และนัดที่ยกเลิกหลังเริ่มแล้ว</span></div>
         <div class="row"><span class="rlbl">ยกเลิก</span><span class="rtext">กด “ยกเลิกการเชื่อมต่อ” ในส่วนเดียวกันที่แท็บ ฉัน · ยังเห็นเตือนในกระดิ่งตามเดิม</span></div>
       </div>
     </div>
