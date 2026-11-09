@@ -33,3 +33,11 @@ branch `feat/r11-notification-events` · ผู้ตรวจ: qa · ไม่�
 
 ## ตรวจไม่ได้
 CI/Vercel preview · e2e บน Linux · Vitest timeout ที่ไม่เกี่ยว R11 (admin/auth/ops ฯลฯ) ไม่ได้รันแยกซ้ำทีละไฟล์ · ส่ง LINE จริง (R11-12 ให้ boss) · `after()` ใน request scope จริงตรวจจากโค้ด/เทสต์เท่านั้น
+
+## ตรวจซ้ำที่ commit `0e0861c` (เพิ่มเพดาน unread ให้ group.member.joined/left/role_changed)
+- อ่าน diff `5fd7596..0e0861c`: `UNREAD_CAPPED_KINDS` เพิ่ม 3 ชนิด, `usersUnderUnreadCap` นับแยกชนิดต่อกลุ่มผ่าน `visibleToOwner` เดิม, `group.member.removed` ไม่มีเพดาน ตรง contract §1 · เทสต์ใหม่ใน r11-events.test.ts ผ่าน
+- แก้คอมเมนต์ค้าง `tests/notifications/notifications.test.ts:155` (เดิมบอกว่า group.member.* ไม่ถูกซ่อน) ให้ตรงของจริง
+- `npx tsc --noEmit` exit 0 · `npx eslint src tests --ignore-pattern ".claude/**"` exit 0
+- Vitest `--no-file-parallelism` (tests/notifications, line, ui, appointments, groups, account, security): pass 773 · EPERM-only 524 · assertion fail 0 · timeout 0 · เหลือ 3 รายการที่ runner นับเป็น fail แต่เป็นของเครื่อง/skip: config-hygiene CRLF ×2 และ skip ตั้งใจ ×1
+- Playwright (account, appt-layout, appt-story, appt-validation, r10-reminders, r11-notifications — ทุกสเปกที่นับแถวกระดิ่ง) `--workers=4 --output=C:/pw/oqa11b`: 121 passed · 26 skipped · 0 failed · ไม่ได้รันสเปกกลุ่ม (groups-*) ซ้ำ เพราะการเปลี่ยนรอบนี้เป็นเพดานฝั่ง notify เท่านั้น (รอบเต็มก่อนหน้าผ่าน)
+- Verdict หลังตรวจซ้ำ: ผ่าน

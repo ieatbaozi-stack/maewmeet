@@ -152,7 +152,7 @@ describe('GET /api/me/notifications', () => {
     // m (moderator) ได้ member.left ของ c ด้วย (R11) → นับเฉพาะ appointment.created
     expect((await list(w.m)).data.notifications.filter((n) => n.kind === 'appointment.created')).toHaveLength(1);
     await h.rows('UPDATE groups SET deleted_at = ? WHERE id = ?', [h.clock.now(), w.gid]);
-    // กรองด้วยชนิดนัด: group.member.* ไม่ผูกกับการซ่อนตามกลุ่ม (visibleToOwner ครอบเฉพาะ appointment.%) — ดูหมายเหตุในรายงาน R11
+    // กรองด้วยชนิดนัดตรงนี้ (group.member.joined/left/role_changed ก็ถูกซ่อนเมื่อกลุ่มถูกลบเช่นกัน — visibleToOwner R11, เทสต์ใน r11-events.test.ts)
     expect((await list(w.m)).data.notifications.filter((n) => n.kind.startsWith('appointment.'))).toEqual([]);
   });
 
