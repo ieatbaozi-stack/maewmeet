@@ -118,3 +118,10 @@ export function todayIn(tz: string, nowMs: EpochMs): DateISO {
 export function daysUntil(nowMs: EpochMs, startAtMs: EpochMs, tz: string): number {
   return daysBetween(todayIn(tz, nowMs), toLocal(startAtMs, tz).date);
 }
+
+/** เที่ยงคืนต้นเดือนใน tz ของเดือนที่ epochMs อยู่ */
+export function startOfMonthAt(epochMs: EpochMs, tz: string): EpochMs {
+  failIf(!Number.isFinite(epochMs), 'INVALID_RANGE', undefined, 'epochMs must be finite');
+  assertTimeZone(tz);
+  return Temporal.Instant.fromEpochMilliseconds(epochMs).toZonedDateTimeISO(tz).with({ day: 1 }).startOfDay().epochMilliseconds;
+}
