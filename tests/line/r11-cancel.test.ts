@@ -12,7 +12,7 @@ vi.mock('next/server', async (orig) => ({
 import { mustCreate, post, setupHarness, world, type Harness, type World } from '../appointments/util';
 import { DAY, LINE_A, LINE_B, MIN, clearFakeLine, disableLineEnv, enableLineEnv, fakeLine, linkLine, rsvp, runCron } from './util';
 import { newId } from '@/lib/shared/id';
-import { LINE_SEND_CAPS } from '@/lib/shared/limits';
+import { APPOINTMENT_NOTIFY_UNREAD_PER_GROUP_MAX, LINE_SEND_CAPS } from '@/lib/shared/limits';
 
 const flushAfter = async () => {
   for (const task of afterTasks.splice(0)) await task();
@@ -265,6 +265,42 @@ describe('R11-5 ตรวจซ้ำก่อนส่ง §2', () => {
     const ap = await queued();
     await h.rows("UPDATE appointment_rsvp SET response = 'maybe' WHERE appointment_id = ? AND user_id = ?", [ap.id, w.m.id]);
     await expectStale();
+  });
+});
+
+describe('เพดาน unread ของ appointment.cancelled กับ LINE', () => {
+  const seedUnread = async (userId: string, kind: string, n: number) => {
+    for (let i = 0; i < n; i++) {
+      await h.rows('INSERT INTO notification (id, user_id, kind, params, created_at) VALUES (?, ?, ?, ?, ?)', [
+        newId(),
+        userId,
+        kind,
+        JSON.stringify({ groupId: w.gid, groupName: 'ก๊วนแมว', appointmentId: newId(), title: 'เก่า', startAt: 1, tz: 'Asia/Bangkok' }),
+        h.clock.now(),
+      ]);
+    }
+  };
+
+  it('ผู้ตอบ "ไป" ที่ unread cancelled ครบเพดาน: ไม่มีทั้งกระดิ่งและ LINE · คนอื่นยังได้', async () => {
+    const fake = fakeLine();
+    const ap = await setup('going', 'going');
+    h.clock.advance(1000);
+    await seedUnread(w.m.id, 'appointment.cancelled', APPOINTMENT_NOTIFY_UNREAD_PER_GROUP_MAX);
+    await cancel(ap.id);
+    expect((await outbox()).map((r) => r.user_id)).toEqual([w.c.id]);
+    expect(await h.count("notification WHERE user_id = ? AND kind = 'appointment.cancelled' AND json_extract(params, '$.appointmentId') = ?", [w.m.id, ap.id])).toBe(0);
+    await flushAfter();
+    expect(fake.pushes().map((p) => p.body.to)).toEqual([LINE_B]);
+  });
+
+  it('created ที่ค้างอ่านครบเพดาน ไม่บัง LINE ยกเลิกนัด', async () => {
+    const fake = fakeLine();
+    const ap = await setup();
+    h.clock.advance(1000);
+    await seedUnread(w.m.id, 'appointment.created', APPOINTMENT_NOTIFY_UNREAD_PER_GROUP_MAX);
+    await cancel(ap.id);
+    await flushAfter();
+    expect(fake.pushes().map((p) => p.body.to)).toEqual([LINE_A]);
   });
 });
 

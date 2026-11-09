@@ -1,8 +1,10 @@
 // R11 §1: แจ้งเตือนเหตุการณ์นัด/สมาชิก — ผู้รับ (R11-1) · ไม่แจ้ง (R11-2) · แทนที่ที่ยังไม่อ่าน (R11-3) · transaction เดียว (R11-6) · ล้างชื่อตอนลบบัญชี (R11-7)
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { GOOD_PIN } from '../auth/harness';
-import { Client, MIN, call, get, join, mustCreate, patch, person, post, put, setupHarness, world, type Harness, type Person, type World } from '../appointments/util';
+import { Client, MIN, call, get, join, makeGroup, mustCreate, patch, person, post, put, setupHarness, world, type Harness, type Person, type World } from '../appointments/util';
 import { enableLineEnv, disableLineEnv, linkLine, LINE_A } from '../line/util';
+import { newId } from '@/lib/shared/id';
+import { APPOINTMENT_NOTIFY_UNREAD_PER_GROUP_MAX } from '@/lib/shared/limits';
 
 let h: Harness;
 let w: World;
@@ -250,7 +252,7 @@ describe('R11-3 แทนที่รายการที่ยังไม่�
 
     let rows = await h.rows<{ params: string }>("SELECT params FROM notification WHERE user_id = ? AND kind = 'appointment.updated' AND json_extract(params, '$.appointmentId') = ?", [w.a.id, ap.id]);
     expect(rows).toHaveLength(1);
-    expect((JSON.parse(rows[0]!.params) as { changes: string }).changes).toBe('time');
+    expect((JSON.parse(rows[0]!.params) as { changes: string }).changes).toBe('both'); // สถานที่ แล้วเวลา = รวมกัน
     expect(await h.count("notification WHERE user_id = ? AND kind = 'appointment.updated' AND json_extract(params, '$.appointmentId') = ?", [w.a.id, other.id])).toBe(1);
 
     await markAllRead(w.a);
@@ -259,6 +261,37 @@ describe('R11-3 แทนที่รายการที่ยังไม่�
     rows = await h.rows("SELECT params FROM notification WHERE user_id = ? AND kind = 'appointment.updated' AND json_extract(params, '$.appointmentId') = ?", [w.a.id, ap.id]);
     expect(rows).toHaveLength(2);
     expect(await h.count("notification WHERE user_id = ? AND read_at IS NULL AND kind = 'appointment.updated' AND json_extract(params, '$.appointmentId') = ?", [w.a.id, ap.id])).toBe(1);
+  });
+
+  it('appointment.updated รวม changes กับแถวที่ถูกแทนที่: เวลา+สถานที่ = both · both คงอยู่ · ชนิดเดียวซ้ำคงเดิม · startAt ล่าสุด · ไม่แตะค่าของรายการที่อ่านแล้ว', async () => {
+    const ap = await mustCreate(w.b, w.gid);
+    const latest = async (p: Person) => (await paramsFor(p.id, 'appointment.updated'))[0]!;
+    const moveTo = (date: string) => patch<{ appointment: { startAt: number } }>(w.b.c, `/api/appointments/${ap.id}`, { startDate: date, startTime: '10:00', endDate: date, endTime: '11:00' });
+    await h.rows('DELETE FROM notification');
+
+    await moveTo('2026-10-25');
+    expect((await latest(w.a)).changes).toBe('time');
+    h.clock.advance(1000);
+    const second = await moveTo('2026-10-26');
+    expect((await latest(w.a)).changes).toBe('time'); // เวลาซ้ำ = time
+    expect((await latest(w.a)).startAt).toBe(second.data.appointment.startAt);
+
+    h.clock.advance(1000);
+    await patch(w.b.c, `/api/appointments/${ap.id}`, { placeName: 'ร้าน A' });
+    expect((await latest(w.a)).changes).toBe('both');
+    expect((await latest(w.a)).startAt).toBe(second.data.appointment.startAt);
+
+    h.clock.advance(1000);
+    await patch(w.b.c, `/api/appointments/${ap.id}`, { placeName: 'ร้าน B' });
+    expect((await latest(w.a)).changes).toBe('both'); // both คงเป็น both
+    expect(await paramsFor(w.a.id, 'appointment.updated')).toHaveLength(1);
+
+    // รวมแยกต่อผู้รับ: m อ่านแล้วจึงเริ่มใหม่ · a ยังไม่อ่านจึงรวมต่อ
+    await markAllRead(w.m);
+    h.clock.advance(1000);
+    await patch(w.b.c, `/api/appointments/${ap.id}`, { placeName: 'ร้าน C' });
+    expect((await latest(w.m)).changes).toBe('place');
+    expect((await latest(w.a)).changes).toBe('both');
   });
 
   it('appointment.rsvp_changed: ผู้ตอบคนเดิมแทนที่ · คนละคน = คนละแถว · อ่านแล้ว = แถวใหม่', async () => {
@@ -286,6 +319,76 @@ describe('R11-3 แทนที่รายการที่ยังไม่�
     await join(w.a, x, w.gid);
     await join(w.a, y, w.gid);
     expect(await paramsFor(w.a.id, 'group.member.joined')).toHaveLength(2);
+  });
+});
+
+describe('เพดาน unread ของ appointment.cancelled (SEC M1)', () => {
+  const MAX = APPOINTMENT_NOTIFY_UNREAD_PER_GROUP_MAX;
+  const seedUnread = async (userId: string, gid: string, kind: string, n: number) => {
+    for (let i = 0; i < n; i++) {
+      await h.rows('INSERT INTO notification (id, user_id, kind, params, created_at) VALUES (?, ?, ?, ?, ?)', [
+        newId(),
+        userId,
+        kind,
+        JSON.stringify({ groupId: gid, groupName: 'ก๊วนแมว', appointmentId: newId(), title: 'เก่า', startAt: 1, tz: 'Asia/Bangkok' }),
+        h.clock.now(),
+      ]);
+    }
+  };
+  const cancelledCount = (userId: string) => h.count("notification WHERE user_id = ? AND kind = 'appointment.cancelled'", [userId]);
+
+  it('ครบเพดานแล้วไม่ได้แถวเพิ่ม · คนอื่นได้ตามปกติ · นัดยังถูกยกเลิก', async () => {
+    const ap = await mustCreate(w.b, w.gid);
+    await h.rows('DELETE FROM notification');
+    h.clock.advance(1000);
+    await seedUnread(w.c.id, w.gid, 'appointment.cancelled', MAX);
+    expect((await cancel(w.b, ap.id)).status).toBe(200);
+    expect(await cancelledCount(w.c.id)).toBe(MAX);
+    expect(await cancelledCount(w.a.id)).toBe(1);
+    expect(await h.rows('SELECT status FROM appointment WHERE id = ?', [ap.id])).toEqual([{ status: 'cancelled' }]);
+  });
+
+  it('เหลือที่ว่าง 1 แถว → ได้แถวนั้น · ครบแล้วแถวถัดไปถูกข้าม', async () => {
+    const first = await mustCreate(w.b, w.gid);
+    const second = await mustCreate(w.b, w.gid, { title: 'นัดสอง' });
+    await h.rows('DELETE FROM notification');
+    h.clock.advance(1000);
+    await seedUnread(w.c.id, w.gid, 'appointment.cancelled', MAX - 1);
+    await cancel(w.b, first.id);
+    expect(await cancelledCount(w.c.id)).toBe(MAX);
+    await cancel(w.b, second.id);
+    expect(await cancelledCount(w.c.id)).toBe(MAX);
+  });
+
+  it('created ที่ค้างอ่านครบเพดาน ไม่บังการแจ้งยกเลิก (นับแยกชนิด) และ cancelled ไม่บัง created', async () => {
+    const ap = await mustCreate(w.b, w.gid);
+    await h.rows('DELETE FROM notification');
+    h.clock.advance(1000);
+    await seedUnread(w.c.id, w.gid, 'appointment.created', MAX);
+    await seedUnread(w.m.id, w.gid, 'appointment.cancelled', MAX);
+    expect((await cancel(w.b, ap.id)).status).toBe(200);
+    expect(await cancelledCount(w.c.id)).toBe(1);
+    await mustCreate(w.b, w.gid, { title: 'นัดใหม่' });
+    expect(await h.count("notification WHERE user_id = ? AND kind = 'appointment.created'", [w.m.id])).toBe(1);
+  });
+
+  it('เพดานแยกต่อกลุ่ม · อ่านแล้วไม่นับ → กลับมารับได้', async () => {
+    const ap = await mustCreate(w.b, w.gid);
+    const next = await mustCreate(w.b, w.gid, { title: 'นัดถัดไป' });
+    await h.rows('DELETE FROM notification');
+    h.clock.advance(1000);
+    const g2 = await makeGroup(w.a, 'กลุ่มสอง');
+    await join(w.a, w.c, g2);
+    await h.rows('DELETE FROM notification');
+    h.clock.advance(1000);
+    await seedUnread(w.c.id, g2, 'appointment.cancelled', MAX); // กลุ่มอื่นครบเพดาน ไม่บังกลุ่มนี้
+    expect((await cancel(w.b, ap.id)).status).toBe(200);
+    expect(await h.count("notification WHERE user_id = ? AND kind = 'appointment.cancelled' AND json_extract(params, '$.appointmentId') = ?", [w.c.id, ap.id])).toBe(1);
+
+    await seedUnread(w.c.id, w.gid, 'appointment.cancelled', MAX);
+    await h.rows('UPDATE notification SET read_at = ? WHERE user_id = ?', [h.clock.now(), w.c.id]);
+    expect((await cancel(w.b, next.id)).status).toBe(200);
+    expect(await h.count("notification WHERE user_id = ? AND read_at IS NULL AND kind = 'appointment.cancelled'", [w.c.id])).toBe(1);
   });
 });
 

@@ -3,11 +3,11 @@
 //  - ผู้ก่อเหตุไม่ได้รับแจ้งของตัวเอง: ผู้เรียกกรองออกจาก userIds (ADR 0007 §1)
 //  - เขียนล้ม → โยน → transaction ของเหตุการณ์หลัก rollback ทั้งก้อน (ADR 0007 test 4)
 //  - เพิ่มชนิดใหม่ = เพิ่มใน union + ตาราง params + คีย์ข้อความ th/en (เทสต์วนจาก NOTIFICATION_KINDS) + เสนอ Lead/ADR ก่อน
-//  - R11 §1: appointment.updated / appointment.rsvp_changed แทนที่รายการที่ยังไม่อ่านของเหตุการณ์เดียวกัน · appointment.cancelled เข้า LINE เฉพาะ lineUserIds (แคบกว่ากระดิ่ง)
+//  - R11 §1: appointment.updated / appointment.rsvp_changed แทนที่รายการที่ยังไม่อ่านของเหตุการณ์เดียวกัน (updated รวม changes กับของเดิม) · appointment.cancelled เข้า LINE เฉพาะ lineUserIds (แคบกว่ากระดิ่ง) และมีเพดาน unread ต่อกลุ่มแยกจาก created
 import type { DbOrTx } from '@/db/client';
 import type { RsvpResponse } from '@/lib/data/repos/appointment';
 import { insertLineOutboxRows, usersWithLine } from '@/lib/data/repos/line';
-import { deleteUnreadEventRows, insertNotificationRows, usersUnderUnreadCreatedCap } from '@/lib/data/repos/notification';
+import { deleteUnreadEventRows, insertNotificationRows, usersUnderUnreadCap } from '@/lib/data/repos/notification';
 import { lineConfig } from '@/lib/integrations/line/config';
 import { getEnv } from '@/lib/shared/env';
 import { newId } from '@/lib/shared/id';
@@ -98,14 +98,36 @@ function assertPlainParams(params: Record<string, unknown>): void {
   }
 }
 
-/** แทนที่รายการที่ยังไม่อ่านของเหตุการณ์เดียวกัน — ลบแถวเก่าก่อนเขียนใหม่ใน transaction เดียว (ชนิดเหล่านี้ไม่มีแถว outbox) */
-async function replaceUnread(tx: DbOrTx, kind: NotificationKind, userIds: readonly string[], params: Record<string, unknown>): Promise<void> {
+type UpdateChanges = NotificationParamsByKind['appointment.updated']['changes'];
+
+const isUpdateChanges = (v: unknown): v is UpdateChanges => v === 'time' || v === 'place' || v === 'both';
+
+/** R11 §1: รวม changes ของรายการที่ถูกแทนที่ — เวลา + สถานที่ = both · both คงเป็น both */
+function mergeChanges(previous: UpdateChanges, next: UpdateChanges): UpdateChanges {
+  return previous === next ? next : 'both';
+}
+
+/**
+ * แทนที่รายการที่ยังไม่อ่านของเหตุการณ์เดียวกัน — ลบแถวเก่าก่อนเขียนใหม่ใน transaction เดียว (ชนิดเหล่านี้ไม่มีแถว outbox)
+ * คืน changes ที่รวมแล้วต่อผู้รับ (แต่ละคนอ่านไม่พร้อมกัน ค่าจึงต่างกันได้) · ค่าอื่นของแถวใหม่ (startAt ฯลฯ) เป็นค่าล่าสุด
+ */
+async function replaceUnread(tx: DbOrTx, kind: NotificationKind, userIds: readonly string[], params: Record<string, unknown>): Promise<Map<string, UpdateChanges>> {
+  const merged = new Map<string, UpdateChanges>();
   if (kind === 'appointment.updated') {
-    await deleteUnreadEventRows(tx, { userIds, kind, appointmentId: String(params.appointmentId) });
+    const replaced = await deleteUnreadEventRows(tx, { userIds, kind, appointmentId: String(params.appointmentId) });
+    const next = params.changes as UpdateChanges;
+    for (const row of replaced) {
+      const previous = (row.params as { changes?: unknown } | null)?.changes;
+      if (isUpdateChanges(previous)) merged.set(row.userId, mergeChanges(merged.get(row.userId) ?? next, previous));
+    }
   } else if (kind === 'appointment.rsvp_changed') {
     await deleteUnreadEventRows(tx, { userIds, kind, appointmentId: String(params.appointmentId), responderId: String(params.responderId) });
   }
+  return merged;
 }
+
+/** R11 §1: ชนิดที่มีเพดาน unread ต่อกลุ่มต่อผู้รับ (นับแยกชนิด — created ที่ค้างอ่านไม่บังการแจ้งยกเลิก) · เกิน = ไม่มีทั้งกระดิ่งและ LINE ของผู้รับคนนั้น */
+const cappedKind = (kind: NotificationKind): kind is 'appointment.created' | 'appointment.cancelled' => kind === 'appointment.created' || kind === 'appointment.cancelled';
 
 /**
  * LINE ของ appointment.cancelled แคบกว่ากระดิ่ง จึงบังคับระบุ lineUserIds ทั้งชนิดข้อมูลและตอนรันจริง · ชนิดอื่นห้ามระบุ
@@ -126,14 +148,18 @@ export async function notify<K extends NotificationKind>(
   if (userIds.length > NOTIFY_MAX_RECIPIENTS) throw new Error('notify: too many recipients');
   const params = input.params as Record<string, unknown>;
   assertPlainParams(params);
-  // coalesce (SEC M1): appointment.created ที่ยังไม่อ่านของกลุ่มเดียวกันครบเพดานแล้ว → ไม่เขียนเพิ่มให้ผู้รับคนนั้น (นัดยังสร้างได้ปกติ เห็นในรายการนัด)
-  if (input.kind === 'appointment.created') {
-    const open = await usersUnderUnreadCreatedCap(tx, userIds, (input.params as { groupId: string }).groupId, APPOINTMENT_NOTIFY_UNREAD_PER_GROUP_MAX);
+  // coalesce (SEC M1): ชนิดนี้ที่ยังไม่อ่านของกลุ่มเดียวกันครบเพดานแล้ว → ไม่เขียนเพิ่มให้ผู้รับคนนั้น (การกระทำยังสำเร็จปกติ เห็นในรายการนัด)
+  const kind: NotificationKind = input.kind;
+  if (cappedKind(kind)) {
+    const open = await usersUnderUnreadCap(tx, userIds, kind, (input.params as { groupId: string }).groupId, APPOINTMENT_NOTIFY_UNREAD_PER_GROUP_MAX);
     userIds = userIds.filter((u) => open.has(u));
     if (userIds.length === 0) return 0;
   }
-  await replaceUnread(tx, input.kind, userIds, params);
-  const rows = userIds.map((userId) => ({ id: newId(), userId, kind: input.kind, params: { ...params } }));
+  const mergedChanges = await replaceUnread(tx, input.kind, userIds, params);
+  const rows = userIds.map((userId) => {
+    const changes = mergedChanges.get(userId);
+    return { id: newId(), userId, kind: input.kind, params: changes === undefined ? { ...params } : { ...params, changes } };
+  });
   await insertNotificationRows(tx, rows, now);
   // ADR 0011 §5: ไม่มี env LINE = ไม่เขียน outbox (ไม่สะสมแถวเก่าไว้ส่งทีหลัง) · payload = {kind, params} แปลตอนส่ง
   if (LINE_KINDS.has(input.kind) && lineConfig(getEnv()) !== null) {

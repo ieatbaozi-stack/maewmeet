@@ -67,13 +67,13 @@ export async function insertNotificationRows(
 
 /**
  * R11 §1: ลบรายการที่ยังไม่อ่านของนัดเดียวกัน + ผู้รับเดียวกัน (rsvp_changed: + ผู้ตอบคนเดิม) ก่อนเขียนรายการใหม่แทน
- * อ่านแล้วไม่ถูกแตะ — เหตุการณ์ถัดไปเป็นแถวใหม่ · เรียกใน transaction เดียวกับ notify
+ * อ่านแล้วไม่ถูกแตะ — เหตุการณ์ถัดไปเป็นแถวใหม่ · เรียกใน transaction เดียวกับ notify · คืนแถวที่ลบ (ผู้เรียกรวมค่าของเดิม)
  */
 export async function deleteUnreadEventRows(
   db: DbOrTx,
   input: { userIds: readonly string[]; kind: string; appointmentId: string; responderId?: string },
-): Promise<void> {
-  if (input.userIds.length === 0) return;
+): Promise<{ userId: string; params: unknown }[]> {
+  if (input.userIds.length === 0) return [];
   const conds: SQL[] = [
     inArray(notification.userId, [...input.userIds]),
     eq(notification.kind, input.kind),
@@ -81,7 +81,7 @@ export async function deleteUnreadEventRows(
     sql`json_extract(${notification.params}, '$.appointmentId') = ${input.appointmentId}`,
   ];
   if (input.responderId !== undefined) conds.push(sql`json_extract(${notification.params}, '$.responderId') = ${input.responderId}`);
-  await db.delete(notification).where(and(...conds));
+  return db.delete(notification).where(and(...conds)).returning({ userId: notification.userId, params: notification.params });
 }
 
 /**
@@ -131,10 +131,10 @@ export async function markNotificationsReadByIds(db: DbOrTx, userId: string, ids
 }
 
 /**
- * ผู้ใช้ (ใน userIds) ที่ยังรับ appointment.created ของกลุ่มนี้เพิ่มได้ = unread ที่ "เห็นได้" ของกลุ่มนั้น < max (ใช้ coalesce กันกระดิ่งท่วม)
+ * ผู้ใช้ (ใน userIds) ที่ยังรับชนิดนี้ของกลุ่มนี้เพิ่มได้ = unread ที่ "เห็นได้" ของชนิดนั้นในกลุ่มนั้น < max (ใช้ coalesce กันกระดิ่งท่วม · นับแยกชนิด)
  * นับด้วยคำสั่งเดียว แล้วผู้เรียกเขียนทีเดียว — แข่งกันได้เกินเพดานไม่เกินจำนวนนัดที่สร้างพร้อมกัน ซึ่งถูก limiter ต่อผู้ใช้/ต่อกลุ่มจำกัดอยู่แล้ว
  */
-export async function usersUnderUnreadCreatedCap(db: DbOrTx, userIds: readonly string[], groupId: string, max: number): Promise<Set<string>> {
+export async function usersUnderUnreadCap(db: DbOrTx, userIds: readonly string[], kind: 'appointment.created' | 'appointment.cancelled', groupId: string, max: number): Promise<Set<string>> {
   if (userIds.length === 0) return new Set();
   const rows = await db
     .select({ userId: notification.userId, n: count() })
@@ -142,7 +142,7 @@ export async function usersUnderUnreadCreatedCap(db: DbOrTx, userIds: readonly s
     .where(
       and(
         inArray(notification.userId, [...userIds]),
-        eq(notification.kind, 'appointment.created'),
+        eq(notification.kind, kind),
         isNull(notification.readAt),
         sql`json_extract(${notification.params}, '$.groupId') = ${groupId}`,
         visibleToOwner,
