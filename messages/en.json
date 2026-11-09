@@ -802,7 +802,7 @@
     "unknown": "A notification we can’t show right now",
     "appointment": {
       "created": "New plan: {title} ({when}) in “{groupName}”",
-      "reminder_1d": "One day to go: {title} ({when}) in “{groupName}”",
+      "reminder_1d": "Coming up: {title} ({when}) in “{groupName}”",
       "reminder_1h": "Starting in about an hour: {title} ({when}) in “{groupName}”",
       "rsvp_nudge": "You haven’t confirmed yet. Are you in? {title} ({when}) in “{groupName}”"
     }
