@@ -1,0 +1,6 @@
+/*
+ * สไตล์ส่วนเชื่อม LINE ใน /me (R10) — เจ้าของ: Front-end · ทุกค่ามาจาก var(--*) (ห้าม hex/px)
+ */
+.line-code { display: block; text-align: center; padding: var(--space-4); border: var(--border) solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); font-size: var(--text-xl); font-weight: var(--weight-semibold); letter-spacing: var(--tracking-num); font-variant-numeric: tabular-nums; user-select: all; overflow-wrap: anywhere; }
+.line-linked { display: flex; align-items: center; gap: var(--space-2); font-weight: var(--weight-medium); color: var(--free-ink); }
+.line-actions { display: grid; gap: var(--space-2); }

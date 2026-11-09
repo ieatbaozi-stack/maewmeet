@@ -131,6 +131,24 @@ export function notificationView(kind: string, params: Record<string, unknown>, 
         href: `/appointments/${appointmentId}`,
       };
     }
+    case "appointment.reminder_1d":
+    case "appointment.reminder_1h":
+    case "appointment.rsvp_nudge": {
+      // R10: เตือนก่อนนัด / ถามยืนยัน — วันเวลาจริงจาก startAt+tz (ไม่ใช้คำว่า "พรุ่งนี้" ตายตัว)
+      const groupName = str(params.groupName);
+      const title = str(params.title);
+      const appointmentId = id(params.appointmentId);
+      const startAt = ms(params.startAt);
+      if (!groupName || !title || !appointmentId || startAt === null) return UNKNOWN;
+      return {
+        known: true,
+        messageKey: `notifications.${kind}`,
+        values: { groupName: isolate(groupName), title: isolate(title), when: whenLabel(startAt, safeTz(params.tz), locale) },
+        icon: kind === "appointment.rsvp_nudge" ? "info" : "calendar-plus",
+        tone: "appt",
+        href: `/appointments/${appointmentId}`,
+      };
+    }
     case "group.invite.received": {
       const groupName = str(params.groupName);
       const inviterName = personName(params.inviterName, deletedName);

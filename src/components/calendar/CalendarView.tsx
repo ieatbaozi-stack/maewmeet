@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { startTransition, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { callApi } from "@/components/auth/api";
 import { rememberGroup } from "./RememberGroup";
@@ -59,6 +59,8 @@ export interface CalendarViewProps {
   initial: InitialCalendar;
   initialAvailability?: InitialAvailability | null;
   initialMine?: InitialMine | null;
+  /** R10: มาจากปุ่มขั้น 2 (?add=1) → เปิดฟอร์มลง busy ทันทีครั้งเดียว แล้วลบ param ออกจาก URL (รีเฟรช/ย้อนกลับไม่เด้งซ้ำ) */
+  autoOpenForm?: boolean;
 }
 
 type CalState = { key: string; nowMs: EpochMs; status: "ready"; data: GroupCalendarDto } | { key: string; nowMs: EpochMs; status: "error" | "gone" };
@@ -102,7 +104,7 @@ const avKeyOf = (gid: string, from: DateISO, to: DateISO, version: number) => `a
  * แท็บปฏิทิน (UX §7, §8): ตัวเลือกกลุ่ม · เดือน | ว่างตรงกัน | วัน | ของฉัน · ฟอร์มลง busy
  * ข้อมูลโหลดครั้งแรกจากเซิร์ฟเวอร์ (page) แล้วขอใหม่ตามช่วงของตารางที่เห็น (≤ 42 วัน) · สิทธิ์ตรวจที่เซิร์ฟเวอร์ทุก API — UI แค่แสดงผล
  */
-export function CalendarView({ groups, gid, tz, userId, initialToday, initialNowMs, initialDate, initialView, groupMissing = false, dateGiven = false, canEditWindow = false, initial, initialAvailability = null, initialMine = null }: CalendarViewProps) {
+export function CalendarView({ groups, gid, tz, userId, initialToday, initialNowMs, initialDate, initialView, groupMissing = false, dateGiven = false, canEditWindow = false, initial, initialAvailability = null, initialMine = null, autoOpenForm = false }: CalendarViewProps) {
   const t = useTranslations();
   const locale = useLocale() as CalendarLocale;
   const router = useRouter();
@@ -198,11 +200,21 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     };
   }, [view, mine?.key, mineKey]);
 
+  // R10: เปิดฟอร์มลง busy ครั้งเดียวตอนมาจากปุ่มขั้น 2 (ฟอร์มเป็น portal จึงเปิดหลัง mount ไม่ใช่ตอน SSR)
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (!autoOpenForm || autoOpened.current) return;
+    autoOpened.current = true;
+    const formToday = todayIn(DEFAULT_TZ, clock.now());
+    setForm({ edit: null, today: formToday, defaultDate: formToday });
+  }, [autoOpenForm]);
+
   // URL: จำกลุ่ม/มุมมอง/วันที่ใน search param (แค่ความสะดวก — แชร์ลิงก์/รีเฟรชได้) ไม่ทำให้เซิร์ฟเวอร์ render ใหม่
   useEffect(() => {
     const url = new URL(window.location.href);
     url.searchParams.set("g", gid);
     url.searchParams.set("v", view);
+    url.searchParams.delete("add"); // R10: ใช้ครั้งเดียว
     const d = urlDayParam(view, freePicked, selected);
     if (d) url.searchParams.set("d", d);
     else url.searchParams.delete("d"); // ว่างตรงกัน + ยังไม่เลือกวัน: อย่าปักวันลง URL (รีโหลดแล้วแผงขวาจะไม่ถูกปักที่วันนี้)

@@ -90,6 +90,16 @@ describe('notificationView — ข้อความ ปลายทาง ไ�
     expect(v.values.when).toBe('Sat 24 Oct 18:00');
     expect(v.values.groupName).toBe('⁨แก๊ง⁩');
   });
+  it('R10: reminder_1d/1h/rsvp_nudge → /appointments/<id> + when ใน tz นัด (ไม่ใช้ "พรุ่งนี้")', () => {
+    const p = { groupId: gid, groupName: 'แก๊ง', appointmentId: 'ap-9', title: 'หมูกระทะ', startAt: at('2026-10-24', '18:00'), tz: TZ };
+    for (const kind of ['appointment.reminder_1d', 'appointment.reminder_1h', 'appointment.rsvp_nudge']) {
+      const v = notificationView(kind, p, 'en');
+      expect(v).toMatchObject({ known: true, messageKey: `notifications.${kind}`, href: '/appointments/ap-9', tone: 'appt' });
+      expect(v.values.when).toBe('Sat 24 Oct 18:00');
+    }
+    expect(notificationView('appointment.reminder_1d', { ...p, title: '' }, 'th').known).toBe(false);
+    expect(notificationView('appointment.rsvp_nudge', { ...p, appointmentId: '../x' }, 'th').known).toBe(false);
+  });
   it('invite.received → /groups · accepted/declined → /groups/<gid> · pin_reset.* → /me', () => {
     expect(notificationView('group.invite.received', { groupId: gid, groupName: 'G', inviterName: 'P', inviteId: 'i' }, 'th').href).toBe('/groups');
     expect(notificationView('group.invite.accepted', { groupId: gid, groupName: 'G', inviteeName: 'N', inviteId: 'i' }, 'th').href).toBe(`/groups/${gid}`);
@@ -130,6 +140,9 @@ describe('notificationView — ข้อความ ปลายทาง ไ�
       'group.invite.accepted': { groupId: gid, groupName: 'ก๊วน', inviteeName: 'นุ่น', inviteId: 'i1' },
       'group.invite.declined': { groupId: gid, groupName: 'ก๊วน', inviteeName: 'ขวัญ', inviteId: 'i1' },
       'appointment.created': { groupId: gid, groupName: 'ก๊วน', appointmentId: 'ap1', title: 'หมูกระทะ', startAt: at('2026-10-24', '18:00'), tz: TZ },
+      'appointment.reminder_1d': { groupId: gid, groupName: 'ก๊วน', appointmentId: 'ap1', title: 'หมูกระทะ', startAt: at('2026-10-24', '18:00'), tz: TZ },
+      'appointment.reminder_1h': { groupId: gid, groupName: 'ก๊วน', appointmentId: 'ap1', title: 'หมูกระทะ', startAt: at('2026-10-24', '18:00'), tz: TZ },
+      'appointment.rsvp_nudge': { groupId: gid, groupName: 'ก๊วน', appointmentId: 'ap1', title: 'หมูกระทะ', startAt: at('2026-10-24', '18:00'), tz: TZ },
       'pin_reset.approved': { expiresAt: at('2026-10-21', '17:42') },
       'pin_reset.cancelled_by_login': {},
     };

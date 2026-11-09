@@ -18,7 +18,8 @@ const SECTIONS = [
   { key: "collect", items: ["account", "busy", "groups", "security", "cookies"] },
   { key: "see", items: ["owner", "members", "note", "outsiders", "groups", "superAdmin"] },
   { key: "places", items: ["search", "tiles", "noTracking"] },
-  { key: "retention", items: ["busy", "notifications", "sessions", "security", "groups", "providers"] },
+  { key: "line", items: ["body"] },
+  { key: "retention", items: ["busy", "notifications", "sessions", "security", "groups", "providers", "line"] },
   { key: "delete", items: ["how", "removed", "kept", "noRestore"] },
   { key: "contact", items: ["body"] },
 ] as const;

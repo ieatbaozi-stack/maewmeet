@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useId, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { Icon } from "@/components/icons/Icon";
-import type { StepId, StepState } from "./steps-model";
+import { stepBusyAddHref, type StepId, type StepState } from "./steps-model";
 
 export interface StepBarProps {
   groupId: string;
@@ -51,7 +51,7 @@ export function StepBar({ groupId, steps, doneCount, total, allDone, solo, planA
               </p>
               <p className="steps-title">{title}</p>
               <p className="steps-body">{body}</p>
-              <Link className="btn btn-primary" href={hrefs[s.id]} data-testid={`group-step-cta-${s.id}`}>
+              <Link className="btn btn-primary" href={s.id === "busy" ? stepBusyAddHref(groupId) : hrefs[s.id]} data-testid={`group-step-cta-${s.id}`}>
                 <span>{t(`group.steps.${s.id}.cta`)}</span>
               </Link>
             </li>

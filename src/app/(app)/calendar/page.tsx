@@ -64,6 +64,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
         initial={data.initial}
         initialAvailability={data.initialAvailability}
         initialMine={data.initialMine}
+        autoOpenForm={one(sp.add) === "1"}
       />
     </>
   );
