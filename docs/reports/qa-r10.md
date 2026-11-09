@@ -36,3 +36,19 @@
 
 ## ตรวจไม่ได้
 CI และ Vercel preview บน GitHub · Schedules ทำงานจริง/ส่ง `CRON_SECRET`/preview กินรอบ (OPERATIONS J2, ต้อง boss/ops) · ส่ง LINE จริง/webhook จริง (R10-11 หลัง merge) · `/me` ใช้ LINE API จำลองด้วย `page.route` ตามที่ผู้ทำ e2e ออกแบบ (ไม่ได้ยิง `/api/me/line` จริงที่มี env LINE) · Node 24 · PowerShell จริง · การวัดคอนทราสต์เชิงตัวเลข · security เชิงลึก (security-r10)
+
+## ตรวจซ้ำหลังแก้เพิ่ม (`7e957f0..73d85ac`: `767d6cc`, `999b471`, `a75d7e8`, `73d85ac`)
+ผู้ตรวจ: qa (อิสระ) · 2026-11-09 · Node v26.13.0
+
+**Verdict สุดท้าย: ผ่าน** (M1 ปิดแล้ว · ไม่พบถอยหลัง)
+
+- **M1 ปิด**: `messages/th.json`/`en.json` `notifications.appointment.reminder_1d` = "ใกล้ถึงนัดแล้ว: …" / "Coming up: …" · `reminder_1h` = "ใกล้เริ่มแล้ว: …" / "Starting soon: …" · ไม่มีคำว่า "อีกวันเดียว/One day to go/ชั่วโมงเดียว" เหลือ · ตรงกับข้อความ LINE ที่เป็นกลางอยู่แล้ว · e2e ผ่านหลังเปลี่ยนข้อความ
+- **อ่านโค้ด `73d85ac`**: เพดาน LINE (นัด+ชนิด+ผู้รับ ≤ 2, ผู้รับ ≤ 6 ใน 24 ชม.) ตรวจในคำสั่ง UPDATE เดียวกับการจองแถว (`claimOutboxRow` กัน race ข้าม instance) แถวตัวเองไม่นับ · เกิน = `dead` รหัส `LINE_CAP` ไม่ push กระดิ่งไม่กระทบ (`capOutboxRow`) · 429 monthly limit บันทึก `next_attempt_at` = เวลาที่ชนจริง (`markOutboxMonthlyLimit`) แก้ปัญหาเดือนข้ามเดือน · webhook: `unfollow` ไม่นับเพดาน 20 event และคงลำดับเดิม log เฉพาะจำนวนที่ทิ้ง · contract §1.4 และ R10-5 อัปเดตให้ตรง (`767d6cc`)
+- **ข้อสังเกตเล็ก (L)**: เพดานผู้รับ ≤ 6 ข้อความ/24 ชม. หมายความว่าผู้ที่ตอบ "ไป" หลายนัดในวันเดียว (มากกว่า 3 นัดที่มีทั้ง 1d และ 1h) จะไม่ได้ LINE ครบ แต่กระดิ่งครบ — ตรงกับ contract ที่เพิ่มแล้ว ไม่ใช่บั๊ก
+
+คำสั่งที่รัน (HEAD `73d85ac`):
+- `npx tsc --noEmit -p .` → ไม่มี error · `npx eslint . --ignore-pattern ".claude/**"` → ไม่มี output · `npm run build` → Compiled successfully
+- `npx vitest run` (config ชั่วคราวนอก repo กลืน EPERM/EBUSY ของ `rmSync` เท่านั้น): **146 ไฟล์ 4980 เทสต์ ผ่าน 4945 ล้ม 17** · 17 ข้อเป็นชุดเดิมทั้งหมด (free-time/Python, admin-reset-pin-script + pepper-fingerprint-script + release/tsx ENOENT, health/Node v26, config-hygiene 2 และ manual-delete-sql 4/CRLF) ไม่มีเทสต์ใหม่ล้ม · `tests/line/caps.test.ts` (11 ข้อ) ผ่าน
+- `E2E_PORT=3118 npx playwright test tests/e2e/r10-reminders.spec.ts --output=C:/pw/o2 --workers=3` → **60 passed (1.3m)**
+
+ตรวจไม่ได้: เหมือนรอบแรก (CI/Vercel preview, Schedules จริง, LINE จริง, Node 24, PowerShell)
