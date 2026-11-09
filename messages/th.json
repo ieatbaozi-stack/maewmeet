@@ -766,6 +766,12 @@
         "received": "{inviterName} ชวนคุณเข้ากลุ่ม “{groupName}”",
         "accepted": "{inviteeName} รับคำเชิญและเข้ากลุ่ม “{groupName}” แล้ว",
         "declined": "{inviteeName} ปฏิเสธคำเชิญเข้ากลุ่ม “{groupName}”"
+      },
+      "member": {
+        "joined": "{memberName} เข้ากลุ่ม “{groupName}” แล้ว",
+        "left": "{memberName} ออกจากกลุ่ม “{groupName}” แล้ว",
+        "removed": "คุณไม่ได้อยู่ในกลุ่ม “{groupName}” แล้ว",
+        "role_changed": "{role, select, admin {คุณเป็นผู้ดูแลกลุ่ม “{groupName}” แล้ว} moderator {คุณเป็นผู้ช่วยดูแลกลุ่ม “{groupName}” แล้ว} other {คุณเป็นสมาชิกของกลุ่ม “{groupName}” แล้ว}}"
       }
     },
     "title": "การแจ้งเตือน",
@@ -786,7 +792,7 @@
     "retention": "เก็บการแจ้งเตือนไว้ {days} วัน",
     "empty": {
       "title": "ยังไม่มีอะไรใหม่",
-      "body": "มีนัดใหม่หรือคำเชิญเข้ากลุ่มเมื่อไร จะแจ้งไว้ที่นี่"
+      "body": "นัดที่เปลี่ยนไป คำเชิญ และความเคลื่อนไหวในกลุ่มของคุณ จะแจ้งไว้ที่นี่"
     },
     "error": {
       "title": "โหลดการแจ้งเตือนไม่สำเร็จ",
@@ -804,7 +810,10 @@
       "created": "นัดใหม่: {title} ({when}) ในกลุ่ม “{groupName}”",
       "reminder_1d": "ใกล้ถึงนัดแล้ว: {title} ({when}) ในกลุ่ม “{groupName}”",
       "reminder_1h": "ใกล้เริ่มแล้ว: {title} ({when}) ในกลุ่ม “{groupName}”",
-      "rsvp_nudge": "คุณยังไม่ได้ยืนยัน จะไปไหม? {title} ({when}) ในกลุ่ม “{groupName}”"
+      "rsvp_nudge": "คุณยังไม่ได้ยืนยัน จะไปไหม? {title} ({when}) ในกลุ่ม “{groupName}”",
+      "cancelled": "{actorName} ยกเลิกนัด {title} ({when}) ในกลุ่ม “{groupName}”",
+      "updated": "{changes, select, time {{actorName} เปลี่ยนเวลานัด {title} เป็น {when} ในกลุ่ม “{groupName}”} place {{actorName} เปลี่ยนสถานที่นัด {title} ({when}) ในกลุ่ม “{groupName}”} other {{actorName} เปลี่ยนเวลาและสถานที่นัด {title} เป็น {when} ในกลุ่ม “{groupName}”}}",
+      "rsvp_changed": "{response, select, going {{responderName} ไปนัด {title} ({when}) ในกลุ่ม “{groupName}”} maybe {{responderName} อาจไปนัด {title} ({when}) ในกลุ่ม “{groupName}”} other {{responderName} ไม่ไปนัด {title} ({when}) ในกลุ่ม “{groupName}”}}"
     }
   },
   "errors": {
@@ -1608,7 +1617,7 @@
     },
     "line": {
       "title": "ข้อความทาง LINE",
-      "body": "ถ้าคุณเชื่อมต่อ LINE เราจะส่งข้อความเตือนก่อนนัดทาง LINE ซึ่งมีชื่อนัด วันเวลา ชื่อกลุ่ม และลิงก์นัด ผ่านบริการของ LINE ถึงคุณเท่านั้น ไม่ส่งสถานที่ รายละเอียด หรือชื่อสมาชิก และเก็บรหัสผู้ใช้ LINE ของคุณไว้เพื่อการนี้ ยกเลิกการเชื่อมต่อได้ทุกเมื่อที่แท็บ “ฉัน” (ถ้ายังไม่เชื่อมต่อ จะไม่มีอะไรถูกส่งไป LINE)"
+      "body": "ถ้าคุณเชื่อมต่อ LINE เราจะส่งข้อความเตือนก่อนนัด และข้อความเมื่อนัดที่คุณตอบว่าไปถูกยกเลิก ทาง LINE ซึ่งมีชื่อนัด วันเวลา ชื่อกลุ่ม และลิงก์นัด ผ่านบริการของ LINE ถึงคุณเท่านั้น ไม่ส่งสถานที่ รายละเอียด หรือชื่อสมาชิก และเก็บรหัสผู้ใช้ LINE ของคุณไว้เพื่อการนี้ ยกเลิกการเชื่อมต่อได้ทุกเมื่อที่แท็บ “ฉัน” (ถ้ายังไม่เชื่อมต่อ จะไม่มีอะไรถูกส่งไป LINE)"
     }
   },
   "onboarding": {
@@ -1626,7 +1635,8 @@
   "line": {
     "message": {
       "reminder_1d": "ใกล้ถึงนัดแล้ว: {title}\n{when} · กลุ่ม “{groupName}”\n{url}",
-      "reminder_1h": "อีกไม่นานถึงนัด: {title}\n{when} · กลุ่ม “{groupName}”\n{url}"
+      "reminder_1h": "อีกไม่นานถึงนัด: {title}\n{when} · กลุ่ม “{groupName}”\n{url}",
+      "cancelled": "นัดถูกยกเลิก: {title}\n{when} · กลุ่ม “{groupName}”\n{url}"
     },
     "link": {
       "success": "เชื่อมต่อ LINE กับ maewmeet เรียบร้อยแล้ว จากนี้จะแจ้งเตือนนัดที่คุณตอบว่าไปทาง LINE นี้",
