@@ -3,6 +3,8 @@
 - **Status**: Proposed (Architect, 2026-10-15) — รอ Lead/boss รับ · แก้รอบ 2 (2026-10-16): ข้อ 3.1 keep-alive ของ Turso
 - **เกี่ยวข้อง**: [PRD §2 D12, §5, §7](../prd/PRD.md) · [ARCHITECTURE.md](../design/ARCHITECTURE.md) · ADR [0002](0002-auth-pin.md) [0004](0004-time-and-timezone.md) [0008](0008-i18n-and-theme.md)
 
+> **หมายเหตุ R13 (2026-11-11, boss อนุมัติ):** ตั้งแต่ R13 การค้นหาสถานที่ผ่าน Nominatim (`/api/places/search`) และภาพแผนที่ OSM ถูกเอาออกแล้ว — ผู้ใช้วางลิงก์แผนที่เอง + ปุ่มเปิด Google Maps / Apple Maps · ตาราง `place_search_cache` ยังอยู่ (ไม่มีโค้ดอ่าน/เขียน) รอลบใน migration ครั้งถัดไป · ส่วนที่พูดถึง Nominatim/OSM ด้านล่างคงไว้เป็นประวัติ · ดู [R13_CONTRACT §1.3](../contracts/R13_CONTRACT.md) และ [PRD D11](../prd/PRD.md)
+
 ## Context
 PRD กำหนดตายตัว: Next.js (App Router) + TypeScript · Drizzle + Turso (libSQL/SQLite) · Vercel Hobby · Vitest + Playwright · GitHub Actions · ต้นทุน ≈ $0 ที่หลักสิบ–ร้อยผู้ใช้ ADR นี้ล็อก **เวอร์ชัน**, เลือก **ไลบรารีวันเวลา 1 ตัว**, ระบุข้อจำกัดแพลตฟอร์มที่กระทบดีไซน์ และวางโครงโฟลเดอร์ให้ตรงขอบเขตไฟล์ใน [TEAM.md](../team/TEAM.md)
 
