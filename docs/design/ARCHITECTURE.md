@@ -2,7 +2,7 @@
 
 > เจ้าของไฟล์: Architect · สถานะ: **ร่างเฟส 2 (Proposed)** รอ Lead/boss รับพร้อม ADR 0001–0008
 > แก้รอบ 2 (2026-10-16): การจัดการ pepper (ADR 0002 §7) — env `PIN_PEPPER_V<n>`, ตาราง `pepper_fingerprint`, `AUTH_MAINTENANCE` · keep-alive Turso 2 ชั้น (ADR 0001 §3.1) — ตาราง `system_heartbeat`, `/api/cron/heartbeat`, GitHub Actions · สัปดาห์เริ่มวันจันทร์ (ADR 0004)
-> แหล่งความจริงของความต้องการ: [PRD](../prd/PRD.md) · ตัดสินใจรายเรื่อง: [ADR 0001](../adr/0001-stack-and-project-structure.md) · [0002](../adr/0002-auth-pin.md) · [0003](../adr/0003-rbac.md) · [0004](../adr/0004-time-and-timezone.md) · [0005](../adr/0005-common-free-time-algorithm.md) · [0006](../adr/0006-busy-visibility.md) · [0007](../adr/0007-notifications.md) · [0008](../adr/0008-i18n-and-theme.md)
+> แหล่งความจริงของความต้องการ: [PRD](../prd/PRD.md) · ตัดสินใจรายเรื่อง: [ADR 0001](../adr/0001-stack-and-project-structure.md) · [0002](../adr/0002-auth-pin.md) · [0003](../adr/0003-rbac.md) · [0004](../adr/0004-time-and-timezone.md) · [0005](../adr/0005-common-free-time-algorithm.md) · [0006](../adr/0006-busy-visibility.md) · [0007](../adr/0007-notifications.md) · [0008](../adr/0008-i18n-and-theme.md) · [0010](../adr/0010-daily-busy-series.md) · [0012](../adr/0012-busy-routines.md)
 > **หมายเหตุ R13 (2026-11-11, boss อนุมัติ):** การค้นหาสถานที่ผ่าน Nominatim (U10 `GET /api/places/search`, action `place.search`, env `PLACE_SEARCH_ENABLED`/`NOMINATIM_*`/`NEXT_PUBLIC_MAP_*`) และภาพแผนที่ OSM ถูกเอาออกแล้ว — ผู้ใช้วางลิงก์แผนที่เอง + ปุ่มเปิด Google Maps / Apple Maps · ตาราง `place_search_cache` ยังอยู่ (cron ล้างแถวเก่ายังทำงาน) รอลบใน migration ครั้งถัดไป · ส่วนที่พูดถึงเรื่องนี้ด้านล่างคงไว้เป็นประวัติ · ดู [R13_CONTRACT §1.3](../contracts/R13_CONTRACT.md) และ [PRD D11](../prd/PRD.md)
 > โค้ดในเอกสารนี้เป็น **ร่าง/pseudo-code** สำหรับ R0–R1 นำไปเขียนจริง — ชื่อไฟล์/คอลัมน์ถือเป็นสัญญา เปลี่ยนต้องผ่าน Lead
 
@@ -264,6 +264,7 @@ export const busyBlock = sqliteTable('busy_block', {
   index('busy_user_end_idx').on(t.userId, t.endAt),
   check('busy_range_ck', sql`${t.endAt} > ${t.startAt} and ${t.localEndDate} >= ${t.localStartDate}`),
 ]);
+// หลังจากนี้เพิ่มแล้ว: series_id (ADR 0010, 0003) · routine_id (ADR 0012, 0005) — ดูหมายเหตุใต้บล็อกนี้
 
 // ───────── นัด (U10–U11) ─────────
 export const appointment = sqliteTable('appointment', {
@@ -367,6 +368,13 @@ export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy N
 });
 ```
 
+### busy routine (R14, [ADR 0012](../adr/0012-busy-routines.md) ทางเลือก C, migration `drizzle/0005_*`)
+แหล่งความจริงของคอลัมน์คือ `src/db/schema.ts` — ข้างล่างเป็นสรุป
+- `busy_routine` (กฎ — เห็นเฉพาะเจ้าของ): `id`, `user_id` → user (cascade), `title`, `note`, `hide_detail`, `all_day`, `weekdays` (bitmask ISO 1–127), `start_min`/`end_min` (นาที ลงตัว 30 · `end_min ≤ start_min` = ข้ามเที่ยงคืน · 1440 = 24:00 · NULL เมื่อ all-day), `range_kind` ('weeks'|'months' แสดงผลเท่านั้น), `start_date`/`end_date` (วันท้องถิ่น รวมปลาย), `tz`, `created_at`/`updated_at` · index `(user_id, end_date)`
+- `busy_routine_skip` (`routine_id` → busy_routine cascade, `local_date`) PK คู่ — วันที่ผู้ใช้ลบ/แยกออก กันการขยายใหม่ฟื้นกลับ
+- `busy_block.routine_id` (nullable → busy_routine cascade, ไม่ backfill) + partial index `(user_id, routine_id) WHERE routine_id IS NOT NULL` · แถว routine คือ busy ธรรมดาสำหรับทุกทางอ่านของกลุ่ม (ปฏิทิน วันว่าง เตือนนัดทับ ไม่แก้) · `routine_id` และตารางกฎไม่ออกถึงคนอื่น (ADR 0006)
+- บันทึก/แก้ = เขียนกฎ + ขยายแถวด้วย `routineRange`/`expandRoutine` (`src/lib/calendar`, กฎ 9) ใน tx เดียว · เพดาน: busy เดี่ยว 300 นับเฉพาะ `routine_id IS NULL` · routine ที่ยังไม่จบ ≤ 10/คน · วันของ routine ในอนาคต ≤ 1,500/คน · ช่วง ≤ 26 สัปดาห์/6 เดือน · วันจบ ≤ วันนี้ + 12 เดือน (R14_CONTRACT §1.2)
+
 ### ความต่างจาก "โมเดลข้อมูลร่าง" ใน PRD §5 (เหตุผลสั้น)
 | PRD ร่าง | ฉบับนี้ | เหตุผล |
 |---|---|---|
@@ -377,7 +385,8 @@ export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy N
 | `pin_reset_request` | + `device_token_hash`, `requester_ua/country`, `pending_expires_at`, `used_at` | ผูก `123456` กับเครื่อง + ข้อมูลให้ admin ยืนยัน (ADR 0002 §6) |
 | `group` | ชื่อตาราง `groups` + `tz`, `updated_at` | คำสงวน SQL · ADR 0004 §4 |
 | `group_invite` | + `code_hint`, `uses_count`, `revoked_by` | U5/U6 รายการโค้ด + audit |
-| `busy_block` | + `created_at/updated_at`, index | — |
+| `busy_block` | + `created_at/updated_at`, index · + `series_id` (R6F) · + `routine_id` (R14) | ชุดรายวัน ADR 0010 · routine ADR 0012 |
+| — | `busy_routine`, `busy_routine_skip` (R14) | busy ทำซ้ำรายสัปดาห์ (ADR 0012) |
 | `appointment` | + `local_date`, `cancelled_*`, timestamps | U10.2 นัดยกเลิกยังเห็นได้ |
 | `appointment_rsvp` | + `updated_at` | — |
 | `audit_log(target)` | แยก `target_type`, `target_id`, `group_id`, `meta` | ค้น/กรองในหน้า admin (U12) |
@@ -387,7 +396,7 @@ export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy N
 
 ### กฎข้อมูลที่ schema บังคับไม่ได้ (บังคับใน service + เทสต์)
 - username: `^[a-z0-9._]{3,20}$` หลัง normalize (ASCII เท่านั้น กันตัวอักษรหน้าตาเหมือนกัน) · display name: 1–40 ตัวอักษรใดก็ได้ (ไทยได้)
-- ลบบัญชี (U13): ต้องไม่ถือ role admin กลุ่มใด → ลบ session, busy, rsvp, notification, membership, คำเชิญค้าง → anonymize แถว user (`username_normalized = 'deleted:'||id`, `username=''`, `display_name=''`, `pin_hash=NULL`, `line_user_id=NULL`, `status='deleted'`) — คงแถวไว้ให้ FK ของนัด/audit · UI แสดงชื่อเป็นคีย์แปล "ผู้ใช้ที่ลบบัญชีแล้ว"
+- ลบบัญชี (U13): ต้องไม่ถือ role admin กลุ่มใด → ลบ session, busy, busy routine (ต้องลบเอง — anonymize ไม่เกิด cascade, ADR 0012), rsvp, notification, membership, คำเชิญค้าง → anonymize แถว user (`username_normalized = 'deleted:'||id`, `username=''`, `display_name=''`, `pin_hash=NULL`, `line_user_id=NULL`, `status='deleted'`) — คงแถวไว้ให้ FK ของนัด/audit · UI แสดงชื่อเป็นคีย์แปล "ผู้ใช้ที่ลบบัญชีแล้ว"
 - หมดอายุทุกชนิด (โค้ดเชิญ, reset) ตรวจแบบ lazy ตอนอ่าน — cron แค่เก็บกวาด
 
 ## 4. Session และ actor (สรุป — ละเอียดใน ADR 0002 §4)
@@ -429,7 +438,11 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | U7 | `GET /api/me/busy?from&to` | `busy.list.own` | เห็นครบรวม note | Platform |
 | U7 | `POST /api/me/busy` | `busy.create` | `{allDay, startDate, endDate, startTime?, endTime?, tz?, title?, note?, hideDetail}` → `normalizeBusyInput` (ADR 0004) | Platform |
 | U7 | `PATCH /api/me/busy/:id` | `busy.update` | เจ้าของเท่านั้น | Platform |
-| U7 | `DELETE /api/me/busy/:id` | `busy.delete` | เจ้าของเท่านั้น | Platform |
+| U7 | `DELETE /api/me/busy/:id` | `busy.delete` | เจ้าของเท่านั้น · บนแถว routine = ลบวันนั้น + บันทึก skip (PATCH บนแถว routine = แยกเป็น busy เดี่ยว + skip) | Platform |
+| U7 (R14) | `GET /api/me/busy-routines` | `busy.routine.list.own` | routine ของฉัน (รวม note) + จำนวนวันที่เหลือ · ADR 0012 | Platform |
+| U7 (R14) | `POST /api/me/busy-routines` | `busy.routine.create` | กฎ (`weekdays`, เวลา/all-day, ช่วง weeks/months) → ขยายแถวใน tx เดียว · zod `.strict()` | Platform |
+| U7 (R14) | `PATCH /api/me/busy-routines/:id` | `busy.routine.update` | เจ้าของเท่านั้น (SA ไม่ได้) · `from` = แก้ตั้งแต่สัปดาห์/เดือนนั้น (ไม่ส่ง = ทุกวันที่ยังไม่ผ่าน) | Platform |
+| U7 (R14) | `DELETE /api/me/busy-routines/:id?from=` | `busy.routine.delete` | เจ้าของเท่านั้น · มี `from` = หยุดตั้งแต่วันนั้น · ไม่มี = ลบทั้งหมดรวมอดีต | Platform |
 | U8 | `GET /api/groups/:gid/calendar?from&to` | `group.calendar.view` | ≤ 62 วัน · หน้าจอเดือนส่งช่วง `monthGrid()` **เริ่มวันจันทร์** (ADR 0004) · busy กรองตาม ADR 0006 · นัดในช่วง | Platform |
 | U9, U9.1 | `GET /api/groups/:gid/availability?from&to` | `group.availability.view` | ผล ADR 0005 + blockers (กรอง ADR 0006) | Platform |
 | U10 | `GET /api/places/search?q=` | `place.search` | proxy Nominatim + cache + 1 req/s + kill switch | Platform |

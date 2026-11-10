@@ -3,6 +3,7 @@
 - **Status**: Accepted (2026-11-03) · เสนอ Proposed 2026-11-02 (Architect) · รอบ R6F · มี migration `0003` · implement ตาม ADR แล้ว ผ่าน QA ([qa-r6f](../reports/qa-r6f.md): 0 H/0 M/3 L) และ Security ([security-r6f](../reports/security-r6f.md): 0 C/H/M/L, 5 Info) · ข้อตัดสินของ main ดู §10 (Errata ท้าย R6F_CONTRACT)
 - **เกี่ยวข้อง**: [R6F_CONTRACT](../contracts/R6F_CONTRACT.md) §1–§2, §5 · [ADR 0004](0004-time-and-timezone.md) §2, §5 · [ADR 0005](0005-common-free-time-algorithm.md) · [ADR 0006](0006-busy-visibility.md) §1–§3 · [ADR 0003](0003-rbac.md) · [ADR 0009](0009-going-counts-as-busy.md) · R6E_CONTRACT E11 (popup ลงทับ)
 - **เจ้าของการ implement**: Platform (`src/lib/calendar/**`, `src/lib/data/**`, route `src/app/api/me/busy/**`, `src/db/schema.ts`, `drizzle/0003_*`) · Frontend (`BusyFormSheet`, รายการ/รายละเอียด busy) · ตรวจโดย Security & Privacy + QA
+- **หมายเหตุ 2026-11-11 (ADR 0012 Accepted, R14)**: เพดาน 300 แถว/คนในเอกสารนี้ (`windowCount` ใช้ใน `insertBusyIfUnderCap`, `insertBusySeriesIfUnderCap`, `updateOwnBusyIfUnderCap`) **นับเฉพาะแถว `routine_id IS NULL`** — แถวที่ขยายจาก busy routine ไม่นับ (มีเพดานของตัวเอง) · แถวที่แก้แยกออกจาก routine (`routine_id` → NULL) เริ่มนับ · ชุดรายวัน `kind:'daily'` / `series_id` ยังนับ 300 เหมือนเดิม ไม่เปลี่ยน · ดู [ADR 0012](0012-busy-routines.md) §6
 - **หมายเหตุชื่อ**: contract เขียน `busy.series_id` · ตารางจริงชื่อ `busy_block` (`src/db/schema.ts:138`) → คอลัมน์คือ **`busy_block.series_id`**
 
 ## Context

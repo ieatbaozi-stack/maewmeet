@@ -1,9 +1,9 @@
 # ADR 0012 — busy แบบ routine (ชุดทางลัดทำซ้ำรายสัปดาห์ เลือกช่วงสัปดาห์/เดือน)
 
-- **Status**: Proposed (Architect, 2026-11-11) · ยังไม่มี contract · รอ boss ตัดสินข้อใน §11 ก่อน main เขียน `docs/contracts/R14_CONTRACT.md`
+- **Status**: **Accepted (2026-11-11)** · contract [R14_CONTRACT](../contracts/R14_CONTRACT.md) (boss เห็นชอบ 2026-11-11 · B1–B8 ใช้ค่าแนะนำทั้งหมด · B9 แบ่งสอง PR: R14a เซิร์ฟเวอร์ → R14b หน้าจอ) · เลือก **ทางเลือก C** · ค่าที่ตัดสินแล้วดู §11 · เสนอ Proposed 2026-11-11 (Architect)
 - **ที่มา**: PRD "รายการรอทำ" — busy แบบ routine (boss + ทีม 2026-11-11) · D5 · U7 · §3 แถว 2–3
 - **ต่อยอดจาก (ไม่แทนที่)**: [ADR 0004](0004-time-and-timezone.md) §2, §5 · [ADR 0005](0005-common-free-time-algorithm.md) · [ADR 0006](0006-busy-visibility.md) §1–§3 · [ADR 0009](0009-going-counts-as-busy.md) · [ADR 0010](0010-daily-busy-series.md) (ชุดรายวัน `series_id`) · [ADR 0003](0003-rbac.md)
-- **เจ้าของการ implement (เสนอ)**: Platform (`src/lib/calendar/**`, `src/lib/data/**`, `src/db/schema.ts`, `drizzle/0005_*`, route `src/app/api/me/busy-routines/**`) · Auth (`src/lib/rbac/**`, manifest) · UX (design note) · Frontend · Test · Ops · ตรวจโดย QA + Security
+- **เจ้าของการ implement** (ตาม R14_CONTRACT §3): Platform (`src/lib/calendar/**`, `src/lib/data/**`, `src/db/schema.ts`, `drizzle/0005_*`, route `src/app/api/me/busy-routines/**`) · Auth (`src/lib/rbac/**`, manifest) · UX (design note) · Frontend · Test · Ops · ตรวจโดย QA + Security
 
 ---
 
@@ -84,7 +84,7 @@
 - **input จาก client**: weeks → `{ rangeKind:'weeks', fromWeek: DateISO (วันใดก็ได้ในสัปดาห์ X), toWeek: DateISO }` · months → `{ rangeKind:'months', fromMonth:'YYYY-MM', toMonth:'YYYY-MM' }` · เซิร์ฟเวอร์ normalize เป็น `start_date/end_date` ด้วย lib กลาง (client ส่งวันจันทร์มาหรือไม่ก็ได้ — เซิร์ฟเวอร์ปัดเอง) · ฟังก์ชันใหม่ใน lib: `routineRange(input) → { startDate, endDate }` (pure)
 - **เดือนยาวไม่เท่ากัน**: ไม่มีปัญหา เพราะเก็บเป็นวันที่จริง (ก.พ. 28/29, เม.ย. 30) · ไม่มีกฎแบบ "วันที่ 31 ของทุกเดือน" — routine อิงวันในสัปดาห์เท่านั้น
 - **ปลายเปิด (ไม่มีวันจบ)**: **ไม่รองรับ** — ทางเลือก C ต้องขยายเป็นแถวทั้งช่วง และโจทย์ของ boss คือ "เลือกช่วงที่ใช้" อยู่แล้ว · ต่ออายุ = "ต่อ routine" (แก้ `end_date` ให้ยาวขึ้น → ขยายเพิ่มเฉพาะส่วนใหม่)
-- **ความยาวสูงสุด (เสนอ, รอ boss §11 ข้อ 3)**: weeks ≤ **26 สัปดาห์** · months ≤ **6 เดือน** (A ถึง A+5) · คำนวณ: 6 เดือนยาวสุด = ก.ค.–ธ.ค. 184 วัน → ≤ 184 แถว/routine
+- **ความยาวสูงสุด (ตัดสินแล้ว B3, §11 ข้อ 3)**: weeks ≤ **26 สัปดาห์** · months ≤ **6 เดือน** (A ถึง A+5) · คำนวณ: 6 เดือนยาวสุด = ก.ค.–ธ.ค. 184 วัน → ≤ 184 แถว/routine
 - **ล่วงหน้าสุด**: `end_date` ≤ วันนี้ + 12 เดือน (กันลงไกลเกินจนกินแถว) · `start_date` เป็นอดีตได้ (เช่น "เดือนนี้" ทั้งที่วันนี้วันที่ 11) แต่ **แถวถูกสร้างตั้งแต่วันนี้ (ใน tz ของ routine) เป็นต้นไปเท่านั้น** — ไม่ย้อนหลัง (ต่างจาก one-off ที่ย้อนได้ 7 วัน: ย้อนลง routine ไม่มีประโยชน์ต่อการหาวันว่าง)
 - **แสดงผล**: UI แสดงสัปดาห์เป็นช่วงวันที่ ("16–22 พ.ย.") ไม่ใช้เลขสัปดาห์ ISO (คนทั่วไปไม่รู้จัก) · เดือนแสดงชื่อเดือน + พ.ศ./ค.ศ. ตาม locale (ADR 0004 §6) — รายละเอียดเป็นงาน UX
 
@@ -134,7 +134,7 @@ CHECK เพิ่ม: `(all_day = 1 and start_min is null and end_min is null) 
 - `title/note/hide_detail/tz` คัดลอกจาก routine · `series_id = NULL`
 - ฟังก์ชันใหม่ใน lib กลาง (pure, กฎ 9): `expandRoutine(rule, { fromDate, skip }) → Result<BusyRow[]>` ใช้ `eachDate`, `dayOfWeek`, `parseLocalDateTime`, `toLocal` ที่มีอยู่ (ห้ามคำนวณด้วย `+ k×24 ชม.` — ต้องเวลาผนังทีละวันแบบ ADR 0010 §2)
 
-### API (เสนอ — manifest เปลี่ยน, auth ตรวจ)
+### API (ตาม R14_CONTRACT §1.3 — manifest เปลี่ยน, auth ตรวจ)
 | method + path | ทำอะไร |
 |---|---|
 | `GET /api/me/busy-routines` | routine ของฉัน (รวม note) + จำนวนวันที่เหลือ |
@@ -155,7 +155,7 @@ CHECK เพิ่ม: `(all_day = 1 and start_min is null and end_min is null) 
 
 **RBAC**
 - เจ้าของเท่านั้น ทุก action — SA ก็แก้/ลบ routine ของคนอื่นไม่ได้ (PRD §3 แถว 3) · ดู routine ของคนอื่นไม่ได้เลย (ไม่มี endpoint)
-- เสนอ action ใหม่ `busy.routine.create` (anyUser) · `busy.routine.update` / `busy.routine.delete` (ownerOnly) · `busy.routine.list.own` (anyUser) — หรือใช้ `busy.*` เดิม ให้ auth ตัดสิน · ทั้งสองแบบ: **ทุกคำสั่ง SQL ผูก `user_id = ผู้กระทำ`** (id ของคนอื่น → 0 แถว → `NOT_FOUND`, IDOR แบบเดิม) และตรวจบัญชี active ในคำสั่งเดียวกับการเขียน (แบบ `insertBusyIfUnderCap`)
+- action ใหม่ (**ตัดสินแล้ว** R14_CONTRACT §8 — auth เป็นเจ้าของ, ไม่ใช้ `busy.*` เดิม): `busy.routine.list.own` (anyUser) · `busy.routine.create` (anyUser) · `busy.routine.update` / `busy.routine.delete` (ownerOnly) · นอกจากนั้น: **ทุกคำสั่ง SQL ผูก `user_id = ผู้กระทำ`** (id ของคนอื่น → 0 แถว → `NOT_FOUND`, IDOR แบบเดิม) และตรวจบัญชี active ในคำสั่งเดียวกับการเขียน (แบบ `insertBusyIfUnderCap`)
 - zod `.strict()` ทุก body (ไม่มี `userId/id/routineId/createdAt` ให้ส่ง)
 
 **ลำดับ validate (POST/PATCH)** — ตรวจทั้งหมดใน lib เวลา ยกเว้นเพดานจำนวน
@@ -236,17 +236,20 @@ CHECK เพิ่ม: `(all_day = 1 and start_min is null and end_min is null) 
 
 ทางเลือกแบ่งรอบ: R14a = server (platform+auth+test, ไม่มี UI) · R14b = UI — ลดขนาด PR ต่อครั้ง
 
-## 11. ข้อที่ต้องให้ boss ตัดสิน (สรุปภาษาง่ายอยู่ในรายงานถึง main)
-1. ปุ่มทางลัด (preset) ชุดแรก
-2. ความหมายของ "ทั้งเดือนนี้"
-3. ช่วงยาวสุดต่อ routine
-4. แก้/ลบทีละวันได้ไหม
-5. ลบ routine แล้ววันที่ผ่านมาแล้วหายด้วยไหม
-6. กะดึกข้ามเที่ยงคืน
-7. จำนวน routine สูงสุดต่อคน
-8. สัปดาห์เริ่มวันจันทร์ (ยืนยันตามเดิม)
+## 11. ข้อที่ boss ตัดสินแล้ว (2026-11-11, R14_CONTRACT §7)
+| # | เรื่อง | ค่าที่ตัดสิน |
+|---|---|---|
+| B1 | ปุ่มทางลัดชุดแรก | ทำงาน (จ.–ศ. 09:00–18:00) · เรียน/คลาส (จ.–ศ. เวลาเลือกเอง) · ยิม (วัน/เวลาเลือกเอง) · เสาร์–อาทิตย์ (ส. อา. ทั้งวัน) · สร้างเอง — แก้ได้ทุกช่องก่อนบันทึก |
+| B2 | "ทั้งเดือนนี้" | routine ใช้ตลอดเดือนนี้ (`range_kind='months'`, เดือนนี้ถึงเดือนนี้ · แถวสร้างตั้งแต่วันนี้ §4) |
+| B3 | ช่วงยาวสุด | ≤ 26 สัปดาห์ / ≤ 6 เดือน · `end_date` ≤ วันนี้ + 12 เดือน · ต้องมีวันจบ · ต่ออายุ = แก้ `end_date` |
+| B4 | แก้/ลบทีละวัน | ได้ · ขอบเขต: เฉพาะวันนี้ / ตั้งแต่สัปดาห์-เดือนที่เลือก / ทั้งหมด (§5 API) |
+| B5 | ลบ routine | "หยุดตั้งแต่…" (วันก่อนหน้าคงเดิม) หรือ "ลบทั้งหมด" (รวมวันที่ผ่านมาแล้ว) |
+| B6 | กะข้ามเที่ยงคืน | รองรับ นับเป็นวันที่เริ่ม · จบ 24:00 ได้ (§8) |
+| B7 | routine สูงสุดต่อคน | 10 (ที่ยังไม่จบ) · ไม่กินโควตา 300 |
+| B8 | สัปดาห์เริ่ม | วันจันทร์ (`WEEK_START = 1`) · UI แสดงเป็นช่วงวันที่ |
+| B9 | แบ่งรอบ | สอง PR: R14a เซิร์ฟเวอร์ (มี migration 0005) → R14b หน้าจอ |
 
-(รายละเอียดและค่าที่แนะนำ: ดูรายงานส่งงานของ architect 2026-11-11 · main ย้ายลง contract)
+**เพดานที่ใช้ implement (ข้อตัดสิน ไม่ใช่ข้อเสนอแล้ว — R14_CONTRACT §1.2)**: `routineSpan` 26 สัปดาห์ / 6 เดือน · `routineAhead` 12 เดือน · `routines` 10 · `routineRows` 1,500 (วันของ routine ในอนาคตต่อคน — เสนอโดย architect, อยู่ใน contract ที่ boss เห็นชอบ) · busy เดี่ยว 300 เท่าเดิม นับเฉพาะ `routine_id IS NULL` · วันที่แยกออกจาก routine เริ่มนับ 300 · ถ้า perf test (§8) ชี้ว่าต้องเปลี่ยนค่าใด main ต้องถาม boss ก่อน (contract §5)
 
 ## 12. ยืนยันแล้ว / ยังไม่ยืนยัน
 **ยืนยันแล้ว** (อ่านโค้ดบน `feat/r14-busy-routine` 2026-11-11 — ไม่ได้รันเทสต์ เพราะรอบนี้เป็นเอกสาร)
@@ -257,7 +260,7 @@ CHECK เพิ่ม: `(all_day = 1 and start_min is null and end_min is null) 
 - drizzle-kit generate `ADD COLUMN … REFERENCES` เป็น ALTER ตรง ๆ หรือ rebuild — platform ต้องดู SQL ที่ได้จริง
 - ประสิทธิภาพ/การถูกตัด (`truncated`) ในกลุ่มใหญ่ (§8) — ตัวเลขเป็นการคำนวณ ต้องวัดด้วย perf test
 - รุ่น SQLite ของ Turso prod (เกี่ยวกับ rollback DROP COLUMN เท่านั้น — เหมือน ADR 0010 §11)
-- ตัวเลขเพดานทั้งหมดใน §4, §6 (26 สัปดาห์, 6 เดือน, 12 เดือนล่วงหน้า, 10 routine, 1,500 แถว) เป็นข้อเสนอของ architect ไม่ใช่ข้อกำหนด — รอ boss/main
+- ~~ตัวเลขเพดานใน §4, §6 เป็นข้อเสนอ~~ → **ยืนยันแล้ว 2026-11-11** เป็นข้อตัดสินใน R14_CONTRACT §1.2 (§11) · ยังไม่ได้วัดว่าค่าเหล่านี้พอดีกับ `CALENDAR_MAX_ITEMS` ในกลุ่มใหญ่ (ข้อบน)
 
 ## แหล่งอ้างอิง (เข้าถึง 2026-11-11)
 - [S1] SQLite — ALTER TABLE, ADD COLUMN restrictions ("If foreign key constraints are enabled and a column with a REFERENCES clause is added, the column must have a default value of NULL") — https://www.sqlite.org/lang_altertable.html
