@@ -154,12 +154,53 @@ export const busyBlock = sqliteTable('busy_block', {
   // R6F (ADR 0010 §4): ชุดรายวัน · uuid ที่เซิร์ฟเวอร์สร้างตอน POST kind:'daily' (N ≥ 2) · NULL = รายการเดี่ยว · ไม่มี FK (ไม่มีตารางชุด)
   // เห็นเฉพาะเจ้าของ — คิวรีฝั่งแชร์ไม่ SELECT คอลัมน์นี้ (ADR 0010 §6)
   seriesId: text('series_id'),
+  // R14 (ADR 0012 §5): แถวที่ขยายจาก routine · NULL = busy เดี่ยว/ชุดรายวัน (นับเพดาน 300) · ไม่ backfill
+  // ไม่มี FK (เหมือน series_id): drizzle-kit 0.31.11 สร้าง `ADD routine_id text REFERENCES busy_routine(id)` โดยตก ON DELETE CASCADE หาย (ตรวจ 2026-11-11)
+  //   → ไม่ใช้ FK · ลบแถวของ routine ด้วยคำสั่งชัดเจนใน tx เดียวกับการลบกฎ (repos/busy-routine.ts, account.ts) · cron ลบกฎหลังแถวหมดอายุแล้ว (maintenance.ts)
+  // เห็นเฉพาะเจ้าของ — คิวรีฝั่งแชร์ไม่ SELECT คอลัมน์นี้ (ADR 0012 §7)
+  routineId: text('routine_id'),
 }, (t) => [
   index('busy_user_start_idx').on(t.userId, t.startAt),
   index('busy_user_end_idx').on(t.userId, t.endAt),
   index('busy_user_series_idx').on(t.userId, t.seriesId).where(sql`${t.seriesId} is not null`),
+  index('busy_user_routine_idx').on(t.userId, t.routineId).where(sql`${t.routineId} is not null`),
   check('busy_range_ck', sql`${t.endAt} > ${t.startAt} and ${t.localEndDate} >= ${t.localStartDate}`),
 ]);
+
+// R14 (ADR 0012 §5): กฎของ busy routine — เห็นเฉพาะเจ้าของ ไม่มีทางอ่านฝั่งแชร์ · แถวที่ขยายแล้วอยู่ใน busy_block.routine_id
+export const busyRoutine = sqliteTable('busy_routine', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  title: text('title'),                                               // ≤ 80 — คัดลอกลงทุกแถว
+  note: text('note'),                                                 // ≤ 500 — เจ้าของเท่านั้น
+  hideDetail: bool('hide_detail').notNull().default(false),
+  allDay: bool('all_day').notNull(),
+  weekdays: integer('weekdays').notNull(),                            // bitmask ISO: bit (d−1) ของ d = 1 (จ.) … 7 (อา.)
+  startMin: integer('start_min'),                                     // 0–1410 ลงตัว 30 · NULL เมื่อ all_day
+  endMin: integer('end_min'),                                         // 30–1440 · ≤ start_min = ข้ามเที่ยงคืน · NULL เมื่อ all_day
+  rangeKind: text('range_kind', { enum: ['weeks', 'months'] }).notNull(), // แสดงผล/แก้ไขเท่านั้น ไม่ใช้คำนวณ
+  startDate: text('start_date').notNull(),                            // YYYY-MM-DD รวม
+  endDate: text('end_date').notNull(),                                // YYYY-MM-DD รวม
+  tz: text('tz').notNull().default('Asia/Bangkok'),
+  createdAt: ms('created_at').notNull(),
+  updatedAt: ms('updated_at').notNull(),
+}, (t) => [
+  index('busy_routine_user_idx').on(t.userId, t.endDate),
+  check('busy_routine_weekdays_ck', sql`typeof(${t.weekdays}) = 'integer' and ${t.weekdays} between 1 and 127`),
+  check('busy_routine_range_kind_ck', sql`${t.rangeKind} in ('weeks','months')`),
+  check('busy_routine_dates_ck', sql`${t.endDate} >= ${t.startDate}`),
+  check('busy_routine_time_ck', sql`(${t.allDay} = 1 and ${t.startMin} is null and ${t.endMin} is null)
+        or (${t.allDay} = 0 and ${t.startMin} is not null and ${t.endMin} is not null
+            and ${t.startMin} between 0 and 1410 and ${t.startMin} % 30 = 0
+            and ${t.endMin} between 30 and 1440 and ${t.endMin} % 30 = 0
+            and ${t.startMin} <> ${t.endMin})`),
+]);
+
+// R14: วันที่ถูกลบ/แก้แยกออกจาก routine — กันการขยายใหม่ฟื้นวันนั้น · local_date = วันเริ่มของ occurrence ใน tz ของ routine
+export const busyRoutineSkip = sqliteTable('busy_routine_skip', {
+  routineId: text('routine_id').notNull().references(() => busyRoutine.id, { onDelete: 'cascade' }),
+  localDate: text('local_date').notNull(),
+}, (t) => [primaryKey({ columns: [t.routineId, t.localDate] })]);
 
 // ───────── นัด (U10–U11) ─────────
 export const appointment = sqliteTable('appointment', {
