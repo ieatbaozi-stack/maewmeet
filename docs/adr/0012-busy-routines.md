@@ -137,7 +137,7 @@ CHECK เพิ่ม: `(all_day = 1 and start_min is null and end_min is null) 
 ### API (ตาม R14_CONTRACT §1.3 — manifest เปลี่ยน, auth ตรวจ)
 | method + path | ทำอะไร |
 |---|---|
-| `GET /api/me/busy-routines` | routine ของฉัน (รวม note) + จำนวนวันที่เหลือ |
+| `GET /api/me/busy-routines` | routine ของฉัน (รวม note) + จำนวนวันที่เหลือ · คืน **ทุกชุดที่ยังไม่จบ** (≤ 20) + ชุดที่จบแล้วสูงสุด 50 ชุด ใหม่สุดก่อน (`BUSY_ROUTINE_LIST_MAX`) · ธง truncated ใช้กับชุดที่จบแล้วเท่านั้น (contract §10) |
 | `POST /api/me/busy-routines` | สร้าง: กฎ + ขยายแถว ใน tx เดียว (ทั้งหมดหรือไม่มีเลย) |
 | `PATCH /api/me/busy-routines/:id` body `{ …กฎใหม่, from: DateISO }` | แก้ตั้งแต่วัน `from` (ปัดเป็นต้นสัปดาห์/ต้นเดือนตาม `range_kind`; ไม่ส่ง = วันนี้ = "แก้ทั้งชุด" ส่วนที่ยังไม่ผ่าน) |
 | `DELETE /api/me/busy-routines/:id?from=DateISO` | หยุดตั้งแต่ `from` (ตัด `end_date`, ลบแถว ≥ from) · ไม่ส่ง `from` = ลบทั้งหมด (กฎ + ทุกแถวรวมอดีต — สอดคล้อง ADR 0010 §10 ข้อ 5) |
@@ -145,7 +145,8 @@ CHECK เพิ่ม: `(all_day = 1 and start_min is null and end_min is null) 
 | `PATCH /api/me/busy/:id` (เดิม) บนแถว routine | แถวหลุดเป็น busy เดี่ยว (`routine_id = NULL`) + insert skip · แถวนี้เริ่มนับเพดาน 300 (เต็ม → `LIMIT_REACHED busyCount` และไม่เปลี่ยนอะไร) — ตรงกับ "แก้วันไหนวันนั้นหลุดจากชุด" ของ ADR 0010 |
 
 **แก้ตั้งแต่ `from`** (ใน `inTx` เดียว · คำสั่งแรกต้องเป็นการเขียน [S5]):
-- `from ≤ วันนี้` หรือ `from ≤ start_date` → แก้กฎในที่ (`UPDATE busy_routine`) · ลบแถว `routine_id = R AND local_start_date >= max(from, วันนี้)` · ขยายใหม่ตั้งแต่ `max(from, วันนี้)`
+- "วันนี้" ในการแก้คิดจาก **tz เดิมที่เก็บไว้ของ routine** ไม่ใช่ tz ใหม่ในคำขอ (กันลบแถวเมื่อวาน — contract §10 Info 2)
+- `from ≤ วันนี้` หรือ `from ≤ start_date` → แก้กฎในที่ (`UPDATE busy_routine`) · ลบแถว `routine_id = R AND local_start_date >= max(from, วันนี้)` · ขยายใหม่ตั้งแต่ `max(from, วันนี้)` · ถ้าแก้แล้วเหลือ 0 วันในอนาคต → `VALIDATION {fields:{weekdays:'NO_OCCURRENCE'}}` และไม่เปลี่ยนอะไร (ให้ใช้ลบแทน — contract §10 M1)
 - `from > วันนี้` และ `from > start_date` → **แยกเป็นสอง routine**: R เดิม `end_date = from − 1` · สร้าง R2 (กฎใหม่, `start_date = from`) · ย้าย skip ที่ `local_date >= from` ไป R2 · ลบแถว R ที่ ≥ from · ขยาย R2 (เทียบได้กับ RECURRENCE-ID `RANGE=THISANDFUTURE` ของ RFC 5545 [S6])
 - แถวในอดีตไม่ถูกแตะ · แถวที่หลุดเป็น busy เดี่ยวไปแล้วไม่ถูกแตะ · skip คงอยู่ (เป็นการเลือกของผู้ใช้)
 
@@ -167,7 +168,8 @@ CHECK เพิ่ม: `(all_day = 1 and start_min is null and end_min is null) 
 6. title/note ผ่าน `parseBusyTitle` / `parseBusyNote` เดิม
 7. ขยายเป็นแถว (§5) → วันใดตกใน DST gap = `INVALID_LOCAL_TIME` ทั้งคำขอ (สอดคล้อง ADR 0010 §2) · ได้ 0 แถว (เช่น เลือกแต่ อา. ในช่วงที่เหลือไม่มี อา.) → `VALIDATION {fields:{weekdays:'NO_OCCURRENCE'}}`
 8. เพดาน (คำสั่ง INSERT … SELECT … WHERE เดียว ไม่มี check-then-act):
-   - routine ที่ยังไม่จบ (`end_date >= วันนี้`) ต่อคน < **10** → `LIMIT_REACHED {limit:'routines', max:10}` · ใช้กับการ **สร้างใหม่** เท่านั้น — การแก้ "ตั้งแต่…ไป" ที่แยกเป็นสอง routine (§5) **ไม่นับ** เพดานนี้ (เป็น routine เดิม, boss B12 2026-11-11)
+   - routine ที่ยังไม่จบ (`end_date >= วันนี้`) ต่อคน < **10** → `LIMIT_REACHED {limit:'routines', max:10}` · ใช้กับการ **สร้างใหม่** และการต่ออายุ routine ที่จบแล้ว — การแก้ "ตั้งแต่…ไป" ที่แยกเป็นสอง routine (§5) **ไม่นับ** เพดานนี้ (เป็น routine เดิม, boss B12 2026-11-11)
+   - **เพดานแข็ง 20** routine ที่ยังไม่จบต่อคน (`BUSY_ROUTINE_HARD_MAX_ACTIVE`) ใช้กับทุกทางรวมการแยก ตรวจในคำสั่ง INSERT เดียวกัน → `LIMIT_REACHED {limit:'routines', max:20}` (กันวนแยกชุดไม่จำกัด — security R14a M1, contract §10)
    - แถว routine ในอนาคตต่อคน + N ≤ **1,500** → `LIMIT_REACHED {limit:'routineRows', max}` (กันกรณี 10 routine × ทุกวัน × 6 เดือน = 1,840) · ใช้ทุกกรณีรวมการแยก (B12)
 9. rate limit: bucket ใหม่ `busy:routine` **20 คำขอ / 10 นาที** ต่อผู้ใช้ (`BUSY_ROUTINE_RATE_LIMIT` ใน `src/lib/shared/limits.ts`, platform R14a) · นับต่อคำขอ ไม่ใช่ต่อแถว
 
@@ -210,7 +212,7 @@ CHECK เพิ่ม: `(all_day = 1 and start_min is null and end_min is null) 
 | **ลบบัญชี** | `account.ts` ต้องลบ `busy_routine` ของผู้ใช้ชัดเจน (บัญชีถูก anonymize ไม่ใช่ลบแถว user → `ON DELETE CASCADE` จาก user **ไม่ทำงาน**) |
 | **ออกจากกลุ่ม** | ไม่มีผลกับ routine (busy ผูกผู้ใช้ — D5) · คนในกลุ่มเดิมเลิกเห็นทันที (กติกา ADR 0006 §1 ข้อ 2) |
 | **รายการ busy ของฉัน** | `listOwnActiveBusy` (limit 400) จะถูกแถว routine ท่วม → แยกแสดง: แถว `routine_id IS NULL` ในรายการเดิม + ส่วน "routine" จาก `GET /api/me/busy-routines` · `listOwnBusyInRange` (ปฏิทินของฉัน ≤ 62 วัน) คืนทุกแถวพร้อม `routineId` (เจ้าของเท่านั้น) — 10 routine × 62 วัน = 620 + one-off ≤ 300 < 1,000 |
-| **ปริมาณในกลุ่มใหญ่ (ความเสี่ยงหลัก)** | ปฏิทินเดือน (42 วัน) กลุ่ม 50 คน แต่ละคน 2 routine จ.–ศ. ≈ 50 × 60 = 3,000 แถว · วันว่าง 62 วัน ≈ 50 × 88 = 4,400 · ใกล้ `CALENDAR_MAX_ITEMS` 5,000 · กรณีหนัก (ทุกคนเต็มเพดาน) เกินแน่ → `truncated: true` = วันว่างผิด (คำนวณ ไม่ใช่วัด) · ทางแก้ให้ platform วัดแล้วเลือก: (ก) เทสต์ perf ใหม่ที่ ~10k แถว แล้วยกเพดานเฉพาะทางวันว่าง/เตือนนัดทับ (ไม่ต้องส่งทุกชิ้นให้ client) (ข) ลดเพดาน routine (ค) รวมช่วงของคนเดียวกันที่ติดกันก่อนส่ง lib · **วัดแล้ว + ตัดสินแล้ว (R14_CONTRACT §9 B11, boss 2026-11-11)**: perf ของ platform (libSQL ในเครื่อง, 50 คน) 2 routine จ.–ศ./คน = 93% ของ 5,000 ที่วันว่าง 62 วัน · 4 routine/คน = 140% ถูกตัด → เลือก **(ก)+(ค)**: ทางวันว่างร่วมและเตือนนัดทับใช้ `FREE_TIME_MAX_ITEMS = 32,000` (ไม่ส่งรายการให้ client; เกิน → `truncated`/`status 'unknown'` ตามกลไกเดิม) · ปฏิทินกลุ่มที่ส่งรายการคง `CALENDAR_MAX_ITEMS = 5,000` · `mergeBusyForFreeTime` (`src/lib/calendar/free-time.ts`) รวมช่วงที่ติด/ทับกันของสมาชิกคนเดียวกันก่อนป้อน `commonFreeTime` (ผลต้องเท่าเดิม มีเทสต์เทียบ) |
+| **ปริมาณในกลุ่มใหญ่ (ความเสี่ยงหลัก)** | ปฏิทินเดือน (42 วัน) กลุ่ม 50 คน แต่ละคน 2 routine จ.–ศ. ≈ 50 × 60 = 3,000 แถว · วันว่าง 62 วัน ≈ 50 × 88 = 4,400 · ใกล้ `CALENDAR_MAX_ITEMS` 5,000 · กรณีหนัก (ทุกคนเต็มเพดาน) เกินแน่ → `truncated: true` = วันว่างผิด (คำนวณ ไม่ใช่วัด) · ทางแก้ให้ platform วัดแล้วเลือก: (ก) เทสต์ perf ใหม่ที่ ~10k แถว แล้วยกเพดานเฉพาะทางวันว่าง/เตือนนัดทับ (ไม่ต้องส่งทุกชิ้นให้ client) (ข) ลดเพดาน routine (ค) รวมช่วงของคนเดียวกันที่ติดกันก่อนส่ง lib · **วัดแล้ว + ตัดสินแล้ว (R14_CONTRACT §9 B11, boss 2026-11-11)**: perf ของ platform (libSQL ในเครื่อง, 50 คน) 2 routine จ.–ศ./คน = 93% ของ 5,000 ที่วันว่าง 62 วัน · 4 routine/คน = 140% ถูกตัด → เลือก **(ก)+(ค)**: ทางวันว่างร่วมและเตือนนัดทับคำนวณจาก `FREE_TIME_MAX_ITEMS = 32,000` (เกิน → `truncated`/`status 'unknown'` ตามกลไกเดิม) · คำตอบ availability ส่งรายละเอียด busy ให้ client **ไม่เกิน 5,000 ชิ้น** พร้อมธงใหม่ `detailTruncated` (รายละเอียดถูกตัด แต่วันว่างยังถูก — security R14a M2, contract §10; frontend รองรับใน R14b) · ปฏิทินกลุ่มที่ส่งรายการคง `CALENDAR_MAX_ITEMS = 5,000` · `mergeBusyForFreeTime` (`src/lib/calendar/free-time.ts`) รวมช่วงที่ติด/ทับกันของสมาชิกคนเดียวกันก่อนป้อน `commonFreeTime` (ผลต้องเท่าเดิม มีเทสต์เทียบ) |
 
 ---
 
@@ -251,8 +253,9 @@ CHECK เพิ่ม: `(all_day = 1 and start_min is null and end_min is null) 
 | B11 | เพดานแถวกลุ่มใหญ่ (หลังวัด perf, §9 ของ contract) | (ก)+(ค): ทางคำนวณวันว่าง/เตือนนัดทับ 32,000 แถว · ปฏิทินกลุ่มคง 5,000 · รวมช่วงต่อคนก่อนคำนวณ (§8) |
 | B12 | การแยกตอนแก้ "ตั้งแต่…ไป" | ไม่นับเพดาน 10 routine · 1,500 แถวยังใช้ทุกกรณี (§6) |
 | — | cron ลบ routine เก่า | จบเกิน 93 วัน (main รับ, contract §9) |
+| — | แก้หลังตรวจอิสระ (contract §10) | เพดานแข็ง 20 ชุดที่ยังไม่จบ (ทุกทางรวมการแยก) · แก้ในที่จนเหลือ 0 วัน = `NO_OCCURRENCE` · GET คืนชุดที่ยังไม่จบครบ + ที่จบแล้ว ≤ 50 · availability ส่งรายละเอียด ≤ 5,000 + `detailTruncated` · "วันนี้" ตอนแก้ใช้ tz เดิมของ routine · `setOwnRoutineEndGuarded`/`deleteOwnRoutine` ตรวจบัญชี active ในคำสั่งเขียน |
 
-**เพดานที่ใช้ implement (ข้อตัดสิน ไม่ใช่ข้อเสนอแล้ว — R14_CONTRACT §1.2)**: `routineSpan` 26 สัปดาห์ / 6 เดือน · `routineAhead` 12 เดือน · `routines` 10 (สร้างใหม่เท่านั้น, B12) · `routineRows` 1,500 · rate limit `busy:routine` 20/10 นาที · `FREE_TIME_MAX_ITEMS` 32,000 (B11) (วันของ routine ในอนาคตต่อคน — เสนอโดย architect, อยู่ใน contract ที่ boss เห็นชอบ) · busy เดี่ยว 300 เท่าเดิม นับเฉพาะ `routine_id IS NULL` · วันที่แยกออกจาก routine เริ่มนับ 300 · ถ้า perf test (§8) ชี้ว่าต้องเปลี่ยนค่าใด main ต้องถาม boss ก่อน (contract §5)
+**เพดานที่ใช้ implement (ข้อตัดสิน ไม่ใช่ข้อเสนอแล้ว — R14_CONTRACT §1.2)**: `routineSpan` 26 สัปดาห์ / 6 เดือน · `routineAhead` 12 เดือน · `routines` 10 (สร้างใหม่/ต่ออายุ, B12) + เพดานแข็ง 20 ทุกทาง (§10) · `routineRows` 1,500 · rate limit `busy:routine` 20/10 นาที · `FREE_TIME_MAX_ITEMS` 32,000 (B11) (วันของ routine ในอนาคตต่อคน — เสนอโดย architect, อยู่ใน contract ที่ boss เห็นชอบ) · busy เดี่ยว 300 เท่าเดิม นับเฉพาะ `routine_id IS NULL` · วันที่แยกออกจาก routine เริ่มนับ 300 · ถ้า perf test (§8) ชี้ว่าต้องเปลี่ยนค่าใด main ต้องถาม boss ก่อน (contract §5)
 
 ## 12. ยืนยันแล้ว / ยังไม่ยืนยัน
 **ยืนยันแล้ว** (อ่านโค้ดบน `feat/r14-busy-routine` 2026-11-11 — ไม่ได้รันเทสต์ เพราะรอบนี้เป็นเอกสาร)
