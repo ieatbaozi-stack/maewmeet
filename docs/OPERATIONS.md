@@ -104,6 +104,19 @@ Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL
 >   ถ้าข้อ 1 หรือ 2 ไม่ขึ้น = migration ยังไม่ลง → หยุด อย่า merge แล้วแจ้ง main
 > - **Rollback** (ADR 0010 §4): (1) ย้อนแอปอย่างเดียว (Vercel Instant Rollback) **พอ** — รุ่นเดิมทำงานกับฐานที่มีคอลัมน์ใหม่ได้ · ชุดที่สร้างไปแล้วยังเป็น busy ปกติ ลบทีละวันได้ (2) ถอดคอลัมน์จริง **ไม่แนะนำ ทำเมื่อ boss สั่งเท่านั้น**: `DROP INDEX IF EXISTS busy_user_series_idx;` แล้ว `ALTER TABLE busy_block DROP COLUMN series_id;` (ลบ index ก่อน ไม่งั้น DROP COLUMN ล้ม · ต้อง SQLite >= 3.35 ซึ่งยังไม่ได้ยืนยันกับฐานจริง) · แถวบันทึก migration ใน `__drizzle_migrations` ยังไม่ได้ตรวจกับฐานจริง — แจ้ง main ก่อนแตะ · ผล: เสียแค่การจัดกลุ่มเป็นชุด busy ทุกแถวยังอยู่
 
+> **หมายเหตุ R14a (migration `0005`)**: รอบนี้มีไฟล์ใหม่ `drizzle/0005_r14_busy_routine.sql` (ADR 0012) — boss รันตามลำดับเดียวกับ `0003`: **preview ก่อนเปิด PR → prod ก่อน merge** ด้วยคำสั่ง B6/B7 (บล็อก `$env:TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` / `npx drizzle-kit migrate` ข้างบน เปลี่ยน URL/token ตามฐาน) · ควรเห็น `[✓] migrations applied successfully!` แล้วล้างค่า `Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL`
+> - migration เพิ่มอย่างเดียว: ตาราง `busy_routine` + index `busy_routine_user_idx`, ตาราง `busy_routine_skip` (PK `routine_id, local_date`), คอลัมน์ `busy_block.routine_id` (nullable ไม่ backfill ไม่มี FK เหมือน `series_id`) และ partial index `busy_user_routine_idx` — ไม่ลบ/แก้ข้อมูลเดิม · โค้ดรุ่นเดิมไม่อ่านของใหม่ → รัน migrate **ก่อน** deploy ปลอดภัย
+> - **ตรวจหลังรัน** (ต่อฐานละครั้ง ด้วย `turso db shell maewmeet-prod "..."` / `maewmeet-preview`):
+>   1. `SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('busy_routine', 'busy_routine_skip') ORDER BY name;` → ต้องได้ 2 แถว
+>   2. `SELECT name FROM pragma_table_info('busy_block') WHERE name = 'routine_id';` → ต้องได้ 1 แถว
+>   3. `SELECT name FROM pragma_index_list('busy_block') WHERE name = 'busy_user_routine_idx';` → ต้องได้ 1 แถว
+>   4. `SELECT count(*) FROM busy_routine;` และ `SELECT count(*) FROM busy_block WHERE routine_id IS NOT NULL;` → ต้องเป็น `0` ทั้งคู่ทันทีหลังรัน
+>
+>   ถ้าข้อ 1–3 ไม่ครบ = migration ยังไม่ลง → หยุด อย่า merge แล้วแจ้ง main
+> - **Rollback**: (1) ย้อนแอปอย่างเดียว (Vercel Instant Rollback) **พอ** — รุ่นเดิมไม่รู้จักตาราง/คอลัมน์ใหม่ จึงทำงานได้ · ข้อควรรู้: ถ้ามีคนสร้างกิจวัตรไปแล้ว แถว `busy_block` ที่ materialize จากกิจวัตร (`routine_id` ไม่ว่าง) จะถูกนับรวมในเพดาน 300 รายการเดี่ยวของรุ่นเก่า และกิจวัตรเองจะแก้/ลบจากรุ่นเก่าไม่ได้ (ลบทีละวันได้เหมือน busy ปกติ) (2) ถอดของใหม่จริง **ไม่แนะนำ ทำเมื่อ boss สั่งเท่านั้น** ตามลำดับ: `DROP INDEX IF EXISTS busy_user_routine_idx;` → `ALTER TABLE busy_block DROP COLUMN routine_id;` → `DROP TABLE busy_routine_skip;` → `DROP INDEX IF EXISTS busy_routine_user_idx;` → `DROP TABLE busy_routine;` (ลบ index ก่อน DROP COLUMN ไม่งั้นล้ม · ต้อง SQLite >= 3.35 ยังไม่ได้ยืนยันกับฐานจริง · แถวใน `__drizzle_migrations` ยังไม่ได้ตรวจกับฐานจริง แจ้ง main ก่อนแตะ) · ผล: เสียกิจวัตรทั้งหมด แต่ `busy_block` แถวที่สร้างไปแล้วยังอยู่เป็น busy ปกติ
+> - **Rate limit**: ถัง `busy:routine` 20 คำขอ / 10 นาที ต่อผู้ใช้ สำหรับ `POST /api/me/busy-routines` และ `PATCH/DELETE /api/me/busy-routines/:id` · เกินแล้วได้ 429 · ไม่ต้องตั้ง env
+> - **Cron รายวัน** (`/api/cron/daily`) ลบกิจวัตรที่ `end_date` เก่ากว่าวันนี้ 93 วันด้วย (รายการ skip ลบตามผ่าน cascade)
+
 ---
 
 ## C. สร้างความลับ (pepper, APP_SECRET, CRON_SECRET)
@@ -428,6 +441,8 @@ UPDATE notification SET params = json_set(params, '$.inviteeName', '')
 DELETE FROM session WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
 DELETE FROM group_member WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
 DELETE FROM busy_block WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
+DELETE FROM busy_routine_skip WHERE routine_id IN (SELECT id FROM busy_routine WHERE user_id = 'USER_ID') AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
+DELETE FROM busy_routine WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
 DELETE FROM appointment_rsvp WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
 DELETE FROM notification_outbox WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');
 DELETE FROM line_link_code WHERE user_id = 'USER_ID' AND EXISTS (SELECT 1 FROM user WHERE id = 'USER_ID' AND status = 'deleted');

@@ -48,6 +48,14 @@ describe('OPERATIONS I3 — SQL ลบบัญชีด้วยมือ', () 
       "INSERT INTO pin_reset_request (id, user_id, status, device_token_hash, requester_ua, requester_country, requested_at, pending_expires_at) VALUES ('rq', ?, 'pending', 'x', 'iPhone · Safari', 'TH', ?, ?)",
       [b.id, h.clock.now(), h.clock.now() + 86_400_000],
     );
+    // R14a: กิจวัตร + skip ของ bob ต้องหายด้วย (alice มีกิจวัตรของตัวเอง ต้องไม่ถูกแตะ)
+    for (const [rid, uid] of [['rt-b', b.id], ['rt-a', a.id]] as const) {
+      await h.rows(
+        "INSERT INTO busy_routine (id, user_id, all_day, weekdays, range_kind, start_date, end_date, created_at, updated_at) VALUES (?, ?, 1, 2, 'weeks', '2026-10-26', '2026-11-22', ?, ?)",
+        [rid, uid, h.clock.now(), h.clock.now()],
+      );
+      await h.rows("INSERT INTO busy_routine_skip (routine_id, local_date) VALUES (?, '2026-11-02')", [rid]);
+    }
     const run = SQL.replaceAll('USER_ID', b.id);
     await h.db.$client.executeMultiple(run);
 
@@ -60,6 +68,10 @@ describe('OPERATIONS I3 — SQL ลบบัญชีด้วยมือ', () 
     expect(await h.count('session WHERE user_id = ?', [b.id])).toBe(0);
     expect(await h.count('group_member WHERE user_id = ?', [b.id])).toBe(0);
     expect(await h.count('busy_block WHERE user_id = ?', [b.id])).toBe(0);
+    expect(await h.count('busy_routine WHERE user_id = ?', [b.id])).toBe(0);
+    expect(await h.count("busy_routine_skip WHERE routine_id = 'rt-b'")).toBe(0);
+    expect(await h.count('busy_routine WHERE user_id = ?', [a.id])).toBe(1);
+    expect(await h.count("busy_routine_skip WHERE routine_id = 'rt-a'")).toBe(1);
     expect(await h.count('appointment_rsvp WHERE user_id = ?', [b.id])).toBe(0);
     expect(await h.count('notification WHERE user_id = ?', [b.id])).toBe(0);
     expect(await h.count("group_invite WHERE created_by = ? AND status = 'active'", [b.id])).toBe(0);
