@@ -1,0 +1,52 @@
+# qa-r14a — ตรวจอิสระ R14a (busy แบบ routine ฝั่งเซิร์ฟเวอร์)
+
+ผู้ตรวจ: qa · branch `feat/r14-busy-routine` @ `3805ce7` (ฐาน origin/main `98186ef`) · เครื่อง Windows, Node v26 · 2026-11-11
+ขอบเขต: R14-1..R14-7 และ R14-9 (R14a ไม่มี UI → R14-8/R14-10 เป็นของ R14b)
+
+## Verdict: ผ่านแบบมีข้อสังเกต
+ไม่พบบั๊กที่ต้องแก้ ไม่ได้แก้โค้ดใด ๆ · มีข้อสังเกต 1 ข้อควรตัดสินก่อน R14b (ขนาด response ของ availability กรณีหนัก) และข้อเล็กอีก 5 ข้อ
+
+## คำสั่งที่รัน + ผลจริง
+| คำสั่ง | ผล |
+|---|---|
+| `npx tsc --noEmit` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm run build` | exit 0 (มี route `/api/me/busy-routines`, `/api/me/busy-routines/[id]`) |
+| `vitest run` ทั้งชุด (shim EPERM) | 5504 ผ่าน / 17 ล้ม / 19 skip (157 ไฟล์) — 7 ไฟล์ที่ล้มเป็นเรื่องเครื่องทั้งหมด (ดูล่าง) |
+| `vitest run tests/ops/manual-delete-sql.test.ts` หลังแปลง OPERATIONS.md เป็น LF ชั่วคราว (คืนไฟล์แล้ว) | 4/4 ผ่าน → ยืนยันว่า SQL ลบบัญชีด้วยมือที่เพิ่ม `busy_routine(_skip)` ถูกต้อง |
+| `vitest run tests/perf/r14-routine-big-group.test.ts --silent=false` | ผ่าน (ตัวเลขข้างล่าง) |
+| `playwright test --workers=4 --reporter=line` (ชุดเดิมทั้งหมด 3 viewport) | 969 ผ่าน / 126 skip / 0 ล้ม (17.1 นาที) |
+
+17 ที่ล้มของ Vitest = เรื่องเครื่องที่รู้อยู่แล้ว ไม่แตะไฟล์ R14: free-time oracle.py (1) · config-hygiene CRLF (2) · ops/health Node v26 (1) · admin-reset-pin subprocess (3) · pepper-fingerprint subprocess (4) · release CLI tsx (2) · manual-delete-sql CRLF (4, ผ่านเมื่อ LF)
+
+## ตารางเกณฑ์
+| # | ผล | หลักฐาน |
+|---|---|---|
+| R14-1 | ผ่าน | `drizzle/0005_r14_busy_routine.sql` อ่านเอง: CREATE TABLE ใหม่ 2 + CREATE INDEX 2 + `ALTER TABLE busy_block ADD routine_id` เท่านั้น ไม่ rebuild · `migration-0005.test.ts` (สร้างฐานรูป R13 มีข้อมูล → apply → แถวเดิมครบทุกไบต์ `routine_id` NULL ทั้งหมด, apply ซ้ำไม่พัง) ผ่าน · OPERATIONS rollback เรียง DROP INDEX → DROP COLUMN ถูก |
+| R14-2 | ผ่าน | สคริปต์ของฉันเอง (ลบแล้ว): ข้ามเที่ยงคืนข้ามปี 30 ธ.ค.→2 ม.ค. ครบ 4 แถว ยาว 8 ชม. · 23:00–24:00 ก.พ. 2028 (27 ก.พ.–1 มี.ค. มี 29) 4 แถว 60 นาที · เดือน ก.พ. 2028 → 29 วัน, 2027 → 28 วัน · NY 02:00 วันที่ 14 มี.ค. ปฏิเสธ (field startTime), 23:00–02:30 จบในช่องว่างปฏิเสธ (field endTime), fold พ.ย. ผ่าน 14 แถว · Lord Howe 02:00 ต.ค. ปฏิเสธ · 00:00–00:00 = 0..1440 ทั้งวัน · 23:30–24:00 ไม่ข้ามวัน · เริ่ม 24:00/เริ่มเท่าจบ/09:15 ปฏิเสธถูกรหัส · 0 วัน = `NO_OCCURRENCE` |
+| R14-3 | ผ่าน | integration ของฉัน: สร้าง 10 ชุดแล้วชุดที่ 11 → 409 `LIMIT_REACHED routines max 10` · แก้ "ตั้งแต่…ไป" แบบแยกตอนมี 10 ชุด → 200 (B12) แล้ว `busy_routine` = 11 แถว ชุดใหม่ยังสร้างไม่ได้ · 8 ชุด ทุกวัน 182 วัน = 1,456 แถว ชุดที่ 9 → 409 `routineRows max 1500` และ DB ยังเป็น 1,456 แถว/8 ชุด (atomic) · วันที่แยกด้วย PATCH `/api/me/busy/:id` → `routine_id` NULL นับเป็น busy เดี่ยว (1) · เทสต์ทีม `r14-caps-concurrency` + `r14-busy-routine` ผ่าน · อ่านโค้ด: ทุกเพดานเป็นเงื่อนไขในคำสั่ง INSERT/UPDATE เดียว (`repos/busy-routine.ts` 77–125, 189–204) ไม่มี check-then-act · `windowCount` นับ `routine_id IS NULL` |
+| R14-4 | ผ่าน | ลบวันเดียวแล้ว PATCH ทั้งชุด → วันนั้นไม่ฟื้น (5 วัน → 4) · แยกวันแล้ว PATCH ทั้งชุด → วันที่แยกไม่ฟื้น · ลบทั้งหมด → 200 `scope:all count:3` skip เหลือ 0 · แยก (split) ย้าย skip ≥ from ไปชุดใหม่ ลบแถวเดิม ≥ from · แถวอดีต/วันที่แยกแล้วไม่ถูกแตะ (ดูข้อสังเกต 3) |
+| R14-5 | ผ่าน | bob PATCH/DELETE routine ของ alice → 404 ทั้งคู่ · action `busy.routine.update/delete` = `ownerOnly` (SA ไม่ผ่าน), `list.own/create` = `anyUser` · body `.strict()` · ปฏิทินกลุ่มที่ bob ดู (13 KB) ไม่มีสตริง routine/weekdays/rangeKind · `repos/busy.ts` ฝั่งแชร์ไม่ SELECT `routine_id` · security ตรวจลึกแยกอีกชุด |
+| R14-6 | ผ่านแบบมีข้อสังเกต | ดูตัวเลขด้านล่าง: ไม่มี `truncated` ในทางวันว่างทั้ง 2 กรณี (สูงสุด 21.9% ของเพดาน 32,000) · `mergeBusyForFreeTime` มีเทสต์เทียบผล `free-time-merge.test.ts` ผ่าน · ข้อสังเกต 1 เรื่องขนาด response |
+| R14-7 | ผ่าน | `account.ts` ลบ `busy_routine` เอง · `maintenance.ts` ลบ routine ที่ `end_date < วันนี้ − 93 วัน` หลัง `oldBusyBlocks` ใน batch เดียว (ส่วนเผื่อ 3 วันครอบกรณีข้ามคืน/ต่าง tz — ตรวจเลขแล้วถูก) · เทสต์ cron/account/manual-delete-sql ผ่าน · OPERATIONS ตรงโค้ด (ถัง `busy:routine` 20/10 นาที, 93 วัน) |
+| R14-9 | ผ่านบางส่วน | lint/tsc/build/vitest/e2e ในเครื่องเขียว (ยกเว้นเรื่องเครื่อง) · CI/Vercel ดูหลังเปิด PR · README/quickstart ไม่ต้องแก้ใน R14a (ไม่มี UI; memory ระบุให้ทำใน R14b) |
+
+## ตัวเลข perf (รันซ้ำเอง, libSQL ในเครื่อง, กลุ่ม 50 คน)
+| กรณี | route | วัน | แถวใน DB | เพดาน | truncated | % เพดาน | bytes |
+|---|---|---|---|---|---|---|---|
+| A | calendar | 42 | 3,150 | 5,000 | false | 63 | 834 KB |
+| A | availability | 62 | 4,650 | 32,000 | false | 14.5 | 1.49 MB |
+| B | calendar | 42 | 4,650 | 5,000 | false | 93 | 1.23 MB |
+| B | availability | 62 | 7,000 | 32,000 | false | 21.9 | 1.80 MB |
+| B | appointments/check | 1 | 400 | 32,000 | false | 1.3 | 19 KB |
+
+## ข้อสังเกต (เรียงตามความรุนแรง — ไม่มีข้อใดบล็อก)
+1. **(กลาง) เพดานตอบ availability สูงขึ้นกว่าก่อน R14** — `FREE_TIME_MAX_ITEMS = 32,000` ใช้ทั้งทางคำนวณและรายการ `busy[]` ที่ส่งให้ client (`services/availability.ts:119`) ก่อน R14 เพดานคือ 5,000 แถว (~1.5 MB) ตอนนี้กรณี B วัด 1.8 MB ที่ 7,000 แถว; ประมาณเอง (ไม่ได้วัด) ถ้าแถวเต็ม 32,000 ≈ 330 ไบต์/แถว × 32,000 ≈ 10 MB ซึ่งเกินเพดานก่อนหน้า ~6 เท่า และน่าจะเกินขีดจำกัด response 4.5 MB ของ Vercel serverless (ผมไม่ได้ยืนยันกับ Vercel จริง) → เสี่ยง error/ช้าบนมือถือ แนะนำ R14b: ลดขนาด `busy[]` (ส่งเฉพาะแถวที่ client ต้องใช้ หรือรวมช่วงในฝั่งเซิร์ฟเวอร์ หรือ cap รายการที่ส่งไว้ 5,000 แต่ยังคำนวณจาก 32,000) — main ตั้ง deferred ไว้แล้ว ยืนยันว่าควรทำก่อนให้ผู้ใช้จริงลง routine หนัก
+2. (ต่ำ) การแก้แบบแยกชุด (B12 ยกเว้นเพดาน 10) ทำให้ `busy_routine` ที่ยังไม่จบเกิน 10 ได้ (ทดสอบแล้ว 11) ถูกจำกัดโดยเพดาน 1,500 แถวเท่านั้น และ `GET /api/me/busy-routines` ตัดที่ 50 ชุด (`BUSY_ROUTINE_LIST_MAX`, field `truncated`) — ผู้ใช้ที่แยกชุดซ้ำ ๆ จะมีชุดที่มองไม่เห็นในรายการ R14b ควรแสดงเมื่อ `truncated:true` หรือชุดที่ถูกตัดวันจบ (`previous`) ที่ไม่เหลือวันแล้วควรถูกเก็บกวาด
+3. (ต่ำ) `deleteRoutine` แบบ from (`services/busy-routines.ts:376-385`) ใช้ `cut = max(from ปัดแล้ว, วันนี้)` และลบแถว `local_start_date >= cut` → แถวของ "วันนี้" ที่จบไปแล้ว (เช่น 09:00–12:00 ตอน 15:00) ถูกลบด้วย ตรงกับ "ตั้งแต่…ไป" แบบนับวันนี้ แต่ UX ควรรู้ (สัญญาเขียนว่า "วันก่อนหน้าคงเดิม" — วันนี้ไม่ใช่วันก่อนหน้า จึงไม่ขัด)
+4. (ต่ำ) `errors.LIMIT_REACHED` เคส `routineSpan` (ใช้เป็น fallback เท่านั้น) บอกแค่ "ไม่เกิน {max}" ไม่มีหน่วยสัปดาห์/เดือน — ฟอร์มจริงใช้ `busy.routine.error.spanWeeks/spanMonths` (มีหน่วย) จึงไม่กระทบ ถ้า frontend เรียก fallback ตรงจะกำกวม
+5. (ต่ำ) คำศัพท์ไม่ตรงกัน: OPERATIONS.md ใช้ "กิจวัตร" ส่วน UI/ข้อความใช้ "แบบประจำ" (contract ใช้ routine) — แนะนำ ops/secretary ปรับให้ตรงกันตอน R14b
+6. (ข้อมูล) ข้อความ error ครบ: key ใน `messages/th.json` กับ `en.json` เท่ากันทุกคีย์ (ตรวจด้วย node: en-only 0, th-only 0) · รูป error ของเซิร์ฟเวอร์ (`LIMIT_REACHED {limit,max,rangeKind?}`, `INVALID_RANGE {kind:'dates',reason:'ENDED'|…}`, `INVALID_LOCAL_TIME`, `VALIDATION fields.weekdays=REQUIRED|NO_OCCURRENCE`, `NOT_FOUND`, `RATE_LIMITED`, `CONFLICT`) ตรงตารางในดีไซน์โน้ต §6 และมีข้อความ TH/EN อ่านเป็นธรรมชาติ ไม่ใช่แปลตรง
+
+## ที่ตรวจไม่ได้
+- CI/Vercel (ยังไม่เปิด PR) · migration กับฐาน Turso จริง (เป็นของ boss ตาม OPERATIONS) · ภาพหน้าจอ/a11y/คอนทราสต์ (R14a ไม่มี UI — ux แจ้งไว้ใน design note §9 แล้ว) · ขนาด response 32,000 แถว (ประมาณจากสัดส่วน ไม่ได้รันกรณีนั้น) · e2e ใหม่ของ routine ไม่มี (R14b)
