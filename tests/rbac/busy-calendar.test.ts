@@ -49,8 +49,17 @@ describe('ชื่อ action ของ R3 อยู่ในระบบแล�
     expect(ACTION_RESOURCE['busy.delete']).toEqual(['busy']);
     expect(ACTION_RESOURCE['group.calendar.view']).toEqual(['group']);
   });
-  it('ไม่มี action ที่รับ user id คนอื่นแล้วคืน busy (ADR 0006 ข้อ 1): ไม่มีชื่อ busy.* อื่นนอก 4 ตัว', () => {
-    expect(ACTIONS.filter((a) => a.startsWith('busy.')).sort()).toEqual(['busy.create', 'busy.delete', 'busy.list.own', 'busy.update']);
+  it('ไม่มี action ที่รับ user id คนอื่นแล้วคืน busy (ADR 0006 ข้อ 1): busy.* มีแค่ 4 ตัวเดิม + routine 4 ตัวของ R14 (ทั้งหมดเป็นของตัวเอง)', () => {
+    expect(ACTIONS.filter((a) => a.startsWith('busy.')).sort()).toEqual([
+      'busy.create',
+      'busy.delete',
+      'busy.list.own',
+      'busy.routine.create',
+      'busy.routine.delete',
+      'busy.routine.list.own',
+      'busy.routine.update',
+      'busy.update',
+    ]);
   });
 });
 

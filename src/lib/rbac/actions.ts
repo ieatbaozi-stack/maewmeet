@@ -29,6 +29,11 @@ export const ACTIONS = [
   'busy.update',
   'busy.delete',
   'busy.list.own',
+  // R14 (ADR 0012 §6 · R14_CONTRACT §8): busy ประจำ (routine) ของตัวเอง — เจ้าของเท่านั้นเหมือน busy เดี่ยว
+  'busy.routine.list.own',
+  'busy.routine.create',
+  'busy.routine.update',
+  'busy.routine.delete',
 
   // ── §3 แถว 4–5: ดูกลุ่ม / ปฏิทิน / วันว่างร่วม ──
   'group.view',
@@ -165,6 +170,11 @@ export const ACTION_RESOURCE = {
   'busy.update': ['busy'],
   'busy.delete': ['busy'],
   'busy.list.own': ['none'],
+  // routine ใช้ resource ชนิด 'busy' เดิม ({ type:'busy', ownerId: routine.user_id }) — มิติสิทธิ์มีแค่เจ้าของ
+  'busy.routine.list.own': ['none'],
+  'busy.routine.create': ['none'],
+  'busy.routine.update': ['busy'],
+  'busy.routine.delete': ['busy'],
 
   'group.view': ['group'],
   'group.calendar.view': ['group'],

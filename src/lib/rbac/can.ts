@@ -192,6 +192,11 @@ const RULES: Rules = {
   'busy.list.own': anyUser,
   'busy.update': ownerOnly, // §3 แถว 3: busy ของคนอื่น ❌ ทุกคนรวม SA
   'busy.delete': ownerOnly,
+  // R14 (ADR 0012 §6): routine ของคนอื่น ❌ ทุกคนรวม SA · ไม่มี action ดู routine ของคนอื่น
+  'busy.routine.list.own': anyUser,
+  'busy.routine.create': anyUser,
+  'busy.routine.update': ownerOnly,
+  'busy.routine.delete': ownerOnly,
 
   'group.view': anyMember(),
   'group.calendar.view': anyMember(),

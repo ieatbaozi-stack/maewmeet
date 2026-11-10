@@ -36,7 +36,8 @@ afterEach(async () => {
 
 describe('policy: R6F ไม่เพิ่ม action ใหม่ (scope ไม่ใช่มิติสิทธิ์)', () => {
   it("ชุด action busy.* ยังเป็น 4 ตัวเดิม — daily/series ใช้ 'busy.create' / 'busy.delete'", () => {
-    expect(ACTIONS.filter((a) => a.startsWith('busy.')).sort()).toEqual(['busy.create', 'busy.delete', 'busy.list.own', 'busy.update']);
+    // R14 เพิ่ม busy.routine.* (tests/rbac/busy-routine.test.ts) — ชุด busy เดี่ยว/รายวันยังเป็น 4 ตัวเดิม
+    expect(ACTIONS.filter((a) => a.startsWith('busy.') && !a.startsWith('busy.routine.')).sort()).toEqual(['busy.create', 'busy.delete', 'busy.list.own', 'busy.update']);
   });
 });
 
