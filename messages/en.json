@@ -1092,6 +1092,16 @@
     "row": {
       "aria": "{title}, {when}{state, select, cancelled {, cancelled} going {, you’re going} maybe {, you’re a maybe} not_going {, you can’t go} other {, no reply yet}}"
     },
+    "calendar": {
+      "add": "Add to calendar",
+      "sheetTitle": "Add this plan to your calendar",
+      "device": "Phone calendar (.ics file)",
+      "google": "Google Calendar",
+      "oneTime": "This is a one-time copy. If the plan moves or gets cancelled later, your calendar won’t update, so you’ll need to change it yourself.",
+      "googleNote": "The plan’s title, time, place and link will be sent to Google.",
+      "lineHint": "Open this in your browser first, then add it to your calendar.",
+      "lineOpen": "Open in browser"
+    },
     "rsvp": {
       "question": "Are you going?",
       "groupAria": "Your answer",
@@ -1568,7 +1578,7 @@
     "eyebrow": "maewmeet",
     "title": "Privacy",
     "draft": "This page explains, based on how the app actually works, what we keep and how we use it. It isn’t a legal document.",
-    "updated": "Last updated 26 Oct 2026",
+    "updated": "Last updated 10 Nov 2026",
     "back": "Back",
     "intro": "maewmeet is an app for making plans with friends. It keeps only what it needs to work, shows no ads, and never sells or shares your data for marketing.",
     "collect": {
@@ -1614,6 +1624,10 @@
     "contact": {
       "title": "Contact",
       "body": "Questions, or want more removed than the delete button does? Reach a system admin through one of your groups, or ask whoever invited you to the app."
+    },
+    "calendar": {
+      "title": "Adding a plan to your calendar",
+      "body": "If you tap “Add to calendar” on a plan, data leaves the app only when you tap it yourself. If you choose Google Calendar, the plan’s title, time, place name and link are sent to Google straight from your browser (not through our server). If you choose the .ics file, the same details sit in a file on your device, though your calendar app may sync it on to your iCloud or Google account. We don’t send the plan’s details, coordinates, group name or member names. Either way it’s a one-time copy: if the plan changes or is removed from the app, the entry in your calendar won’t change or disappear."
     },
     "line": {
       "title": "Messages on LINE",
