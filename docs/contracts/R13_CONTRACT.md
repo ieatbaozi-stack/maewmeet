@@ -75,6 +75,7 @@ main มอบเพิ่ม 2026-11-11 หลังรายงานของ
 - auth: ลบ action `place.search` ใน `src/lib/rbac/actions.ts`, `src/lib/rbac/can.ts` พร้อมเทสต์ `tests/rbac/appointments.test.ts`, `tests/rbac/matrix.fixture.ts`
 - architect: เพิ่มหมายเหตุสั้นใน ADR 0001 และ 0003 ว่าการค้นหาสถานที่และภาพแผนที่ถูกเอาออกใน R13 (ไม่แก้เนื้อหาเดิม)
 - cron ใน `src/lib/data/repos/maintenance.ts` ที่ลบแถวเก่าของ `place_search_cache` คงไว้ได้ เพราะเป็นการล้างข้อมูล ไม่ใช่การอ่าน/เขียนแคช
+- ภาษาของป้ายใน `.ics` (แก้ §1.4 หลังรายงานของ test): ใช้คุกกี้ภาษา `mm_locale` ของคำขอก่อน (ภาษาที่ผู้ใช้เห็นอยู่ ตรงกับลิงก์ Google) ไม่มีหรือค่าผิด = `user.locale` ไม่มี = ไทย · เหตุผล: `/api/prefs` ไม่บันทึก `user.locale` ตอนสลับภาษา (เป็นแบบนี้ก่อน R13 ไม่แก้รอบนี้)
 - `.ics` `URL` ใช้ mapUrl เฉพาะเมื่อเป็น ASCII ที่พิมพ์ได้ ไม่มีช่องว่าง/ตัวควบคุม/`\` (platform เพิ่ม เพราะค่า URI ไม่ผ่าน escape) ไม่ผ่าน = ลิงก์นัด
 
 ## 4. เกณฑ์ผ่าน
