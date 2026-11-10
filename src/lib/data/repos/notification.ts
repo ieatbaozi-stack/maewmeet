@@ -66,15 +66,38 @@ export async function insertNotificationRows(
 }
 
 /**
- * แจ้งเตือนที่ผู้ใช้ "ควรเห็น": ชนิดที่เกี่ยวกับนัด (appointment.*) เห็นได้เฉพาะเมื่อยังเป็นสมาชิกของกลุ่มนั้นและกลุ่มยังไม่ถูกลบ
- * (ถูกลบออก/ออกเอง → ไม่เห็นชื่อนัดของกลุ่มเดิมอีก · เกิดก่อน joined_at ปัจจุบัน = ของสมาชิกภาพรอบก่อน ซ่อนแม้กลับเข้ากลุ่มแล้ว) · ชนิดอื่นเห็นเสมอ · ใช้ร่วมกันระหว่างรายการและจำนวนที่ยังไม่อ่าน
+ * R11 §1: ลบรายการที่ยังไม่อ่านของนัดเดียวกัน + ผู้รับเดียวกัน (rsvp_changed: + ผู้ตอบคนเดิม) ก่อนเขียนรายการใหม่แทน
+ * อ่านแล้วไม่ถูกแตะ — เหตุการณ์ถัดไปเป็นแถวใหม่ · เรียกใน transaction เดียวกับ notify · คืนแถวที่ลบ (ผู้เรียกรวมค่าของเดิม)
  */
-const visibleToOwner: SQL = sql`(${notification.kind} NOT LIKE 'appointment.%' OR EXISTS (
+export async function deleteUnreadEventRows(
+  db: DbOrTx,
+  input: { userIds: readonly string[]; kind: string; appointmentId: string; responderId?: string },
+): Promise<{ userId: string; params: unknown }[]> {
+  if (input.userIds.length === 0) return [];
+  const conds: SQL[] = [
+    inArray(notification.userId, [...input.userIds]),
+    eq(notification.kind, input.kind),
+    isNull(notification.readAt),
+    sql`json_extract(${notification.params}, '$.appointmentId') = ${input.appointmentId}`,
+  ];
+  if (input.responderId !== undefined) conds.push(sql`json_extract(${notification.params}, '$.responderId') = ${input.responderId}`);
+  return db.delete(notification).where(and(...conds)).returning({ userId: notification.userId, params: notification.params });
+}
+
+/**
+ * แจ้งเตือนที่ผู้ใช้ "ควรเห็น": ชนิดที่เกี่ยวกับนัด (appointment.*) และกิจกรรมสมาชิก (group.member.joined/left/role_changed — R11) เห็นได้เฉพาะเมื่อยังเป็นสมาชิกของกลุ่มนั้นและกลุ่มยังไม่ถูกลบ
+ * (ถูกลบออก/ออกเอง → ไม่เห็นความเคลื่อนไหวของกลุ่มเดิมอีก · เกิดก่อน joined_at ปัจจุบัน = ของสมาชิกภาพรอบก่อน ซ่อนแม้กลับเข้ากลุ่มแล้ว)
+ * ชนิดอื่นเห็นเสมอ รวม group.member.removed ที่มีไว้บอกคนที่ถูกนำออกโดยเฉพาะ · ใช้ร่วมกันระหว่างรายการและจำนวนที่ยังไม่อ่าน
+ */
+const visibleToOwner: SQL = sql`((${notification.kind} NOT LIKE 'appointment.%' AND ${notification.kind} NOT IN ('group.member.joined', 'group.member.left', 'group.member.role_changed')) OR EXISTS (
   SELECT 1 FROM group_member gm INNER JOIN groups g ON g.id = gm.group_id
   WHERE gm.user_id = ${notification.userId} AND g.deleted_at IS NULL AND gm.group_id = json_extract(${notification.params}, '$.groupId')
     AND ${notification.createdAt} >= gm.joined_at))`;
 
 export type NotificationCursor = { createdAt: number; id: string };
+
+/** ชนิดที่มีเพดาน unread ต่อกลุ่มต่อผู้รับ นับแยกชนิด (SEC M1 · R11 §1, security R11 M1/L1) — group.member.removed ไม่มีเพดาน */
+export type UnreadCappedKind = 'appointment.created' | 'appointment.cancelled' | 'group.member.joined' | 'group.member.left' | 'group.member.role_changed';
 
 /** ใหม่สุดก่อน keyset (created_at, id) · ขอ limit+1 เพื่อรู้ว่ามีหน้าถัดไป */
 export async function listVisibleNotifications(
@@ -112,10 +135,10 @@ export async function markNotificationsReadByIds(db: DbOrTx, userId: string, ids
 }
 
 /**
- * ผู้ใช้ (ใน userIds) ที่ยังรับ appointment.created ของกลุ่มนี้เพิ่มได้ = unread ที่ "เห็นได้" ของกลุ่มนั้น < max (ใช้ coalesce กันกระดิ่งท่วม)
+ * ผู้ใช้ (ใน userIds) ที่ยังรับชนิดนี้ของกลุ่มนี้เพิ่มได้ = unread ที่ "เห็นได้" ของชนิดนั้นในกลุ่มนั้น < max (ใช้ coalesce กันกระดิ่งท่วม · นับแยกชนิด)
  * นับด้วยคำสั่งเดียว แล้วผู้เรียกเขียนทีเดียว — แข่งกันได้เกินเพดานไม่เกินจำนวนนัดที่สร้างพร้อมกัน ซึ่งถูก limiter ต่อผู้ใช้/ต่อกลุ่มจำกัดอยู่แล้ว
  */
-export async function usersUnderUnreadCreatedCap(db: DbOrTx, userIds: readonly string[], groupId: string, max: number): Promise<Set<string>> {
+export async function usersUnderUnreadCap(db: DbOrTx, userIds: readonly string[], kind: UnreadCappedKind, groupId: string, max: number): Promise<Set<string>> {
   if (userIds.length === 0) return new Set();
   const rows = await db
     .select({ userId: notification.userId, n: count() })
@@ -123,7 +146,7 @@ export async function usersUnderUnreadCreatedCap(db: DbOrTx, userIds: readonly s
     .where(
       and(
         inArray(notification.userId, [...userIds]),
-        eq(notification.kind, 'appointment.created'),
+        eq(notification.kind, kind),
         isNull(notification.readAt),
         sql`json_extract(${notification.params}, '$.groupId') = ${groupId}`,
         visibleToOwner,

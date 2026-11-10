@@ -199,10 +199,14 @@ describe('ตรวจซ้ำก่อนส่ง (แถวค้างจ�
     h.clock.advance(15 * MIN);
     return line;
   }
+  // R11: ยกเลิกนัดเขียนแถว appointment.cancelled ลง outbox ด้วย (และส่งได้) → ตรวจเฉพาะแถว reminder: ต้องไม่ถูกส่งซ้ำ และตายเป็น STALE
+  const reminders = async () => (await outbox()).filter((r) => (JSON.parse(r.payload) as { kind: string }).kind.startsWith('appointment.reminder'));
   const expectStale = async (line: ReturnType<typeof fakeLine>) => {
     await runCron(h);
-    expect(line.pushes()).toHaveLength(1);
-    expect((await outbox())[0]).toMatchObject({ status: 'dead', last_error: 'STALE' });
+    const [rem, ...rest] = await reminders();
+    expect(rest).toHaveLength(0);
+    expect(rem).toMatchObject({ status: 'dead', last_error: 'STALE' });
+    expect(line.pushes().filter((x) => x.headers['X-Line-Retry-Key'] === rem!.id)).toHaveLength(1); // ส่งแค่ครั้งแรกที่ล้มเหลว (500) ไม่ส่งรอบสอง
   };
 
   it('เปลี่ยนจาก going = ไม่ส่ง', async () => {

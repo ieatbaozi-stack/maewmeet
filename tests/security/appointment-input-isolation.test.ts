@@ -227,6 +227,14 @@ describe('3. params ของ notification มีเฉพาะคีย์ใ�
     'appointment.reminder_1d': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz'],
     'appointment.reminder_1h': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz'],
     'appointment.rsvp_nudge': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz'],
+    // R11 (R11_CONTRACT §1 params) — เขียนมือจากสัญญา · actorId/responderId/memberId = คีย์ภายในใน DB ที่ไม่ส่งออก API/LINE
+    'appointment.cancelled': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz', 'actorName', 'actorId'],
+    'appointment.updated': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz', 'actorName', 'actorId', 'changes'],
+    'appointment.rsvp_changed': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz', 'responderName', 'responderId', 'response'],
+    'group.member.joined': ['groupId', 'groupName', 'memberName', 'memberId'],
+    'group.member.left': ['groupId', 'groupName', 'memberName', 'memberId'],
+    'group.member.removed': ['groupId', 'groupName'],
+    'group.member.role_changed': ['groupId', 'groupName', 'role'],
     'pin_reset.approved': ['expiresAt'],
     'pin_reset.cancelled_by_login': [],
   };

@@ -10,12 +10,14 @@ import {
   deleteSelfMember,
   findMember,
   insertAdminMember,
+  listActiveMemberIds,
   listMembersWithUpcomingBusy,
   setMemberRoleGuarded,
   transferAdminSteps,
   updateOwnAppearance,
 } from '@/lib/data/repos/group-member';
 import { revokeActiveInvitesCreatedBy } from '@/lib/data/repos/group-invite';
+import { findUserById } from '@/lib/data/repos/user';
 import { constraintKind } from '@/lib/data/repos/errors';
 import { addDaysAt } from '@/lib/calendar';
 import { authorize } from '@/lib/rbac/can';
@@ -24,10 +26,12 @@ import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
 import { GROUP_DEFAULT_MIN_FREE_MINUTES, GROUP_LIMITS, MEMBER_APPEARANCE_RATE_LIMIT, UPCOMING_BUSY_LOOKAHEAD_DAYS } from '@/lib/shared/limits';
 import { APPEARANCE_SLOT_MAX, APPEARANCE_SLOT_MIN } from '@/lib/shared/member-color';
+import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import { takeUserSlot } from '../admin-input';
 import type { DbOrTx } from '@/db/client';
 import type { DataCtx } from '../context';
 import { parseGroupName } from '../group-name';
+import { notify } from '../notifications/notify';
 import { groupRowOf, loadGroupCtx } from '../policy-context';
 import { toGroupDetail, toGroupSummary, toMyAppearance, type GroupDetailDto, type GroupSummaryDto, type MyAppearanceDto } from '../serializers/groups';
 import { inTx } from '../tx';
@@ -186,6 +190,13 @@ export async function removeMember(actor: Actor, groupId: string, targetUserId: 
     if (!ok) throw new AppError((await findMember(tx, groupId, targetUserId)) ? 'CONFLICT' : 'NOT_FOUND');
     // โค้ด/คำเชิญที่คนนี้สร้างไว้และยัง active ใช้ต่อไม่ได้ (กันคนที่ถูกลบแจกทางเข้า)
     await revokeActiveInvitesCreatedBy(tx, groupId, targetUserId, me.id, now);
+    // R11 §1: แจ้งคนที่ถูกนำออก (ไม่ใช่สมาชิกแล้ว แต่บัญชีต้อง active) · ไม่บอกชื่อผู้นำออก
+    const removed = await findUserById(tx, targetUserId);
+    await notify(
+      tx,
+      { userIds: removed?.status === 'active' && targetUserId !== me.id ? [targetUserId] : [], kind: 'group.member.removed', params: { groupId, groupName: sanitizeDisplayText(groupRowOf(group).name) } },
+      now,
+    );
     await audit(
       tx,
       me,
@@ -214,6 +225,16 @@ export async function setMemberRole(actor: Actor, groupId: string, targetUserId:
       actorRole: group.actorRole,
     });
     if (!ok) throw new AppError((await findMember(tx, groupId, targetUserId)) ? 'CONFLICT' : 'NOT_FOUND');
+    // R11 §1: คนที่สิทธิ์เปลี่ยนจริง (เทียบ role เดิมไปแล้วด้านบน) · ไม่แจ้งผู้กระทำ
+    await notify(
+      tx,
+      {
+        userIds: (await listActiveMemberIds(tx, groupId, { userIds: [targetUserId] })).filter((uid) => uid !== me.id),
+        kind: 'group.member.role_changed',
+        params: { groupId, groupName: sanitizeDisplayText(groupRowOf(group).name), role: input.role },
+      },
+      now,
+    );
     await audit(
       tx,
       me,
@@ -240,6 +261,11 @@ export async function transferAdmin(actor: Actor, groupId: string, input: Transf
       fromAdminId: group.actorRole === 'admin' ? me.id : null,
     });
     if (!steps) throw new AppError('CONFLICT'); // rollback ทั้งก้อน — ไม่มีสถานะครึ่งทาง
+    // R11 §1: ผู้รับตำแหน่ง (admin) + ผู้ดูแลเดิม (moderator) ถ้าไม่ใช่ผู้กระทำ (super admin โอนแทน = แจ้งทั้งสองคน) — คนละ params จึงเรียกแยก
+    const movedRecipients = (await listActiveMemberIds(tx, groupId, { userIds: [input.toUserId, steps.previousAdminId] })).filter((uid) => uid !== me.id);
+    const groupName = sanitizeDisplayText(groupRowOf(group).name);
+    await notify(tx, { userIds: movedRecipients.filter((uid) => uid === input.toUserId), kind: 'group.member.role_changed', params: { groupId, groupName, role: 'admin' } }, now);
+    await notify(tx, { userIds: movedRecipients.filter((uid) => uid === steps.previousAdminId), kind: 'group.member.role_changed', params: { groupId, groupName, role: 'moderator' } }, now);
     await audit(
       tx,
       me,
@@ -270,6 +296,17 @@ export async function leaveGroup(actor: Actor, groupId: string, ctx: DataCtx): P
       throw new AppError(still ? 'ADMIN_TRANSFER_REQUIRED' : 'NOT_FOUND');
     }
     await revokeActiveInvitesCreatedBy(tx, groupId, me.id, me.id, now);
+    // R11 §1: admin + moderator ที่ยังอยู่ · ผู้ออกเองไม่ได้รับ
+    const leaver = await findUserById(tx, me.id);
+    await notify(
+      tx,
+      {
+        userIds: (await listActiveMemberIds(tx, groupId, { roles: ['admin', 'moderator'] })).filter((uid) => uid !== me.id),
+        kind: 'group.member.left',
+        params: { groupId, groupName: sanitizeDisplayText(groupRowOf(group).name), memberName: sanitizeDisplayText(leaver?.displayName ?? ''), memberId: me.id },
+      },
+      now,
+    );
     await audit(tx, me, allow, { action: 'group.leave', targetType: 'member', targetId: me.id, groupId }, now);
   });
   return { left: true };

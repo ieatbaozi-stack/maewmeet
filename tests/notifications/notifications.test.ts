@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { GET as dailyGET } from '@/app/api/cron/daily/route';
 import { NOTIFICATION_KINDS } from '@/lib/data/notifications/notify';
-import { Client, DAY, HOUR, createAppt, get, join, makeGroup, mustCreate, person, post, setupHarness, world, type Harness, type World } from '../appointments/util';
+import { Client, DAY, HOUR, createAppt, get, join, makeGroup, mustCreate, patch, person, post, put, setupHarness, world, type Harness, type World } from '../appointments/util';
 
 let h: Harness;
 let w: World;
@@ -10,6 +10,8 @@ let w: World;
 beforeEach(async () => {
   h = await setupHarness();
   w = await world(h);
+  // R11: world() เองเกิดแถว group.member.joined / role_changed → เริ่มเคสด้วยกล่องว่างเพื่อวัดเฉพาะสิ่งที่เคสทำ
+  await h.rows('DELETE FROM notification');
 });
 afterEach(async () => {
   await h.cleanup();
@@ -72,11 +74,30 @@ describe('appointment.created', () => {
     expect(await h.count('notification')).toBe(0);
   });
 
-  it('แก้/ยกเลิก/ตอบ RSVP ไม่สร้างแจ้งเตือนใหม่ (ขอบเขต R4B: เฉพาะ created)', async () => {
+  it('R11: แก้ชื่อ/ตอบซ้ำ/ผู้สร้างตอบเอง ไม่แจ้ง · เปลี่ยนเวลา → updated · ตอบเปลี่ยนค่า → rsvp_changed ถึงผู้สร้าง · ยกเลิก → cancelled', async () => {
+    const kinds = async (p: { id: string }) => (await h.rows<{ kind: string }>('SELECT kind FROM notification WHERE user_id = ? ORDER BY created_at, id', [p.id])).map((r) => r.kind);
     const ap = await mustCreate(w.b, w.gid);
-    const base = await h.count('notification');
-    await post(w.b.c, `/api/appointments/${ap.id}/cancel`);
-    expect(await h.count('notification')).toBe(base);
+    await h.rows('DELETE FROM notification');
+    // แก้แค่ชื่อ → ไม่แจ้ง
+    expect((await patch(w.b.c, `/api/appointments/${ap.id}`, { title: 'ชื่อใหม่' })).status).toBe(200);
+    expect(await h.count('notification')).toBe(0);
+    // ผู้สร้างตอบนัดตัวเอง → ไม่แจ้ง
+    expect((await put(w.b.c, `/api/appointments/${ap.id}/rsvp`, { response: 'going' })).status).toBe(200);
+    expect(await h.count('notification')).toBe(0);
+    // คนอื่นตอบครั้งแรก → rsvp_changed ถึงผู้สร้างคนเดียว · ตอบซ้ำค่าเดิม → ไม่เพิ่ม
+    expect((await put(w.a.c, `/api/appointments/${ap.id}/rsvp`, { response: 'going' })).status).toBe(200);
+    expect(await kinds(w.b)).toEqual(['appointment.rsvp_changed']);
+    expect((await put(w.a.c, `/api/appointments/${ap.id}/rsvp`, { response: 'going' })).status).toBe(200);
+    expect(await h.count('notification')).toBe(1);
+    // เปลี่ยนเวลา → updated ถึงสมาชิกที่เหลือ (ไม่รวมผู้แก้)
+    expect((await patch(w.b.c, `/api/appointments/${ap.id}`, { startDate: '2026-10-24', startTime: '12:00', endDate: '2026-10-24', endTime: '13:00' })).status).toBe(200);
+    for (const p of [w.a, w.m, w.c]) expect(await kinds(p), p.id).toContain('appointment.updated');
+    expect(await kinds(w.b)).toEqual(['appointment.rsvp_changed']);
+    // ยกเลิก → cancelled ถึงสมาชิกที่เหลือ (ไม่รวมผู้ยกเลิก) · คนนอกไม่ได้
+    expect((await post(w.b.c, `/api/appointments/${ap.id}/cancel`)).status).toBe(200);
+    for (const p of [w.a, w.m, w.c]) expect(await kinds(p), p.id).toContain('appointment.cancelled');
+    expect(await kinds(w.b)).toEqual(['appointment.rsvp_changed']);
+    expect(await kinds(w.o)).toEqual([]);
   });
 
   it('ทุก kind ใน union มีข้อความ th/en ใน messages (กันเพิ่มชนิดแล้วลืมข้อความ)', async () => {
@@ -128,9 +149,11 @@ describe('GET /api/me/notifications', () => {
     expect(gone.data).toEqual({ notifications: [], nextCursor: null, unreadCount: 0 });
     expect(gone.text).not.toContain('ลับเฉพาะสมาชิก');
     // กลุ่มถูกลบ → ไม่เห็นแม้ยังเป็นสมาชิก
-    expect((await list(w.m)).data.unreadCount).toBe(1);
+    // m (moderator) ได้ member.left ของ c ด้วย (R11) → นับเฉพาะ appointment.created
+    expect((await list(w.m)).data.notifications.filter((n) => n.kind === 'appointment.created')).toHaveLength(1);
     await h.rows('UPDATE groups SET deleted_at = ? WHERE id = ?', [h.clock.now(), w.gid]);
-    expect((await list(w.m)).data.notifications).toEqual([]);
+    // กรองด้วยชนิดนัดตรงนี้ (group.member.joined/left/role_changed ก็ถูกซ่อนเมื่อกลุ่มถูกลบเช่นกัน — visibleToOwner R11, เทสต์ใน r11-events.test.ts)
+    expect((await list(w.m)).data.notifications.filter((n) => n.kind.startsWith('appointment.'))).toEqual([]);
   });
 
   it('แจ้งเตือนชนิดอื่น (ไม่ผูกกลุ่ม) ไม่ถูกกรองเมื่อไม่มีกลุ่ม', async () => {

@@ -80,7 +80,7 @@ export function whenLabel(epochMs: number, tz: string, locale: CalendarLocale): 
   return `${weekdayShort(epochMs, { locale, tz: z })} ${format(epochMs, { locale, style: "day-month", tz: z })} ${format(epochMs, { locale, style: "time", tz: z })}`;
 }
 
-export type NotificationIcon = "calendar-plus" | "user-plus" | "circle-check" | "user-minus" | "key" | "shield" | "info";
+export type NotificationIcon = "calendar-plus" | "calendar-x" | "calendar" | "user-plus" | "circle-check" | "user-minus" | "key" | "shield" | "info";
 export type NotificationTone = "appt" | "invite" | "ok" | "plain";
 
 export interface NotificationView {
@@ -177,6 +177,68 @@ export function notificationView(kind: string, params: Record<string, unknown>, 
         tone: accepted ? "ok" : "plain",
         href: `/groups/${gid}`,
       };
+    }
+    case "appointment.cancelled":
+    case "appointment.updated":
+    case "appointment.rsvp_changed": {
+      // R11: ผลของนัด — ค่า select (changes/response) ส่งดิบ ห้าม isolate ไม่งั้นตกไป other
+      const groupName = str(params.groupName);
+      const title = str(params.title);
+      const appointmentId = id(params.appointmentId);
+      const startAt = ms(params.startAt);
+      if (!groupName || !title || !appointmentId || startAt === null) return UNKNOWN;
+      const base = { groupName: isolate(groupName), title: isolate(title), when: whenLabel(startAt, safeTz(params.tz), locale) };
+      const href = `/appointments/${appointmentId}`;
+      if (kind === "appointment.rsvp_changed") {
+        const responder = personName(params.responderName, deletedName);
+        const response = params.response;
+        if (!responder || (response !== "going" && response !== "maybe" && response !== "not_going")) return UNKNOWN;
+        return {
+          known: true,
+          messageKey: "notifications.appointment.rsvp_changed",
+          values: { ...base, responderName: isolate(responder), response },
+          icon: response === "going" ? "circle-check" : "info",
+          tone: response === "going" ? "ok" : "plain",
+          href,
+        };
+      }
+      const actor = personName(params.actorName, deletedName);
+      if (!actor) return UNKNOWN;
+      if (kind === "appointment.cancelled") {
+        return { known: true, messageKey: "notifications.appointment.cancelled", values: { ...base, actorName: isolate(actor) }, icon: "calendar-x", tone: "plain", href };
+      }
+      const changes = params.changes;
+      if (changes !== "time" && changes !== "place" && changes !== "both") return UNKNOWN;
+      return { known: true, messageKey: "notifications.appointment.updated", values: { ...base, actorName: isolate(actor), changes }, icon: "calendar", tone: "appt", href };
+    }
+    case "group.member.joined":
+    case "group.member.left": {
+      const groupName = str(params.groupName);
+      const memberName = personName(params.memberName, deletedName);
+      const gid = id(params.groupId);
+      if (!groupName || !memberName || !gid) return UNKNOWN;
+      const joined = kind === "group.member.joined";
+      return {
+        known: true,
+        messageKey: `notifications.${kind}`,
+        values: { groupName: isolate(groupName), memberName: isolate(memberName) },
+        icon: joined ? "user-plus" : "user-minus",
+        tone: joined ? "ok" : "plain",
+        href: `/groups/${gid}`,
+      };
+    }
+    case "group.member.removed": {
+      const groupName = str(params.groupName);
+      if (!groupName) return UNKNOWN;
+      // กลุ่มที่ถูกนำออกเข้าไม่ได้แล้ว → รายการกลุ่ม
+      return { known: true, messageKey: "notifications.group.member.removed", values: { groupName: isolate(groupName) }, icon: "user-minus", tone: "plain", href: "/groups" };
+    }
+    case "group.member.role_changed": {
+      const groupName = str(params.groupName);
+      const gid = id(params.groupId);
+      const role = params.role;
+      if (!groupName || !gid || (role !== "admin" && role !== "moderator" && role !== "member")) return UNKNOWN;
+      return { known: true, messageKey: "notifications.group.member.role_changed", values: { groupName: isolate(groupName), role }, icon: "shield", tone: "plain", href: `/groups/${gid}` };
     }
     case "pin_reset.approved": {
       const expiresAt = ms(params.expiresAt);

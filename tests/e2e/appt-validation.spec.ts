@@ -182,7 +182,8 @@ test('a11y smoke: RSVP แสดงสถานะที่เลือกเป
   await expect(bellLink).toHaveAttribute('href', '/notifications');
   await expect(bellBadge(b.page)).toHaveAttribute('aria-hidden', 'true');
   await go(a.page, '/');
-  await expect(bell(a.page)).toHaveAttribute('aria-label', T('notifications.bell.aria', { count: 0 }));
+  // R11: A เป็นผู้สร้างนัด → ได้ 'Ben เข้ากลุ่ม' 1 + 'Ben ตอบ' 1 (ตอบสองครั้งแทนที่รายการเดิม ไม่เพิ่ม) = 2
+  await expect(bell(a.page)).toHaveAttribute('aria-label', T('notifications.bell.aria', { count: 2 }));
 
   await go(a.page, `/groups/${gid}/appointments`);
   const opener = a.page.getByTestId('appt-list-create');

@@ -256,7 +256,7 @@ const CEILINGS: Record<string, number> = {
   'GET /api/appointments/:id': 5,
   'PUT /api/me/current-group': 3,
   'POST /api/groups/:gid/appointments/check': 5,
-  'PUT /api/appointments/:id/rsvp': 9,
+  'PUT /api/appointments/:id/rsvp': 10, // R11: +1 อ่านคำตอบเดิมก่อนเขียน — แจ้งผู้สร้างเฉพาะเมื่อคำตอบเปลี่ยนจริง
   'POST /api/me/busy (timed)': 5,
   'DELETE /api/me/busy/:id': 5,
   // R7 B-2: service ที่ loader ของ /calendar ใช้ (วัดแยก ไม่รวม session/layout · actor สร้างตรง)

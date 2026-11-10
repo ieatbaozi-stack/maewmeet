@@ -463,7 +463,7 @@
     "howToHint": "See the 4 getting-started steps again",
     "line": {
       "title": "LINE reminders",
-      "hint": "Get a reminder on LINE before plans you’ve said you’re going to, on top of the in-app bell.",
+      "hint": "On LINE, get a reminder before plans you’re going to, and a heads-up if one gets cancelled. The in-app bell still works too.",
       "connect": "Connect LINE",
       "codeLabel": "Your connection code",
       "codeHint": "Add the “แมวเจอกัน” account as a friend, then send this code in the chat. It works once and expires in 10 minutes.",
@@ -766,6 +766,12 @@
         "received": "{inviterName} invited you to “{groupName}”",
         "accepted": "{inviteeName} accepted your invite and joined “{groupName}”",
         "declined": "{inviteeName} declined your invite to “{groupName}”"
+      },
+      "member": {
+        "joined": "{memberName} joined “{groupName}”",
+        "left": "{memberName} left “{groupName}”",
+        "removed": "You’re no longer in “{groupName}”",
+        "role_changed": "{role, select, admin {You’re now an admin of “{groupName}”} moderator {You’re now a moderator in “{groupName}”} other {You’re now a regular member of “{groupName}”}}"
       }
     },
     "title": "Notifications",
@@ -786,7 +792,7 @@
     "retention": "Notifications are kept for {days} days.",
     "empty": {
       "title": "Nothing new yet",
-      "body": "New plans and group invites will show up here."
+      "body": "Plan updates, group invites and changes in your groups will show up here."
     },
     "error": {
       "title": "Couldn’t load notifications",
@@ -804,7 +810,10 @@
       "created": "New plan: {title} ({when}) in “{groupName}”",
       "reminder_1d": "Coming up: {title} ({when}) in “{groupName}”",
       "reminder_1h": "Starting soon: {title} ({when}) in “{groupName}”",
-      "rsvp_nudge": "You haven’t confirmed yet. Are you in? {title} ({when}) in “{groupName}”"
+      "rsvp_nudge": "You haven’t confirmed yet. Are you in? {title} ({when}) in “{groupName}”",
+      "cancelled": "{actorName} cancelled {title} ({when}) in “{groupName}”",
+      "updated": "{changes, select, time {{actorName} changed the time: {title} is now {when} in “{groupName}”} place {{actorName} changed the place for {title} ({when}) in “{groupName}”} other {{actorName} changed the time and place: {title} is now {when} in “{groupName}”}}",
+      "rsvp_changed": "{response, select, going {{responderName} is going to {title} ({when}) in “{groupName}”} maybe {{responderName} might go to {title} ({when}) in “{groupName}”} other {{responderName} can’t make {title} ({when}) in “{groupName}”}}"
     }
   },
   "errors": {
@@ -1608,7 +1617,7 @@
     },
     "line": {
       "title": "Messages on LINE",
-      "body": "If you connect LINE, we send pre-plan reminders there through LINE’s service. They contain only the plan title, date and time, group name and a link to the plan, and go only to you. No place, details or member names are sent. We keep your LINE user ID for this. You can disconnect any time from the Me tab. If you haven’t connected, nothing is sent to LINE."
+      "body": "If you connect LINE, we send pre-plan reminders, and a message if a plan you said you’re going to is cancelled, there through LINE’s service. They contain only the plan title, date and time, group name and a link to the plan, and go only to you. No place, details or member names are sent. We keep your LINE user ID for this. You can disconnect any time from the Me tab. If you haven’t connected, nothing is sent to LINE."
     }
   },
   "onboarding": {
@@ -1626,10 +1635,11 @@
   "line": {
     "message": {
       "reminder_1d": "Coming up: {title}\n{when} · “{groupName}”\n{url}",
-      "reminder_1h": "Starting soon: {title}\n{when} · “{groupName}”\n{url}"
+      "reminder_1h": "Starting soon: {title}\n{when} · “{groupName}”\n{url}",
+      "cancelled": "Cancelled: {title}\n{when} · “{groupName}”\n{url}"
     },
     "link": {
-      "success": "LINE is now linked to maewmeet. We’ll remind you here about plans you’ve said you’re going to.",
+      "success": "LINE is now linked to maewmeet. We’ll remind you here about plans you’re going to, and let you know if one is cancelled.",
       "invalid": "That code doesn’t work. It may have expired or already been used. Get a new one from the Me tab in maewmeet.",
       "alreadyLinked": "This LINE account is already linked to maewmeet. To change it, disconnect first from the Me tab."
     }

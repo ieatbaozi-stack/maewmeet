@@ -18,6 +18,7 @@ import { AppError } from '@/lib/shared/errors';
 import { NOTIFICATION_LIST_DEFAULT, NOTIFICATION_LIST_MAX, NOTIFICATION_READ_IDS_MAX } from '@/lib/shared/limits';
 import type { DataCtx } from '../context';
 import { inTx } from '../tx';
+import { publicParams } from '../notifications/notify';
 import { asUser } from './group-common';
 import { parseLimit } from './appointments';
 
@@ -49,7 +50,7 @@ const ownerRes = (actor: Actor) => ({ type: 'ownedByUser', ownerId: actor.kind =
 const toDto = (r: NotificationRow): NotificationDto => ({
   id: r.id,
   kind: r.kind,
-  params: r.params !== null && typeof r.params === 'object' && !Array.isArray(r.params) ? (r.params as Record<string, unknown>) : {},
+  params: r.params !== null && typeof r.params === 'object' && !Array.isArray(r.params) ? publicParams(r.params as Record<string, unknown>) : {},
   createdAt: r.createdAt,
   readAt: r.readAt,
 });

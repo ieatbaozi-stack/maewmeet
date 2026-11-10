@@ -1,7 +1,7 @@
 // repo: group_member — U4–U6, D7–D8 · unique index group_one_admin_uq + PK (group_id, user_id) เป็นด่านสุดท้ายระดับ DB
 // ทุกคำสั่งเปลี่ยนสถานะเป็นคำสั่งเดียวที่มีเงื่อนไขในตัว (เพดานสมาชิก, role ที่คาดไว้, role ของผู้กระทำ) — ไม่มี check-then-act
 // "role ของผู้กระทำ" (ActorGuard): ผู้เรียกตัดสินสิทธิ์จาก role ที่อ่านมา ตอนเขียนต้องยังเป็น role นั้น ไม่งั้น 0 แถว (→ CONFLICT)
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql, type SQL } from 'drizzle-orm';
 import { groupMember, groups, user } from '@/db/schema';
 import type { DbOrTx } from '@/db/client';
 import type { GroupRole, GroupRow } from './group';
@@ -104,6 +104,21 @@ export async function listMembersWithUpcomingBusy(db: DbOrTx, groupId: string, r
 export async function listMemberIds(db: DbOrTx, groupId: string): Promise<string[]> {
   const rows = await db.select({ userId: groupMember.userId }).from(groupMember).where(eq(groupMember.groupId, groupId)).orderBy(asc(groupMember.userId));
   return rows.map((r) => r.userId);
+}
+
+/**
+ * R11 §1: สมาชิกปัจจุบันของกลุ่มที่บัญชี active — ผู้รับแจ้งเตือนเหตุการณ์
+ * roles = กรองตาม role · userIds = เฉพาะคนในรายการนี้ (ตรวจว่ายังเป็นสมาชิก active อยู่จริงในธุรกรรมเดียวกัน)
+ */
+export async function listActiveMemberIds(db: DbOrTx, groupId: string, filter: { roles?: readonly GroupRole[]; userIds?: readonly string[] } = {}): Promise<string[]> {
+  if (filter.userIds !== undefined && filter.userIds.length === 0) return [];
+  const conds: SQL[] = [sql`gm.group_id = ${groupId}`, sql`u.status = 'active'`];
+  if (filter.roles !== undefined) conds.push(sql`gm.role IN (${sql.join([...filter.roles].map((r) => sql`${r}`), sql`, `)})`);
+  if (filter.userIds !== undefined) conds.push(sql`gm.user_id IN (${sql.join([...filter.userIds].map((u) => sql`${u}`), sql`, `)})`);
+  const rows = await db.all<{ user_id: string }>(sql`
+    SELECT gm.user_id AS user_id FROM group_member gm JOIN user u ON u.id = gm.user_id
+     WHERE ${sql.join(conds, sql` AND `)} ORDER BY gm.user_id`);
+  return rows.map((r) => r.user_id);
 }
 
 export async function insertAdminMember(db: DbOrTx, groupId: string, userId: string, now: number): Promise<void> {

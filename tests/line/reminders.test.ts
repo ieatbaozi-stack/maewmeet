@@ -215,7 +215,9 @@ describe('R10-4 กระดิ่ง (ฝั่ง server)', () => {
     const n = r.data.notifications.find((x) => x.kind === 'appointment.reminder_1d');
     expect(n?.params).toEqual({ groupId: w.gid, groupName: 'ก๊วนแมว', appointmentId: ap.id, title: 'กินข้าว', startAt: ap.startAt, tz: 'Asia/Bangkok' });
     expect(r.text).not.toMatch(/ที่ลับ|รายละเอียดลับ/);
-    expect(r.data.unreadCount).toBe(2); // appointment.created + reminder_1d
+    // R11: world() ทิ้ง group.member.joined ถึง admin ด้วย → นับเฉพาะชนิดนัด (created + reminder_1d) และยอดรวมต้องตรงกับจำนวนแถวที่ยังไม่อ่าน
+    expect(r.data.notifications.filter((x) => x.kind.startsWith('appointment.')).map((x) => x.kind).sort()).toEqual(['appointment.created', 'appointment.reminder_1d']);
+    expect(r.data.unreadCount).toBe(r.data.notifications.length);
   });
 
   it('rsvp_nudge ไม่เข้า outbox แม้เชื่อม LINE และเปิดช่องทาง', async () => {

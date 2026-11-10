@@ -39,3 +39,20 @@ export async function insertReminderNotifications(userId: string, rows: { kind: 
   }
   return ids;
 }
+
+/** R11: แทรกแถวชนิดใดก็ได้พร้อม params ดิบ (ตามสัญญา R11 §1) · ลำดับเดียวกับ insertReminderNotifications (+1 ms ต่อแถว) · คืน id */
+export async function insertNotifications(userId: string, rows: { kind: string; params: Record<string, unknown> }[]): Promise<string[]> {
+  const base = Date.now();
+  const ids: string[] = [];
+  for (const [i, r] of rows.entries()) {
+    const id = randomUUID();
+    ids.push(id);
+    await withBusyRetry(() =>
+      db().execute({
+        sql: 'INSERT INTO notification (id, user_id, kind, params, read_at, created_at) VALUES (?, ?, ?, ?, NULL, ?)',
+        args: [id, userId, r.kind, JSON.stringify(r.params), base + i],
+      }),
+    );
+  }
+  return ids;
+}

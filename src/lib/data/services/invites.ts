@@ -22,7 +22,7 @@ import {
   listPendingDirectInvitesFor,
   revokeInvite as revokeInviteRow,
 } from '@/lib/data/repos/group-invite';
-import { findMember, insertMemberIfRoom } from '@/lib/data/repos/group-member';
+import { findMember, insertMemberIfRoom, listActiveMemberIds } from '@/lib/data/repos/group-member';
 import { insertNotification } from '@/lib/data/repos/notification';
 import { refundBucket, reserveBucket } from '@/lib/data/repos/rate-limit-bucket';
 import { findUserById, findUserByUsernameNormalized } from '@/lib/data/repos/user';
@@ -38,6 +38,7 @@ import { GROUP_LIMITS } from '@/lib/shared/limits';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
 import { formatInviteCode, generateInviteCode, hashInviteCode, inviteCodeHint, normalizeInviteCode } from '../invite-code';
+import { notify } from '../notifications/notify';
 import { loadGroupCtx } from '../policy-context';
 import { toInviteDto, toPendingInviteDto, type CreatedCodeInviteDto, type InviteDto, type PendingInviteDto } from '../serializers/groups';
 import { inTx, serialized } from '../tx';
@@ -240,6 +241,17 @@ export async function redeemInviteCode(actor: Actor, input: RedeemInput, ctx: Da
     if (joinedGroupId) {
       if (usable) await bumpCodeUses(tx, usable.id);
       const g = await findGroupById(tx, joinedGroupId);
+      // R11 §1: เข้าใหม่จริงเท่านั้น (สาขานี้) → admin + moderator · ผู้เข้าเองไม่ได้รับ
+      const joiner = await findUserById(tx, me.id);
+      await notify(
+        tx,
+        {
+          userIds: (await listActiveMemberIds(tx, joinedGroupId, { roles: ['admin', 'moderator'] })).filter((uid) => uid !== me.id),
+          kind: 'group.member.joined',
+          params: { groupId: joinedGroupId, groupName: sanitizeDisplayText(g?.name ?? ''), memberName: sanitizeDisplayText(joiner?.displayName ?? ''), memberId: me.id },
+        },
+        now,
+      );
       await audit(tx, me, allow, { action: 'invite.code.redeem', targetType: 'invite', targetId: usable?.id ?? joinedGroupId, groupId: joinedGroupId, meta: { inviteId: usable?.id ?? null } }, now);
       return { groupId: joinedGroupId, groupName: g?.name ?? '', alreadyMember: false, joined: true };
     }
@@ -303,6 +315,18 @@ export async function respondToDirectInvite(
       if (joined === 'full') throw new AppError('LIMIT_REACHED', { limit: 'members', max: GROUP_LIMITS.membersPerGroup }); // rollback: คำเชิญยังค้างอยู่
       if (joined === 'gone') throw new AppError('NOT_FOUND');
       alreadyMember = joined === 'already';
+      // R11 §1: เป็นสมาชิกใหม่จริงเท่านั้น · admin + moderator ยกเว้นผู้เชิญ (ได้ group.invite.accepted แล้ว) และตัวผู้เข้าเอง
+      if (joined === 'inserted') {
+        await notify(
+          tx,
+          {
+            userIds: (await listActiveMemberIds(tx, closed.groupId, { roles: ['admin', 'moderator'] })).filter((uid) => uid !== me.id && uid !== closed.createdBy),
+            kind: 'group.member.joined',
+            params: { groupId: closed.groupId, groupName: params.groupName, memberName: params.inviteeName, memberId: me.id },
+          },
+          now,
+        );
+      }
     }
     await insertNotification(
       tx,
