@@ -50,3 +50,37 @@
 
 ## ที่ตรวจไม่ได้
 - CI/Vercel (ยังไม่เปิด PR) · migration กับฐาน Turso จริง (เป็นของ boss ตาม OPERATIONS) · ภาพหน้าจอ/a11y/คอนทราสต์ (R14a ไม่มี UI — ux แจ้งไว้ใน design note §9 แล้ว) · ขนาด response 32,000 แถว (ประมาณจากสัดส่วน ไม่ได้รันกรณีนั้น) · e2e ใหม่ของ routine ไม่มี (R14b)
+
+---
+
+## Re-review หลังแก้ตาม §10 (HEAD `7b9d21e`, 2026-11-11)
+
+**Verdict: ผ่าน** — ข้อ 1–5 ของรอบแรกถูกแก้/รับทราบครบ ไม่พบ regression
+
+| คำสั่ง | ผลจริง |
+|---|---|
+| `npx tsc --noEmit` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm run build` | exit 0 |
+| `vitest run` ทั้งชุด (shim EPERM) | 5510 ผ่าน / 17 ล้ม / 19 skip — 7 ไฟล์เดิมที่เป็นเรื่องเครื่อง (free-time oracle 1, admin-reset-pin 3, health 1, manual-delete-sql 4 CRLF, pepper-fingerprint 4, release CLI 2, config-hygiene 2) ไม่มีไฟล์ใหม่ล้ม |
+| `vitest run tests/admin tests/availability` ซ้ำ 5 รอบ | 66/66 ผ่านทั้ง 5 รอบ → admin/search cursor flake ไม่เกิดซ้ำ |
+| `availability-perf.test.ts` 3 รอบ (รวม merge) | median 36.1 / 35.9 / 35.8 ms (เพดาน 200) → 201.5 ms ที่ test เห็นไม่เกิดซ้ำ น่าจะเป็นช่วงเครื่องโหลดตอนรันทั้งชุดขนาน |
+| A/B: แก้ชั่วคราว `availability.ts` ให้ไม่เรียก `mergeBusyForFreeTime` (คืนไฟล์แล้ว `git status` สะอาด) 3 รอบ | median 49.9 / 38.2 / 41.1 ms → **merge ไม่เพิ่มต้นทุน** (มีมันเร็วกว่าเล็กน้อย) |
+| `playwright test free- appt-story r6e --project=mobile-390` (DTO availability เพิ่ม field) | 15/15 ผ่าน · ไม่รันชุดเต็ม เพราะเปลี่ยนแค่ field เพิ่มใน JSON |
+
+### ข้อสังเกตรอบแรกเทียบกับการแก้
+1. **ขนาด availability** — แก้แล้ว: `busy[]` ส่งไม่เกิน `CALENDAR_MAX_ITEMS` 5,000 ชิ้น + `detailTruncated` (`services/availability.ts`); blockers กรองเฉพาะชิ้นที่ส่ง, `notFreeUserIds`/`segments` ยังคำนวณจากทุกแถว → เพดานตอบกลับไปเท่า pre-R14 · เทสต์ `availability-api` ครอบแล้ว
+2. **วนแยกชุดเกิน 10** — แก้แล้ว: เพดานแข็ง 20 (`BUSY_ROUTINE_HARD_MAX_ACTIVE`) ในคำสั่ง INSERT เดียวกัน (B12 ยังข้าม 10 ได้) · แก้ในที่จนไม่เหลือวันอนาคต → `VALIDATION weekdays NO_OCCURRENCE` · `GET` คืนชุดที่ยังไม่จบครบ, `truncated` นับเฉพาะชุดที่จบแล้วเกิน 50 · เทสต์ใหม่ใน `r14-busy-routine.test.ts` ผ่าน
+3. **หยุดตั้งแต่วันนี้ลบแถวที่จบแล้ว** — ยอมรับ; ข้อความ `scope.delete.fromHelp` บอกแล้วทั้ง TH/EN
+4. **`routineSpan` ไม่มีหน่วย** — แก้แล้ว: ตัด "(ไม่เกิน {max})" ออกจาก fallback ทั้งสองภาษา (ไม่มีตัวเลขลอย)
+5. **คำศัพท์ "กิจวัตร"** — ไม่เปลี่ยนในรอบนี้ (ไม่แตะ OPERATIONS) ยังเป็นข้อเล็กสำหรับ R14b
+
+ที่แก้เพิ่มและตรวจโค้ดแล้วถูกต้อง: L1 `setOwnRoutineEndGuarded`/`deleteOwnRoutine` มี `userActive` ในคำสั่งเขียนเดียวกัน · Info 2 "วันนี้" ใช้ tz เดิมของชุด และ `rowsOf(plan, skip, today)` ไม่สร้างแถวก่อนวันนี้
+
+### ข้อความใหม่ (อ่านแล้ว)
+- `busy.routine.error.routinesEdit` TH "การแก้แบบนี้ต้องแยกเป็นอีกชุด แต่คุณมี…ครบ {max} ชุดแล้ว ยังไม่มีอะไรเปลี่ยน ลองแก้ “ทั้งหมดที่ยังไม่ถึง” แทน…" / EN "Changing it this way splits it into a second routine, but you already have {max} running…" — เป็นธรรมชาติ ตรงรูป server `LIMIT_REACHED {limit:'routines', max:20}` จากทางแยก (ชื่อปุ่มอ้างตรงกับ `scope.edit.all` ทั้งสองภาษา)
+- `noOccurrenceEdit` TH/EN — ตรงรูป `VALIDATION fields.weekdays=NO_OCCURRENCE` จากการแก้ในที่ (frontend ต้องเลือกคีย์นี้เมื่อเป็นโหมดแก้ ไม่ใช่ `noOccurrence` ของโหมดสร้าง — ระบุใน design note แล้ว) · คำว่า "ยังไม่มีอะไรเปลี่ยน/Nothing was changed" ตรงกับพฤติกรรม rollback
+- `availability.detailTruncated` TH/EN — อ่านเป็นธรรมชาติ ไม่โทษผู้ใช้ และบอกว่าวันว่างยังถูก ตรงความหมายของ flag
+- คีย์ en/th ยังเท่ากัน (ตรวจรอบแรก; รอบนี้เพิ่มคู่ครบ 3 คีย์ทั้งสองภาษา)
+
+ตรวจไม่ได้: CI/Vercel · ภาพ UI ของข้อความใหม่ (R14b)
