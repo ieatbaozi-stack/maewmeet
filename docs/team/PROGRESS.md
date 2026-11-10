@@ -1,7 +1,7 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-10 (เวลาไทย) · **R11 merge แล้ว (PR #28, `348bd86`) ยังไม่ออกรุ่น** · **R12 (เพิ่มนัดลงปฏิทิน) กำลังทำ — ส่ง ux/platform/frontend แล้ว** · **R10 (F6) merge แล้ว (PR #26) และออก v0.11.0 แล้ว** · ตรวจด้วย `git log origin/main`, `git ls-remote --tags origin` (รอบ R12: ไม่มี v0.12.x), `git tag`, `git rev-list -n1 v0.11.0` (= `a77fc50`) และ `CHANGELOG.md` หัวข้อ `[0.11.0] - 2026-11-10` · ผลการทดสอบ LINE และ `/api/health` = ที่ boss รายงาน (เลขาไม่ได้ตรวจเอง) · รายงานวัน: `docs/reports/2026-11-10.md` · ก่อนหน้า: `docs/contracts/R10_CONTRACT.md`, `docs/reports/qa-r10.md`, `security-r10.md`, `docs/reports/2026-11-09.md`
+> อัปเดตล่าสุด: 2026-11-10 (เวลาไทย) · **R11 merge แล้ว (PR #28, `348bd86`) ยังไม่ออกรุ่น** · **R12 (เพิ่มนัดลงปฏิทิน) ส่งงานครบ ผ่านตรวจซ้ำ qa/security แล้ว รอเปิด PR · ยังไม่ทดสอบเครื่องจริง** · **R10 (F6) merge แล้ว (PR #26) และออก v0.11.0 แล้ว** · ตรวจด้วย `git log origin/main`, `git ls-remote --tags origin` (รอบ R12: ไม่มี v0.12.x), `git tag`, `git rev-list -n1 v0.11.0` (= `a77fc50`) และ `CHANGELOG.md` หัวข้อ `[0.11.0] - 2026-11-10` · ผลการทดสอบ LINE และ `/api/health` = ที่ boss รายงาน (เลขาไม่ได้ตรวจเอง) · รายงานวัน: `docs/reports/2026-11-10.md` · ก่อนหน้า: `docs/contracts/R10_CONTRACT.md`, `docs/reports/qa-r10.md`, `security-r10.md`, `docs/reports/2026-11-09.md`
 
 ## เสร็จแล้ว
 - R0–R5: foundation, บัญชี PIN, กลุ่ม, ปฏิทิน + busy, วันว่างร่วม + สร้างนัด, หน้า super admin + audit log (ดู CHANGELOG)
@@ -31,7 +31,7 @@
 - backlog จาก security (ไม่บล็อก): Low 2 ชื่อ super admin ที่ไม่ได้เป็นสมาชิกปรากฏในกระดิ่งของกลุ่ม · Low 3 ไม่มีเพดานรวมของ LINE OA · Low 4 ชื่อนัด/ชื่อกลุ่มเป็นข้อความอิสระที่ออกทาง OA · Info 7 ไม่มี limiter การเข้า/ออกกลุ่มซ้ำ (เพดานจำกัดแถวกระดิ่ง ไม่ได้จำกัดการกระทำ)
 - ต่อจากนี้ดูหัวข้อ R12 ด้านล่าง
 
-## R12 — เพิ่มนัดลงปฏิทินในเครื่อง (.ics + Google Calendar) — กำลังทำ ⏳
+## R12 — เพิ่มนัดลงปฏิทินในเครื่อง (.ics + Google Calendar) — ส่งงานครบ รอเปิด PR ⏳
 - contract `docs/contracts/R12_CONTRACT.md` (main) · **boss เห็นชอบ 2026-11-10** ("เห็นชอบ เริ่มเลย") · **ไม่มี migration**
 - ที่มา: boss ถามว่าคนที่ตอบ "ไป" เอานัดลงปฏิทิน iOS/Android ได้ไหม · ได้นัดเป็นการคัดลอกครั้งเดียว ไม่ซิงก์ ถ้านัดเปลี่ยนต้องแก้เอง
 - การตัดสินของ boss (contract §11): **B1** ไม่ส่งรายละเอียดนัดไป Google (ตามแนะนำ) · **B2** คนที่ boss ให้ช่วยทดสอบ Android จริงตาม §9 (ถ้า Android ไม่ผ่าน = ไม่ merge) · **B3** เห็นชอบ contract
@@ -40,9 +40,16 @@
   - platform: `a7402e1` route `calendar.ics` และลิงก์ Google Calendar
   - frontend: `8cd31a4` ปุ่ม "เพิ่มลงปฏิทิน" และ sheet ในหน้านัด
   - ops: CHANGELOG ส่วน Unreleased `09bd083`
-  - secretary: README และ quickstart (รอบนี้ ยังไม่ commit ณ เวลาเขียนหัวข้อนี้) · หน้า `/privacy` อยู่ใน frontend/ux ตาม contract §7
-- **ยังไม่ส่ง:** test (`tests/e2e/r12-add-to-calendar.spec.ts`, เมทริกซ์สิทธิ์ของ route) · qa (ตรวจอิสระ §8) · security (`docs/reports/security-r12.md`)
-- **ยังไม่ทดสอบเครื่องจริง (§9):** ยังไม่มีผลบน iPhone และ Android ใดๆ · iPhone โดย boss · Android โดยคนที่ boss ให้ช่วย · ห้ามอ้างว่าเพิ่มลงปฏิทินได้บนมือถือจนกว่าจะมีผลทดสอบ
+  - secretary: README และ quickstart `1afa729` · PROGRESS (commit นี้)
+  - test: `1336803` route lock ยอม `calendar.ics` + e2e R12 (รายงานจาก main: 120 passed ยังไม่ได้รันซ้ำโดยเลขา)
+  - platform แก้ Low 2 ข้อ: `0dab604` audit ก่อนตรวจสถานะ และบล็อก cross-site `.ics` navigation
+  - ux: `b4488df` เติมเนื้อหา `/privacy` หัวข้อ calendar (§6)
+- **ตรวจอิสระ (รอบนี้ ผู้ตรวจคนละตัวกับผู้ทำ):**
+  - qa: รายงาน `docs/reports/qa-r12.md` · ตรวจครั้งแรกผ่านแบบมีข้อสังเกต · ตรวจซ้ำหลังแก้ `9466d5f` ผ่าน (verdict ตามรายงาน)
+  - security: รายงาน `docs/reports/security-r12.md` · ตรวจซ้ำการแก้ Low 1/Low 2 ที่ `0dab604` (รายงาน `c025f8f`) · Low 0 ตามรายงาน
+  - **ข้อจำกัดของผลเทสต์ในเครื่องท้องถิ่น:** qa ใช้ Vitest กับ shim ที่กลืน EPERM ของ `fs.rmSync` เท่านั้น (อยู่นอก repo) · เทสต์ DB ในเครื่อง Windows จึงไม่ใช่หลักฐานแทน CI · ยังไม่มีผล CI
+- **ยังไม่ทดสอบเครื่องจริง (§9):** ยังไม่มีผลบน iPhone และ Android ใดๆ · iPhone โดย boss · Android โดยคนที่ boss ให้ช่วย · **ห้ามอ้างว่าเครื่องจริงผ่าน** จนกว่าจะมีผลทดสอบจาก boss และคนที่ boss ให้ช่วย
+- **ยังไม่ทำ:** เปิด PR (ขั้นตอนถัดไป) · ผล CI และ Vercel preview ของ branch นี้ยังไม่มี
 - **ยังไม่ยืนยัน (contract §3):** Safari เปิด `.ics` บน iPhone · `calendar/render` ของ Google บน Android (ไม่มีเอกสารทางการ) · Android เปิด `.ics` · การดาวน์โหลดใน LINE in-app browser (สมมติว่าใช้ไม่ได้ ตาม §4.4)
 - **ยังไม่มี CI / Vercel preview / ผล lint-typecheck-test-build ของ R12** (R12-16) ณ เวลาเขียนหัวข้อนี้
 - เกณฑ์ก่อน merge: test + qa + security ผ่าน → เปิด PR → ทดสอบเครื่องจริงบน preview (R12-18) → boss merge
@@ -183,7 +190,7 @@
 
 ## รอ boss
 - **R11 แจ้งเตือนเหตุการณ์นัดและสมาชิก** — merge แล้ว (PR #28) · รอ boss ออกรุ่น (เสนอ v0.12.0) · CI ของ `348bd86` ยังไม่ยืนยัน (ดูหัวข้อ R11)
-- **R12 เพิ่มนัดลงปฏิทินในเครื่อง** — ส่งงาน ux/platform/frontend แล้ว · ค้าง: test, qa, security, PR, ทดสอบเครื่องจริงตาม §9 (iPhone โดย boss · Android โดยคนที่ boss ให้ช่วย) · boss merge (ดูหัวข้อ R12)
+- **R12 เพิ่มนัดลงปฏิทินในเครื่อง** — งานทุกทีมส่งแล้ว · qa และ security ตรวจซ้ำผ่าน · ค้าง: เปิด PR, CI/Vercel preview, ทดสอบเครื่องจริงตาม §9 (iPhone โดย boss · Android โดยคนที่ boss ให้ช่วย) · boss merge และเลือกเลขเวอร์ชันตอนออกรุ่น (ดูหัวข้อ R12)
 - **R7 RSVP 10→9** — ยอมรับตามที่ main เสนอ รอ boss ยืนยัน (ดูหัวข้อ R7 ด้านบน) · merge PR #19 และออก v0.9.1 เสร็จแล้ว
 - **F6 แจ้งเตือนก่อนนัด** — boss เลือกแล้ว (LINE OA + กระดิ่ง, 2026-11-09) · R10 merge และออก v0.11.0 แล้ว (2026-11-10) · ค้างแค่ทดสอบเตือน 1 วันและ `rsvp_nudge` บน LINE จริง · ดูหัวข้อ R10
 - R7 เฟส A เดิม (เปิด preview อ่าน Server-Timing ด้วย DevTools เพื่อวัดเวลาจริงกับ Turso ญี่ปุ่น) — ยังไม่ได้ทำ เลื่อนเป็น backlog ถ้าไม่ต้องการตัวเลขจริงก่อนงานถัดไป
