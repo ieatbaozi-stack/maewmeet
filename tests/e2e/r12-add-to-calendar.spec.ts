@@ -52,6 +52,9 @@ async function openSheetFor(page: Page, context: Parameters<typeof setPrefs>[0],
 }
 
 const T = (locale: Locale, key: string) => msg(locale, `appointments.calendar.${key}`);
+/** ป้ายลิงก์ใน DESCRIPTION / details (R13 §1.4) ตามภาษา — คีย์เก็บแค่ป้าย ต่อ ": " ตอนใช้ */
+const L = (locale: Locale) => ({ map: T(locale, 'labelMap'), plan: T(locale, 'labelPlan') });
+const escRe = (v: string): string => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 for (const locale of LOCALES) {
   for (const theme of THEMES) {
@@ -126,8 +129,8 @@ for (const locale of LOCALES) {
         expect(gUrl.searchParams.get('text')).toBe(LONG_TITLE);
         expect(gUrl.searchParams.get('location')).toBe(LONG_PLACE);
         expect(gUrl.searchParams.get('ctz')).toBe('Asia/Bangkok');
-        // ไม่มีลิงก์แผนที่ → details มีแค่ลิงก์นัด บรรทัดเดียว (R12.1-3)
-        expect(gUrl.searchParams.get('details')).toMatch(new RegExp(`^https?://[^\\s]+/appointments/${id}$`));
+        // ไม่มีลิงก์แผนที่ → details มีแค่บรรทัดลิงก์นัดบรรทัดเดียว มีป้าย (R13 §1.4)
+        expect(gUrl.searchParams.get('details')).toMatch(new RegExp(`^${escRe(L(locale).plan)}: https?://[^\\s]+/appointments/${id}$`));
         // 19:00–21:00 กรุงเทพ = 12:00–14:00 UTC
         expect(gUrl.searchParams.get('dates')).toMatch(/^\d{8}T120000Z\/\d{8}T140000Z$/);
 
@@ -157,22 +160,21 @@ for (const locale of LOCALES) {
         const { id, sheet } = await openSheetFor(page, context, baseURL!, locale, theme, { mapUrl: MAP_URL, title: LONG_TITLE, placeName: LONG_PLACE });
         await expect(page.getByRole('dialog')).toContainText(T(locale, 'sheetTitle'));
 
-        // Google: details = <mapUrl> ขึ้นบรรทัดใหม่ <ลิงก์นัด> · location ยังเป็นชื่อสถานที่
+        // Google: details = "<ป้ายแผนที่>: <mapUrl>" ขึ้นบรรทัดใหม่ "<ป้ายนัด>: <ลิงก์นัด>" · location ยังเป็นชื่อสถานที่
         const gUrl = new URL((await sheet.getByTestId('cal-add-google').getAttribute('href'))!);
         const lines = gUrl.searchParams.get('details')!.split('\n');
         expect(lines).toHaveLength(2);
-        expect(lines[0]).toBe(MAP_URL);
-        expect(lines[1]).toMatch(new RegExp(`/appointments/${id}$`));
+        expect(lines[0]).toBe(`${L(locale).map}: ${MAP_URL}`);
+        expect(lines[1]).toMatch(new RegExp(`^${escRe(L(locale).plan)}: https?://[^\\s]+/appointments/${id}$`));
         expect(gUrl.searchParams.get('location')).toBe(LONG_PLACE);
 
-        // .ics: DESCRIPTION (unfold แล้ว) = <mapUrl>\n<ลิงก์นัด> · URL ยังเป็นลิงก์นัด · LOCATION ยังเป็นชื่อสถานที่
+        // .ics (ภาษาตามบัญชีผู้ใช้ = th เสมอในเทสต์นี้ เพราะ fixture `user` สมัครก่อนตั้งคุกกี้ภาษา · en ตรวจที่ r13-location.spec.ts): DESCRIPTION (unfold แล้ว) = "<ป้ายแผนที่>: <mapUrl>\n<ป้ายนัด>: <ลิงก์นัด>" · URL = mapUrl (R13) · LOCATION ยังเป็นชื่อสถานที่
         const body = (await (await page.request.get(`/api/appointments/${id}/calendar.ics`)).text()).replace(/\r\n /g, '');
         const ics = body.split('\r\n');
-        const url = ics.find((l) => l.startsWith('URL:'))!.slice(4);
-        expect(url).toMatch(new RegExp(`/appointments/${id}$`));
-        expect(ics.find((l) => l.startsWith('DESCRIPTION:'))).toBe(`DESCRIPTION:${MAP_URL}\\n${url}`);
+        expect(ics.find((l) => l.startsWith('URL:'))).toBe(`URL:${MAP_URL}`);
+        const desc = ics.find((l) => l.startsWith('DESCRIPTION:'))!;
+        expect(desc).toMatch(new RegExp(`^DESCRIPTION:${escRe(L('th').map)}: ${escRe(MAP_URL)}\\\\n${escRe(L('th').plan)}: https?://[^\\s\\\\]+/appointments/${id}$`));
         expect(ics).toContain(`LOCATION:${LONG_PLACE}`);
-        expect(ics.filter((l) => l.includes(MAP_URL)).length).toBe(1);
 
         await noOverflow(page, `sheet+map ${locale}/${theme}`);
         await checkLayout(page, testInfo, 'r12-1-add-to-calendar-sheet-map', locale, theme);
@@ -203,8 +205,10 @@ for (const locale of LOCALES) {
         expect(body).toMatch(/\r\nBEGIN:VTIMEZONE\r\nTZID:Asia\/Bangkok\r\n/);
         expect(body).toContain('\r\nEND:VTIMEZONE\r\n');
         expect(body).not.toMatch(/DT(START|END):\d{8}T\d{6}Z/);
-        // ไม่มีลิงก์แผนที่ → DESCRIPTION มีแค่ลิงก์นัด (R12.1-3)
-        expect(body.replace(/\r\n /g, '')).toMatch(new RegExp(`\\r\\nDESCRIPTION:https?://[^\\s\\\\]+/appointments/${id}\\r\\n`));
+        // ไม่มีลิงก์แผนที่ → DESCRIPTION มีแค่บรรทัดลิงก์นัด มีป้าย (ภาษาบัญชีดีฟอลต์ = th) และ URL = ลิงก์นัด (R13 §1.4)
+        const flat = body.replace(/\r\n /g, '');
+        expect(flat).toMatch(new RegExp(`\\r\\nDESCRIPTION:${escRe(L('th').plan)}: https?://[^\\s\\\\]+/appointments/${id}\\r\\n`));
+        expect(flat).toMatch(new RegExp(`\\r\\nURL:https?://[^\\s]+/appointments/${id}\\r\\n`));
         expect(body.endsWith('END:VCALENDAR\r\n')).toBe(true);
 
         // กดลิงก์จริง → เบราว์เซอร์ดาวน์โหลด (attachment) ไม่ออกจากหน้า

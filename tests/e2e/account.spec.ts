@@ -4,7 +4,7 @@
 // เรื่องราวรันที่ mobile-390 ตัวเดียว (ตรรกะไม่ขึ้นกับความกว้าง) · เลย์เอาต์ทุกความกว้างอยู่ใน r5-layout.spec.ts
 import { expect, GOOD_PIN, OTHER_PIN, test } from './support/auth';
 import { account, deleteAccountInUi, loginApi, userById, userIdByUsername } from './support/account';
-import { call, createApptApi, daysAhead, stubTiles } from './support/appt';
+import { call, createApptApi, daysAhead } from './support/appt';
 import { createGroupApi, joinViaApiCode } from './support/groups';
 import { watchConsole } from './support/fixtures';
 import { LOCALES, msg } from './support/messages';
@@ -50,7 +50,6 @@ for (const locale of LOCALES) {
     test.setTimeout(120_000);
     const owner = await account(newDevice, baseURL!, { locale, label: 'Own' });
     const me = await account(newDevice, baseURL!, { locale, label: 'Del' });
-    await stubTiles(owner.context);
     const gid = await createGroupApi(owner.context.request, `R5 del ${Date.now().toString(36)}`);
     // ชวนตรง → รับ (เพื่อนได้แจ้งเตือน "… ตอบรับคำเชิญ" ที่อ้างชื่อเรา)
     const inv = await call<{ invite: { id: string } }>(owner.context.request, 'POST', `/api/groups/${gid}/invites/direct`, { username: me.username });

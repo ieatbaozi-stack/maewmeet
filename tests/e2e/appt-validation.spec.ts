@@ -1,7 +1,7 @@
 // R4B-1/5/6/9 — ตรวจรับข้อมูล (API + UI) · เพดาน 100 นัด · a11y smoke · hydration · mobile-390 ตัวเดียว (th)
 //
 //  - เวลาเริ่มย้อนหลัง · ลิงก์ javascript:/http:/data: · ชื่อ >80 · พิกัดไม่คู่ · mass assignment · เกินเพดานต่อกลุ่ม (seed ด้วย SQL) · ยกเลิกคืนโควตา
-//  - Nominatim: เซิร์ฟเวอร์ E2E ปิดค้นหา (PLACE_SEARCH_ENABLED=false) → ทดสอบ "ปิดชั่วคราว" + วางลิงก์/พิกัด เท่านั้น
+//  - R13: ไม่มีค้นหาสถานที่ → ช่องลิงก์แผนที่ (place-link) ตรวจรูปแบบตอน blur และตอนกดบันทึก
 import { expect, test } from './support/auth';
 import { watchConsole } from './support/fixtures';
 import { go } from './support/groups';
@@ -59,11 +59,11 @@ test('API: ตรวจรับข้อมูลนัด (ย้อนหล�
   }
 });
 
-test('UI: ฟอร์มนัด — ชื่อตัดที่ 80 · ลิงก์ javascript:/http: ถูกปฏิเสธในแผงวาง · พิกัดผิด · ลิงก์ https เก็บได้ · เริ่มย้อนหลัง', async ({ newDevice, baseURL }) => {
+test('UI: ฟอร์มนัด — ชื่อตัดที่ 80 · ลิงก์ javascript:/http: ถูกปฏิเสธในช่องลิงก์ · พิกัดผิด · ลิงก์ https เก็บได้ · เริ่มย้อนหลัง', async ({ newDevice, baseURL }) => {
   test.setTimeout(120_000);
   const { gid, members } = await makeScene(newDevice, baseURL!, { locale, labels: ['Ann', 'Ben'] });
   const a = members[0]!;
-  const problems = watchConsole(a.page, (m) => (/status of (4\d\d)/.test(m.text) && /\/api\//.test(m.url ?? '')) || (/status of 503/.test(m.text) && /\/api\/places\/search/.test(m.url ?? '')));
+  const problems = watchConsole(a.page, (m) => /status of (4\d\d)/.test(m.text) && /\/api\//.test(m.url ?? ''));
   await go(a.page, `/groups/${gid}/appointments`);
   await a.page.getByTestId('appt-list-create').click();
   const form = a.page.getByTestId('appt-form');
@@ -73,28 +73,25 @@ test('UI: ฟอร์มนัด — ชื่อตัดที่ 80 · ล�
   expect([...(await a.page.getByTestId('appt-title').inputValue())]).toHaveLength(80);
   await expect(form).toContainText('80/80');
 
-  await a.page.getByTestId('place-paste-toggle').click();
-  const input = a.page.getByTestId('place-paste-input');
+  // R13: ไม่มีปุ่มค้นหา · ช่องลิงก์เห็นทันที · ข้อผิดพลาดขึ้นตอนออกจากช่อง (blur)
+  const input = a.page.getByTestId('place-link');
+  await expect(input).toBeVisible();
   for (const u of ['javascript:alert(1)', 'data:text/html;base64,PHNjcmlwdD4=', 'http://www.google.com/maps/@13.7,100.5,15z', 'ไม่ใช่ลิงก์']) {
     await input.fill(u);
-    await a.page.getByTestId('place-paste-submit').click();
-    await expect(a.page.getByTestId('place-paste-error'), u).toContainText(T('errors.INVALID_MAP_URL'));
-    await expect(a.page.getByTestId('place-chip')).toHaveCount(0);
+    await input.blur();
+    await expect(a.page.getByTestId('place-link-error'), u).toContainText(T('errors.INVALID_MAP_URL'));
+    await expect(input).toHaveAttribute('aria-invalid', 'true');
   }
   await input.fill('999, 999');
-  await a.page.getByTestId('place-paste-submit').click();
-  await expect(a.page.getByTestId('place-paste-error')).toContainText(T('errors.INVALID_COORDINATES'));
+  await input.blur();
+  await expect(a.page.getByTestId('place-link-error')).toContainText(T('errors.INVALID_COORDINATES'));
   await input.fill('https://maps.app.goo.gl/abc123');
-  await expect(a.page.getByTestId('place-paste-error')).toHaveCount(0);
-  await a.page.getByTestId('place-paste-submit').click();
-  await expect(a.page.getByTestId('place-chip')).toBeVisible();
-  await expect(a.page.getByTestId('place-chip-sub')).toContainText('maps.app.goo.gl');
-  await a.page.getByTestId('place-clear').click();
-  await expect(a.page.getByTestId('place-chip')).toHaveCount(0);
-
-  await a.page.getByTestId('place-query').fill('ก');
-  await a.page.getByTestId('place-search').click();
-  await expect(a.page.getByTestId('place-too-short')).toBeVisible();
+  await input.blur();
+  await expect(a.page.getByTestId('place-link-error')).toHaveCount(0);
+  await expect(input).not.toHaveAttribute('aria-invalid', 'true');
+  await input.fill('');
+  await input.blur();
+  await expect(a.page.getByTestId('place-link-error')).toHaveCount(0);
 
   await a.page.getByTestId('appt-title').fill('');
   await a.page.getByTestId('appt-submit').click();

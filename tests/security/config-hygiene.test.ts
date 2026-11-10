@@ -49,7 +49,7 @@ describe('CSP (production) — ไม่มี source กว้างเกิ�
     expect(d.get('frame-ancestors')).toEqual(["'none'"]);
     expect(d.get('base-uri')).toEqual(["'self'"]);
     expect(d.get('form-action')).toEqual(["'self'"]);
-    expect(d.get('img-src')).toEqual(["'self'", 'data:', 'blob:', 'https://tile.openstreetmap.org']);
+    expect(d.get('img-src')).toEqual(["'self'", 'data:', 'blob:']);
   });
 });
 

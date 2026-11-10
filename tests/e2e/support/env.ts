@@ -22,7 +22,6 @@ export function e2eServerEnv(): Record<string, string> {
     ...e2ePepperEnv(),
     // S4/S5: เทสต์ให้ทุก "เครื่อง" มี IP สมมติผ่าน x-real-ip (tests/e2e/support/auth.ts) → ต้องบอกแอปว่าเชื่อ header นี้ (จำลองว่าอยู่หลัง proxy)
     TRUST_PROXY_HEADERS: '1',
-    PLACE_SEARCH_ENABLED: process.env.PLACE_SEARCH_ENABLED || 'false',
     NEXT_TELEMETRY_DISABLED: '1',
   };
 }

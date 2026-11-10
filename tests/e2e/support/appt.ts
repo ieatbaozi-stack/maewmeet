@@ -1,8 +1,7 @@
 // ตัวช่วย E2E ของ R4B (นัด + RSVP + สถานที่ + แจ้งเตือน + หน้าหลัก) — ตั้งฉากผ่าน API/DB ส่วนที่ไม่ใช่เป้าหมาย
 //
 // ข้อตกลง (เหมือน R3/R4A): ไม่มีนาฬิกาจำลอง → ใช้ "วันที่สัมพัทธ์กับวันนี้ (Asia/Bangkok)" เท่านั้น
-// Nominatim: เซิร์ฟเวอร์ E2E ตั้ง PLACE_SEARCH_ENABLED=false (env.ts · CI ก็ false) → เทสต์ครอบคลุมเฉพาะ "ปิดชั่วคราว" + "วางลิงก์/พิกัด"
-//   ไม่มีการยิงเครือข่ายจริง · tile แผนที่ (OSM) ถูกดัก (stubTiles) ให้ไม่พึ่งเครือข่ายและไม่ยิง tile server จริงจาก CI
+// R13: ไม่มีค้นหาสถานที่และไม่มีภาพแผนที่ (ไม่มี tile OSM) → เทสต์ไม่ต้องดัก route ใด ๆ · ปุ่ม Google/Apple Maps เป็นลิงก์ธรรมดา ไม่มีการยิงเครือข่ายตอนโหลดหน้า
 import { randomUUID } from 'node:crypto';
 import { createClient, type Client } from '@libsql/client';
 import type { APIRequestContext, BrowserContext, Page } from '@playwright/test';
@@ -70,12 +69,6 @@ export const bangkokHour = (): number => Number(new Intl.DateTimeFormat('en-GB',
 type Device = { context: BrowserContext; page: Page };
 export type Member = Device & { p: Person; userId: string };
 
-/** แผนที่ OSM: ดัก tile → PNG 1×1 (ไม่ยิงเครือข่ายจริง) · fail=true → ทุก tile ล้ม (ทดสอบ "แผนที่โหลดไม่ได้") */
-const PNG_1X1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
-export async function stubTiles(context: BrowserContext, opts: { fail?: boolean } = {}): Promise<void> {
-  await context.route('https://tile.openstreetmap.org/**', (route) => (opts.fail ? route.abort('failed') : route.fulfill({ status: 200, contentType: 'image/png', body: PNG_1X1 })));
-}
-
 export type Scene = { gid: string; groupName: string; members: Member[] };
 
 /**
@@ -91,7 +84,6 @@ export async function makeScene(
   for (const [i, label] of o.labels.entries()) {
     const d = await newDevice();
     await setPrefs(d.context, baseURL, { locale: o.locale, theme: o.theme ?? 'light' });
-    await stubTiles(d.context);
     const username = uniqueUsername(label.toLowerCase().slice(0, 4));
     const displayName = o.displayNames?.[i] ?? `${label} ${Math.random().toString(16).slice(2, 8)}`;
     await signupViaApi(d.context.request, { username, displayName });
