@@ -19,6 +19,7 @@ const SECTIONS = [
   { key: "see", items: ["owner", "members", "note", "outsiders", "groups", "superAdmin"] },
   { key: "places", items: ["search", "tiles", "noTracking"] },
   { key: "line", items: ["body"] },
+  { key: "calendar", items: ["body"] },
   { key: "retention", items: ["busy", "notifications", "sessions", "security", "groups", "providers", "line"] },
   { key: "delete", items: ["how", "removed", "kept", "noRestore"] },
   { key: "contact", items: ["body"] },

@@ -16,10 +16,11 @@ import { Sheet } from "@/components/shell/Sheet";
 import { format, type CalendarLocale } from "@/lib/calendar";
 import type { AppointmentDetailDto, PersonDto } from "@/lib/data/serializers/appointments";
 import { callApiFull } from "./api";
+import { AddToCalendarSheet } from "./AddToCalendarSheet";
 import { AppointmentFormSheet } from "./AppointmentFormSheet";
 import { ANSWER_ICON, RsvpControl } from "./RsvpControl";
 import { RsvpConfirm } from "./RsvpConfirm";
-import { actionFailureRef, appointmentWhen, applyRsvp, apptPhase, coordsText, rsvpClosedReason, rsvpConfirmKind, showConflictBadge, type Rsvp } from "./model";
+import { actionFailureRef, appointmentWhen, applyRsvp, apptPhase, coordsText, rsvpClosedReason, rsvpConfirmKind, showAddToCalendar, showConflictBadge, type Rsvp } from "./model";
 
 /** ยกเลิกนัดตอนนี้ยังไม่ส่งแจ้งเตือน (ADR 0007 v1 มีแค่ appointment.created) — ข้อความใน dialog จึงบอกว่า "ไม่แจ้ง" */
 export const CANCEL_NOTIFIES = false;
@@ -29,10 +30,12 @@ export interface AppointmentDetailProps {
   me: PersonDto;
   /** epoch ms ฝั่งเซิร์ฟเวอร์ ณ ตอน render (ให้ hydrate ตรงกัน) */
   nowMs: number;
+  /** origin ของแอป ไม่มี `/` ท้าย — ใส่ในลิงก์นัดที่ส่งให้ปฏิทิน (R12) */
+  appOrigin: string;
 }
 
 /** หน้ารายละเอียดนัด (X60) — ข้อมูลโหลดฝั่งเซิร์ฟเวอร์ · RSVP optimistic + rollback · ปุ่มแก้/ยกเลิกตามสิทธิ์ที่เซิร์ฟเวอร์ส่ง (ซ่อนปุ่มไม่ใช่การป้องกัน) */
-export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps) {
+export function AppointmentDetail({ initial, me, nowMs, appOrigin }: AppointmentDetailProps) {
   const t = useTranslations();
   const locale = useLocale() as CalendarLocale;
   const router = useRouter();
@@ -42,6 +45,7 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
   const [rsvpError, setRsvpError] = useState<string | null>(null);
   const [saved, setSaved] = useState<Rsvp | null>(null);
   const [editing, setEditing] = useState(false);
+  const [calOpen, setCalOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
@@ -232,6 +236,12 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
           <section className="appt-section" aria-labelledby={`${uid}-rv`} data-testid="appt-rsvp-section">
             <h2 id={`${uid}-rv`}>{t("appointments.rsvp.question")}</h2>
             <RsvpControl value={a.rsvp.mine} closed={closed} saving={saving} error={rsvpError} saved={saved} labelledBy={`${uid}-rv`} onPick={onPick} />
+            {showAddToCalendar(a, saving) ? (
+              <button type="button" className="btn btn-secondary appt-cal-add" data-testid="appt-add-calendar" onClick={() => setCalOpen(true)}>
+                <Icon name="calendar-plus" />
+                <span>{t("appointments.calendar.add")}</span>
+              </button>
+            ) : null}
             <div className="appt-who" style={{ borderTop: 0, paddingTop: 0 }}>
               <p className="rsvp-counts" data-testid="appt-rsvp-counts">
                 <Count answer="going" label={t("appointments.rsvp.summary.going", { count: c.going })} />
@@ -330,6 +340,8 @@ export function AppointmentDetail({ initial, me, nowMs }: AppointmentDetailProps
           onGone={() => router.replace("/")}
         />
       ) : null}
+
+      {calOpen && showAddToCalendar(a, saving) ? <AddToCalendarSheet appointment={a} appOrigin={appOrigin} onClose={() => setCalOpen(false)} /> : null}
 
       {confirm ? (
         <RsvpConfirm
