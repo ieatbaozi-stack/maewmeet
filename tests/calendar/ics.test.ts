@@ -375,7 +375,7 @@ describe('R12.1 §1.2 ลิงก์แผนที่', () => {
 
     it('Google ไม่ส่งช่อง mapUrl เลย (UI ปัจจุบัน)', () => {
       const e = event({ title: 'Lunch', placeName: 'Siam' });
-      expect(googleCalendarUrl({ id: e.id, title: e.title, placeName: e.placeName, startAt: e.startAt, endAt: e.endAt, tz: e.tz, appOrigin: e.appOrigin })).toBe(R12_GOOGLE);
+      expect(googleCalendarUrl({ id: e.id, title: e.title, placeName: e.placeName, mapUrl: null, startAt: e.startAt, endAt: e.endAt, tz: e.tz, appOrigin: e.appOrigin })).toBe(R12_GOOGLE);
     });
   });
 

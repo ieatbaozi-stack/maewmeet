@@ -16,6 +16,7 @@ const slot = (d: string) => ({ startDate: d, startTime: '19:00', endDate: d, end
 // ชื่อ/สถานที่ยาวสุดที่ระบบยอมรับ (ชื่อ ≤ 80, สถานที่ ≤ 120) ไม่มีช่องว่างให้ตัดบรรทัด — ทดสอบการล้น
 const LONG_TITLE = `Title${'x'.repeat(75)}`;
 const LONG_PLACE = `Place${'y'.repeat(115)}`;
+const MAP_URL = 'https://www.openstreetmap.org/?mlat=13.7461&mlon=100.5347#map=17/13.7461/100.5347';
 
 const UA = {
   iphone: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
@@ -125,6 +126,8 @@ for (const locale of LOCALES) {
         expect(gUrl.searchParams.get('text')).toBe(LONG_TITLE);
         expect(gUrl.searchParams.get('location')).toBe(LONG_PLACE);
         expect(gUrl.searchParams.get('ctz')).toBe('Asia/Bangkok');
+        // ไม่มีลิงก์แผนที่ → details มีแค่ลิงก์นัด บรรทัดเดียว (R12.1-3)
+        expect(gUrl.searchParams.get('details')).toMatch(new RegExp(`^https?://[^\\s]+/appointments/${id}$`));
         // 19:00–21:00 กรุงเทพ = 12:00–14:00 UTC
         expect(gUrl.searchParams.get('dates')).toMatch(/^\d{8}T120000Z\/\d{8}T140000Z$/);
 
@@ -148,6 +151,38 @@ for (const locale of LOCALES) {
         await checkLayout(page, testInfo, 'r12-add-to-calendar-page', locale, theme);
       });
 
+      test('R12.1-1/2: นัดที่มีลิงก์แผนที่ — .ics DESCRIPTION และ Google details มีลิงก์แผนที่ก่อนลิงก์นัด · คำบนปุ่ม/หัว sheet ใหม่ · ไม่ล้น ปุ่ม ≥ 44px', async ({ page, context, baseURL, user }, testInfo: TestInfo) => {
+        void user;
+        const problems = watchConsole(page);
+        const { id, sheet } = await openSheetFor(page, context, baseURL!, locale, theme, { mapUrl: MAP_URL, title: LONG_TITLE, placeName: LONG_PLACE });
+        await expect(page.getByRole('dialog')).toContainText(T(locale, 'sheetTitle'));
+
+        // Google: details = <mapUrl> ขึ้นบรรทัดใหม่ <ลิงก์นัด> · location ยังเป็นชื่อสถานที่
+        const gUrl = new URL((await sheet.getByTestId('cal-add-google').getAttribute('href'))!);
+        const lines = gUrl.searchParams.get('details')!.split('\n');
+        expect(lines).toHaveLength(2);
+        expect(lines[0]).toBe(MAP_URL);
+        expect(lines[1]).toMatch(new RegExp(`/appointments/${id}$`));
+        expect(gUrl.searchParams.get('location')).toBe(LONG_PLACE);
+
+        // .ics: DESCRIPTION (unfold แล้ว) = <mapUrl>\n<ลิงก์นัด> · URL ยังเป็นลิงก์นัด · LOCATION ยังเป็นชื่อสถานที่
+        const body = (await (await page.request.get(`/api/appointments/${id}/calendar.ics`)).text()).replace(/\r\n /g, '');
+        const ics = body.split('\r\n');
+        const url = ics.find((l) => l.startsWith('URL:'))!.slice(4);
+        expect(url).toMatch(new RegExp(`/appointments/${id}$`));
+        expect(ics.find((l) => l.startsWith('DESCRIPTION:'))).toBe(`DESCRIPTION:${MAP_URL}\\n${url}`);
+        expect(ics).toContain(`LOCATION:${LONG_PLACE}`);
+        expect(ics.filter((l) => l.includes(MAP_URL)).length).toBe(1);
+
+        await noOverflow(page, `sheet+map ${locale}/${theme}`);
+        await checkLayout(page, testInfo, 'r12-1-add-to-calendar-sheet-map', locale, theme);
+        await page.keyboard.press('Escape');
+        await expect(sheet).toHaveCount(0);
+        await expect(page.getByTestId('appt-add-calendar')).toContainText(T(locale, 'add'));
+        await checkLayout(page, testInfo, 'r12-1-add-to-calendar-page-map', locale, theme);
+        expect(problems).toEqual([]);
+      });
+
       test('R12-2/4: .ics ตอบ 200 text/calendar จาก session จริง · ดาวน์โหลดจริงได้ชื่อไฟล์คงที่ · ไม่ล็อกอิน 401 / 303', async ({ page, context, baseURL, user, playwright }) => {
         void user;
         const { id, sheet } = await openSheetFor(page, context, baseURL!, locale, theme);
@@ -162,8 +197,14 @@ for (const locale of LOCALES) {
         const body = await res.text();
         expect(body.startsWith('BEGIN:VCALENDAR\r\n')).toBe(true);
         expect(body).toContain(`UID:${id}@maewmeet\r\n`);
-        expect(body).toMatch(/\r\nDTSTART:\d{8}T120000Z\r\n/); // 19:00 กรุงเทพ
-        expect(body).toMatch(/\r\nDTEND:\d{8}T140000Z\r\n/);
+        // R12.1 §1.4: เวลาท้องถิ่น 19:00–21:00 กรุงเทพ + VTIMEZONE ที่ TZID ตรงกัน
+        expect(body).toMatch(/\r\nDTSTART;TZID=Asia\/Bangkok:\d{8}T190000\r\n/);
+        expect(body).toMatch(/\r\nDTEND;TZID=Asia\/Bangkok:\d{8}T210000\r\n/);
+        expect(body).toMatch(/\r\nBEGIN:VTIMEZONE\r\nTZID:Asia\/Bangkok\r\n/);
+        expect(body).toContain('\r\nEND:VTIMEZONE\r\n');
+        expect(body).not.toMatch(/DT(START|END):\d{8}T\d{6}Z/);
+        // ไม่มีลิงก์แผนที่ → DESCRIPTION มีแค่ลิงก์นัด (R12.1-3)
+        expect(body.replace(/\r\n /g, '')).toMatch(new RegExp(`\\r\\nDESCRIPTION:https?://[^\\s\\\\]+/appointments/${id}\\r\\n`));
         expect(body.endsWith('END:VCALENDAR\r\n')).toBe(true);
 
         // กดลิงก์จริง → เบราว์เซอร์ดาวน์โหลด (attachment) ไม่ออกจากหน้า
