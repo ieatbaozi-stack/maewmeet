@@ -461,6 +461,115 @@ describe('R14-4 — แก้/ลบ 3 ขอบเขต', () => {
   });
 });
 
+describe('R14a review fixes (security M1, M2, L1, Info 2 · R14_CONTRACT §10)', () => {
+  const ten = async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < 10; i++) ids.push((await mustCreate(a, { weekdays: [1], fromWeek: '2026-11-16', toWeek: '2026-12-21' })).routine.id);
+    h.clock.advance(10 * 60_000); // ข้าม rate limit 20/10 นาที
+    return ids;
+  };
+
+  it('M1 วงของ security: แยก → แก้ในที่ให้เหลือ 0 วัน = 400 NO_OCCURRENCE (วงหยุดที่ขั้นนี้) · ชุดเดิมไม่เปลี่ยน', async () => {
+    const [r0] = await ten();
+    const split = await patch<Updated>(a.c, '/api/me/busy-routines/' + r0, body({ weekdays: [1], fromWeek: '2026-11-16', toWeek: '2026-12-21', from: '2026-11-23' }));
+    expect(split.status).toBe(200);
+    const n = split.data.routine.id;
+    const before = await h.rows('SELECT * FROM busy_routine WHERE id = ?', [n]);
+    // ขั้น 3 ของ probe: แก้ชุด N ในที่เป็นสัปดาห์ 9 พ.ย. (จันทร์ผ่านแล้ว) → 0 วันในอนาคต แต่ end_date 15 พ.ย. ≥ วันนี้
+    const shrink = await patch(a.c, '/api/me/busy-routines/' + n, body({ weekdays: [1], fromWeek: '2026-11-09', toWeek: '2026-11-09' }));
+    expect([shrink.status, shrink.code, shrink.json.error!.params]).toEqual([400, 'VALIDATION', { fields: { weekdays: 'NO_OCCURRENCE' } }]);
+    expect(await h.rows('SELECT * FROM busy_routine WHERE id = ?', [n])).toEqual(before);
+    expect(await datesOf(n)).toEqual(['2026-11-23', '2026-11-30', '2026-12-07', '2026-12-14', '2026-12-21']);
+  });
+
+  it('M1 เพดานแข็ง 20: ครบ 10 → แยกได้อีก 10 ครั้ง (B12) → ครั้งที่ 11 = 409 {routines, max 20} ไม่เปลี่ยนอะไร · สร้างใหม่ = 409 {routines, max 10} · GET คืนครบ 20 ชุด', async () => {
+    const ids = await ten();
+    for (let i = 0; i < 10; i++) {
+      const s = await patch(a.c, '/api/me/busy-routines/' + ids[i], body({ weekdays: [1], fromWeek: '2026-11-16', toWeek: '2026-12-21', from: '2026-11-30' }));
+      expect(s.status, 'split ' + i + ' ' + JSON.stringify(s.json)).toBe(200);
+    }
+    h.clock.advance(10 * 60_000);
+    expect(await h.count("busy_routine WHERE user_id = ? AND end_date >= '2026-11-11'", [a.id])).toBe(20);
+    const snap = async () => [await h.rows('SELECT * FROM busy_routine ORDER BY id'), await h.rows('SELECT id, routine_id FROM busy_block ORDER BY id')];
+    const before = await snap();
+    const over = await patch(a.c, '/api/me/busy-routines/' + ids[0], body({ weekdays: [1], fromWeek: '2026-11-16', toWeek: '2026-11-29', from: '2026-11-23' }));
+    expect([over.status, over.code, over.json.error!.params]).toEqual([409, 'LIMIT_REACHED', { limit: 'routines', max: 20 }]);
+    expect(await snap()).toEqual(before);
+    const create11 = await create(a, { weekdays: [2], toWeek: '2026-11-16' });
+    expect([create11.status, create11.json.error!.params]).toEqual([409, { limit: 'routines', max: 10 }]);
+    const list = await get<{ routines: RoutineView[]; truncated: boolean }>(a.c, '/api/me/busy-routines');
+    expect([list.data.routines.length, list.data.truncated]).toEqual([20, false]);
+  });
+
+  it('GET: ชุดที่จบแล้วคืนสูงสุด 50 (ใหม่สุดก่อน) + truncated · ชุดที่ยังไม่จบคืนครบเสมอ', async () => {
+    await mustCreate(a);
+    const vals: string[] = [];
+    const args: (string | number)[] = [];
+    for (let i = 0; i < 55; i++) {
+      vals.push("(?, ?, 0, 1, 540, 600, 'weeks', '2026-08-03', ?, 1, 1)");
+      args.push(newId(), a.id, '2026-08-' + String(10 + (i % 19)).padStart(2, '0'));
+    }
+    await h.rows('INSERT INTO busy_routine (id, user_id, all_day, weekdays, start_min, end_min, range_kind, start_date, end_date, created_at, updated_at) VALUES ' + vals.join(','), args);
+    const list = await get<{ routines: RoutineView[]; truncated: boolean }>(a.c, '/api/me/busy-routines');
+    expect([list.data.routines.length, list.data.truncated]).toEqual([51, true]);
+    expect(list.data.routines[0]!.endDate).toBe('2026-11-29'); // ที่ยังไม่จบมาก่อน
+    expect(list.data.routines[1]!.endDate).toBe('2026-08-28'); // จบแล้ว ใหม่สุดก่อน
+  });
+
+  it('Info 2: PATCH ส่ง tz ใหม่ (Etc/GMT+12 = ยังเป็น 10 พ.ย.) ไม่ลบแถวเมื่อวานของ tz เดิม และไม่สร้างซ้ำ', async () => {
+    h.clock.set(bkk(2026, 11, 10, 10));
+    const r = await mustCreate(a, { weekdays: [1, 2, 3, 4, 5, 6, 7], fromWeek: '2026-11-09', toWeek: '2026-11-09' });
+    const yesterday = (await rowsOf(r.routine.id)).find((x) => x.local_start_date === '2026-11-10')!;
+    h.clock.set(NOW); // 11 พ.ย. 10:00 เวลาไทย = 10 พ.ย. 15:00 ที่ UTC−12
+    const u = await patch(a.c, '/api/me/busy-routines/' + r.routine.id, body({ weekdays: [1, 2, 3, 4, 5, 6, 7], fromWeek: '2026-11-09', toWeek: '2026-11-09', tz: 'Etc/GMT+12' }));
+    expect(u.status, JSON.stringify(u.json)).toBe(200);
+    const rows = await rowsOf(r.routine.id);
+    expect(rows.filter((x) => x.local_start_date === '2026-11-10')).toEqual([yesterday]);
+    expect(rows.map((x) => x.local_start_date)).toEqual(['2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15']);
+  });
+
+  it('L1: หยุดตั้งแต่ / ลบทั้งหมด ตรวจบัญชี active ในคำสั่งเดียวกับการเขียน (เรียก repo ตรงหลังระงับบัญชี → ไม่มีอะไรเปลี่ยน)', async () => {
+    const { deleteOwnRoutine, setOwnRoutineEndGuarded } = await import('@/lib/data/repos/busy-routine');
+    const r = await mustCreate(a);
+    const [rule] = await h.rows<{ updated_at: number }>('SELECT updated_at FROM busy_routine WHERE id = ?', [r.routine.id]);
+    await h.rows("UPDATE user SET status = 'suspended' WHERE id = ?", [a.id]);
+    const res = await h.db.transaction(async (tx) => [
+      await setOwnRoutineEndGuarded(tx, { id: r.routine.id, userId: a.id, expectedUpdatedAt: rule!.updated_at, endDate: '2026-11-22' }, NOW),
+      await deleteOwnRoutine(tx, r.routine.id, a.id),
+    ]);
+    expect(res).toEqual([null, null]);
+    expect(await h.count('busy_routine WHERE id = ? AND end_date = ?', [r.routine.id, '2026-11-29'])).toBe(1);
+    expect(await rowsOf(r.routine.id)).toHaveLength(10);
+  });
+
+  it('M2: availability ที่มีชิ้นถูกอ้าง > 5,000 → busy[] ส่ง 5,000 + detailTruncated true · วันว่างยังถูก (truncated false, คนนั้นไม่ว่าง) · ปกติ detailTruncated false', async () => {
+    const gid = await makeGroup(a);
+    await join(a, b, gid);
+    const t0 = bkk(2026, 11, 20, 9);
+    for (let i = 0; i < 5001; i += 500) {
+      const vals: string[] = [];
+      const args: (string | number)[] = [];
+      for (let j = i; j < Math.min(5001, i + 500); j++) {
+        vals.push("(?, ?, NULL, NULL, 0, ?, ?, '2026-11-20', '2026-11-20', 'Asia/Bangkok', 0, 1, 1)");
+        args.push(newId(), a.id, t0 + j * 5_000, t0 + j * 5_000 + 2_500); // 5001 × 5 วินาที ≈ 7 ชม. อยู่ในหน้าต่าง 08–22
+      }
+      await h.rows('INSERT INTO busy_block (id, user_id, title, note, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at) VALUES ' + vals.join(','), args);
+    }
+    type Av = { busy: unknown[]; truncated: boolean; detailTruncated: boolean; days: { date: string; segments: unknown[]; blockers: { userId: string; itemIdx: number[] }[] }[] };
+    const r = await get<Av>(b.c, '/api/groups/' + gid + '/availability?from=2026-11-20&to=2026-11-20');
+    expect(r.status).toBe(200);
+    expect([r.data.truncated, r.data.detailTruncated, r.data.busy.length]).toEqual([false, true, 5000]);
+    const day = r.data.days[0]!;
+    // แถวที่ 5,001 (ไม่ถูกส่ง) ยังถูกนับ: ช่วงว่างเริ่มตรงปลายของแถวนั้นพอดี
+    expect((day.segments as { startAt: number; end: string }[]).map((x) => [x.startAt, x.end])).toEqual([[t0 + 5000 * 5_000 + 2_500, '22:00']]);
+    expect(day.blockers).toHaveLength(1);
+    expect(day.blockers[0]!.itemIdx).toHaveLength(5000);
+    expect(Math.max(...day.blockers[0]!.itemIdx)).toBe(4999);
+    const ok = await get<Av>(b.c, '/api/groups/' + gid + '/availability?from=2026-11-21&to=2026-11-21');
+    expect([ok.data.truncated, ok.data.detailTruncated]).toEqual([false, false]);
+  });
+});
+
 describe('R14-5 — เจ้าของเท่านั้น', () => {
   it('คนอื่น / super admin: PATCH/DELETE routine ของ a = 404 · แก้/ลบวันของ a ผ่าน /api/me/busy/:id = 404 · ไม่มีอะไรเปลี่ยน (ไม่มี skip)', async () => {
     const root = await person(h, 'root', { admin: true });

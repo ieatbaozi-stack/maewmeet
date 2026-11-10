@@ -42,6 +42,7 @@ import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
 import {
   BUSY_NOTE_MAX,
+  BUSY_ROUTINE_HARD_MAX_ACTIVE,
   BUSY_ROUTINE_LIST_MAX,
   BUSY_ROUTINE_MAX_ACTIVE,
   BUSY_ROUTINE_MAX_AHEAD_MONTHS,
@@ -209,12 +210,14 @@ function writeOf(plan: RoutinePlan, v: { title?: string | null | undefined; note
   };
 }
 
-const rowsOf = (plan: RoutinePlan, skip: ReadonlySet<string> = new Set()) =>
+/** แถวที่จะ insert: เว้นวันใน skip และวันก่อน fromDate (Info 2: วันนี้ของ tz เดิม — ไม่สร้างซ้ำวันที่ไม่ได้ลบ) */
+const rowsOf = (plan: RoutinePlan, skip: ReadonlySet<string> = new Set(), fromDate?: string) =>
   plan.rows
-    .filter((r) => !skip.has(r.localStartDate))
+    .filter((r) => !skip.has(r.localStartDate) && (fromDate === undefined || r.localStartDate >= fromDate))
     .map((r) => ({ id: newId(), startAt: r.startAt, endAt: r.endAt, localStartDate: r.localStartDate, localEndDate: r.localEndDate }));
 
-const limitRoutines = () => new AppError('LIMIT_REACHED', { limit: 'routines', max: BUSY_ROUTINE_MAX_ACTIVE });
+const limitRoutines = (max: number = BUSY_ROUTINE_MAX_ACTIVE) => new AppError('LIMIT_REACHED', { limit: 'routines', max });
+const noOccurrence = () => new AppError('VALIDATION', { fields: { weekdays: 'NO_OCCURRENCE' } });
 const limitRows = () => new AppError('LIMIT_REACHED', { limit: 'routineRows', max: BUSY_ROUTINE_MAX_FUTURE_ROWS });
 
 /** INSERT กฎถูกปฏิเสธ: เต็ม 10 → LIMIT_REACHED · อื่น ๆ (บัญชีเปลี่ยนสถานะระหว่างทาง) → CONFLICT */
@@ -276,8 +279,16 @@ export async function createRoutine(actor: Actor, input: CreateRoutineInput, ctx
 export async function listMyRoutines(actor: Actor, ctx: DataCtx): Promise<{ routines: RoutineOwnView[]; truncated: boolean }> {
   authorize(actor, 'busy.routine.list.own', { type: 'none' });
   const me = asUser(actor);
-  const rows = await listOwnRoutines(ctx.db, me.id, ctx.now, todayIn(DEFAULT_TZ, ctx.now), BUSY_ROUTINE_LIST_MAX + 1);
-  return { routines: rows.slice(0, BUSY_ROUTINE_LIST_MAX).map((r) => toRoutineOwnView(r)), truncated: rows.length > BUSY_ROUTINE_LIST_MAX };
+  const today = todayIn(DEFAULT_TZ, ctx.now);
+  // M1: ชุดที่ยังไม่จบคืนครบทุกชุดเสมอ (มีผลกับวันว่าง — ห้ามซ่อน) · truncated = ชุดที่จบแล้วเกิน BUSY_ROUTINE_LIST_MAX เท่านั้น
+  const [active, ended] = await Promise.all([
+    listOwnRoutines(ctx.db, me.id, ctx.now, today, 'active'),
+    listOwnRoutines(ctx.db, me.id, ctx.now, today, 'ended', BUSY_ROUTINE_LIST_MAX + 1),
+  ]);
+  return {
+    routines: [...active, ...ended.slice(0, BUSY_ROUTINE_LIST_MAX)].map((r) => toRoutineOwnView(r)),
+    truncated: ended.length > BUSY_ROUTINE_LIST_MAX,
+  };
 }
 
 export type UpdateRoutineResult = {
@@ -304,12 +315,15 @@ export async function updateRoutine(actor: Actor, id: string, input: UpdateRouti
   if (!current) throw new AppError('NOT_FOUND');
   const tz = input.tz ?? current.tz;
   const spec = { ...input, tz };
-  const today = todayIn(tz, now);
+  // Info 2 (security R14a): "วันนี้" ของการแก้ = วันนี้ใน tz *เดิม* ของชุด — ลบ/ขยายใหม่ตั้งแต่วันนั้น (tz ใหม่ในคำขอไม่ทำให้แถวของเมื่อวานถูกลบ)
+  const today = todayIn(current.tz, now);
   const fromStart = from === undefined ? undefined : routinePeriodStart(from, current.rangeKind);
   const split = fromStart !== undefined && fromStart > today && fromStart > current.startDate;
   if (split && fromStart > current.endDate) throw new AppError('INVALID_RANGE', { field: 'from', kind: 'dates' });
 
   const plan = split ? planOrThrow(spec, now, { startDate: fromStart }) : planOrThrow(spec, now, { requireOccurrence: false });
+  // M1 (security R14a, §10): แก้ในที่จนไม่เหลือวันในอนาคต = ชุดว่างที่ยังนับว่า "ไม่จบ" → ปฏิเสธ (ให้ใช้ลบ/หยุดตั้งแต่แทน) · นับก่อนตัด skip (วันที่ผู้ใช้ลบเองไม่ทำให้ error)
+  if (!split && !plan.rows.some((r) => r.localStartDate >= today)) throw noOccurrence();
   const write = writeOf(plan, input);
   const shared = { title: write.title, note: write.note, hideDetail: write.hideDetail, allDay: write.allDay, tz: write.tz };
   await takeUserSlot(ctx.db, BUSY_ROUTINE_RATE_LIMIT, me.id, now);
@@ -318,13 +332,13 @@ export async function updateRoutine(actor: Actor, id: string, input: UpdateRouti
     if (!split) {
       const updated = await updateOwnRoutineGuarded(
         tx,
-        { id, userId: me.id, expectedUpdatedAt: current.updatedAt, write, cap: BUSY_ROUTINE_MAX_ACTIVE, today: plan.today },
+        { id, userId: me.id, expectedUpdatedAt: current.updatedAt, write, cap: BUSY_ROUTINE_MAX_ACTIVE, today },
         now,
       );
-      if (!updated) throw await whyUpdateRejected(tx, current, me.id, plan.today, write.endDate);
+      if (!updated) throw await whyUpdateRejected(tx, current, me.id, today, write.endDate);
       const skip = new Set(await listRoutineSkips(tx, id, me.id));
-      await deleteRoutineRowsFrom(tx, { routineId: id, userId: me.id, fromDate: plan.today });
-      const rows = rowsOf(plan, skip);
+      await deleteRoutineRowsFrom(tx, { routineId: id, userId: me.id, fromDate: today });
+      const rows = rowsOf(plan, skip, today);
       if (!(await insertRoutineRowsIfUnderCap(tx, { userId: me.id, routineId: id, cap: BUSY_ROUTINE_MAX_FUTURE_ROWS, shared, rows }, now))) {
         throw await whyRowsRejected(tx, me.id, now, futureCount(rows, now));
       }
@@ -332,10 +346,12 @@ export async function updateRoutine(actor: Actor, id: string, input: UpdateRouti
     }
     const cutEnd = addDays(fromStart!, -1);
     const truncated = await setOwnRoutineEndGuarded(tx, { id, userId: me.id, expectedUpdatedAt: current.updatedAt, endDate: cutEnd }, now);
-    if (!truncated) throw await whyUpdateRejected(tx, current, me.id, plan.today);
-    // R14 B12 (boss 2026-11-11): ชุดใหม่จากการแยกเป็น routine เดิม → ไม่นับเพดาน 10 ชุด (สร้างใหม่ยังนับ) · เพดาน 1,500 แถวยังตรวจด้านล่าง
-    const next = await insertRoutineIfUnderCap(tx, { id: newId(), userId: me.id, write, cap: null, today: plan.today }, now);
-    if (!next) throw new AppError('CONFLICT'); // บัญชีเปลี่ยนสถานะระหว่างทาง
+    if (!truncated) throw await whyUpdateRejected(tx, current, me.id, today);
+    // R14 B12 (boss 2026-11-11): ชุดใหม่จากการแยกไม่นับเพดาน 10 ชุด (สร้างใหม่ยังนับ) · M1 (security R14a, §10): แต่ติดเพดานแข็ง 20 ชุดที่ยังไม่จบในคำสั่งเดียวกัน · 1,500 แถวยังตรวจด้านล่าง
+    const next = await insertRoutineIfUnderCap(tx, { id: newId(), userId: me.id, write, cap: BUSY_ROUTINE_HARD_MAX_ACTIVE, today }, now);
+    if (!next) {
+      throw (await countActiveRoutines(tx, me.id, today)) >= BUSY_ROUTINE_HARD_MAX_ACTIVE ? limitRoutines(BUSY_ROUTINE_HARD_MAX_ACTIVE) : new AppError('CONFLICT');
+    }
     await moveRoutineSkips(tx, { fromId: id, toId: next.id, userId: me.id, fromDate: fromStart! });
     const skip = new Set(await listRoutineSkips(tx, next.id, me.id));
     await deleteRoutineRowsFrom(tx, { routineId: id, userId: me.id, fromDate: fromStart! });

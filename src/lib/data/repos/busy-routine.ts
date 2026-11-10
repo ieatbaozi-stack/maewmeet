@@ -5,7 +5,7 @@
 //      routine ที่ยังไม่จบ (end_date >= วันนี้) < BUSY_ROUTINE_MAX_ACTIVE · แถว routine ในอนาคต + N ≤ BUSY_ROUTINE_MAX_FUTURE_ROWS
 //  - ไม่มีทางอ่านฝั่งแชร์: ไฟล์นี้ถูกเรียกจาก services/busy-routines.ts (เจ้าของ) และ account/maintenance เท่านั้น
 //  - busy_block.routine_id ไม่มี FK (migration 0005) → ลบแถวของ routine ด้วยคำสั่งชัดเจนใน tx เดียวกับการลบกฎ
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, lt, sql } from 'drizzle-orm';
 import { busyBlock, busyRoutine } from '@/db/schema';
 import type { DbOrTx, Tx } from '@/db/client';
 
@@ -71,21 +71,20 @@ function routineFromRaw(r: Record<string, unknown>): OwnRoutineRow {
 const one = (rows: Record<string, unknown>[]): OwnRoutineRow | null => (rows.length === 1 ? routineFromRaw(rows[0]!) : null);
 
 /**
- * สร้างกฎถ้าผู้ใช้ active และ routine ที่ยังไม่จบ < cap (cap = null: ไม่ตรวจ — ชุดใหม่จากการแยก R14 B12 · บัญชี active ยังตรวจ) — คำสั่งเดียว · **ต้องเป็นคำสั่งเขียนแรกของ tx** (ได้ write lock ก่อนอ่านอะไร — ADR 0010 §3 [S5])
+ * สร้างกฎถ้าผู้ใช้ active และ routine ที่ยังไม่จบ < cap (สร้าง = 10 · แยกชุด B12 = 20 — M1) — คำสั่งเดียว · **ต้องเป็นคำสั่งเขียนแรกของ tx** (ได้ write lock ก่อนอ่านอะไร — ADR 0010 §3 [S5])
  * คืน null = ถูกปฏิเสธ (ผู้เรียกวินิจฉัยด้วย countActiveRoutines หลัง rollback)
  */
 export async function insertRoutineIfUnderCap(
   tx: Tx,
-  input: { id: string; userId: string; write: RoutineWrite; /** null = ไม่ตรวจเพดานชุด (แยกชุดตอนแก้ "ตั้งแต่…" — R14 B12) */ cap: number | null; today: string },
+  input: { id: string; userId: string; write: RoutineWrite; /** สร้าง = 10 · แยกชุด (B12) = เพดานแข็ง 20 (M1) */ cap: number; today: string },
   now: number,
 ): Promise<OwnRoutineRow | null> {
   const w = input.write;
-  const capCond = input.cap === null ? sql`1` : sql`${activeRoutines(input.userId, input.today)} < ${input.cap}`;
   const rows = await tx.all<Record<string, unknown>>(sql`
     INSERT INTO busy_routine (${ROUTINE_COLS})
     SELECT ${input.id}, ${input.userId}, ${w.title}, ${w.note}, ${w.hideDetail ? 1 : 0}, ${w.allDay ? 1 : 0}, ${w.weekdays}, ${w.startMin}, ${w.endMin},
            ${w.rangeKind}, ${w.startDate}, ${w.endDate}, ${w.tz}, ${now}, ${now}
-    WHERE ${userActive(input.userId)} AND ${capCond}
+    WHERE ${userActive(input.userId)} AND ${activeRoutines(input.userId, input.today)} < ${input.cap}
     RETURNING ${ROUTINE_COLS}`);
   return one(rows);
 }
@@ -156,19 +155,26 @@ export async function findOwnRoutine(db: DbOrTx, id: string, userId: string): Pr
 export type OwnRoutineListRow = OwnRoutineRow & { remaining: number };
 
 /**
- * routine ของฉัน: ยังไม่จบก่อน (end_date >= today) แล้วเรียง start_date, id · remaining = แถวที่ยังไม่สิ้นสุด (end_at > now) ของชุดนั้น
- * ผู้เรียกขอ limit+1 เพื่อรู้ว่าถูกตัด
+ * routine ของฉัน: active = end_date >= today (เรียง start_date, id · ไม่จำกัด) · ended = จบแล้ว (ใหม่สุดก่อน · ผู้เรียกส่ง limit+1)
+ * remaining = แถวที่ยังไม่สิ้นสุด (end_at > now) ของชุดนั้น
  */
-export async function listOwnRoutines(db: DbOrTx, userId: string, now: number, today: string, limit: number): Promise<OwnRoutineListRow[]> {
+export async function listOwnRoutines(
+  db: DbOrTx,
+  userId: string,
+  now: number,
+  today: string,
+  which: 'active' | 'ended',
+  limit?: number,
+): Promise<OwnRoutineListRow[]> {
   const rows = await db
     .select({
       routine: busyRoutine,
       remaining: sql<number>`(SELECT count(*) FROM busy_block b WHERE b.user_id = ${busyRoutine.userId} AND b.routine_id = ${busyRoutine.id} AND b.end_at > ${now})`,
     })
     .from(busyRoutine)
-    .where(eq(busyRoutine.userId, userId))
-    .orderBy(sql`(${busyRoutine.endDate} < ${today})`, asc(busyRoutine.startDate), asc(busyRoutine.id))
-    .limit(limit);
+    .where(and(eq(busyRoutine.userId, userId), which === 'active' ? gte(busyRoutine.endDate, today) : lt(busyRoutine.endDate, today)))
+    .orderBy(...(which === 'active' ? [asc(busyRoutine.startDate), asc(busyRoutine.id)] : [desc(busyRoutine.endDate), asc(busyRoutine.id)]))
+    .limit(limit ?? -1);
   return rows.map((r) => ({ ...r.routine, remaining: Number(r.remaining) }));
 }
 
@@ -203,7 +209,7 @@ export async function updateOwnRoutineGuarded(
   return one(rows);
 }
 
-/** ตัดวันจบของกฎ (แยกชุด / หยุดตั้งแต่) — คำสั่งเดียว · เขียนแรกของ tx · ของผู้กระทำ + updated_at ยังเท่าที่อ่านมา */
+/** ตัดวันจบของกฎ (แยกชุด / หยุดตั้งแต่) — คำสั่งเดียว · เขียนแรกของ tx · ของผู้กระทำ + updated_at ยังเท่าที่อ่านมา + บัญชี active (L1) */
 export async function setOwnRoutineEndGuarded(
   tx: Tx,
   input: { id: string; userId: string; expectedUpdatedAt: number; endDate: string },
@@ -212,6 +218,7 @@ export async function setOwnRoutineEndGuarded(
   const rows = await tx.all<Record<string, unknown>>(sql`
     UPDATE busy_routine SET end_date = ${input.endDate}, updated_at = ${now}
      WHERE id = ${input.id} AND user_id = ${input.userId} AND updated_at = ${input.expectedUpdatedAt} AND end_date >= ${input.endDate}
+       AND ${userActive(input.userId)}
     RETURNING ${ROUTINE_COLS}`);
   return one(rows);
 }
@@ -243,11 +250,11 @@ export async function deleteRoutineRowsFrom(tx: Tx, input: { routineId: string; 
 
 /**
  * ลบทั้งหมด: แถวทุกวันของ routine (รวมอดีต — ADR 0012 §5 / ADR 0010 §10 ข้อ 5) แล้วกฎ (skip ตาม FK cascade) · คำสั่งเขียนแรกคือ DELETE
- * คืน null = ไม่มี/ไม่ใช่ของผู้กระทำ (ไม่มีอะไรถูกลบ เพราะแถวผูก user_id เดียวกัน) · ไม่ใช่ null = จำนวนแถว busy ที่ลบ
+ * ทั้งสองคำสั่งตรวจบัญชี active (L1) · คืน null = ไม่มี/ไม่ใช่ของผู้กระทำ/บัญชีไม่ active (ไม่มีอะไรถูกลบ เพราะแถวผูก user_id เดียวกัน) · ไม่ใช่ null = จำนวนแถว busy ที่ลบ
  */
 export async function deleteOwnRoutine(tx: Tx, id: string, userId: string): Promise<number | null> {
-  const rows = await tx.all<{ id: string }>(sql`DELETE FROM busy_block WHERE user_id = ${userId} AND routine_id = ${id} RETURNING id`);
-  const gone = await tx.delete(busyRoutine).where(and(eq(busyRoutine.id, id), eq(busyRoutine.userId, userId))).returning({ id: busyRoutine.id });
+  const rows = await tx.all<{ id: string }>(sql`DELETE FROM busy_block WHERE user_id = ${userId} AND routine_id = ${id} AND ${userActive(userId)} RETURNING id`);
+  const gone = await tx.all<{ id: string }>(sql`DELETE FROM busy_routine WHERE id = ${id} AND user_id = ${userId} AND ${userActive(userId)} RETURNING id`);
   return gone.length === 1 ? rows.length : null;
 }
 
