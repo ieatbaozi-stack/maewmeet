@@ -56,6 +56,24 @@ export const BUSY_WRITE_RATE_LIMITS = {
   delete: { prefix: 'busy:delete', limit: 60, windowMs: 10 * MINUTE_MS },
 } as const;
 
+// ───────── busy routine — R14_CONTRACT §1.2 (boss ตัดสิน B3, B7 · 2026-11-11) · ADR 0012 §4, §6 ─────────
+/** routine ที่ยังไม่จบ (end_date >= วันนี้) ต่อคน — B7 · เกิน → LIMIT_REACHED { limit: 'routines', max } */
+export const BUSY_ROUTINE_MAX_ACTIVE = 10;
+/** แถวของ routine ในอนาคต (routine_id IS NOT NULL AND end_at > now) ต่อคน — §1.2 · เกิน → LIMIT_REACHED { limit: 'routineRows', max } */
+export const BUSY_ROUTINE_MAX_FUTURE_ROWS = 1500;
+/** ช่วงต่อ routine — B3 · เกิน → LIMIT_REACHED { limit: 'routineSpan', max, rangeKind } */
+export const BUSY_ROUTINE_MAX_WEEKS = 26;
+export const BUSY_ROUTINE_MAX_MONTHS = 6;
+/** end_date ≤ วันนี้ + N เดือน — B3 · เกิน → LIMIT_REACHED { limit: 'routineAhead', max } */
+export const BUSY_ROUTINE_MAX_AHEAD_MONTHS = 12;
+/** GET /api/me/busy-routines คืนสูงสุดกี่ชุด (ยังไม่จบก่อน) — ชุดที่จบเกิน 90 วันถูก cron ลบ */
+export const BUSY_ROUTINE_LIST_MAX = 50;
+/**
+ * R14 (platform เสนอ — ADR 0012 §6 ข้อ 9): limiter ของ routine แยกจาก busy เดี่ยว — นับต่อคำขอ (ไม่ใช่ต่อแถว) รวม POST/PATCH/DELETE /api/me/busy-routines
+ * 20 คำขอ/10 นาที/ผู้ใช้ → เขียนได้สูงสุด ~20 × 184 แถว · แก้/ลบวันเดียว (/api/me/busy/:id) ใช้ BUSY_WRITE_RATE_LIMITS เดิม
+ */
+export const BUSY_ROUTINE_RATE_LIMIT = { prefix: 'busy:routine', limit: 20, windowMs: 10 * MINUTE_MS } as const;
+
 /** ชนิดเพดานที่ใส่ใน params ของ LIMIT_REACHED (UX แปลตามนี้) */
 export type LimitKind =
   | 'groups'
@@ -67,7 +85,11 @@ export type LimitKind =
   | 'busyBackdate'
   | 'appointments'
   | 'appointmentsPerDay'
-  | 'appointmentSpan';
+  | 'appointmentSpan'
+  | 'routines'
+  | 'routineRows'
+  | 'routineSpan'
+  | 'routineAhead';
 
 // ───────── นัด / แจ้งเตือน / สถานที่ — R4B_CONTRACT §2 ─────────
 export const APPOINTMENT_TITLE_MAX = 80;

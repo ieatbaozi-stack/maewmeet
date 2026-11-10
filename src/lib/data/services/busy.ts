@@ -5,6 +5,8 @@
 //  - เพดาน 300 = คำสั่งเดียวมีเงื่อนไขในตัว (repo) — ที่นี่แค่วินิจฉัยสาเหตุหลังถูกปฏิเสธ
 //  - R6F (ADR 0010): kind 'daily' ขยายด้วย expandDailyBusyInput → insert N แถวคำสั่งเดียว (ทั้งหมดหรือไม่มีเลย) · ลบ scope=series · PATCH = หลุดจากชุด
 //  - rate limit เขียน (BUSY_WRITE_RATE_LIMITS): create 30/10 นาที, delete 60/10 นาที ต่อผู้ใช้ → RATE_LIMITED + Retry-After
+//  - R14 (ADR 0012 §5): PATCH/DELETE บนแถวของ routine = "เฉพาะวันนี้" (หลุดเป็น busy เดี่ยว / ลบ) + skip วันนั้น ใน tx เดียว ·
+//    GET ไม่มี from/to = เฉพาะ routine_id IS NULL (วันของ routine อยู่ใน GET /api/me/busy-routines) · GET from/to = ทุกแถวพร้อม routineId
 import { z } from 'zod';
 import { DEFAULT_TZ, expandDailyBusyInput, normalizeBusyInput, type BusyInput, type BusyInputError, type BusyRow } from '@/lib/calendar';
 import {
@@ -14,6 +16,7 @@ import {
   findOwnBusy,
   insertBusyIfUnderCap,
   insertBusySeriesIfUnderCap,
+  insertSkipForOwnBusyRow,
   listOwnActiveBusy,
   listOwnBusyInRange,
   updateOwnBusyIfUnderCap,
@@ -170,6 +173,12 @@ export function busyInputError(e: BusyInputError, kind: 'all_day' | 'timed' | 'd
       return new AppError('LIMIT_REACHED', params({ limit: 'busyBackdate', max: BUSY_MAX_BACKDATE_DAYS }), { status: 400 });
     case 'INVALID_TIME':
     case 'INVALID_FORMAT':
+    // R14 — รหัสของ routine (busy เดี่ยว/รายวันไม่เกิด) · กันไว้ให้ครบ union
+    case 'TOO_FAR_AHEAD':
+    case 'RANGE_ENDED':
+    case 'WEEKDAYS_REQUIRED':
+    case 'INVALID_WEEKDAYS':
+    case 'NO_OCCURRENCE':
       return new AppError('VALIDATION', { fields: { [field ?? '_']: 'INVALID' } });
   }
 }
@@ -305,8 +314,12 @@ export async function updateBusy(actor: Actor, id: string, input: UpdateBusyInpu
     hideDetail: input.hideDetail ?? current.hideDetail,
     // R6F (ADR 0010 §5): PATCH สำเร็จทุกครั้ง (แม้แก้แค่ชื่อ) = วันนั้นหลุดจากชุด
     seriesId: null,
+    // R14 (ADR 0012 §5): วันของ routine → หลุดเป็น busy เดี่ยว (เริ่มนับเพดาน 300 — repo ตรวจในคำสั่งเดียว) + skip วันนั้น
+    routineId: null,
   };
   const row = await inTx(ctx.db, async (tx) => {
+    // คำสั่งเขียนแรก: skip ของวันนั้น (no-op ถ้าไม่ใช่แถว routine) · UPDATE ล้ม → throw → rollback skip ด้วย
+    await insertSkipForOwnBusyRow(tx, id, me.id);
     const updated = await updateOwnBusyIfUnderCap(tx, id, me.id, next, BUSY_MAX_PER_USER, now);
     if (updated) return updated;
     if (!(await findOwnBusy(tx, id, me.id))) throw new AppError('NOT_FOUND'); // ถูกลบระหว่างทาง
@@ -323,7 +336,12 @@ export async function deleteBusy(actor: Actor, id: string, ctx: DataCtx, scope: 
   authorize(actor, 'busy.delete', ownerRes(actor.kind === 'user' ? actor.id : ''));
   const me = asUser(actor);
   await takeUserSlot(ctx.db, BUSY_WRITE_RATE_LIMITS.delete, me.id, ctx.now);
-  const count = await inTx(ctx.db, async (tx) => (scope === 'series' ? deleteOwnBusySeries(tx, id, me.id) : (await deleteOwnBusy(tx, id, me.id)) ? 1 : 0));
+  const count = await inTx(ctx.db, async (tx) => {
+    // R14 (ADR 0012 §5): ลบวันของ routine = skip วันนั้นก่อน (คำสั่งเขียนแรก · no-op ถ้าไม่ใช่แถว routine) — แก้ทั้งชุดทีหลังจะไม่ฟื้นวันนี้
+    // แถว routine มี series_id NULL → scope=series ลบแค่แถวนี้ (ไม่ลบทั้ง routine — ADR 0012 §3)
+    await insertSkipForOwnBusyRow(tx, id, me.id);
+    return scope === 'series' ? deleteOwnBusySeries(tx, id, me.id) : (await deleteOwnBusy(tx, id, me.id)) ? 1 : 0;
+  });
   if (count === 0) throw new AppError('NOT_FOUND');
   return { deleted: true, count };
 }

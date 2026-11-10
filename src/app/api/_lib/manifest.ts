@@ -67,6 +67,11 @@ export const ROUTE_MANIFEST = [
   { method: 'POST', path: '/api/me/busy', action: 'busy.create', auth: 'actor', owner: 'platform' },
   { method: 'PATCH', path: '/api/me/busy/:id', action: 'busy.update', auth: 'actor', owner: 'platform' },
   { method: 'DELETE', path: '/api/me/busy/:id', action: 'busy.delete', auth: 'actor', owner: 'platform' },
+  // ── R14 (Platform) — busy routine ของฉัน (ADR 0012 §5) · "เฉพาะวันนี้" ใช้ PATCH/DELETE /api/me/busy/:id เดิม ──
+  { method: 'GET', path: '/api/me/busy-routines', action: 'busy.routine.list.own', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/me/busy-routines', action: 'busy.routine.create', auth: 'actor', owner: 'platform' },
+  { method: 'PATCH', path: '/api/me/busy-routines/:id', action: 'busy.routine.update', auth: 'actor', owner: 'platform' },
+  { method: 'DELETE', path: '/api/me/busy-routines/:id', action: 'busy.routine.delete', auth: 'actor', owner: 'platform' },
   { method: 'GET', path: '/api/groups/:gid/calendar', action: 'group.calendar.view', auth: 'actor', owner: 'platform' },
   { method: 'GET', path: '/api/groups/:gid/availability', action: 'group.availability.view', auth: 'actor', owner: 'platform' },
   // ── U10–U11, D11, ADR 0007 (R4B · Platform) ──

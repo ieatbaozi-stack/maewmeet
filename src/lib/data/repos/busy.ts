@@ -4,6 +4,7 @@
 //   - ฝั่งเจ้าของ (OwnBusyRow)    : SELECT ทุกคอลัมน์รวม `note` — ใช้เฉพาะ WHERE user_id = <เจ้าของ> เท่านั้น
 //   - ฝั่งแชร์   (SharedBusyRow)  : **ไม่ SELECT `note` เลย** และ `title` ถูกตัดใน SQL เมื่อ hide_detail = 1 (CASE) — ตัวอักษรของรายการซ่อนไม่ออกจาก DB
 //                                   และ **ไม่ SELECT `series_id`** (R6F, ADR 0010 §6 — ความเป็นชุดเห็นเฉพาะเจ้าของ)
+//                                   และ **ไม่ SELECT `routine_id`** (R14, ADR 0012 §7 — ความเป็น routine เห็นเฉพาะเจ้าของ)
 // การเขียนที่แข่งกันได้ (เพดาน 300) = คำสั่ง SQL เดียวที่มีเงื่อนไขในตัว (INSERT … SELECT … WHERE count < cap) เหมือน R2 — ไม่มี check-then-act
 // ทุกคำสั่งเขียนผูก user_id ของผู้กระทำ (เจ้าของเท่านั้น) — busy ไม่ผูกกลุ่ม จึงไม่มี role ให้ ActorGuard ตรวจ; ตัวป้องกันคือ user_id + สถานะบัญชียัง active
 import { and, asc, eq, gt, gte, inArray, isNull, lt, lte, sql } from 'drizzle-orm';
@@ -42,6 +43,8 @@ export type BusyWrite = {
   hideDetail: boolean;
   /** R6F: ชุดรายวัน · ไม่ส่ง = ไม่แตะ (insert เดี่ยว = NULL) · null = หลุดจากชุด (PATCH สำเร็จ) */
   seriesId?: string | null;
+  /** R14: ไม่ส่ง = ไม่แตะ (insert เดี่ยว = NULL) · null = หลุดจาก routine (PATCH สำเร็จ — ADR 0012 §5) */
+  routineId?: null;
 };
 
 /**
@@ -50,11 +53,14 @@ export type BusyWrite = {
  */
 export const busyWindowStart = (now: number): number => now - (BUSY_MAX_BACKDATE_DAYS + 1) * DAY_MS;
 
-/** จำนวนแถวในหน้าต่าง (ไม่นับ excludeId ถ้ามี) */
+/**
+ * จำนวนแถวในหน้าต่าง (ไม่นับ excludeId ถ้ามี) — **นับเฉพาะ routine_id IS NULL** (R14, ADR 0012 §6: แถวของ routine มีเพดานของตัวเอง ไม่กินที่ 300)
+ * ใช้ทั้ง insertBusyIfUnderCap / insertBusySeriesIfUnderCap / updateOwnBusyIfUnderCap / activeBusyCount
+ */
 const windowCount = (userId: string, now: number, excludeId?: string) =>
   excludeId === undefined
-    ? sql`(SELECT count(*) FROM busy_block WHERE user_id = ${userId} AND end_at > ${busyWindowStart(now)})`
-    : sql`(SELECT count(*) FROM busy_block WHERE user_id = ${userId} AND end_at > ${busyWindowStart(now)} AND id <> ${excludeId})`;
+    ? sql`(SELECT count(*) FROM busy_block WHERE user_id = ${userId} AND routine_id IS NULL AND end_at > ${busyWindowStart(now)})`
+    : sql`(SELECT count(*) FROM busy_block WHERE user_id = ${userId} AND routine_id IS NULL AND end_at > ${busyWindowStart(now)} AND id <> ${excludeId})`;
 
 /**
  * เพิ่ม busy ถ้าผู้ใช้ยัง active และมีรายการที่ยังไม่สิ้นสุด < cap — คำสั่งเดียวอะตอมมิก (INSERT … SELECT … WHERE)
@@ -71,7 +77,7 @@ export async function insertBusyIfUnderCap(
            ${input.localStartDate}, ${input.localEndDate}, ${input.tz}, ${input.hideDetail ? 1 : 0}, ${now}, ${now}
     WHERE EXISTS (SELECT 1 FROM user WHERE id = ${input.userId} AND status = 'active')
       AND ${windowCount(input.userId, now)} < ${input.cap}
-    RETURNING id, user_id, title, note, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at, series_id`);
+    RETURNING id, user_id, title, note, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at, series_id, routine_id`);
   // R7 B-4: RETURNING ทุกคอลัมน์ แทนการอ่านกลับด้วย findOwnBusy (−1 query) · แปลงชนิดเหมือน drizzle select (เทสต์เทียบกับ findOwnBusy)
   const r = rows.length === 1 ? rows[0]! : null;
   return r === null ? null : ownBusyFromRaw(r);
@@ -95,6 +101,7 @@ function ownBusyFromRaw(r: Record<string, unknown>): OwnBusyRow {
     createdAt: Number(r.created_at),
     updatedAt: Number(r.updated_at),
     seriesId: text(r.series_id),
+    routineId: text(r.routine_id),
   };
 }
 
@@ -160,6 +167,7 @@ export async function findOwnBusy(db: DbOrTx, id: string, userId: string): Promi
 /**
  * แก้ busy ของเจ้าของ — คำสั่งเดียว · เพดาน: ถ้ารายการเดิมอยู่นอกหน้าต่าง (end_at <= ขอบ) แต่ค่าใหม่อยู่ในหน้าต่าง (ฟื้น/ย้ายเข้าเขตที่นับ)
  * ต้องมีที่ว่าง: จำนวนแถวอื่นในหน้าต่าง (ไม่นับแถวนี้) < cap · อยู่ในหน้าต่างอยู่แล้ว หรือค่าใหม่อยู่นอกหน้าต่าง ไม่เพิ่มจำนวน → ไม่ตรวจ · คืน null = ไม่มี/ไม่ใช่ของผู้กระทำ/เต็มเพดาน
+ * R14: แถวของ routine (routine_id ไม่ NULL) ไม่เคยถูกนับ → PATCH ที่ทำให้หลุดเป็น busy เดี่ยวคือ "เข้าเขตที่นับ" เสมอ (ADR 0012 §5) — ต้องมีที่ว่าง
  */
 export async function updateOwnBusyIfUnderCap(
   db: DbOrTx,
@@ -176,7 +184,7 @@ export async function updateOwnBusyIfUnderCap(
       and(
         eq(busyBlock.id, id),
         eq(busyBlock.userId, userId),
-        sql`(${busyBlock.endAt} > ${busyWindowStart(now)} OR ${next.endAt} <= ${busyWindowStart(now)} OR ${windowCount(userId, now, id)} < ${cap})`,
+        sql`((${busyBlock.routineId} IS NULL AND ${busyBlock.endAt} > ${busyWindowStart(now)}) OR ${next.endAt} <= ${busyWindowStart(now)} OR ${windowCount(userId, now, id)} < ${cap})`,
       ),
     )
     .returning();
@@ -206,12 +214,28 @@ export async function deleteOwnBusySeries(db: DbOrTx, id: string, userId: string
   return rows.length;
 }
 
-/** รายการของฉันที่ยังไม่สิ้นสุด (ใกล้สุดก่อน) */
+/**
+ * R14 (ADR 0012 §5): ก่อนลบ/แก้แยกวันเดียวของ routine — บันทึก skip ของวันนั้น (กันการขยายใหม่ฟื้นกลับ) · คำสั่งเดียว ผูก user_id ทั้งแถวและกฎ
+ * แถวที่ไม่ใช่ของ routine / ไม่ใช่ของผู้กระทำ / ไม่มี → 0 แถว (no-op) · ซ้ำ → ไม่ทำอะไร · ต้องเรียกใน tx เดียวกับการลบ/แก้ (เป็นคำสั่งเขียนแรก)
+ */
+export async function insertSkipForOwnBusyRow(tx: Tx, id: string, userId: string): Promise<void> {
+  await tx.run(sql`
+    INSERT INTO busy_routine_skip (routine_id, local_date)
+    SELECT b.routine_id, b.local_start_date FROM busy_block b
+      JOIN busy_routine r ON r.id = b.routine_id AND r.user_id = b.user_id
+     WHERE b.id = ${id} AND b.user_id = ${userId} AND b.routine_id IS NOT NULL
+    ON CONFLICT DO NOTHING`);
+}
+
+/**
+ * รายการของฉันที่ยังไม่สิ้นสุด (ใกล้สุดก่อน) — **เฉพาะ routine_id IS NULL** (R14, ADR 0012 §8: วันของ routine แสดงในส่วน routine จาก GET /api/me/busy-routines ไม่ท่วมรายการนี้)
+ * วันที่แยกออกจาก routine แล้ว (routine_id = NULL) อยู่ในรายการนี้ตามปกติ
+ */
 export async function listOwnActiveBusy(db: DbOrTx, userId: string, now: number, limit: number): Promise<OwnBusyRow[]> {
   return db
     .select()
     .from(busyBlock)
-    .where(and(eq(busyBlock.userId, userId), gt(busyBlock.endAt, now)))
+    .where(and(eq(busyBlock.userId, userId), isNull(busyBlock.routineId), gt(busyBlock.endAt, now)))
     .orderBy(asc(busyBlock.startAt), asc(busyBlock.id))
     .limit(limit);
 }
