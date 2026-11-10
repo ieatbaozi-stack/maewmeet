@@ -127,3 +127,41 @@
 - การรัน migration 0005 บนฐาน preview/prod จริง: boss รันก่อน merge ตาม OPERATIONS
 - `npm test` ทั้งชุด, lint, typecheck, build, e2e: ไม่ได้รันในรอบนี้ (เครื่อง Windows มี EPERM/timeout เดิม) ผลจริงดูจาก CI และรายงาน qa
 - การแข่งกันข้าม process บน Turso: ตรวจจากการอ่านโค้ดเท่านั้น (เพดานอยู่ในคำสั่งเขียนเดียว + guard `updated_at`)
+
+---
+
+## Re-review (2026-11-11) — fix ตาม R14_CONTRACT §10
+- ตรวจ `git diff e38b1f6..HEAD` HEAD `7b9d21e`: `7a07e7e` (M2), `c2ccdb8` (M1, L1, Info 2), `7b9d21e` (test), `a1bc809` (ux), `55ce373` (architect) · ไม่แก้โค้ด · probe ชั่วคราวใน `tests/_secprobe/` รันแล้วลบ
+
+**Verdict ใหม่: ผ่าน** · Critical 0 / High 0 / Medium 0 / Low 0 / Info 6 (Info 1, 3, 4, 5 เดิม + Info 6, 7 ใหม่ · Info 2 เดิมแก้แล้ว)
+
+### ผลต่อข้อเดิม
+| ข้อ | ผล | หลักฐาน |
+|---|---|---|
+| **M1 เพดาน 10 ชุดถูกเลี่ยง** | **แก้แล้ว** | 📖 `services/busy-routines.ts`: แก้ในที่ที่ไม่เหลือวันตั้งแต่วันนี้ → `VALIDATION weekdays NO_OCCURRENCE` (ตรวจก่อนกิน rate limit) · การแยกใช้ `insertRoutineIfUnderCap(cap: BUSY_ROUTINE_HARD_MAX_ACTIVE = 20)` ในคำสั่ง INSERT เดียว (`repos/busy-routine.ts` เอา `cap: null` ออกแล้ว) · ฟื้นชุดที่จบแล้วด้วยการแก้ในที่ยังติด 10 (`updateOwnRoutineGuarded`) · ✅ probe วงเดิม 41 คำขอ: ขั้น "แก้ให้เหลือ 0 วัน" ได้ 400 `NO_OCCURRENCE` ทุกครั้ง · ใช้ทางอ้อมแทน (ลบวันของชิ้นใหม่ทีละวันผ่าน `DELETE /api/me/busy/:id`) แยกได้ถึง 20 แล้วได้ `409 LIMIT_REACHED {"limit":"routines","max":20}` · ผลสุดท้าย `{"active":20,"listed":20,"truncated":false}` · GET คืนชุดที่ยังไม่จบครบ |
+| **M1 ยิงพร้อมกันที่ขอบ 20** | **PASS** | ✅ probe: มีชุดที่ยังไม่จบ 19 ชุด → PATCH แยกพร้อมกัน 5 คำขอ (คนละชุด) → `["200","409 LIMIT_REACHED max 20" ×4]` · active = 20 พอดี · แล้วฟื้นชุดที่จบแล้วตอนมี 20 → `409 LIMIT_REACHED max 10` active ยัง 20 · ✅ probe ที่ 16 ชุด ยิง 8 คำขอ (4 ชุด × 2 คำขอซ้ำ) → `200 ×4`, `409 CONFLICT ×4` (guard `updated_at`) active = 20 |
+| **M2 ขนาดคำตอบ availability** | **แก้แล้ว** | 📖 `services/availability.ts`: `busy[]` ไม่เกิน `CALENDAR_MAX_ITEMS` · `detailTruncated` · blockers อ้างเฉพาะชิ้นที่ส่ง · วันว่างยังคำนวณจากทุกแถว · ✅ `R14_PERF_HEAVY=1` กรณี C: availability 42 วัน 21,500 แถว → 5,000 ชิ้น 1,392,999 bytes 225 ms · 62 วัน 31,500 แถว → 5,000 ชิ้น 1,396,939 bytes 375 ms `truncated:false` `detailTruncated:true` (เดิม 24,800 ชิ้น 6,869,967 bytes) · ต่ำกว่า 4.5 MB มาก |
+| **`detailTruncated` รั่วอะไรไหม** | **PASS (Info 7)** | 📖 เป็น boolean ตัวเดียว ไม่มี id/จำนวน/ชื่อ · บอกได้แค่ว่าชิ้นที่ทับหน้าต่างวันเกิน 5,000 ซึ่งสมาชิกนับเองจากปฏิทินได้อยู่แล้ว · ชิ้นที่ส่งยังเป็น `r.view` (serializer ฝั่งแชร์เดิม ซ่อน title / ไม่มี note / routineId) · ✅ canary `r14-busy-routine.test.ts:500` ยังผ่าน |
+| **L1 ตรวจบัญชี active** | **แก้แล้ว** | 📖 `setOwnRoutineEndGuarded` และ `deleteOwnRoutine` (ทั้ง DELETE `busy_block` และ `busy_routine`) มี `userActive` ในคำสั่ง · บัญชีไม่ active → null → 404 ไม่มีอะไรถูกลบ |
+| **Info 2 tz ใหม่ขยับ "วันนี้"** | **แก้แล้ว** | 📖 `today = todayIn(current.tz, now)` ใช้กับลบ/ขยาย/นับ · `rowsOf(plan, skip, today)` ไม่สร้างแถวก่อนวันนี้ของ tz เดิม |
+
+### Info ใหม่
+6. **เพดาน 20 / 10 นับ `end_date >= today` โดย `today` มาจาก tz ของชุดที่กำลังแก้ (หรือ tz ในคำขอตอนสร้าง)** แต่ `end_date` ของชุดอื่นอาจอยู่คนละ tz · ถ้าใช้ tz สุดขอบ (เช่น `Pacific/Kiritimati` UTC+14) ชุดที่จบ "วันนี้" ตามเวลาไทยจะไม่ถูกนับ เพดานจึงหลวมได้ราว 1 วันที่ขอบ · ชุดที่ได้มาเหลือวันในอนาคตแทบไม่มี และเพดาน 1,500 แถวคุมต้นทุนอยู่ · R14 ไม่มี UI เลือก tz · ไม่บล็อก
+7. **ตอน `detailTruncated: true`:** สมาชิกที่ชิ้นถูกตัดหมดจะหายจาก `blockers` ของวันนั้น แต่ยังอยู่ใน `notFreeUserIds` · ไม่เปิดข้อมูลเพิ่ม เป็นเรื่องการแสดงผลที่ frontend ต้องรองรับใน R14b (contract §10)
+
+### คำสั่งที่รัน + ผลจริง (re-review)
+ทุกคำสั่งรันด้วย shim `NODE_OPTIONS=--import …/ignore-eperm.mjs`
+
+1. probe `tests/_secprobe/split-loop2.test.ts` → 2 passed · log ตามตารางข้างบน
+2. probe `tests/_secprobe/race19.test.ts` → 1 passed · `{"race":["200::\"\"","409:LIMIT_REACHED:{\"limit\":\"routines\",\"max\":20}" ×4],"active":20}` · `revive at 20 409 … "max":10`
+3. `R14_PERF_HEAVY=1 R14_PERF_OUT=… npx vitest run tests/perf/r14-routine-big-group.test.ts` → `Tests 3 passed (3)` · กรณี B 62 วัน: 5,000 ชิ้น 1,654,309 bytes `detailTruncated:true` · กรณี C ตามตาราง M2
+4. ```
+   npx vitest run tests/rbac/busy-routine.test.ts tests/platform/r14-busy-routine.test.ts tests/busy/r14-caps-concurrency.test.ts tests/platform/migration-0005.test.ts tests/calendar/free-time-merge.test.ts tests/calendar/routine.test.ts tests/busy/calendar-visibility.test.ts tests/security/authorize-first.test.ts tests/auth/must-change-pin.test.ts tests/platform/cron.test.ts tests/rbac/busy-calendar.test.ts tests/rbac/busy-series.test.ts tests/busy/busy-api.test.ts tests/availability/availability-api.test.ts tests/platform/schema.test.ts
+   ```
+   → `Test Files 15 passed (15)` · `Tests 735 passed (735)` · ไม่ได้รัน `manual-delete-sql` ซ้ำ เพราะไม่ได้แตะในรอบแก้ และล้มเพราะ CRLF ตามเดิม (Info 5)
+5. ลบ `tests/_secprobe/` แล้ว `git status --short` → ว่าง
+
+### สิ่งที่ตรวจไม่ได้ (เหมือนเดิม)
+- ขนาด response และเวลาบน Vercel/Turso จริง
+- migration บนฐานจริง
+- `npm test` ทั้งชุด, lint, typecheck, build, e2e (ดูจาก CI และรายงาน qa)
