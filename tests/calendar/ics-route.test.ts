@@ -19,11 +19,12 @@ const FULL = {
 
 type Got = { status: number; text: string; headers: Headers };
 
-async function ics(c: Client, id: string, opts: { navigate?: boolean; base?: string } = {}): Promise<Got> {
+async function ics(c: Client, id: string, opts: { navigate?: boolean; base?: string; site?: string } = {}): Promise<Got> {
   const handler = await handlerFor({ method: 'GET', path: '/api/appointments/:id/calendar.ics' });
   const headers = new Headers({ 'x-real-ip': c.ip, 'user-agent': c.ua });
   if (c.jar.size) headers.set('cookie', c.cookieHeader());
   if (opts.navigate) headers.set('sec-fetch-mode', 'navigate');
+  if (opts.site) headers.set('sec-fetch-site', opts.site);
   const res = await handler(new Request(`${opts.base ?? ORIGIN}/api/appointments/${id}/calendar.ics`, { headers }), { params: Promise.resolve({ id }) });
   return { status: res.status, text: await res.text(), headers: res.headers };
 }
@@ -150,6 +151,75 @@ describe('R12-3 สิทธิ์', () => {
     expect(await count()).toBe(0);
     await ics(w.boss.c, ap.id);
     expect(await count()).toBe(1);
+  });
+
+  describe('security R12 Low 1: super admin นอกกลุ่มที่ได้ 409 ถูกบันทึกด้วย', () => {
+    const count = () => h.count("audit_log WHERE action = 'appointment.view' AND target_id = ?", [ap.id]);
+
+    it('นัดยกเลิกแล้ว: audit +1', async () => {
+      expect((await post(w.b.c, `/api/appointments/${ap.id}/cancel`)).status).toBe(200);
+      const before = await count();
+      expectApi(await ics(w.boss.c, ap.id), 409, 'APPOINTMENT_CANCELLED');
+      expect(await count()).toBe(before + 1);
+    });
+
+    it('นัดจบแล้ว: audit +1', async () => {
+      h.clock.set(ap.endAt);
+      const before = await count();
+      expectApi(await ics(w.boss.c, ap.id), 409, 'APPOINTMENT_PAST');
+      expect(await count()).toBe(before + 1);
+    });
+
+    it('สมาชิกที่ได้ 409: ไม่เขียน audit', async () => {
+      h.clock.set(ap.endAt);
+      expectApi(await ics(w.c.c, ap.id), 409, 'APPOINTMENT_PAST');
+      expect(await count()).toBe(0);
+    });
+  });
+
+  describe('security R12 Low 2: Sec-Fetch-Site', () => {
+    const count = () => h.count("audit_log WHERE action = 'appointment.view' AND target_id = ?", [ap.id]);
+    const cross = { navigate: true, site: 'cross-site' };
+
+    it('cross-site + navigate: สมาชิก นัด active → 303 หน้านัด ไม่ส่งไฟล์', async () => {
+      const r = await ics(w.c.c, ap.id, cross);
+      expectRedirect(r, page());
+      expect(r.headers.get('content-disposition')).toBeNull();
+    });
+
+    it('cross-site + navigate: super admin นอกกลุ่ม → 303 และไม่เกิด audit', async () => {
+      expectRedirect(await ics(w.boss.c, ap.id, cross), page());
+      expect(await count()).toBe(0);
+    });
+
+    it('cross-site + navigate: สมาชิก / คนนอก / ไม่ล็อกอิน / นัดยกเลิก ตอบเหมือนกันทุกไบต์ (เดาสถานะสมาชิกไม่ได้)', async () => {
+      const snapshot = (r: Got) => ({ status: r.status, text: r.text, headers: [...r.headers.entries()] });
+      const member = snapshot(await ics(w.c.c, ap.id, cross));
+      expect(snapshot(await ics(w.o.c, ap.id, cross))).toEqual(member);
+      expect(snapshot(await ics(new Client(), ap.id, cross))).toEqual(member);
+      expect((await post(w.b.c, `/api/appointments/${ap.id}/cancel`)).status).toBe(200);
+      expect(snapshot(await ics(w.c.c, ap.id, cross))).toEqual(member);
+      expect(member.text + JSON.stringify(member.headers)).not.toMatch(/CANARY|13\.1234|100\.5678/);
+    });
+
+    it('cross-site + navigate + id ผิดรูป → 303 ไป / ตามแถว id ผิดรูป (ไม่มี id ให้พาไป)', async () => {
+      expectRedirect(await ics(w.c.c, 'not-a-uuid', cross), '/');
+    });
+
+    it.each(['same-origin', 'same-site', 'none', undefined])('Sec-Fetch-Site = %s + navigate: เหมือนเดิม (สมาชิกได้ไฟล์ · คนนอก 303)', async (site) => {
+      expectFile(await ics(w.c.c, ap.id, { navigate: true, site }));
+      expectRedirect(await ics(w.o.c, ap.id, { navigate: true, site }), page());
+    });
+
+    it('super admin แบบ same-origin ยังเกิด audit', async () => {
+      expectFile(await ics(w.boss.c, ap.id, { navigate: true, site: 'same-origin' }));
+      expect(await count()).toBe(1);
+    });
+
+    it.each(['cross-site', 'same-origin', 'same-site', 'none', undefined])('Sec-Fetch-Site = %s แบบไม่ navigate: เหมือนเดิม', async (site) => {
+      expectFile(await ics(w.c.c, ap.id, { site }));
+      expectApi(await ics(w.o.c, ap.id, { site }), 404, 'NOT_FOUND');
+    });
   });
 
   it('suspended → 401 ACCOUNT_SUSPENDED / 303', async () => {

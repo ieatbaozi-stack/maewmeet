@@ -3,6 +3,7 @@
 import { dataCtx } from '@/lib/data/context';
 import { appointmentParamsSchema, getAppointmentIcs } from '@/lib/data/services/appointments';
 import { configuredAppOrigin, getEnv } from '@/lib/shared/env';
+import { AppError } from '@/lib/shared/errors';
 import { CACHE_CONTROL, reply, route, type RouteContext } from '../../../_lib/route';
 
 /** §9: ถ้าทดสอบเครื่องจริงพบว่า `inline` ดีกว่าบน iPhone เปลี่ยนจุดนี้จุดเดียว */
@@ -10,8 +11,10 @@ const ICS_DISPOSITION = 'attachment';
 /** ชื่อไฟล์คงที่ ห้ามมาจากชื่อนัด */
 const ICS_FILENAME = 'maewmeet-plan.ics';
 
+const isNavigation = (req: Request): boolean => req.headers.get('sec-fetch-mode') === 'navigate';
+
 async function redirectNavigation(res: Response, req: Request, ctx: RouteContext | undefined): Promise<Response> {
-  if (res.ok || req.headers.get('sec-fetch-mode') !== 'navigate') return res;
+  if (res.ok || !isNavigation(req)) return res;
   const parsed = appointmentParamsSchema.safeParse(await ctx?.params);
   const location = parsed.success ? `/appointments/${parsed.data.id}` : '/';
   return new Response(null, { status: 303, headers: { Location: location, 'Cache-Control': CACHE_CONTROL } });
@@ -23,6 +26,8 @@ export const GET = route({
   params: appointmentParamsSchema,
   finalize: redirectNavigation,
   handler: async ({ actor, params, req, now }) => {
+    // security R12 Low 2: เว็บอื่นสั่งดาวน์โหลดหรือเดาสถานะสมาชิกไม่ได้ · ปฏิเสธก่อน service จึงไม่อ่านนัดและไม่เขียน audit · finalize แปลงเป็น 303
+    if (isNavigation(req) && req.headers.get('sec-fetch-site') === 'cross-site') throw new AppError('FORBIDDEN');
     const appOrigin = configuredAppOrigin(getEnv()) ?? new URL(req.url).origin;
     const ics = await getAppointmentIcs(actor, params.id, appOrigin, dataCtx(req, now));
     return reply(ics, {

@@ -564,9 +564,10 @@ export async function getAppointmentIcs(actor: Actor, id: string, appOrigin: str
   const me = asUser(actor);
   const row = c.appointment!;
   const { db, now } = ctx;
+  // ก่อนตรวจสถานะ: 409 ก็บอกสถานะนัดแก่ super admin นอกกลุ่ม จึงต้องมี audit เหมือน getAppointment (security R12 Low 1)
+  await auditRead(db, me, allow, { action: 'appointment.view', targetType: 'appointment', targetId: id, groupId: row.groupId }, now);
   if (row.status === 'cancelled') throw new AppError('APPOINTMENT_CANCELLED');
   if (row.endAt <= now) throw new AppError('APPOINTMENT_PAST');
-  await auditRead(db, me, allow, { action: 'appointment.view', targetType: 'appointment', targetId: id, groupId: row.groupId }, now);
   return buildAppointmentIcs(
     {
       id: row.id,
