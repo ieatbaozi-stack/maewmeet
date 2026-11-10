@@ -233,7 +233,6 @@ const RULES: Rules = {
 
   'notification.list.own': ownerOnly,
   'notification.markRead.own': ownerOnly,
-  'place.search': anyUser,
 };
 
 const acceptsResource = (action: Action, resource: Resource): boolean =>
