@@ -54,7 +54,7 @@ Subscribe/feed · เลือกปฏิทินปลายทาง · จ�
 |---|---|
 | ux | `messages/*.json` ตาม §1.1, §1.3 |
 | platform | `src/lib/calendar/ics.ts`, การส่ง `mapUrl` (และ `tz` ถ้าทำ §1.4) ใน `services/appointments.ts`, `tests/calendar/**` |
-| test | ปรับ e2e ถ้าอิงค่าเดิม เพิ่มกรณีมีลิงก์แผนที่ |
+| test | ปรับ e2e ถ้าอิงค่าเดิม เพิ่มกรณีมีลิงก์แผนที่ · main มอบให้เติม `mapUrl` ใน `tests/calendar/ics.test.ts:378` บรรทัดเดียวเพื่อให้ typecheck ผ่าน |
 | secretary | `README.md` บรรทัดฟีเจอร์, `docs/guides/quickstart-th.html` (ชื่อปุ่ม, ลิงก์แผนที่), `docs/team/PROGRESS.md` รวมผลทดสอบ §5 |
 | ops | `CHANGELOG.md` ส่วน Unreleased |
 | qa, security | ตรวจอิสระ (กฎ 5) · รายงานต่อท้าย `docs/reports/qa-r12.md`, `security-r12.md` |
