@@ -9,7 +9,7 @@ import { DateRangePicker } from "@/components/busy/DateRangePicker";
 import { TIME_OPTIONS, durationRef } from "@/components/busy/form-model";
 import { Icon } from "@/components/icons/Icon";
 import { withNames } from "@/components/Name";
-import { PlaceField } from "@/components/places/PlaceField";
+import { PlaceField, type PlaceLinkError } from "@/components/places/PlaceField";
 import { Sheet } from "@/components/shell/Sheet";
 import { format, todayIn, type CalendarLocale, type DateISO } from "@/lib/calendar";
 import type { AppointmentDetailDto, OverlapDto } from "@/lib/data/serializers/appointments";
@@ -85,7 +85,7 @@ export function AppointmentFormSheet({ mode, groupId, groupName, memberCount, tz
   const [problems, setProblems] = useState<Problems>({});
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [forcePaste, setForcePaste] = useState(false);
+  const [linkError, setLinkError] = useState<PlaceLinkError | null>(null);
   const [tick, setTick] = useState(0);
   const [check, setCheck] = useState<CheckResult | null>(null);
 
@@ -130,7 +130,11 @@ export function AppointmentFormSheet({ mode, groupId, groupName, memberCount, tz
     e.preventDefault();
     if (saving) return;
     const ctx = { tz, nowMs: clock.now() };
-    setForcePaste(false);
+    // ลิงก์/พิกัดในช่องสถานที่ผิดรูปแบบ → ไม่ส่ง (ข้อความข้อผิดพลาดเดิม) · เซิร์ฟเวอร์ยังตรวจซ้ำเสมอ
+    if (linkError) {
+      setProblems({ place: { pos: "place", ref: { key: `errors.${linkError}`, values: {} } } });
+      return;
+    }
     if (mode === "create") {
       const built = buildCreatePayload(s, { ...ctx, checkPast: true });
       if (!built.ok) {
@@ -176,7 +180,6 @@ export function AppointmentFormSheet({ mode, groupId, groupName, memberCount, tz
       return;
     }
     setProblems(toProblems(f.problems));
-    setForcePaste(f.openPaste);
   }
 
   const formId = `${uid}-form`;
@@ -340,7 +343,7 @@ export function AppointmentFormSheet({ mode, groupId, groupName, memberCount, tz
 
         <OverlapNotice view={overlap} onRetry={() => setTick((n) => n + 1)} />
 
-        <PlaceField value={s.place} onChange={(place) => patch({ place }, ["place"])} problem={problems.place ?? null} forcePaste={forcePaste} />
+        <PlaceField value={s.place} onChange={(place) => patch({ place }, ["place"])} problem={problems.place ?? null} onLinkError={setLinkError} />
 
         <div className="field">
           <div className="field-label-row">

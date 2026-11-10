@@ -57,21 +57,23 @@ describe('R12-11 calendarSheetMode', () => {
   });
 });
 
+const LABELS = { map: 'แผนที่', plan: 'ดูนัดในแมวเจอกัน' };
+
 describe('ลิงก์ของ sheet', () => {
   it('.ics และลิงก์ออกจาก LINE ตรง contract §4.2/§4.4', () => {
     expect(calendarIcsHref('abc')).toBe('/api/appointments/abc/calendar.ics');
     expect(calendarOpenExternalHref('abc')).toBe('/appointments/abc?openExternalBrowser=1');
   });
-  it('ลิงก์ Google ไม่มีรายละเอียดนัด (ส่งเฉพาะลิงก์นัดใน details)', () => {
-    const url = new URL(googleCalendarUrl({ id: 'a1', title: 'กินข้าว, เย็น;นี้', placeName: 'ร้าน', mapUrl: null, startAt: Date.UTC(2026, 10, 12, 12), endAt: Date.UTC(2026, 10, 12, 14), tz: 'Asia/Bangkok', appOrigin: 'https://x.example' }));
-    expect(url.searchParams.get('details')).toBe('https://x.example/appointments/a1');
+  it('ลิงก์ Google ไม่มีรายละเอียดนัด (ส่งเฉพาะลิงก์นัดแบบมีป้ายใน details)', () => {
+    const url = new URL(googleCalendarUrl({ id: 'a1', title: 'กินข้าว, เย็น;นี้', placeName: 'ร้าน', mapUrl: null, startAt: Date.UTC(2026, 10, 12, 12), endAt: Date.UTC(2026, 10, 12, 14), tz: 'Asia/Bangkok', appOrigin: 'https://x.example', labels: LABELS }));
+    expect(url.searchParams.get('details')).toBe('ดูนัดในแมวเจอกัน: https://x.example/appointments/a1');
     expect(url.searchParams.get('text')).toBe('กินข้าว, เย็น;นี้');
   });
-  it('R12.1: มี mapUrl → details = ลิงก์แผนที่ ขึ้นบรรทัดใหม่ แล้วลิงก์นัด · mapUrl เป็น null → มีแค่ลิงก์นัด', () => {
-    const ev = { id: 'a1', title: 'x', placeName: 'ร้าน', startAt: Date.UTC(2026, 10, 12, 12), endAt: Date.UTC(2026, 10, 12, 14), tz: 'Asia/Bangkok', appOrigin: 'https://x.example' };
+  it('R13: มี mapUrl → details = "แผนที่: <ลิงก์>" ขึ้นบรรทัดใหม่ แล้ว "ดูนัด…: <ลิงก์นัด>" · mapUrl เป็น null → มีแต่ลิงก์นัดมีป้าย', () => {
+    const ev = { id: 'a1', title: 'x', placeName: 'ร้าน', startAt: Date.UTC(2026, 10, 12, 12), endAt: Date.UTC(2026, 10, 12, 14), tz: 'Asia/Bangkok', appOrigin: 'https://x.example', labels: LABELS };
     const map = 'https://www.openstreetmap.org/?mlat=1&mlon=2';
-    expect(new URL(googleCalendarUrl({ ...ev, mapUrl: map })).searchParams.get('details')).toBe(`${map}\nhttps://x.example/appointments/a1`);
-    expect(new URL(googleCalendarUrl({ ...ev, mapUrl: null })).searchParams.get('details')).toBe('https://x.example/appointments/a1');
+    expect(new URL(googleCalendarUrl({ ...ev, mapUrl: map })).searchParams.get('details')).toBe(`แผนที่: ${map}\nดูนัดในแมวเจอกัน: https://x.example/appointments/a1`);
+    expect(new URL(googleCalendarUrl({ ...ev, mapUrl: null })).searchParams.get('details')).toBe('ดูนัดในแมวเจอกัน: https://x.example/appointments/a1');
   });
 });
 
@@ -85,12 +87,14 @@ describe('R12-12 ซอร์สของ sheet / ปุ่ม', () => {
     expect(sheet).not.toMatch(/description/i);
   });
   it('ข้อความทุกอย่างมาจากคีย์ appointments.calendar.* ที่มีครบ TH/EN', () => {
-    const keys = ['add', 'sheetTitle', 'device', 'google', 'oneTime', 'googleNote', 'lineHint', 'lineOpen'];
+    const keys = ['add', 'sheetTitle', 'device', 'google', 'oneTime', 'googleNote', 'lineHint', 'lineOpen', 'labelMap', 'labelPlan'];
     for (const loc of ['th', 'en']) {
       const m = JSON.parse(readFileSync(`messages/${loc}.json`, 'utf8')) as { appointments: { calendar: Record<string, string> } };
       for (const k of keys) expect(m.appointments.calendar[k], `${loc}.${k}`).toBeTruthy();
     }
     for (const k of ['sheetTitle', 'device', 'google', 'oneTime', 'googleNote', 'lineHint', 'lineOpen']) expect(sheet).toContain(`t("${k}")`);
+    // R13: ส่งป้ายจาก messages เข้า googleCalendarUrl (ไม่ hard-code)
+    expect(sheet).toContain('labels: { map: t("labelMap"), plan: t("labelPlan") }');
     expect(detail).toContain('t("appointments.calendar.add")');
   });
 });

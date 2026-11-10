@@ -45,7 +45,6 @@ vi.mock('@/lib/data/repos/maintenance', async (o) => steps.wrapAll('repo.mainten
 vi.mock('@/lib/data/repos/notification', async (o) => steps.wrapAll('repo.notification', await o()));
 vi.mock('@/lib/data/repos/pepper-fingerprint', async (o) => steps.wrapAll('repo.pepper-fingerprint', await o()));
 vi.mock('@/lib/data/repos/pin-reset-request', async (o) => steps.wrapAll('repo.pin-reset-request', await o()));
-vi.mock('@/lib/data/repos/place-search', async (o) => steps.wrapAll('repo.place-search', await o()));
 vi.mock('@/lib/data/repos/rate-limit-bucket', async (o) => steps.wrapAll('repo.rate-limit-bucket', await o()));
 vi.mock('@/lib/data/repos/session', async (o) => steps.wrapAll('repo.session', await o()));
 vi.mock('@/lib/data/repos/system-heartbeat', async (o) => steps.wrapAll('repo.system-heartbeat', await o()));

@@ -8,7 +8,7 @@ file="${1:-.env.example}"
 [[ -f "$file" ]] || { echo "::error::ไม่พบ $file"; exit 1; }
 
 # ค่าที่ไม่ใช่ความลับ (ARCHITECTURE §7) — เพิ่มตัวใหม่ต้องผ่าน review ของ OPS/Security
-allowed='^(PIN_PEPPER_CURRENT_VERSION|PLACE_SEARCH_ENABLED|NOMINATIM_BASE_URL|NEXT_PUBLIC_MAP_TILE_URL|NEXT_PUBLIC_MAP_ATTRIBUTION|LOG_LEVEL)$'
+allowed='^(PIN_PEPPER_CURRENT_VERSION|LOG_LEVEL)$'
 
 bad=0
 lineno=0

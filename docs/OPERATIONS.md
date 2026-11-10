@@ -167,13 +167,11 @@ Get-Clipboard | npx tsx scripts/pepper-fingerprint.ts
 | `APP_SECRET` | **Secret** | ✔ (C5) | ✔ (C7) | |
 | `CRON_SECRET` | **Secret** | ✔ (C6) | ✔ (C7) | preview ต้องมีด้วย ไม่งั้นแอปบน preview ไม่เริ่ม (ทุก URL ตอบ 500 — G1) |
 | `APP_ORIGIN` | Config | ✔ | ✘ (เว้นว่าง — ใช้ URL ของ preview เอง) | `https://maewmeet.vercel.app` (ดู D6) |
-| `NOMINATIM_CONTACT` | Config | ✔ | ✔ | อีเมลติดต่อของ boss (ส่งใน User-Agent ถึง OpenStreetMap) |
-| `PLACE_SEARCH_ENABLED` | Config | ✔ | ✔ | `true` (ตั้ง `false` = ปิดค้นหาสถานที่ทันทีโดยไม่ต้อง deploy โค้ดใหม่ แค่ Redeploy) |
 | `LOG_LEVEL` | Config | ✔ | ✔ | `info` |
 | `LINE_MESSAGING_ACCESS_TOKEN` | **Secret** | ✔ (ส่วน J) | ✘ (เว้นว่าง) | Channel access token ของ OA (R10) |
 | `LINE_MESSAGING_CHANNEL_SECRET` | **Secret** | ✔ (ส่วน J) | ✘ (เว้นว่าง) | Channel secret ของ OA (R10) |
 
-  ตัวแปรที่ไม่ต้องใส่ (มีค่าเริ่มต้นในโค้ดแล้ว): `NOMINATIM_BASE_URL`, `NEXT_PUBLIC_MAP_TILE_URL`, `NEXT_PUBLIC_MAP_ATTRIBUTION` · `VERCEL_URL`/`VERCEL_ENV` Vercel ใส่ให้เอง · ตัวแปร `LINE_MESSAGING_*` ใส่เฉพาะ Production ตามส่วน J (R10) · Preview เว้นว่าง
+  ตัวแปรที่เลิกใช้ใน R13 (ไม่มีค้นหาสถานที่/ภาพแผนที่แล้ว) — ลบออกจาก Vercel ได้ทั้ง Production และ Preview: `PLACE_SEARCH_ENABLED`, `NOMINATIM_BASE_URL`, `NOMINATIM_CONTACT`, `NEXT_PUBLIC_MAP_TILE_URL`, `NEXT_PUBLIC_MAP_ATTRIBUTION` (ค้างไว้ไม่ทำให้แอปล้ม แค่ถูกเมิน) · `VERCEL_URL`/`VERCEL_ENV` Vercel ใส่ให้เอง · ตัวแปร `LINE_MESSAGING_*` ใส่เฉพาะ Production ตามส่วน J (R10) · Preview เว้นว่าง
   ถ้าค่าใดใน `.env.example` เปลี่ยนในรอบหน้า Lead จะแจ้งในรายงาน
 
 ☐ **D4** กด **Deploy** → รอจน Status = Ready
@@ -482,7 +480,7 @@ Schedule ชื่อ `reminders` อยู่ใน `vercel.json` ทุก 15 
 | `PIN_PEPPER_CURRENT_VERSION`, `PIN_PEPPER_V<n>` | ทุกที่ที่ต้อง login/สมัคร (บังคับตั้งแต่ R1) | แอปยังเริ่มได้ แต่ **health 503** (`pepper.ok:false`) และ login/สมัครตอบ `AUTH_MAINTENANCE` — ไม่มีใครถูกล็อก (G7) |
 | `TRUST_PROXY_HEADERS` | ไม่บังคับ — ตั้ง `1` เฉพาะ self-host หลัง proxy ที่เขียนทับ header IP (Vercel ไม่ต้องตั้ง) | ไม่เชื่อ header IP → ถัง `unknown` ร่วม เพดาน ×50 |
 | `LINE_MESSAGING_ACCESS_TOKEN`, `LINE_MESSAGING_CHANNEL_SECRET` | production เท่านั้น เมื่อจะเปิด LINE (ส่วน J) | ช่องทาง LINE ปิดเงียบ · กระดิ่งทำงานปกติ |
-| `PLACE_SEARCH_ENABLED`, `NOMINATIM_*`, `NEXT_PUBLIC_MAP_*`, `LOG_LEVEL` | ไม่บังคับ (มีค่าเริ่มต้น) | ใช้ค่าเริ่มต้น |
+| `LOG_LEVEL` | ไม่บังคับ (มีค่าเริ่มต้น) | ใช้ค่าเริ่มต้น |
 
 ## ภาคผนวก — การเก็บกวาด busy (R3)
 cron รายวัน (`/api/cron/daily`) ลบ `busy_block` ที่ `end_at` เก่ากว่า 90 วัน (`BUSY_RETENTION_DAYS`) ผลอยู่ใน `cleaned.oldBusyBlocks` · เพดาน 300 รายการ/คน นับแถวที่ `end_at > now − 8 วัน` (หน้าต่างที่ยังแก้/ย้อนลงได้) จึงไม่ต้องรอ cron เพื่อคุมจำนวน

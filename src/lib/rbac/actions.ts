@@ -78,7 +78,7 @@ export const ACTIONS = [
   // ── อื่น ๆ ──
   'notification.list.own',
   'notification.markRead.own',
-  'place.search',
+  // R13: action ค้นหาสถานที่ถูกลบพร้อม route ค้นหาสถานที่ (ไม่มีการค้นหาสถานที่แล้ว)
 ] as const;
 
 export type Action = (typeof ACTIONS)[number];
@@ -206,7 +206,6 @@ export const ACTION_RESOURCE = {
 
   'notification.list.own': ['ownedByUser'],
   'notification.markRead.own': ['ownedByUser'],
-  'place.search': ['none'],
 } as const satisfies Record<Action, readonly ResourceType[]>;
 
 const PUBLIC_SET: ReadonlySet<Action> = new Set(PUBLIC_ACTIONS);

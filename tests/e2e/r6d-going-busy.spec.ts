@@ -14,7 +14,7 @@ import { openCalendar, pageDump } from './support/calendar-ui';
 import { setPrefs, settleAnimations, watchConsole } from './support/fixtures';
 import { checkLayout, createGroupApi, go, joinViaApiCode, membersApi, type Theme } from './support/groups';
 import { msg, type Locale } from './support/messages';
-import { call, cancelApptApi, createApptApi, daysAhead, isHydration, makeScene, rsvpApi, stubTiles, type ApptApi, type Member } from './support/appt';
+import { call, cancelApptApi, createApptApi, daysAhead, isHydration, makeScene, rsvpApi, type ApptApi, type Member } from './support/appt';
 
 type Rsvp = 'going' | 'maybe' | 'not_going';
 type NewDevice = () => Promise<{ context: import('@playwright/test').BrowserContext; page: Page }>;
@@ -27,7 +27,6 @@ const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 async function makeUser(newDevice: NewDevice, baseURL: string, label: string, o: { locale: Locale; theme?: Theme; displayName?: string }): Promise<Member> {
   const d = await newDevice();
   await setPrefs(d.context, baseURL, { locale: o.locale, theme: o.theme ?? 'light' });
-  await stubTiles(d.context);
   const username = uniqueUsername(label.toLowerCase().slice(0, 4));
   const displayName = o.displayName ?? `${label} ${rand()}`;
   await signupViaApi(d.context.request, { username, displayName });

@@ -1,67 +1,6 @@
-// โมเดลแผนที่ (R4B · D11) — ล้วน ไม่แตะ DOM/เครือข่าย · ทดสอบที่ tests/ui/appointments-map.test.ts
-//  - tileGrid: คำนวณกริด tile OSM 3×3 (zoom 15) รอบพิกัด — ไม่เพิ่มไลบรารีแผนที่ · tile มาจาก tile.openstreetmap.org (CSP เดิมอนุญาต)
+// โมเดลแผนที่ (R13 · D11) — ล้วน ไม่แตะ DOM/เครือข่าย · ทดสอบที่ tests/ui/appointments-map.test.ts
 //  - mapOpenLink: ลิงก์ "เปิดในแอปแผนที่" (https ของผู้ใช้ก่อน ไม่งั้น geo:) + target/rel ตามชนิด
-//  - lat คลิปที่ ±85.0511 (ขอบ Web Mercator) · lng วนข้ามเส้นแบ่งวัน (antimeridian) · แถว y นอกโลก = ไม่มี tile
-
-export const MAP_ZOOM = 15;
-export const MAP_RADIUS = 1;
-export const OSM_TILE_ORIGIN = "https://tile.openstreetmap.org";
-export const OSM_COPYRIGHT_URL = "https://www.openstreetmap.org/copyright";
-export const MAX_MERCATOR_LAT = 85.0511287798066;
-
-export interface TileCell {
-  key: string;
-  row: number;
-  col: number;
-  /** null = นอกขอบโลก (ไม่มี tile) */
-  url: string | null;
-  x: number;
-  y: number;
-}
-
-export interface TileGrid {
-  zoom: number;
-  size: number;
-  cells: TileCell[];
-  /** ตำแหน่งหมุดในกริด 0..1 (ซ้าย/บน) */
-  marker: { x: number; y: number };
-}
-
-const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
-
-/** พิกัด tile แบบเศษส่วน (Web Mercator · slippy map) · lng ถูกวนให้อยู่ใน [0, 2^z) */
-export function worldPoint(lat: number, lng: number, zoom: number): { x: number; y: number } {
-  const n = 2 ** zoom;
-  const la = (clamp(lat, -MAX_MERCATOR_LAT, MAX_MERCATOR_LAT) * Math.PI) / 180;
-  const rawX = ((lng + 180) / 360) * n;
-  const x = ((rawX % n) + n) % n;
-  const y = ((1 - Math.log(Math.tan(la) + 1 / Math.cos(la)) / Math.PI) / 2) * n;
-  return { x, y: clamp(y, 0, n - 1e-9) };
-}
-
-export function tileUrl(z: number, x: number, y: number): string {
-  return `${OSM_TILE_ORIGIN}/${z}/${x}/${y}.png`;
-}
-
-/** กริด (2r+1)² ของ tile รอบพิกัด · x วนข้ามเส้นแบ่งวัน · y นอกช่วง = ไม่มี tile */
-export function tileGrid(lat: number, lng: number, zoom: number = MAP_ZOOM, radius: number = MAP_RADIUS): TileGrid {
-  const n = 2 ** zoom;
-  const p = worldPoint(lat, lng, zoom);
-  const cx = Math.floor(p.x);
-  const cy = Math.floor(p.y);
-  const size = radius * 2 + 1;
-  const cells: TileCell[] = [];
-  for (let row = 0; row < size; row++) {
-    for (let col = 0; col < size; col++) {
-      const rawX = cx - radius + col;
-      const rawY = cy - radius + row;
-      const x = ((rawX % n) + n) % n;
-      const inWorld = rawY >= 0 && rawY < n;
-      cells.push({ key: `${zoom}/${x}/${rawY}/${row}${col}`, row, col, x, y: rawY, url: inWorld ? tileUrl(zoom, x, rawY) : null });
-    }
-  }
-  return { zoom, size, cells, marker: { x: (p.x - (cx - radius)) / size, y: (p.y - (cy - radius)) / size } };
-}
+//  - mapSearchLink / detectMapApps: ลิงก์ค้นหาชื่อใน Google/Apple Maps (ส่งชื่อไปเฉพาะตอนผู้ใช้กดเอง) + ชนิดเครื่องจาก user agent
 
 export interface MapTarget {
   placeName: string | null;
@@ -106,3 +45,26 @@ export function mapOpenLink(t: MapTarget): MapLink | null {
 }
 
 export const hasCoords = (t: Pick<MapTarget, "lat" | "lng">): t is { lat: number; lng: number } => t.lat !== null && t.lng !== null;
+
+// ───────── ปุ่มเปิดแอปแผนที่ (R13) ─────────
+export type MapApp = "google" | "apple";
+
+export const GOOGLE_MAPS_HOME = "https://www.google.com/maps";
+export const APPLE_MAPS_HOME = "https://maps.apple.com/";
+
+/** ลิงก์ค้นหาชื่อสถานที่ · ชื่อว่าง = หน้าแรกของแผนที่ · encode ด้วย encodeURIComponent เสมอ (ไทย, &, #) */
+export function mapSearchLink(app: MapApp, name: string | null | undefined): string {
+  const q = (name ?? "").normalize("NFC").replace(/\s+/g, " ").trim();
+  if (q === "") return app === "google" ? GOOGLE_MAPS_HOME : APPLE_MAPS_HOME;
+  const enc = encodeURIComponent(q);
+  return app === "google" ? `https://www.google.com/maps/search/?api=1&query=${enc}` : `https://maps.apple.com/?q=${enc}`;
+}
+
+/**
+ * แอปแผนที่ที่ควรแสดงตามชนิดเครื่อง (ดูจาก user agent ที่ client เท่านั้น ไม่ส่งไปเซิร์ฟเวอร์)
+ * iPhone/iPad/iPod/Mac (รวม iPadOS ที่บอกตัวเป็น Macintosh) → Apple ก่อน แล้ว Google · อื่นๆ/ไม่รู้ → Google อย่างเดียว
+ */
+export function detectMapApps(userAgent: string | null | undefined): MapApp[] {
+  const ua = userAgent ?? "";
+  return /iPhone|iPad|iPod|Macintosh|Mac OS X/i.test(ua) ? ["apple", "google"] : ["google"];
+}

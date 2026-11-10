@@ -26,7 +26,7 @@ for (const locale of LOCALES) {
     expect(msg(locale, 'privacy.updated')).toMatch(locale === 'th' ? /^อัปเดตล่าสุด/ : /^Last updated/);
     for (const s of SECTIONS) await expect(page.getByRole('heading', { level: 2, name: msg(locale, `privacy.${s}.title`) })).toBeVisible();
     await expect(page.getByText(msg(locale, 'privacy.retention.busy'))).toBeVisible();
-    await expect(page.getByText(msg(locale, 'privacy.places.search'))).toBeVisible();
+    await expect(page.getByText(msg(locale, 'privacy.places.links'))).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('lang', locale);
 
     await page.getByTestId('privacy-back').click();

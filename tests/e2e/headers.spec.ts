@@ -3,7 +3,6 @@ import { signupViaApi, test, uniqueUsername } from './support/auth';
 import { expect, watchConsole } from './support/fixtures';
 
 const PATHS = ['/', '/login', '/signup', '/forgot', '/me', '/no-such-page-r0', '/api/health'];
-const TILE_ORIGIN = 'https://tile.openstreetmap.org';
 
 function parseCsp(header: string): Map<string, string[]> {
   const out = new Map<string, string[]>();
@@ -29,9 +28,9 @@ for (const path of PATHS) {
     expect(csp.get('object-src')).toEqual(["'none'"]);
     expect(csp.get('script-src')).not.toContain('*');
     expect(csp.get('script-src')?.some((v) => v.startsWith('http'))).toBe(false);
-    // tile แผนที่อนุญาตเฉพาะ img-src
-    expect(csp.get('img-src')).toContain(TILE_ORIGIN);
-    for (const [name, values] of csp) if (name !== 'img-src') expect(values, name).not.toContain(TILE_ORIGIN);
+    // R13: ไม่โหลดภาพแผนที่/tile — img-src เป็นของตัวเอง + data: + blob: เท่านั้น ไม่มีโฮสต์ภายนอกใน directive ใดเลย
+    expect(csp.get('img-src')).toEqual(["'self'", 'data:', 'blob:']);
+    for (const [name, values] of csp) expect(values.some((v) => /openstreetmap/i.test(v)), name).toBe(false);
 
     expect(h['x-content-type-options']).toBe('nosniff');
     expect(h['referrer-policy']).toBeTruthy();

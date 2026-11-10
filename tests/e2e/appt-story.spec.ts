@@ -2,7 +2,7 @@
 //
 //  A (admin) B C ในกลุ่ม · วัน X = จันทร์ในอนาคต (สัมพัทธ์กับวันนี้)
 //  B ลงช่วงติด 10–11 แบบซ่อน (title+note canary) → ช่วงว่างร่วม 08–10 · 11–22
-//  A: ว่างตรงกัน → วัน X → แตะช่วง 08–10 (เติมฟอร์มให้) → ขยับเวลาจบ 10:30 → คำเตือนนัดทับระบุ B ("ไม่ว่าง") → ใส่สถานที่ด้วยพิกัดที่วาง → สร้าง
+//  A: ว่างตรงกัน → วัน X → แตะช่วง 08–10 (เติมฟอร์มให้) → ขยับเวลาจบ 10:30 → คำเตือนนัดทับระบุ B ("ไม่ว่าง") → ใส่สถานที่ (ชื่อ + พิกัดที่วางในช่องลิงก์) → สร้าง
 //  B, C ได้แจ้งเตือนคนละ 1 (A ไม่ได้) → B ตอบไป / C อาจไป → นับอัปเดต → หน้าหลัก B มีการ์ด "อีก N วัน" + จำนวนคนไป
 //  A แก้ชื่อ → A ยกเลิก → B เห็นแบนเนอร์ยกเลิก · หน้าหลักไม่ใช่ "นัดถัดไป" · รายการกลุ่มขีดฆ่า · RSVP ปิด → C ออกกลุ่ม → C ไม่เห็นนัด (404) ไม่เห็นแจ้งเตือน
 import { expect, test } from './support/auth';
@@ -62,17 +62,14 @@ test('th: A สร้างนัดจากวันว่างร่วม �
   await expect(ov).not.toContainText(CN);
   await expect(a.page.getByTestId('appt-submit')).toBeEnabled(); // ไม่บล็อก
 
-  // ───── 2) ชื่อ + สถานที่: ค้นหาปิดอยู่ → วางพิกัด ─────
+  // ───── 2) ชื่อ + สถานที่: พิมพ์ชื่อ + วางพิกัดในช่องลิงก์ (R13 ไม่มีปุ่มค้นหา) ─────
   const title = `หมูกระทะ ${Math.random().toString(16).slice(2, 7)}`;
   await a.page.getByTestId('appt-title').fill(title);
   await a.page.getByTestId('place-query').fill('ร้านหมูกระทะป้าแดง');
-  await a.page.getByTestId('place-search').click();
-  await expect(a.page.getByTestId('place-disabled')).toContainText(T('places.search.disabled'));
-  await expect(a.page.getByTestId('place-paste')).toBeVisible(); // เปิดแผงวางให้เอง
-  await a.page.getByTestId('place-paste-input').fill('13.7563, 100.5018');
-  await a.page.getByTestId('place-paste-submit').click();
-  await expect(a.page.getByTestId('place-chip-name')).toContainText('ร้านหมูกระทะป้าแดง');
-  await expect(a.page.getByTestId('place-chip-sub')).toContainText('13.7563');
+  await expect(a.page.getByTestId('place-search')).toHaveCount(0);
+  await a.page.getByTestId('place-link').fill('13.7563, 100.5018');
+  await a.page.getByTestId('place-link').blur();
+  await expect(a.page.getByTestId('place-link-error')).toHaveCount(0);
   await a.page.getByTestId('appt-submit').click();
   await a.page.waitForURL(/\/appointments\/[0-9a-f-]{36}$/);
   const id = apptIdFromUrl(a.page);
@@ -80,7 +77,8 @@ test('th: A สร้างนัดจากวันว่างร่วม �
   // ───── 3) หน้ารายละเอียดของ A ─────
   await expect(a.page.getByTestId('appt-detail-title')).toHaveText(title);
   await expect(a.page.getByTestId('appt-place-name')).toContainText('ร้านหมูกระทะป้าแดง');
-  await expect(a.page.getByTestId('place-map')).toBeVisible();
+  await expect(a.page.getByTestId('place-map')).toHaveCount(0); // R13: ไม่มีภาพแผนที่
+  await expect(a.page.getByTestId('place-open')).toHaveAttribute('data-kind', 'geo'); // พิกัดอย่างเดียว = geo:
   await expect(a.page.getByTestId('appt-band')).toContainText(String(buddhistYear(X.slice(0, 7)))); // พ.ศ.
   await expect(a.page.getByTestId('appt-when')).toContainText('08:00');
   await expect(a.page.getByTestId('appt-edit')).toBeVisible();

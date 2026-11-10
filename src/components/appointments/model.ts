@@ -323,54 +323,6 @@ export function mapFormFailure(f: Failure, mode: "create" | "edit"): SaveFailure
   }
 }
 
-// ───────── ผลค้นหาสถานที่ → สถานะช่อง ─────────
-export type PlaceSearchState =
-  | { kind: "idle" }
-  | { kind: "tooShort" }
-  | { kind: "searching" }
-  | { kind: "results"; results: PlaceResult[] }
-  | { kind: "none"; query: string }
-  | { kind: "error" }
-  | { kind: "rate" }
-  /** ปิดชั่วคราว (kill switch / ไม่ได้ตั้งค่า / ต้นทางล่ม) → เปิดแผงวางลิงก์ให้เอง */
-  | { kind: "disabled" };
-
-export interface PlaceResult {
-  name: string;
-  lat: number;
-  lng: number;
-  osmUrl: string;
-}
-
-export const PLACE_QUERY_MIN = 2;
-export const PLACE_QUERY_MAX = 100;
-
-export function placeSearchFailure(f: Failure): PlaceSearchState {
-  if (f.kind === "network") return { kind: "error" };
-  if (f.error.code === "RATE_LIMITED") return { kind: "rate" };
-  if (f.error.code === "FEATURE_DISABLED") return { kind: "disabled" };
-  return { kind: "error" };
-}
-
-/** ผลลัพธ์ที่ผ่านการตรวจรูปแบบ (ไม่เชื่อ response โดยไม่ตรวจ) ≤ 5 */
-export function parsePlaceResults(data: unknown): PlaceResult[] {
-  const list = typeof data === "object" && data !== null && Array.isArray((data as { results?: unknown }).results) ? (data as { results: unknown[] }).results : [];
-  const out: PlaceResult[] = [];
-  for (const r of list) {
-    if (typeof r !== "object" || r === null) continue;
-    const o = r as Record<string, unknown>;
-    if (typeof o.name !== "string" || typeof o.lat !== "number" || typeof o.lng !== "number" || !Number.isFinite(o.lat) || !Number.isFinite(o.lng)) continue;
-    out.push({ name: o.name, lat: o.lat, lng: o.lng, osmUrl: typeof o.osmUrl === "string" ? o.osmUrl : "" });
-    if (out.length === 5) break;
-  }
-  return out;
-}
-
-/** ผลที่เลือก → ค่าสถานที่ (osmUrl เก็บเป็น mapUrl เมื่อเป็น https ที่เซิร์ฟเวอร์ยอมรับ) */
-export function placeFromResult(r: PlaceResult): PlaceValue {
-  return { name: r.name, lat: r.lat, lng: r.lng, mapUrl: /^https:\/\//i.test(r.osmUrl) && r.osmUrl.length <= 500 ? r.osmUrl : null };
-}
-
 export const coordsText = (p: Pick<PlaceValue, "lat" | "lng">): string | null => (p.lat !== null && p.lng !== null ? `${round5(p.lat)}, ${round5(p.lng)}` : null);
 const round5 = (n: number): number => Math.round(n * 1e5) / 1e5;
 

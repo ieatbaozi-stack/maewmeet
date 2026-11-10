@@ -81,7 +81,6 @@ export const ROUTE_MANIFEST = [
   { method: 'GET', path: '/api/me/appointments', action: 'appointment.list.mine', auth: 'actor', owner: 'platform' },
   { method: 'GET', path: '/api/me/notifications', action: 'notification.list.own', auth: 'actor', owner: 'platform' },
   { method: 'POST', path: '/api/me/notifications/read', action: 'notification.markRead.own', auth: 'actor', owner: 'platform' },
-  { method: 'GET', path: '/api/places/search', action: 'place.search', auth: 'actor', owner: 'platform' },
   // ── U12–U13 (R5 · Platform + Auth & Access) ──
   { method: 'PATCH', path: '/api/me', action: 'self.update', auth: 'actor', owner: 'platform' },
   { method: 'POST', path: '/api/me/delete', action: 'self.delete', auth: 'actor', owner: 'platform' },

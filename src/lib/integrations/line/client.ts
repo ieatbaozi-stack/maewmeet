@@ -1,5 +1,5 @@
 // Messaging API client — Push (มี X-Line-Retry-Key) + Reply · ไม่ log token / LINE user id / เนื้อหา
-// ตัวเรียกเครือข่าย inject ได้ (เทสต์ห้ามยิง LINE จริง) — แบบเดียวกับ src/lib/data/place-fetch.ts
+// ตัวเรียกเครือข่าย inject ได้ (เทสต์ห้ามยิง LINE จริง)
 import { LINE_DISPATCH } from '@/lib/shared/limits';
 import type { LineConfig } from './config';
 

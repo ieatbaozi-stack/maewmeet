@@ -10,8 +10,8 @@ import { MemberAvatar } from "@/components/groups/MemberAvatar";
 import { Icon } from "@/components/icons/Icon";
 import { Name, withNames } from "@/components/Name";
 import { shownName } from "@/components/account/model";
-import { OpenInMaps, PlaceMap } from "@/components/places/PlaceMap";
-import { hasCoords } from "@/components/places/map-model";
+import { MapAppLinks, OpenInMaps } from "@/components/places/MapAppLinks";
+import { mapOpenLink } from "@/components/places/map-model";
 import { Sheet } from "@/components/shell/Sheet";
 import { format, type CalendarLocale } from "@/lib/calendar";
 import type { AppointmentDetailDto, PersonDto } from "@/lib/data/serializers/appointments";
@@ -217,8 +217,12 @@ export function AppointmentDetail({ initial, me, nowMs, appOrigin }: Appointment
               <Name>{placeName}</Name>
             </p>
             {coordsText(a) !== null ? <p className="appt-place-sub num">{t("places.selected.coords", { lat: Math.round(a.lat! * 1e5) / 1e5, lng: Math.round(a.lng! * 1e5) / 1e5 })}</p> : a.mapUrl ? <p className="appt-place-sub">{t("places.selected.linkOnly", { host: hostOf(a.mapUrl) })}</p> : null}
-            {hasCoords(a) ? <PlaceMap name={placeName} lat={a.lat!} lng={a.lng!} /> : null}
-            <OpenInMaps target={{ placeName: a.placeName, lat: a.lat, lng: a.lng, mapUrl: a.mapUrl }} name={placeName} />
+            {/* R13: ไม่มีภาพแผนที่ · มีลิงก์ https/พิกัด = ปุ่มเปิด · มีแต่ชื่อ = ปุ่มค้นหาใน Google/Apple Maps ตามเครื่อง */}
+            {mapOpenLink({ placeName: a.placeName, lat: a.lat, lng: a.lng, mapUrl: a.mapUrl }) !== null ? (
+              <OpenInMaps target={{ placeName: a.placeName, lat: a.lat, lng: a.lng, mapUrl: a.mapUrl }} name={placeName} />
+            ) : a.placeName ? (
+              <MapAppLinks name={a.placeName} variant="find" />
+            ) : null}
           </section>
         ) : null}
 

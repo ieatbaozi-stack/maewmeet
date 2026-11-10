@@ -247,7 +247,6 @@ export const MATRIX = {
     resource: 'ownedByUser',
     cases: { own: ANY_USER, other: NOT_OWNER },
   },
-  'place.search': { ref: 'ADR0003 ผู้ใช้ทุกคน (U10)', resource: 'none', cases: { any: ANY_USER } },
 } as const satisfies Record<Action, MatrixEntry>;
 
 /** action ที่ระหว่าง must_change_pin ยังทำได้ (PRD U3 + ADR 0003 เพิ่ม prefs.cookie.set) */

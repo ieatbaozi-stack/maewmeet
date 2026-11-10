@@ -27,9 +27,7 @@ describe('loadEnv — dev/test profile', () => {
     const env = loadEnv(devEnv());
     expect(env.TURSO_DATABASE_URL).toBe('file:./local.db');
     expect(env.TURSO_AUTH_TOKEN).toBeUndefined();
-    expect(env.PLACE_SEARCH_ENABLED).toBe(true);
     expect(env.LOG_LEVEL).toBe('info');
-    expect(env.NOMINATIM_BASE_URL).toBe('https://nominatim.openstreetmap.org');
     expect(env.PIN_PEPPER_CURRENT_VERSION).toBeUndefined(); // R0 ยังไม่บังคับ
   });
 
@@ -70,10 +68,9 @@ describe('loadEnv — dev/test profile', () => {
     expect(e.message).not.toContain(SECRET_32);
   });
 
-  it('PLACE_SEARCH_ENABLED/LOG_LEVEL นอกชุด → ล้ม', () => {
-    const e = catchEnvError({ ...devEnv(), PLACE_SEARCH_ENABLED: 'yes', LOG_LEVEL: 'trace' });
-    expect([...e.variables].sort()).toEqual(['LOG_LEVEL', 'PLACE_SEARCH_ENABLED']);
-    expect(loadEnv({ ...devEnv(), PLACE_SEARCH_ENABLED: 'false' }).PLACE_SEARCH_ENABLED).toBe(false);
+  it('LOG_LEVEL นอกชุด → ล้ม', () => {
+    const e = catchEnvError({ ...devEnv(), LOG_LEVEL: 'trace' });
+    expect([...e.variables]).toEqual(['LOG_LEVEL']);
   });
 });
 
@@ -177,31 +174,18 @@ describe('trustsProxyHeaders (S4/S5)', () => {
   });
 });
 
-describe('NOMINATIM_BASE_URL (R4B info)', () => {
-  const withUrl = (u: string, extra: Record<string, string> = {}) => ({ ...devEnv(), NOMINATIM_BASE_URL: u, ...extra });
-
-  it('https ผ่าน · ว่าง = ค่าเริ่มต้น', () => {
-    expect(loadEnv(withUrl('https://nominatim.internal.example')).NOMINATIM_BASE_URL).toBe('https://nominatim.internal.example');
-    expect(loadEnv(withUrl('')).NOMINATIM_BASE_URL).toBe('https://nominatim.openstreetmap.org');
-  });
-
-  it.each(['http://nominatim.example.com', 'http://10.0.0.1:8080', 'ftp://x.example', 'http://localhost.evil.com', 'http://127.0.0.2'])('%s → EnvError ระบุชื่อตัวแปร', (u) => {
-    const e = catchEnvError(withUrl(u));
-    expect([...e.variables]).toEqual(['NOMINATIM_BASE_URL']);
-    expect(e.message).toContain('must be https');
-  });
-
-  it('http://localhost / http://127.0.0.1 ผ่านเฉพาะนอก production (dev/test)', () => {
-    for (const u of ['http://localhost:8089', 'http://127.0.0.1:8089']) {
-      expect(loadEnv(withUrl(u)).NOMINATIM_BASE_URL).toBe(u);
-      expect(loadEnv(withUrl(u, { NODE_ENV: 'test' })).NOMINATIM_BASE_URL).toBe(u);
-      expect([...catchEnvError(withUrl(u, { NODE_ENV: 'production' })).variables]).toEqual(['NOMINATIM_BASE_URL']);
+describe('env ที่ R13 ลบ (ค้นหาสถานที่/แผนที่)', () => {
+  it('ตั้งค่าเก่าค้างไว้ใน env → ไม่ทำให้ล้ม และไม่ถูกส่งออกใน Env', () => {
+    const env = loadEnv({
+      ...devEnv(),
+      PLACE_SEARCH_ENABLED: 'yes',
+      NOMINATIM_BASE_URL: 'http://nominatim.example.com',
+      NOMINATIM_CONTACT: 'x@example.invalid',
+      NEXT_PUBLIC_MAP_TILE_URL: 'https://tile.example/{z}/{x}/{y}.png',
+      NEXT_PUBLIC_MAP_ATTRIBUTION: 'x',
+    }) as Record<string, unknown>;
+    for (const k of ['PLACE_SEARCH_ENABLED', 'NOMINATIM_BASE_URL', 'NOMINATIM_CONTACT', 'NEXT_PUBLIC_MAP_TILE_URL', 'NEXT_PUBLIC_MAP_ATTRIBUTION']) {
+      expect(k in env, k).toBe(false);
     }
-  });
-
-  it('โปรไฟล์ deployed (VERCEL_ENV) ก็บังคับเช่นกัน', () => {
-    const deployed = { ...devEnv(), TURSO_DATABASE_URL: 'libsql://maewmeet-x.turso.io', TURSO_AUTH_TOKEN: 't', APP_ORIGIN: 'https://maewmeet.example', VERCEL_ENV: 'production', NODE_ENV: 'production' };
-    expect(loadEnv({ ...deployed, NOMINATIM_BASE_URL: 'https://n.example' }).NOMINATIM_BASE_URL).toBe('https://n.example');
-    expect([...catchEnvError({ ...deployed, NOMINATIM_BASE_URL: 'http://localhost:1' }).variables]).toEqual(['NOMINATIM_BASE_URL']);
   });
 });

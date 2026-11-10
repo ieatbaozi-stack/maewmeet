@@ -60,6 +60,7 @@ import { parseMapUrl } from '@/lib/shared/location-parse';
 import { memberAppearance } from '@/lib/shared/member-color';
 import { checkVisibleName, hasForbiddenChars, sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
+import { calendarLinkLabels, localeFromCookie, resolveCalendarLocale } from '../calendar-labels';
 import { notify } from '../notifications/notify';
 import { groupRowOf, loadAppointmentCtx, loadGroupCtx, type AppointmentCtx } from '../policy-context';
 import {
@@ -568,6 +569,9 @@ export async function getAppointmentIcs(actor: Actor, id: string, appOrigin: str
   await auditRead(db, me, allow, { action: 'appointment.view', targetType: 'appointment', targetId: id, groupId: row.groupId }, now);
   if (row.status === 'cancelled') throw new AppError('APPOINTMENT_CANCELLED');
   if (row.endAt <= now) throw new AppError('APPOINTMENT_PAST');
+  // R13 §1.4: ป้ายลิงก์ตามภาษาที่ผู้ดาวน์โหลดเห็นอยู่: คุกกี้ mm_locale ของคำขอ → user.locale → ไทย (อ่านบัญชีเฉพาะเมื่อไม่มีคุกกี้ที่ใช้ได้)
+  const cookieLocale = localeFromCookie(ctx.req);
+  const labels = calendarLinkLabels(resolveCalendarLocale(cookieLocale, cookieLocale ? null : (await findUserById(db, me.id))?.locale));
   return buildAppointmentIcs(
     {
       id: row.id,
@@ -578,6 +582,7 @@ export async function getAppointmentIcs(actor: Actor, id: string, appOrigin: str
       endAt: row.endAt,
       tz: row.tz,
       appOrigin,
+      labels,
     },
     now,
   );

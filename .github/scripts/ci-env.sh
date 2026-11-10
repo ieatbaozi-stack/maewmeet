@@ -24,11 +24,6 @@ for v in "$pepper" "$app_secret" "$cron_secret"; do echo "::add-mask::$v"; done
   echo "APP_SECRET=${app_secret}"
   echo "CRON_SECRET=${cron_secret}"
   echo "APP_ORIGIN=http://localhost:3000"
-  echo "PLACE_SEARCH_ENABLED=false"
-  echo "NOMINATIM_BASE_URL=https://nominatim.openstreetmap.org"
-  echo "NOMINATIM_CONTACT=ci@example.invalid"
-  echo "NEXT_PUBLIC_MAP_TILE_URL=https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-  echo "NEXT_PUBLIC_MAP_ATTRIBUTION=© OpenStreetMap contributors"
   echo "LOG_LEVEL=warn"
 } >>"$GITHUB_ENV"
 

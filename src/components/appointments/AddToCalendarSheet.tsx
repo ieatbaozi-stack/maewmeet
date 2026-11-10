@@ -39,7 +39,7 @@ export function AddToCalendarSheet({ appointment: a, appOrigin, onClose }: AddTo
     }
     return (
       <div className="cal-add-item" key="google">
-        <a className={cls} href={googleCalendarUrl({ id: a.id, title: a.title, placeName: a.placeName, mapUrl: a.mapUrl, startAt: a.startAt, endAt: a.endAt, tz: a.tz, appOrigin })} target="_blank" rel="noopener noreferrer" aria-describedby={noteId} data-testid="cal-add-google">
+        <a className={cls} href={googleCalendarUrl({ id: a.id, title: a.title, placeName: a.placeName, mapUrl: a.mapUrl, startAt: a.startAt, endAt: a.endAt, tz: a.tz, appOrigin, labels: { map: t("labelMap"), plan: t("labelPlan") } })} target="_blank" rel="noopener noreferrer" aria-describedby={noteId} data-testid="cal-add-google">
           <Icon name="external-link" />
           <span>{t("google")}</span>
         </a>

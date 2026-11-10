@@ -17,9 +17,6 @@ import {
   mapFormFailure,
   minutesOfClock,
   overlapView,
-  parsePlaceResults,
-  placeFromResult,
-  placeSearchFailure,
   prefillFromSegment,
   resolveEnd,
   rowState,
@@ -240,25 +237,7 @@ describe('mapFormFailure (error → ช่อง)', () => {
   });
 });
 
-describe('ค้นหาสถานที่', () => {
-  it('ความล้มเหลว → สถานะ', () => {
-    expect(placeSearchFailure(network)).toEqual({ kind: 'error' });
-    expect(placeSearchFailure(api('RATE_LIMITED'))).toEqual({ kind: 'rate' });
-    expect(placeSearchFailure(api('FEATURE_DISABLED', { feature: 'placeSearch' }))).toEqual({ kind: 'disabled' });
-    expect(placeSearchFailure(api('UNKNOWN'))).toEqual({ kind: 'error' });
-  });
-  it('parsePlaceResults: ≤ 5 · ทิ้งแถวที่รูปผิด', () => {
-    const rows = Array.from({ length: 8 }, (_, i) => ({ name: `ร้าน ${i}`, lat: 13 + i / 100, lng: 100, osmUrl: 'https://www.openstreetmap.org/node/1' }));
-    expect(parsePlaceResults({ results: rows })).toHaveLength(5);
-    expect(parsePlaceResults({ results: [{ name: 1, lat: 1, lng: 1 }, { name: 'a', lat: 'x', lng: 1 }, null, { name: 'ok', lat: 1, lng: 2, osmUrl: 'x' }] })).toEqual([{ name: 'ok', lat: 1, lng: 2, osmUrl: 'x' }]);
-    expect(parsePlaceResults(undefined)).toEqual([]);
-    expect(parsePlaceResults({ results: 'x' })).toEqual([]);
-  });
-  it('placeFromResult: เก็บ osmUrl เฉพาะ https', () => {
-    expect(placeFromResult({ name: 'a', lat: 1, lng: 2, osmUrl: 'https://www.openstreetmap.org/node/1' }).mapUrl).toBe('https://www.openstreetmap.org/node/1');
-    expect(placeFromResult({ name: 'a', lat: 1, lng: 2, osmUrl: 'http://x' }).mapUrl).toBeNull();
-    expect(placeFromResult({ name: 'a', lat: 1, lng: 2, osmUrl: 'javascript:1' }).mapUrl).toBeNull();
-  });
+describe('สถานที่', () => {
   it('coordsText', () => {
     expect(coordsText({ lat: 13.801612345, lng: 100.6 })).toBe('13.80161, 100.6');
     expect(coordsText({ lat: null, lng: 1 })).toBeNull();

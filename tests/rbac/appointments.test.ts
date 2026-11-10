@@ -1,5 +1,5 @@
 /**
- * R4B-2 — เมทริกซ์ RBAC ของนัด / RSVP / รายการนัดของฉัน / แจ้งเตือน / ค้นหาสถานที่
+ * R4B-2 — เมทริกซ์ RBAC ของนัด / RSVP / รายการนัดของฉัน / แจ้งเตือน (ค้นหาสถานที่ลบใน R13)
  * (PRD §3 แถว "สร้างนัด (D4)", "แก้/ยกเลิกนัด (D4)", "RSVP"; ADR 0003 ตารางแถว 9–11 + ตาราง action ผูกผู้ใช้; R4B_CONTRACT §5 R4B-2)
  *
  * สเปกเขียนมือตรงนี้ (ไม่คัดจาก can.ts): persona × action × ความเป็นผู้สร้าง × สถานะบัญชี/กลุ่ม
@@ -11,7 +11,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { ACTIONS, ACTION_RESOURCE, SUPER_ADMIN_ONLY, PIN_CHANGE_ALLOWED, PUBLIC_ACTIONS } from '@/lib/rbac/actions';
+import { ACTIONS, ACTION_RESOURCE, SUPER_ADMIN_ONLY, PIN_CHANGE_ALLOWED, PUBLIC_ACTIONS, isAction } from '@/lib/rbac/actions';
 import { authorize, authorizeInGroup, can, canInGroup } from '@/lib/rbac/can';
 import { PolicyError, POLICY_STATUS, RbacMisuseError } from '@/lib/rbac/errors';
 import type { AccountStatus, Actor, GroupCtx, GroupRole, PolicyErrorCode, Resource } from '@/lib/rbac/types';
@@ -78,7 +78,7 @@ const D403 = dn('FORBIDDEN', 403);
 const D404 = dn('NOT_FOUND', 404);
 
 const APPT_ACTIONS = ['appointment.create', 'appointment.view', 'appointment.update', 'appointment.cancel', 'appointment.rsvp'] as const;
-const OTHER_ACTIONS = ['appointment.list.mine', 'notification.list.own', 'notification.markRead.own', 'place.search'] as const;
+const OTHER_ACTIONS = ['appointment.list.mine', 'notification.list.own', 'notification.markRead.own'] as const;
 
 describe('ชื่อ action / ชนิด resource / ชุดพิเศษ ของ R4B', () => {
   it('ทุก action อยู่ใน ACTIONS', () => {
@@ -93,7 +93,6 @@ describe('ชื่อ action / ชนิด resource / ชุดพิเศษ
     expect(ACTION_RESOURCE['appointment.list.mine']).toEqual(['none']);
     expect(ACTION_RESOURCE['notification.list.own']).toEqual(['ownedByUser']);
     expect(ACTION_RESOURCE['notification.markRead.own']).toEqual(['ownedByUser']);
-    expect(ACTION_RESOURCE['place.search']).toEqual(['none']);
   });
   it('ไม่ใช่ public / SA-only / อนุญาตระหว่าง must_change_pin', () => {
     for (const a of [...APPT_ACTIONS, ...OTHER_ACTIONS]) {
@@ -105,8 +104,12 @@ describe('ชื่อ action / ชนิด resource / ชุดพิเศษ
   it('ไม่มี action นัด/แจ้งเตือนอื่นแอบเพิ่ม (กัน action ที่ไม่มีเมทริกซ์)', () => {
     const family = ACTIONS.filter((a) => /^(appointment|notification|place)\./.test(a)).sort();
     expect(family).toEqual(
-      [...APPT_ACTIONS, 'appointment.list.mine', 'notification.list.own', 'notification.markRead.own', 'place.search'].sort(),
+      [...APPT_ACTIONS, 'appointment.list.mine', 'notification.list.own', 'notification.markRead.own'].sort(),
     );
+  });
+  it('R13: ไม่มี action ตระกูล place.* เหลือ (route ค้นหาสถานที่ถูกลบ) · isAction ปฏิเสธชื่อเดิม', () => {
+    expect(ACTIONS.filter((a) => a.startsWith('place.'))).toEqual([]);
+    expect(isAction('place' + '.search')).toBe(false);
   });
 });
 
@@ -332,12 +335,6 @@ describe('appointment.list.mine — ผู้ใช้ active ทุกคน (�
   });
 });
 
-describe('place.search — ผู้ใช้ที่ล็อกอิน active และไม่ติด must_change_pin', () => {
-  it.each(WHO.map((w) => [w] as const))('%s', (w) => {
-    expect(can(actor(w), 'place.search', NONE)).toEqual(w === 'ANON' ? D401_AUTH : OK);
-  });
-});
-
 describe('notification.list.own / notification.markRead.own — เจ้าของเท่านั้น', () => {
   const cells = (['notification.list.own', 'notification.markRead.own'] as const).flatMap((a) =>
     WHO.flatMap((w) => (['own', 'other'] as const).map((o) => [a, w, o] as const)),
@@ -366,7 +363,6 @@ describe('ชนิด resource ผิด → RbacMisuseError (fail closed ไ�
     ['appointment.rsvp', groupRes('GA')],
     ['appointment.create', apptRes('GA', 'self')],
     ['appointment.list.mine', groupRes('GA')],
-    ['place.search', groupRes('GA')],
     ['notification.list.own', NONE],
     ['notification.markRead.own', apptRes('GA', 'self')],
   ] as const)('%s ← %s', (a, r) => {
@@ -394,7 +390,7 @@ describe('IDOR ข้ามกลุ่ม: canInGroup / authorizeInGroup (/api/
     ).toEqual(D403_PIN);
   });
   it('resource ที่ไม่ผูกกลุ่มส่งเข้า canInGroup = บั๊กผู้เรียก (throw)', () => {
-    expect(() => canInGroup(actor('GA'), 'place.search', NONE as never, 'g1')).toThrow(RbacMisuseError);
+    expect(() => canInGroup(actor('GA'), 'appointment.list.mine', NONE as never, 'g1')).toThrow(RbacMisuseError);
   });
   it('authorizeInGroup ปฏิเสธ → PolicyError พร้อม status ตรงรหัส', () => {
     try {
