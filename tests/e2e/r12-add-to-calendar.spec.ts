@@ -168,12 +168,12 @@ for (const locale of LOCALES) {
         expect(lines[1]).toMatch(new RegExp(`^${escRe(L(locale).plan)}: https?://[^\\s]+/appointments/${id}$`));
         expect(gUrl.searchParams.get('location')).toBe(LONG_PLACE);
 
-        // .ics (ภาษาตามบัญชีผู้ใช้ = th เสมอในเทสต์นี้ เพราะ fixture `user` สมัครก่อนตั้งคุกกี้ภาษา · en ตรวจที่ r13-location.spec.ts): DESCRIPTION (unfold แล้ว) = "<ป้ายแผนที่>: <mapUrl>\n<ป้ายนัด>: <ลิงก์นัด>" · URL = mapUrl (R13) · LOCATION ยังเป็นชื่อสถานที่
+        // .ics (ป้ายตามคุกกี้ mm_locale ของคำขอ = ภาษาที่ setPrefs ตั้ง · R13 5d99338): DESCRIPTION (unfold แล้ว) = "<ป้ายแผนที่>: <mapUrl>\n<ป้ายนัด>: <ลิงก์นัด>" · URL = mapUrl (R13) · LOCATION ยังเป็นชื่อสถานที่
         const body = (await (await page.request.get(`/api/appointments/${id}/calendar.ics`)).text()).replace(/\r\n /g, '');
         const ics = body.split('\r\n');
         expect(ics.find((l) => l.startsWith('URL:'))).toBe(`URL:${MAP_URL}`);
         const desc = ics.find((l) => l.startsWith('DESCRIPTION:'))!;
-        expect(desc).toMatch(new RegExp(`^DESCRIPTION:${escRe(L('th').map)}: ${escRe(MAP_URL)}\\\\n${escRe(L('th').plan)}: https?://[^\\s\\\\]+/appointments/${id}$`));
+        expect(desc).toMatch(new RegExp(`^DESCRIPTION:${escRe(L(locale).map)}: ${escRe(MAP_URL)}\\\\n${escRe(L(locale).plan)}: https?://[^\\s\\\\]+/appointments/${id}$`));
         expect(ics).toContain(`LOCATION:${LONG_PLACE}`);
 
         await noOverflow(page, `sheet+map ${locale}/${theme}`);
@@ -205,9 +205,9 @@ for (const locale of LOCALES) {
         expect(body).toMatch(/\r\nBEGIN:VTIMEZONE\r\nTZID:Asia\/Bangkok\r\n/);
         expect(body).toContain('\r\nEND:VTIMEZONE\r\n');
         expect(body).not.toMatch(/DT(START|END):\d{8}T\d{6}Z/);
-        // ไม่มีลิงก์แผนที่ → DESCRIPTION มีแค่บรรทัดลิงก์นัด มีป้าย (ภาษาบัญชีดีฟอลต์ = th) และ URL = ลิงก์นัด (R13 §1.4)
+        // ไม่มีลิงก์แผนที่ → DESCRIPTION มีแค่บรรทัดลิงก์นัด มีป้าย (ภาษาตามคุกกี้ mm_locale) และ URL = ลิงก์นัด (R13 §1.4)
         const flat = body.replace(/\r\n /g, '');
-        expect(flat).toMatch(new RegExp(`\\r\\nDESCRIPTION:${escRe(L('th').plan)}: https?://[^\\s\\\\]+/appointments/${id}\\r\\n`));
+        expect(flat).toMatch(new RegExp(`\\r\\nDESCRIPTION:${escRe(L(locale).plan)}: https?://[^\\s\\\\]+/appointments/${id}\\r\\n`));
         expect(flat).toMatch(new RegExp(`\\r\\nURL:https?://[^\\s]+/appointments/${id}\\r\\n`));
         expect(body.endsWith('END:VCALENDAR\r\n')).toBe(true);
 
