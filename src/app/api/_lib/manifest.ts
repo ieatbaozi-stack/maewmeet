@@ -77,6 +77,7 @@ export const ROUTE_MANIFEST = [
   { method: 'PATCH', path: '/api/appointments/:id', action: 'appointment.update', auth: 'actor', owner: 'platform' },
   { method: 'POST', path: '/api/appointments/:id/cancel', action: 'appointment.cancel', auth: 'actor', owner: 'platform' },
   { method: 'PUT', path: '/api/appointments/:id/rsvp', action: 'appointment.rsvp', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/appointments/:id/calendar.ics', action: 'appointment.view', auth: 'actor', owner: 'platform' }, // R12 §5
   { method: 'GET', path: '/api/me/appointments', action: 'appointment.list.mine', auth: 'actor', owner: 'platform' },
   { method: 'GET', path: '/api/me/notifications', action: 'notification.list.own', auth: 'actor', owner: 'platform' },
   { method: 'POST', path: '/api/me/notifications/read', action: 'notification.markRead.own', auth: 'actor', owner: 'platform' },

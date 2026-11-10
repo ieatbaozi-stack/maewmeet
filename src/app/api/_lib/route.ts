@@ -38,6 +38,8 @@ export type ReplyInit = {
   cookies?: readonly CookieSpec[];
   /** ส่ง body ตามที่ให้โดยไม่ห่อ {data} — สงวนไว้ให้ GET /api/health (R0_CONTRACT §3 กำหนดรูป body เอง) */
   raw?: boolean;
+  /** ส่ง data (string) เป็น body ข้อความล้วนด้วย Content-Type นี้ แทน JSON — R12 §5 · actor / cookie ต่ออายุ / Cache-Control ยังผ่านขั้นตอนเดิมครบ */
+  contentType?: string;
 };
 export type Reply<T> = { readonly [REPLY]: true; readonly data: T; readonly init: ReplyInit };
 
@@ -75,6 +77,11 @@ export type RouteSpec<S extends AnySchema | undefined, PS extends AnySchema | un
   input?: S;
   params?: PS;
   handler: (ctx: HandlerContext<Out<S>, Out<PS>>) => Promise<O | Reply<O>> | O | Reply<O>;
+  /**
+   * ชั้นนอกสุด: แปลงคำตอบสุดท้ายหลังทุกขั้นตอนจบแล้ว (รวม Server-Timing ซึ่งตัดสินจาก status เดิม) — R12 §5 redirect ตอนเปิดจากลิงก์
+   * ไม่ระบุ = คำตอบเดิมทุกประการ
+   */
+  finalize?: (res: Response, req: Request, ctx: RouteContext | undefined) => Response | Promise<Response>;
 };
 
 // ───────── helpers ─────────
@@ -83,6 +90,13 @@ function json(body: unknown, status: number, extra?: Headers): Response {
   headers.set('Content-Type', 'application/json; charset=utf-8');
   headers.set('Cache-Control', CACHE_CONTROL);
   return new Response(JSON.stringify(body), { status, headers });
+}
+
+function textBody(body: unknown, contentType: string, status: number, headers: Headers): Response {
+  if (typeof body !== 'string') throw new TypeError('reply: contentType requires a string body');
+  headers.set('Content-Type', contentType);
+  headers.set('Cache-Control', CACHE_CONTROL);
+  return new Response(body, { status, headers });
 }
 
 export function errorResponse(code: ErrorCode, params?: ErrorParams, status?: number, retryAfterSec?: number): Response {
@@ -293,6 +307,7 @@ export function route<S extends AnySchema | undefined = undefined, PS extends An
         const renewed = takeRenewedSessionCookie(req);
         if (renewed && !cookies.some((c) => c.name === renewed.name)) headers.append('Set-Cookie', serializeCookie(renewed));
       }
+      if (r.init.contentType !== undefined) return textBody(r.data, r.init.contentType, r.init.status ?? 200, headers);
       return json(r.init.raw ? r.data : { data: r.data }, r.init.status ?? 200, headers);
     } catch (e) {
       const coded = asCodedError(e);
@@ -302,7 +317,7 @@ export function route<S extends AnySchema | undefined = undefined, PS extends An
     }
   };
 
-  return async (req: Request, ctx?: RouteContext): Promise<Response> => {
+  const measured = async (req: Request, ctx: RouteContext | undefined): Promise<Response> => {
     if (!serverTimingEnabled()) return handle(req, ctx, { user: false });
     // R7 §2: นับ query/เวลา DB ต่อ request (AsyncLocalStorage — ไม่ปนข้าม request)
     return runWithRequestMetrics(async (m) => {
@@ -311,6 +326,11 @@ export function route<S extends AnySchema | undefined = undefined, PS extends An
       if (shouldExposeServerTiming(entry.action, seen.user, res.status)) res.headers.set('Server-Timing', serverTimingValue(m));
       return res;
     });
+  };
+
+  return async (req: Request, ctx?: RouteContext): Promise<Response> => {
+    const res = await measured(req, ctx);
+    return spec.finalize ? spec.finalize(res, req, ctx) : res;
   };
 }
 
