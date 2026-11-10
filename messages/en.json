@@ -1627,7 +1627,7 @@
     },
     "calendar": {
       "title": "Adding a plan to your calendar",
-      "body": "If you tap “Add to calendar” on a plan, data leaves the app only when you tap it yourself. If you choose Google Calendar, the plan’s title, time, place name and link are sent to Google straight from your browser (not through our server). If you choose the .ics file, the same details sit in a file on your device, though your calendar app may sync it on to your iCloud or Google account. We don’t send the plan’s details, coordinates, group name or member names. Either way it’s a one-time copy: if the plan changes or is removed from the app, the entry in your calendar won’t change or disappear."
+      "body": "If you tap “Add to calendar” on a plan, data leaves the app only when you tap it yourself. If you choose Google Calendar, the plan’s title, time, time zone, place name and link are sent to Google straight from your browser (not through our server). That data is in the URL, so it may stay in your browser history. If you choose the .ics file, the same details (without the time zone) sit in a file on your device, though your calendar app may sync it on to your iCloud or Google account. The title and place may be text another member typed. We don’t send the plan’s details, coordinates, group name or member names. Either way it’s a one-time copy: if the plan changes or is removed from the app, the entry in your calendar won’t change or disappear."
     },
     "line": {
       "title": "Messages on LINE",
