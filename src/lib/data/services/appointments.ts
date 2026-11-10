@@ -556,7 +556,7 @@ export async function getAppointment(actor: Actor, id: string, ctx: DataCtx): Pr
 
 /**
  * R12 §5: ไฟล์ .ics ของนัด — ด่านเดียวกับ getAppointment (ไม่บังคับว่าต้องตอบ "ไป") · ตรวจสถานะหลัง authorize คนนอกจึงได้ NOT_FOUND ไม่ใช่ 409
- * ชื่อ/สถานที่ผ่าน sanitizeDisplayText เหมือน DTO (ลิงก์ Google สร้างจาก DTO) · §6 ไม่ส่ง description/พิกัด/ชื่อกลุ่ม/ชื่อสมาชิก
+ * ชื่อ/สถานที่ผ่าน sanitizeDisplayText เหมือน DTO (ลิงก์ Google สร้างจาก DTO) · §6 + R12.1 §1.2 ส่งลิงก์แผนที่ได้ แต่ไม่ส่ง description/lat/lng แยก/ชื่อกลุ่ม/ชื่อสมาชิก
  */
 export async function getAppointmentIcs(actor: Actor, id: string, appOrigin: string, ctx: DataCtx): Promise<string> {
   const c = await appointmentFor(actor, id, ctx);
@@ -573,8 +573,10 @@ export async function getAppointmentIcs(actor: Actor, id: string, appOrigin: str
       id: row.id,
       title: sanitizeDisplayText(row.title),
       placeName: row.placeName === null ? null : sanitizeDisplayText(row.placeName),
+      mapUrl: row.mapUrl,
       startAt: row.startAt,
       endAt: row.endAt,
+      tz: row.tz,
       appOrigin,
     },
     now,

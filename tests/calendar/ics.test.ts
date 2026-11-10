@@ -1,4 +1,4 @@
-// R12 §5 — ไฟล์ .ics และลิงก์ Google Calendar (R12-5, R12-6, R12-7, R12-8, R12-10) · ค่าคาดหวังคำนวณมือ
+// R12 §5 + R12.1 §1.2, §1.4 — ไฟล์ .ics และลิงก์ Google Calendar (R12-5..8, R12-10, R12.1-2..6) · ค่าคาดหวังคำนวณมือ
 import { describe, expect, it } from 'vitest';
 import {
   buildAppointmentIcs,
@@ -21,8 +21,10 @@ const event = (over: Partial<CalendarEventInput> = {}): CalendarEventInput => ({
   id: ID,
   title: 'กินข้าว',
   placeName: 'สยาม',
+  mapUrl: null,
   startAt: START,
   endAt: END,
+  tz: BKK,
   appOrigin: ORIGIN,
   ...over,
 });
@@ -96,11 +98,19 @@ describe('รูปไฟล์', () => {
         'PRODID:-//maewmeet//Add to Calendar//EN',
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH',
+        'BEGIN:VTIMEZONE',
+        'TZID:Asia/Bangkok',
+        'BEGIN:STANDARD',
+        'DTSTART:19700101T000000',
+        'TZOFFSETFROM:+0700',
+        'TZOFFSETTO:+0700',
+        'END:STANDARD',
+        'END:VTIMEZONE',
         'BEGIN:VEVENT',
         'UID:appt-1@maewmeet',
         'DTSTAMP:20261110T010203Z',
-        'DTSTART:20261120T120000Z',
-        'DTEND:20261120T140000Z',
+        'DTSTART;TZID=Asia/Bangkok:20261120T190000',
+        'DTEND;TZID=Asia/Bangkok:20261120T210000',
         'SUMMARY:กินข้าว',
         'LOCATION:สยาม',
         `DESCRIPTION:${ORIGIN}/appointments/appt-1`,
@@ -121,8 +131,8 @@ describe('รูปไฟล์', () => {
     expect(buildAppointmentIcs(event({ placeName: '\u0001\u0002' }), NOW)).not.toMatch(/^LOCATION/m);
   });
 
-  it('ไม่มี ORGANIZER / ATTENDEE / VALARM / VTIMEZONE / TZID / DURATION', () => {
-    expect(buildAppointmentIcs(event(), NOW)).not.toMatch(/ORGANIZER|ATTENDEE|VALARM|VTIMEZONE|TZID|DURATION/);
+  it('ไม่มี ORGANIZER / ATTENDEE / VALARM / DURATION', () => {
+    expect(buildAppointmentIcs(event(), NOW)).not.toMatch(/ORGANIZER|ATTENDEE|VALARM|DURATION/);
   });
 
   it('เริ่ม=จบ หรือจบก่อนเริ่ม → INVALID_RANGE ทั้งไฟล์และลิงก์', () => {
@@ -138,7 +148,7 @@ describe('รูปไฟล์', () => {
   });
 
   it('§6: ส่ง DTO ทั้งก้อนมาก็ไม่มีรายละเอียด/พิกัด/ชื่อกลุ่ม/ชื่อสมาชิกในไฟล์', () => {
-    const dto = { ...event(), description: 'SECRET-DESC', lat: 13.1234, lng: 100.5678, mapUrl: 'https://map.example/SECRET', groupName: 'SECRET-GROUP', createdBy: { displayName: 'SECRET-NAME' } };
+    const dto = { ...event(), description: 'SECRET-DESC', lat: 13.1234, lng: 100.5678, groupName: 'SECRET-GROUP', createdBy: { displayName: 'SECRET-NAME' } };
     const ics = buildAppointmentIcs(dto, NOW);
     expect(ics).not.toMatch(/SECRET|13\.1234|100\.5678/);
   });
@@ -280,7 +290,6 @@ describe('R12-10 ลิงก์ Google Calendar', () => {
       description: 'SECRET-DESC',
       lat: 13.1234,
       lng: 100.5678,
-      mapUrl: 'https://map.example/SECRET',
       groupName: 'SECRET-GROUP',
       rsvp: { members: { going: [{ displayName: 'SECRET-NAME' }] } },
     };
@@ -291,5 +300,214 @@ describe('R12-10 ลิงก์ Google Calendar', () => {
 
   it('surrogate เดี่ยวไม่ทำให้ลิงก์พัง', () => {
     expect(parse(googleCalendarUrl({ ...input, title: 'a\uD800b' })).get('text')).toBe('ab');
+  });
+});
+
+describe('R12.1 §1.2 ลิงก์แผนที่', () => {
+  const MAP = 'https://www.openstreetmap.org/?mlat=13.74&mlon=100.53#map=17/13.74/100.53';
+  const LINK = `${ORIGIN}/appointments/${ID}`;
+  const google = (over: Partial<CalendarEventInput> = {}) => new URL(googleCalendarUrl(event(over))).searchParams;
+
+  describe('R12.1-2 มี mapUrl', () => {
+    it('.ics: DESCRIPTION = ลิงก์แผนที่ \\n ลิงก์นัด · LOCATION และ URL ไม่เปลี่ยน', () => {
+      const ics = buildAppointmentIcs(event({ mapUrl: MAP }), NOW);
+      expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:${MAP}\\n${LINK}`);
+      expect(prop(ics, 'LOCATION')).toBe('LOCATION:สยาม');
+      expect(prop(ics, 'URL')).toBe(`URL:${LINK}`);
+    });
+
+    it('.ics: จุลภาคและเซมิโคลอนในลิงก์ผ่าน escape', () => {
+      const ics = buildAppointmentIcs(event({ mapUrl: 'https://maps.example/@13.7,100.5;z=15' }), NOW);
+      expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:https://maps.example/@13.7\\,100.5\\;z=15\\n${LINK}`);
+    });
+
+    it('Google: details = ลิงก์แผนที่ ขึ้นบรรทัดใหม่ แล้วลิงก์นัด · encode ทั้งก้อน', () => {
+      expect(google({ mapUrl: MAP }).get('details')).toBe(`${MAP}\n${LINK}`);
+      expect(googleCalendarUrl(event({ mapUrl: MAP }))).toContain('%0A');
+    });
+
+    it('ลิงก์ยาว 500 ตัว: ทุกบรรทัด ≤ 75 octet · unfold ได้ค่าเดิม', () => {
+      const long = `https://maps.example/${'a'.repeat(500 - 'https://maps.example/'.length)}`;
+      expect(long).toHaveLength(500);
+      const ics = buildAppointmentIcs(event({ mapUrl: long }), NOW);
+      for (const l of decodedLines(ics)) expect(l.octets, l.text).toBeLessThanOrEqual(75);
+      expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:${long}\\n${LINK}`);
+    });
+
+    it('scheme ตัวพิมพ์ใหญ่ใส่ได้ เหมือน map-model.ts', () => {
+      expect(prop(buildAppointmentIcs(event({ mapUrl: 'HTTPS://maps.example/x' }), NOW), 'DESCRIPTION')).toContain('HTTPS://maps.example/x');
+    });
+  });
+
+  describe('R12.1-3 ไม่มี mapUrl: เหมือนเดิมทุกไบต์', () => {
+    // ไฟล์ของ R12 ก่อนแก้ คัดลอกตามตัวอักษร · tz ที่ใช้ไม่ได้ทำให้เวลาเป็น UTC แบบเดิม จึงเทียบได้ทั้งไฟล์
+    const R12_FILE = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//maewmeet//Add to Calendar//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      'UID:appt-1@maewmeet',
+      'DTSTAMP:20261110T010203Z',
+      'DTSTART:20261120T120000Z',
+      'DTEND:20261120T140000Z',
+      'SUMMARY:กินข้าว',
+      'LOCATION:สยาม',
+      `DESCRIPTION:${ORIGIN}/appointments/appt-1`,
+      `URL:${ORIGIN}/appointments/appt-1`,
+      'STATUS:CONFIRMED',
+      'END:VEVENT',
+      'END:VCALENDAR',
+      '',
+    ].join('\r\n');
+    const R12_GOOGLE =
+      'https://calendar.google.com/calendar/render?action=TEMPLATE&text=Lunch&dates=20261120T120000Z/20261120T140000Z&ctz=Asia%2FBangkok&location=Siam' +
+      `&details=https%3A%2F%2Fmaewmeet.test%2Fappointments%2F${ID}`;
+
+    it.each([null, ''])('.ics mapUrl = %j', (mapUrl) => {
+      expect(buildAppointmentIcs(event({ id: 'appt-1', mapUrl, tz: 'Not/AZone' }), NOW)).toBe(R12_FILE);
+    });
+
+    it.each([null, ''])('Google mapUrl = %j', (mapUrl) => {
+      expect(googleCalendarUrl(event({ title: 'Lunch', placeName: 'Siam', mapUrl }))).toBe(R12_GOOGLE);
+    });
+
+    it('Google ไม่ส่งช่อง mapUrl เลย (UI ปัจจุบัน)', () => {
+      const e = event({ title: 'Lunch', placeName: 'Siam' });
+      expect(googleCalendarUrl({ id: e.id, title: e.title, placeName: e.placeName, startAt: e.startAt, endAt: e.endAt, tz: e.tz, appOrigin: e.appOrigin })).toBe(R12_GOOGLE);
+    });
+  });
+
+  describe('R12.1-4 ค่าที่ไม่ปลอดภัย', () => {
+    it.each(['http://maps.example/x', 'javascript:alert(1)', 'data:text/html,x', 'geo:13.7,100.5', 'ftp://maps.example', ' https://maps.example/x', 'maps.example/x', 'http://x\r\nATTENDEE:mailto:a@b.test'])(
+      'ไม่ใช่ https %j: ไม่ถูกใส่ และไม่เกิดบรรทัดใหม่',
+      (mapUrl) => {
+        const ics = buildAppointmentIcs(event({ mapUrl }), NOW);
+        expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:${LINK}`);
+        expect(ics).not.toContain('ATTENDEE');
+        expect(google({ mapUrl }).get('details')).toBe(LINK);
+      },
+    );
+
+    it.each(['https://maps.example/x\r\nATTENDEE:mailto:a@b.test', 'https://maps.example/x\nATTENDEE:mailto:a@b.test', 'https://maps.example/x\rATTENDEE:mailto:a@b.test'])('https ที่มีขึ้นบรรทัด %j: ไม่เกิดบรรทัดใหม่', (mapUrl) => {
+      const ics = buildAppointmentIcs(event({ mapUrl }), NOW);
+      expect(lines(unfold(ics)).filter((l) => l.startsWith('ATTENDEE'))).toEqual([]);
+      expect(ics.replace(/\r\n/g, '')).not.toMatch(/[\r\n]/);
+    });
+  });
+
+  it('R12.1-5: ส่ง DTO ทั้งก้อนมา มีแค่ลิงก์แผนที่เพิ่ม ไม่มีรายละเอียด/lat/lng แยก/ชื่อกลุ่ม/ชื่อสมาชิก', () => {
+    const dto = {
+      ...event({ mapUrl: 'https://maps.example/place' }),
+      description: 'SECRET-DESC',
+      lat: 13.1234,
+      lng: 100.5678,
+      groupName: 'SECRET-GROUP',
+      createdBy: { displayName: 'SECRET-NAME' },
+      rsvp: { members: { going: [{ displayName: 'SECRET-NAME' }] } },
+    };
+    const ics = buildAppointmentIcs(dto, NOW);
+    const url = googleCalendarUrl(dto);
+    for (const out of [ics, url]) expect(out).not.toMatch(/SECRET|13\.1234|100\.5678/);
+    expect(ics).not.toMatch(/^GEO/m);
+    expect(ics).toContain('https://maps.example/place');
+    expect([...new URL(url).searchParams.keys()].sort()).toEqual(['action', 'ctz', 'dates', 'details', 'location', 'text']);
+  });
+});
+
+describe('R12.1-6 §1.4 เวลาท้องถิ่น + VTIMEZONE', () => {
+  const at = (tz: string, startAt: number, endAt: number) => buildAppointmentIcs(event({ tz, startAt, endAt }), NOW);
+  const HOUR = 3_600_000;
+
+  // คำนวณมือ: [tz, instant, เวลาผนังที่คาดหวัง, offset]
+  const CASES: [string, number, string, string][] = [
+    ['Asia/Bangkok', Date.UTC(2026, 10, 20, 12), '20261120T190000', '+0700'],
+    ['Asia/Tokyo', Date.UTC(2026, 10, 20, 12), '20261120T210000', '+0900'],
+    ['Asia/Kathmandu', Date.UTC(2026, 10, 20, 12), '20261120T174500', '+0545'],
+    ['America/St_Johns', Date.UTC(2026, 10, 20, 12), '20261120T083000', '-0330'],
+    ['Europe/London', Date.UTC(2026, 0, 15, 12), '20260115T120000', '+0000'],
+    ['Europe/London', Date.UTC(2026, 6, 10, 12), '20260710T130000', '+0100'],
+    ['America/New_York', Date.UTC(2026, 6, 10, 12), '20260710T080000', '-0400'],
+    ['Etc/GMT+7', Date.UTC(2026, 10, 20, 12), '20261120T050000', '-0700'],
+    ['America/Port-au-Prince', Date.UTC(2026, 0, 15, 12), '20260115T070000', '-0500'],
+    ['UTC', Date.UTC(2026, 10, 20, 12), '20261120T120000', '+0000'],
+    ['Asia/Bangkok', Date.UTC(2026, 11, 31, 17), '20270101T000000', '+0700'], // ข้ามปี
+    ['Asia/Bangkok', Date.UTC(2028, 1, 28, 20), '20280229T030000', '+0700'], // 29 ก.พ.
+  ];
+
+  it.each(CASES)('%s %d → %s (%s)', (tz, startAt, wall, offset) => {
+    const ics = at(tz, startAt, startAt + HOUR);
+    expect(prop(ics, `DTSTART;TZID=${tz}`)).toBe(`DTSTART;TZID=${tz}:${wall}`);
+    expect(ics).toContain(`TZID:${tz}\r\n`);
+    expect(ics).toContain(`TZOFFSETFROM:${offset}\r\nTZOFFSETTO:${offset}\r\n`);
+  });
+
+  it.each(CASES)('ตีความกลับด้วยการคำนวณอิสระ (Date.UTC − offset) ได้ instant เดิม: %s %d', (tz, startAt) => {
+    const endAt = startAt + 2 * HOUR;
+    const text = lines(unfold(at(tz, startAt, endAt)));
+    const value = (name: string) => text.find((l) => l.startsWith(name))!.split(':').pop()!;
+    const offset = value('TZOFFSETTO');
+    const sign = offset[0] === '-' ? -1 : 1;
+    const offsetMs = sign * (Number(offset.slice(1, 3)) * HOUR + Number(offset.slice(3, 5)) * 60_000);
+    const epoch = (s: string) => Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8), +s.slice(9, 11), +s.slice(11, 13), +s.slice(13, 15)) - offsetMs;
+    expect(epoch(value('DTSTART;TZID'))).toBe(startAt);
+    expect(epoch(value('DTEND;TZID'))).toBe(endAt);
+  });
+
+  it('โครงสร้าง: VTIMEZONE มาก่อน VEVENT · TZID ตรงกัน · offset เดียว ไม่มี RRULE/DAYLIGHT', () => {
+    const ics = buildAppointmentIcs(event(), NOW);
+    expect(ics.indexOf('BEGIN:VTIMEZONE')).toBeLessThan(ics.indexOf('BEGIN:VEVENT'));
+    expect(ics.match(/BEGIN:STANDARD/g)).toHaveLength(1);
+    expect(ics).not.toMatch(/RRULE|DAYLIGHT/);
+    const tzid = /\r\nTZID:(.+)\r\n/.exec(ics)![1];
+    expect(/\r\nDTSTART;TZID=([^:]+):/.exec(ics)![1]).toBe(tzid);
+    expect(/\r\nDTEND;TZID=([^:]+):/.exec(ics)![1]).toBe(tzid);
+  });
+
+  it('นัดข้ามเที่ยงคืนท้องถิ่น: 23:00 ถึง 01:00', () => {
+    const ics = at(BKK, Date.UTC(2026, 10, 20, 16), Date.UTC(2026, 10, 20, 18));
+    expect(prop(ics, 'DTSTART;TZID=Asia/Bangkok')).toBe('DTSTART;TZID=Asia/Bangkok:20261120T230000');
+    expect(prop(ics, 'DTEND;TZID=Asia/Bangkok')).toBe('DTEND;TZID=Asia/Bangkok:20261121T010000');
+  });
+
+  const expectUtc = (ics: string, start: string, end: string) => {
+    expect(prop(ics, 'DTSTART')).toBe(`DTSTART:${start}`);
+    expect(prop(ics, 'DTEND')).toBe(`DTEND:${end}`);
+    expect(ics).not.toMatch(/VTIMEZONE|TZID/);
+  };
+
+  it('คร่อม DST เข้า (New York 8 มี.ค. 2026 07:00Z) → UTC', () => {
+    expectUtc(at('America/New_York', Date.UTC(2026, 2, 8, 6), Date.UTC(2026, 2, 8, 8)), '20260308T060000Z', '20260308T080000Z');
+  });
+
+  it('คร่อม DST ออก (London 25 ต.ค. 2026 01:00Z) → UTC', () => {
+    expectUtc(at('Europe/London', Date.UTC(2026, 9, 25, 0), Date.UTC(2026, 9, 25, 2)), '20261025T000000Z', '20261025T020000Z');
+  });
+
+  it('เวลาซ้ำของ DST ครั้งที่สอง (01:30 EST) offset เท่ากันแต่ TZID จะอ่านผิด → UTC', () => {
+    expectUtc(at('America/New_York', Date.UTC(2026, 10, 1, 6, 30), Date.UTC(2026, 10, 1, 7)), '20261101T063000Z', '20261101T070000Z');
+  });
+
+  it('เวลาซ้ำของ DST ครั้งแรก (01:30–01:45 EDT) ใช้ TZID ได้', () => {
+    const ics = at('America/New_York', Date.UTC(2026, 10, 1, 5, 30), Date.UTC(2026, 10, 1, 5, 45));
+    expect(prop(ics, 'DTSTART;TZID=America/New_York')).toBe('DTSTART;TZID=America/New_York:20261101T013000');
+  });
+
+  it.each(['Not/AZone', 'Asia/Bangkok\r\nATTENDEE:mailto:a@b.test', 'Asia/Bangkok\nATTENDEE:x', 'A;B=C', 'Asia/Bangkok:x', 'Asia/"Bangkok', '+07:00', ''])('TZID ที่ใช้ไม่ได้ %j → UTC ไม่แทรกบรรทัด', (tz) => {
+    const ics = buildAppointmentIcs(event({ tz }), NOW);
+    expectUtc(ics, '20261120T120000Z', '20261120T140000Z');
+    expect(ics).not.toContain('ATTENDEE');
+  });
+
+  it('ลิงก์ Google ยังเป็น UTC + ctz ไม่เปลี่ยนเรื่องเวลา', () => {
+    const q = new URL(googleCalendarUrl(event({ tz: 'Asia/Tokyo' }))).searchParams;
+    expect(q.get('dates')).toBe('20261120T120000Z/20261120T140000Z');
+    expect(q.get('ctz')).toBe('Asia/Tokyo');
+  });
+
+  it('fold ยังครบเมื่อมี TZID ยาว + ชื่อยาว', () => {
+    const ics = buildAppointmentIcs(event({ tz: 'America/Argentina/ComodRivadavia', title: 'ก'.repeat(80) }), NOW);
+    for (const l of decodedLines(ics)) expect(l.octets).toBeLessThanOrEqual(75);
   });
 });
