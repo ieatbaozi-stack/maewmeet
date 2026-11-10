@@ -257,7 +257,7 @@ const CEILINGS: Record<string, number> = {
   'POST /api/groups/:gid/appointments/check': 5,
   'PUT /api/appointments/:id/rsvp': 10, // R11: +1 อ่านคำตอบเดิมก่อนเขียน — แจ้งผู้สร้างเฉพาะเมื่อคำตอบเปลี่ยนจริง
   'POST /api/me/busy (timed)': 5,
-  'DELETE /api/me/busy/:id': 5,
+  'DELETE /api/me/busy/:id': 6, // R14 (ADR 0012): +1 insert busy_routine_skip ใน tx เดียวกัน (จำเป็นตาม ADR)
   // R7 B-2: service ที่ loader ของ /calendar ใช้ (วัดแยก ไม่รวม session/layout · actor สร้างตรง)
   'SVC openGroupCalendar → load (เดือน · B-2)': 4,
   'SVC openGroupAvailability → load (เดือน · B-2)': 4,

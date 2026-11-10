@@ -471,14 +471,18 @@ describe('สถานะบัญชี (R3-6)', () => {
     expect(await h.count('busy_block')).toBe(0);
   });
 
-  it('manifest: 5 route ใหม่ลงทะเบียนด้วย action ที่ตรงกับ RBAC', () => {
+  it('manifest: route busy/ปฏิทิน (R3 5 ตัว + R14 routine 4 ตัว) ลงทะเบียนด้วย action ที่ตรงกับ RBAC', () => {
     const mine = ROUTE_MANIFEST.filter((e) => e.path.startsWith('/api/me/busy') || e.path.endsWith('/calendar')).map((e) => `${e.method} ${e.path} ${e.action}`);
     expect(mine.sort()).toEqual([
+      'DELETE /api/me/busy-routines/:id busy.routine.delete',
       'DELETE /api/me/busy/:id busy.delete',
       'GET /api/groups/:gid/calendar group.calendar.view',
       'GET /api/me/busy busy.list.own',
+      'GET /api/me/busy-routines busy.routine.list.own',
+      'PATCH /api/me/busy-routines/:id busy.routine.update',
       'PATCH /api/me/busy/:id busy.update',
       'POST /api/me/busy busy.create',
+      'POST /api/me/busy-routines busy.routine.create',
     ]);
   });
 });

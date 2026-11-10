@@ -62,7 +62,8 @@ describe('migration 0003 บนฐานที่มี busy เดิม', () =
   it('ก่อน 0003 ยังไม่มีคอลัมน์ · หลัง apply journal ครบทุก migration · series_id อยู่ท้ายตาราง', async () => {
     expect(colsBefore).not.toContain('series_id');
     const after = (await exec("select name from pragma_table_info('busy_block') order by cid")).rows.map((r) => String(r.name));
-    expect(after).toEqual([...colsBefore, 'series_id']);
+    // migration หลัง 0003 (เช่น 0005 เพิ่ม routine_id) ต่อท้ายได้ → ตรวจว่า 0003 ต่อท้ายคอลัมน์เดิมทันที (prefix)
+    expect(after.slice(0, colsBefore.length + 1)).toEqual([...colsBefore, 'series_id']);
     const rs = await exec('select count(*) as n from __drizzle_migrations');
     const journal = JSON.parse(readFileSync(path.join(MIGRATIONS_FOLDER, 'meta/_journal.json'), 'utf8')) as Journal;
     expect(Number(rs.rows[0]?.n)).toBe(journal.entries.length);
@@ -83,7 +84,9 @@ describe('migration 0003 บนฐานที่มี busy เดิม', () =
     const col = await exec("select type, \"notnull\" as nn, dflt_value as d from pragma_table_info('busy_block') where name = 'series_id'");
     expect(col.rows.map((r) => [String(r.type).toLowerCase(), Number(r.nn), r.d])).toEqual([['text', 0, null]]);
     const list = await exec("select name, \"unique\" as u, partial as p from pragma_index_list('busy_block') where name not like 'sqlite_%' order by name");
-    expect(list.rows.map((r) => [r.name, Number(r.u), Number(r.p)])).toEqual([
+    // ตรวจเฉพาะ index ของ 0003 + เดิม (migration หลังจากนี้เพิ่ม index ของตัวเองได้ เช่น 0005 busy_routine_idx)
+    const mine = new Set(['busy_user_end_idx', 'busy_user_series_idx', 'busy_user_start_idx']);
+    expect(list.rows.filter((r) => mine.has(String(r.name))).map((r) => [r.name, Number(r.u), Number(r.p)])).toEqual([
       ['busy_user_end_idx', 0, 0],
       ['busy_user_series_idx', 0, 1],
       ['busy_user_start_idx', 0, 0],

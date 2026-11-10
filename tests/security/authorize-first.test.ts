@@ -191,10 +191,13 @@ describe('C. route ของ busy / ปฏิทิน ผูก action ที�
   const busyRoutes = ROUTE_MANIFEST.filter((e) => e.path.startsWith('/api/me/busy'));
   const calRoutes = ROUTE_MANIFEST.filter((e) => /^\/api\/groups\/:gid\/calendar/.test(e.path));
   const BUSY_OK: Record<string, string> = { GET: 'busy.list.own', POST: 'busy.create', PATCH: 'busy.update', DELETE: 'busy.delete' };
+  // R14: routine แยก action ชุดของตัวเอง
+  const ROUTINE_OK: Record<string, string> = { GET: 'busy.routine.list.own', POST: 'busy.routine.create', PATCH: 'busy.routine.update', DELETE: 'busy.routine.delete' };
 
   it.each(busyRoutes.map((e) => [`${e.method} ${e.path}`, e] as const))('%s → busy.* ที่ตรงกับ method', (_n, e) => {
     expect(e.auth).toBe('actor');
-    expect(e.action).toBe(BUSY_OK[e.method]);
+    const table = e.path.startsWith('/api/me/busy-routines') ? ROUTINE_OK : BUSY_OK;
+    expect(e.action).toBe(table[e.method]);
   });
   it.each(calRoutes.map((e) => [`${e.method} ${e.path}`, e] as const))('%s → group.calendar.view (GET เท่านั้น)', (_n, e) => {
     expect(e.method).toBe('GET');

@@ -197,6 +197,7 @@ describe('GET /api/cron/daily', () => {
       expiredInvites: 1,
       oldNotifications: 1,
       oldBusyBlocks: 1,
+      oldBusyRoutines: 0, // R14
       stalePlaceSearchCache: 1,
       oldLineOutbox: 0,
       staleLineLinkCodes: 0,
