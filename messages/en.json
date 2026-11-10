@@ -293,6 +293,7 @@
       "cta": "Add busy time"
     },
     "truncated": "There’s so much busy time in this range that we couldn’t count all of it. Some days may look freer than they are. Try one month at a time.",
+    "detailTruncated": "There’s so much busy time in this range that we couldn’t show everyone’s details. The free times are still worked out correctly.",
     "loading": "Working out when everyone’s free…",
     "error": {
       "title": "Couldn’t load free days",
@@ -840,7 +841,7 @@
     "INVITE_INVALID": "This code doesn’t work. Ask someone in the group for a new one.",
     "ALREADY_MEMBER": "That person’s already in this group.",
     "USER_NOT_FOUND": "No one has that username. Check the spelling, or send them an invite code instead.",
-    "LIMIT_REACHED": "{limit, select, groups {You can create up to {max} groups. Delete one you no longer use to make a new one.} members {This group is full ({max} members at most). An admin can remove members who aren’t active.} codes {This group already has {max} active invite codes. Revoke one you don’t need to make a new one.} busyCount {You already have {max} upcoming busy entries, the most we allow. Delete ones you don’t need, then add this one.} busySpan {One entry can cover {max} days at most. Try splitting it into a few.} busyBackdate {You can add busy time up to {max} days back. Pick a more recent date.} appointments {This group already has {max} upcoming plans, the most we allow. Cancel one you don’t need to make a new one.} appointmentSpan {One plan can run {max} days at most. Try splitting it into a few.} appointmentsPerDay {You’ve already created {max} plans today, the most we allow. Try again tomorrow, or edit one you already have.} routines {You already have {max} routines running, the most we allow. Stop one you don’t need to add a new one.} routineRows {That would take your routine days past {max}. Try a shorter stretch or stop a routine you don’t need.} routineSpan {That stretch is longer than one routine can cover (up to {max}). Try splitting it into a few.} routineAhead {You can plan up to {max} months ahead. Pick an end that’s closer.} other {You’ve hit a limit. Free something up and try again.}}",
+    "LIMIT_REACHED": "{limit, select, groups {You can create up to {max} groups. Delete one you no longer use to make a new one.} members {This group is full ({max} members at most). An admin can remove members who aren’t active.} codes {This group already has {max} active invite codes. Revoke one you don’t need to make a new one.} busyCount {You already have {max} upcoming busy entries, the most we allow. Delete ones you don’t need, then add this one.} busySpan {One entry can cover {max} days at most. Try splitting it into a few.} busyBackdate {You can add busy time up to {max} days back. Pick a more recent date.} appointments {This group already has {max} upcoming plans, the most we allow. Cancel one you don’t need to make a new one.} appointmentSpan {One plan can run {max} days at most. Try splitting it into a few.} appointmentsPerDay {You’ve already created {max} plans today, the most we allow. Try again tomorrow, or edit one you already have.} routines {You already have {max} routines running, the most we allow. Stop one you don’t need to add a new one.} routineRows {That would take your routine days past {max}. Try a shorter stretch or stop a routine you don’t need.} routineSpan {That stretch is longer than one routine can cover. Try splitting it into a few.} routineAhead {You can plan up to {max} months ahead. Pick an end that’s closer.} other {You’ve hit a limit. Free something up and try again.}}",
     "INVALID_RANGE": "{kind, select, dates {The last day can’t come before the first day.} other {The end has to be after the start.}}",
     "INVALID_DATE": "That date doesn’t exist (like 30 February). Pick one from the calendar.",
     "INVALID_LOCAL_TIME": "That time doesn’t exist here because the clocks skip ahead. Pick another time.",
@@ -1172,7 +1173,7 @@
           "oneHelp": "The other days stay, and this one won’t come back even if you change the routine later.",
           "fromWeek": "Stop from the week of {range}",
           "fromMonth": "Stop from {month}",
-          "fromHelp": "Earlier days stay. Everything from there on is removed.",
+          "fromHelp": "Earlier days stay. Everything from there on is removed. If you start from today, today’s hours that have already passed go too.",
           "all": "Delete all of it",
           "allHelp": "Removes every day of this routine, including days that have passed. You can’t undo it."
         },
@@ -1201,7 +1202,8 @@
         "save": "Couldn’t save, and none of these days were added. What you typed is still here, so try again.",
         "gone": "This routine no longer exists. It may have been deleted on another device.",
         "rate": "You’re adding a lot at once. Wait a moment and try again. None of these days were added.",
-        "routines": "You already have {max} routines running, the most we allow. Stop one you don’t need, then add this one. None of these days were added.",
+        "routines": "You already have {max} routines running, the most we allow. Stop one you don’t need, then add this one. Nothing was changed.",
+        "routinesEdit": "Changing it this way splits it into a second routine, but you already have {max} running, the most we allow. Nothing was changed. Try editing “Everything still to come” instead, or stop one you don’t need first.",
         "routineRows": "That would take your routine days past {max}, so none were added. Try a shorter stretch, fewer days a week, or stop a routine you don’t need.",
         "spanWeeks": "One routine can cover {max} weeks at most, and none of these days were added. Try splitting it in two, or come back and extend it later.",
         "spanMonths": "One routine can cover {max} months at most, and none of these days were added. Try splitting it in two, or come back and extend it later.",
@@ -1209,6 +1211,7 @@
         "ended": "That stretch is already over. Pick one that’s running now or still to come.",
         "weekdaysRequired": "Pick at least one day of the week",
         "noOccurrence": "None of the days left in this stretch match what you picked. Add a day or make the stretch longer.",
+        "noOccurrenceEdit": "After this change no days would be left, so nothing was changed. If you’re done with this routine, use “Stop from…” or delete all of it instead.",
         "dst": "Some days in this stretch don’t have that time because the clocks skip ahead, so none were added. Nudge the time a little.",
         "end": "The end time can’t be the same as the start time.",
         "generic": "Couldn’t add them, and none of these days were added. What you typed is still here, so try again."

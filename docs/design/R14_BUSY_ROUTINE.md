@@ -100,6 +100,7 @@ Sheet ครึ่งจอ ปุ่มเรียงบนลงล่าง 
 
 - {range} ของสัปดาห์ที่เลือกแสดงเป็นช่วงวันที่ เช่น "16–22 พ.ย." · {month} = "พ.ย. 2569"
 - **ซ่อนข้อ 2** เมื่อสัปดาห์/เดือนอ้างอิงคือตัวแรกของ routine (ผลเท่ากับ "ทั้งหมด") และเมื่อ routine มีวันเหลือน้อยกว่าที่แยกได้ ให้เหลือ 2 ตัวเลือก
+- ลบข้อ 2 (`delete.fromHelp`) บอกว่าถ้าหยุดตั้งแต่วันนี้ ช่วงของวันนี้ที่ผ่านไปแล้วหายด้วย
 - ลบ "ทั้งหมด" ขอยืนยันอีกชั้น (dialog): `scope.confirmAll.title` + `body` ({title}; ไม่มีชื่อใช้ `bodyNoTitle`) บอกชัดว่ารวมวันที่ผ่านแล้วและเพื่อนเลิกเห็นทันที · ปุ่ม `confirmAll.confirm` (danger) + `scope.cancel` · ข้อ 1 และ 2 ไม่ต้องยืนยันซ้ำ (ข้อความใต้ปุ่มบอกผลไว้ชัดแล้ว และ 1 ย้อนได้ด้วยการลงใหม่)
 - แก้ข้อ 1: เปิดฟอร์ม busy เดิม (`BusyFormSheet`) พร้อมบรรทัดเตือนเบา ใช้ `busy.routine.scope.edit.oneHelp` เป็นข้อความเหนือปุ่มบันทึก · ถ้าชนเพดาน 300 (`LIMIT_REACHED busyCount`) ใช้ข้อความเดิม
 - แก้ข้อ 2/3: เปิด `RoutineFormSheet` โหมดแก้ (ข้อ 2 ท้าย) ค่าเริ่มต้นจากกฎเดิม
@@ -116,7 +117,8 @@ Sheet ครึ่งจอ ปุ่มเรียงบนลงล่าง 
 
 | จากเซิร์ฟเวอร์ | แสดงที่ | คีย์ |
 |---|---|---|
-| `LIMIT_REACHED` `routines` ({max}=10) | แถบ | `busy.routine.error.routines` |
+| `LIMIT_REACHED` `routines` ตอนสร้าง ({max}=10) | แถบ | `busy.routine.error.routines` |
+| `LIMIT_REACHED` `routines` ตอนแก้ "ตั้งแต่…ไป" ที่ต้องแยกชุด ({max}=20, 409) | แถบ | `error.routinesEdit` (แนะนำให้แก้ "ทั้งหมดที่ยังไม่ถึง" แทน) |
 | `LIMIT_REACHED` `routineRows` ({max}=1500) | แถบ | `error.routineRows` |
 | `LIMIT_REACHED` `routineSpan` | แถบ | `error.spanWeeks` ถ้า `rangeKind=weeks` ({max}=26), `error.spanMonths` ถ้า months ({max}=6) |
 | `LIMIT_REACHED` `routineAhead` ({max}=12) | ใต้ช่อง "ถึง" | `error.ahead` |
@@ -124,13 +126,14 @@ Sheet ครึ่งจอ ปุ่มเรียงบนลงล่าง 
 | `INVALID_RANGE` `kind=dates` เพราะช่วงจบไปแล้ว | ใต้ช่องช่วง | `error.ended` (ถ้าเป็นลำดับ ต้น>ปลาย ใช้ `errors.INVALID_RANGE` เดิม แต่ UI กันไว้แล้ว) |
 | `INVALID_RANGE` `kind=time` | ใต้ช่องเวลา | `error.end` |
 | `VALIDATION` `fields.weekdays=REQUIRED` | ใต้แถววัน | `error.weekdaysRequired` (เหมือน `weekdays.required`) |
-| `VALIDATION` `fields.weekdays=NO_OCCURRENCE` | แถบ (ใกล้สรุป) | `error.noOccurrence` |
+| `VALIDATION` `fields.weekdays=NO_OCCURRENCE` ตอนสร้าง/แก้ช่วง | แถบ (ใกล้สรุป) | `error.noOccurrence` |
+| `VALIDATION` `fields.weekdays=NO_OCCURRENCE` ตอนแก้ในที่แล้วไม่เหลือวันอนาคต | แถบ | `error.noOccurrenceEdit` (แนะนำ "หยุดตั้งแต่…" หรือลบทั้งหมด) |
 | `INVALID_LOCAL_TIME` | ใต้ช่องเวลา | `error.dst` |
 | `NOT_FOUND` (แก้/ลบ) | แถบ + รีเฟรชรายการ | `error.gone` |
 | `RATE_LIMITED` | แถบ | `error.rate` (มี retryAfter ใช้ `appointments.rateRetry`) |
 | อื่นๆ/เครือข่าย | แถบ | `error.generic` |
 
-`errors.LIMIT_REACHED` (ข้อความกลางตาม `limit`) ถูกเพิ่ม 4 ชนิดไว้เป็น fallback ที่อื่นที่เรียกใช้ข้อความกลาง · ฟอร์มใช้คีย์ใน `busy.routine.error.*` เพราะเจาะจงกว่า
+`errors.LIMIT_REACHED` (ข้อความกลางตาม `limit`) ถูกเพิ่ม 4 ชนิดไว้เป็น fallback (`routineSpan` ไม่ระบุหน่วย เพราะ max เป็นสัปดาห์หรือเดือนตามชนิดช่วง) ที่อื่นที่เรียกใช้ข้อความกลาง · ฟอร์มใช้คีย์ใน `busy.routine.error.*` เพราะเจาะจงกว่า
 
 ## 7. สถานะที่ต้องมี (checklist สำหรับ frontend/qa)
 ฟอร์ม: ว่าง (หลังกด "สร้างเอง") · เติมจาก preset แต่ละปุ่ม · ยังไม่เลือกวัน (ไม่มีสรุป ปุ่มปิด) · เลือกครบมีสรุป · ข้ามเที่ยงคืน (มี `overnightNote`) · จบ 24:00 · ทั้งวัน · 0 วัน (`summary.zero`) · ช่วงเริ่มในอดีต (`pastNote`) · กำลังบันทึก · error แต่ละแถวในข้อ 6 · โหมดแก้ (ทั้งหมด / ตั้งแต่สัปดาห์ / ตั้งแต่เดือน) ·
@@ -142,6 +145,11 @@ sheet ขอบเขต: แก้ 3 ข้อ · ลบ 3 ข้อ · ซ่�
 `busy.routine.{add, addHelp}` · `form.{title, editTitle, submit, submitEdit, editing.{all, fromWeek, fromMonth}}` · `preset.{label, hint, work, class, gym, weekend, custom, weekendTitle}` · `weekdays.{label, help, groupAria, required, every, range, quick.{weekdays, weekend, every}, short.{mon…sun}, long.{mon…sun}}` · `time.{label, allDay, timed, allDayHelp, start, end, endMidnight, midnightNote, overnight, overnightNote}` · `range.{label, kind.{weeks, months}, from, to, fromAria, toAria, week, thisWeek, thisMonth, fromLocked, limitWeeks, limitMonths, pastNote, shortcut.{label, thisMonth, next4Weeks, next3Months}}` · `summary.{days, line, lineAllDay, span, pastNote, zero, overlapGoing, aria}` · `visibility`, `visibilityHide` · `mine.{title, lead, count, loading, when, whenAllDay, span, remaining, ended, extend, openAria, limitNear, empty.{title, body}, error.{title, body}}` · `scope.{cancel, edit.{title, one, oneHelp, fromWeek, fromMonth, fromHelp, all, allHelp}, delete.{title, one, oneHelp, fromWeek, fromMonth, fromHelp, all, allHelp}, confirmAll.{title, body, bodyNoTitle, confirm}}` · `toast.{saved, updated, deletedOne, stopped, deletedAll}` · `calendar.{tag, tagAria, detail, detailAllDay, detailPlain}` · `error.{save, gone, rate, routines, routineRows, spanWeeks, spanMonths, ahead, ended, weekdaysRequired, noOccurrence, dst, end, generic}` · และ `errors.LIMIT_REACHED` เพิ่ม select `routines | routineRows | routineSpan | routineAhead`
 
 ใช้ซ้ำจาก busy เดิม (ไม่เพิ่มใหม่): `busy.form.what.*`, `busy.form.hide.*`, `busy.form.note.*`, `busy.form.visibilityGroups`, `busy.form.notice.*`, `busy.form.saving`, `busy.mine.{noTitle, hiddenTag}`, `appointments.rateRetry`
+
+## 8.1 หน้าวันว่าง: `detailTruncated`
+เมื่อ GET availability ตอบ `detailTruncated: true` แสดงบรรทัดข้อความรอง `availability.detailTruncated` (กล่องโน้ต `--surface-2` แบบเดียวกับ `availability.truncated`) — หมายถึงรายละเอียดว่าใครติดอะไรถูกตัด แต่ช่วงว่างถูกต้อง · ต่างจาก `truncated` เดิม (ช่วงว่างอาจผิด) ถ้ามีทั้งสองให้แสดงเฉพาะ `truncated`
+
+หมายเหตุคำศัพท์: UI ใช้ "แบบประจำ" / "routine" ตลอด (OPERATIONS ใช้ "กิจวัตร" เป็นศัพท์ภายในเอกสาร ไม่ใช่ UI)
 
 ## 9. สิ่งที่ยังไม่ได้ตรวจ
 ยังไม่มีภาพหน้าจอ 375/390/768 สว่าง/มืด เพราะ R14a ไม่มี UI — ux จะแนบภาพจริงจากงาน frontend ใน R14b · ไม่มีสีใหม่ จึงไม่ต้องเพิ่มคู่ใน `docs/design/tools/contrast.mjs` (ใช้คู่เดิม: `--ink`/`--surface-2`, `--ink-muted`/`--surface-2`, `--accent-soft-ink`/`--accent-soft`, `--danger-ink`/`--danger-soft`, `--on-danger`/`--danger`)
