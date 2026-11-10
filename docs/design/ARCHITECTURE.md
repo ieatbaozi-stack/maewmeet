@@ -372,8 +372,10 @@ export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy N
 แหล่งความจริงของคอลัมน์คือ `src/db/schema.ts` — ข้างล่างเป็นสรุป
 - `busy_routine` (กฎ — เห็นเฉพาะเจ้าของ): `id`, `user_id` → user (cascade), `title`, `note`, `hide_detail`, `all_day`, `weekdays` (bitmask ISO 1–127), `start_min`/`end_min` (นาที ลงตัว 30 · `end_min ≤ start_min` = ข้ามเที่ยงคืน · 1440 = 24:00 · NULL เมื่อ all-day), `range_kind` ('weeks'|'months' แสดงผลเท่านั้น), `start_date`/`end_date` (วันท้องถิ่น รวมปลาย), `tz`, `created_at`/`updated_at` · index `(user_id, end_date)`
 - `busy_routine_skip` (`routine_id` → busy_routine cascade, `local_date`) PK คู่ — วันที่ผู้ใช้ลบ/แยกออก กันการขยายใหม่ฟื้นกลับ
-- `busy_block.routine_id` (nullable → busy_routine cascade, ไม่ backfill) + partial index `(user_id, routine_id) WHERE routine_id IS NOT NULL` · แถว routine คือ busy ธรรมดาสำหรับทุกทางอ่านของกลุ่ม (ปฏิทิน วันว่าง เตือนนัดทับ ไม่แก้) · `routine_id` และตารางกฎไม่ออกถึงคนอื่น (ADR 0006)
-- บันทึก/แก้ = เขียนกฎ + ขยายแถวด้วย `routineRange`/`expandRoutine` (`src/lib/calendar`, กฎ 9) ใน tx เดียว · เพดาน: busy เดี่ยว 300 นับเฉพาะ `routine_id IS NULL` · routine ที่ยังไม่จบ ≤ 10/คน · วันของ routine ในอนาคต ≤ 1,500/คน · ช่วง ≤ 26 สัปดาห์/6 เดือน · วันจบ ≤ วันนี้ + 12 เดือน (R14_CONTRACT §1.2)
+- `busy_block.routine_id` (nullable, **ไม่มี FK** เหมือน `series_id` — drizzle-kit ทำ cascade หาย · แถวถูกลบด้วยคำสั่งชัดเจนใน tx เดียวกับการลบกฎ · ไม่ backfill) + partial index `(user_id, routine_id) WHERE routine_id IS NOT NULL` · แถว routine คือ busy ธรรมดาสำหรับทุกทางอ่านของกลุ่ม (ปฏิทิน วันว่าง เตือนนัดทับ ไม่แก้) · `routine_id` และตารางกฎไม่ออกถึงคนอื่น (ADR 0006)
+- บันทึก/แก้ = เขียนกฎ + ขยายแถวด้วย `routineRange`/`expandRoutine` (`src/lib/calendar`, กฎ 9) ใน tx เดียว · เพดาน: busy เดี่ยว 300 นับเฉพาะ `routine_id IS NULL` · routine ที่ยังไม่จบ ≤ 10/คน (สร้างใหม่เท่านั้น — การแยกตอนแก้ "ตั้งแต่…ไป" ไม่นับ, B12) · วันของ routine ในอนาคต ≤ 1,500/คน · ช่วง ≤ 26 สัปดาห์/6 เดือน · วันจบ ≤ วันนี้ + 12 เดือน · rate limit `busy:routine` 20/10 นาที (R14_CONTRACT §1.2, §9)
+- cron (`maintenance.ts`) ลบ `busy_routine` ที่จบเกิน 93 วัน (90 + 3 ให้แถว busy หมดอายุก่อน)
+- เพดานแถวต่อคำขอ (B11): ปฏิทินกลุ่มที่ส่งรายการให้ client = `CALENDAR_MAX_ITEMS` 5,000 · ทางคำนวณวันว่างร่วม/เตือนนัดทับ (ไม่ส่งรายการ) = `FREE_TIME_MAX_ITEMS` 32,000 · ก่อนป้อน `commonFreeTime` รวมช่วงที่ติด/ทับกันของสมาชิกคนเดียวกันด้วย `mergeBusyForFreeTime` (ผลวันว่างเท่าเดิม)
 
 ### ความต่างจาก "โมเดลข้อมูลร่าง" ใน PRD §5 (เหตุผลสั้น)
 | PRD ร่าง | ฉบับนี้ | เหตุผล |
@@ -444,7 +446,7 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | U7 (R14) | `PATCH /api/me/busy-routines/:id` | `busy.routine.update` | เจ้าของเท่านั้น (SA ไม่ได้) · `from` = แก้ตั้งแต่สัปดาห์/เดือนนั้น (ไม่ส่ง = ทุกวันที่ยังไม่ผ่าน) | Platform |
 | U7 (R14) | `DELETE /api/me/busy-routines/:id?from=` | `busy.routine.delete` | เจ้าของเท่านั้น · มี `from` = หยุดตั้งแต่วันนั้น · ไม่มี = ลบทั้งหมดรวมอดีต | Platform |
 | U8 | `GET /api/groups/:gid/calendar?from&to` | `group.calendar.view` | ≤ 62 วัน · หน้าจอเดือนส่งช่วง `monthGrid()` **เริ่มวันจันทร์** (ADR 0004) · busy กรองตาม ADR 0006 · นัดในช่วง | Platform |
-| U9, U9.1 | `GET /api/groups/:gid/availability?from&to` | `group.availability.view` | ผล ADR 0005 + blockers (กรอง ADR 0006) | Platform |
+| U9, U9.1 | `GET /api/groups/:gid/availability?from&to` | `group.availability.view` | ผล ADR 0005 + blockers (กรอง ADR 0006) · เพดานแถวคำนวณ 32,000 + รวมช่วงต่อคน (R14 B11) — ปฏิทิน U8 คง 5,000 | Platform |
 | U10 | `GET /api/places/search?q=` | `place.search` | proxy Nominatim + cache + 1 req/s + kill switch | Platform |
 | U10, U10.1 | `POST /api/groups/:gid/appointments/preview` | `appointment.create` | dry-run คืน `warnings` (นัดทับ busy) ไม่บันทึก | Platform |
 | U10, U10.1 | `POST /api/groups/:gid/appointments` | `appointment.create` | บันทึก + `warnings` + notification `appointment.created` | Platform |

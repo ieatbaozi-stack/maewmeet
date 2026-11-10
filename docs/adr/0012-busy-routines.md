@@ -1,6 +1,6 @@
 # ADR 0012 — busy แบบ routine (ชุดทางลัดทำซ้ำรายสัปดาห์ เลือกช่วงสัปดาห์/เดือน)
 
-- **Status**: **Accepted (2026-11-11)** · contract [R14_CONTRACT](../contracts/R14_CONTRACT.md) (boss เห็นชอบ 2026-11-11 · B1–B8 ใช้ค่าแนะนำทั้งหมด · B9 แบ่งสอง PR: R14a เซิร์ฟเวอร์ → R14b หน้าจอ) · เลือก **ทางเลือก C** · ค่าที่ตัดสินแล้วดู §11 · เสนอ Proposed 2026-11-11 (Architect)
+- **Status**: **Accepted (2026-11-11)** · contract [R14_CONTRACT](../contracts/R14_CONTRACT.md) (boss เห็นชอบ 2026-11-11 · B1–B8 ใช้ค่าแนะนำทั้งหมด · B9 แบ่งสอง PR: R14a เซิร์ฟเวอร์ → R14b หน้าจอ) · เลือก **ทางเลือก C** · ค่าที่ตัดสินแล้วดู §11 (รวม B11–B12 หลังวัด perf, contract §9) · ข้อเปลี่ยนตอน implement: `busy_block.routine_id` ไม่มี FK (§5) · เสนอ Proposed 2026-11-11 (Architect)
 - **ที่มา**: PRD "รายการรอทำ" — busy แบบ routine (boss + ทีม 2026-11-11) · D5 · U7 · §3 แถว 2–3
 - **ต่อยอดจาก (ไม่แทนที่)**: [ADR 0004](0004-time-and-timezone.md) §2, §5 · [ADR 0005](0005-common-free-time-algorithm.md) · [ADR 0006](0006-busy-visibility.md) §1–§3 · [ADR 0009](0009-going-counts-as-busy.md) · [ADR 0010](0010-daily-busy-series.md) (ชุดรายวัน `series_id`) · [ADR 0003](0003-rbac.md)
 - **เจ้าของการ implement** (ตาม R14_CONTRACT §3): Platform (`src/lib/calendar/**`, `src/lib/data/**`, `src/db/schema.ts`, `drizzle/0005_*`, route `src/app/api/me/busy-routines/**`) · Auth (`src/lib/rbac/**`, manifest) · UX (design note) · Frontend · Test · Ops · ตรวจโดย QA + Security
@@ -122,9 +122,9 @@ CHECK เพิ่ม: `(all_day = 1 and start_min is null and end_min is null) 
 | PK | (`routine_id`, `local_date`) | ซ้ำไม่ได้ |
 
 ### คอลัมน์ใหม่ `busy_block.routine_id`
-- `text NULL REFERENCES busy_routine(id) ON DELETE CASCADE` · ไม่ backfill · partial index `busy_user_routine_idx (user_id, routine_id) WHERE routine_id IS NOT NULL` (รูปเดียวกับ `busy_user_series_idx` [S2])
+- **ตัดสินตอน implement (R14a, platform 2026-11-11): ไม่มี FK** — `text NULL` (เหมือน `series_id`) เพราะ drizzle-kit 0.31.11 สร้าง `ADD routine_id text REFERENCES busy_routine(id)` โดย `ON DELETE CASCADE` หาย (`src/db/schema.ts` คอมเมนต์ที่ `routineId`) · แถวของ routine ถูกลบด้วยคำสั่งชัดเจนใน tx เดียวกับการลบกฎ (`repos/busy-routine.ts`, `account.ts`) · migration จริง: `ALTER TABLE busy_block ADD routine_id text` (`drizzle/0005_r14_busy_routine.sql`) · ข้อความเดิมที่เสนอไว้: ~~`REFERENCES busy_routine(id) ON DELETE CASCADE`~~ · ไม่ backfill · partial index `busy_user_routine_idx (user_id, routine_id) WHERE routine_id IS NOT NULL` (รูปเดียวกับ `busy_user_series_idx` [S2])
 - SQLite อนุญาต ADD COLUMN ที่มี REFERENCES ได้เมื่อ default เป็น NULL (และ foreign_keys เปิด — libSQL เปิดให้แล้วตาม `src/db/client.ts`) [S1]
-- **ต้องตรวจ**: SQL ที่ `drizzle-kit generate` ได้ต้องเป็น `ALTER TABLE … ADD` ไม่ใช่ rebuild ตาราง (บทเรียน 0002) — ยังไม่ยืนยันว่า drizzle-kit จะ generate ADD COLUMN แบบมี FK ได้ตรง (§12) · ถ้า generate เป็น rebuild ให้เขียน SQL เอง หรือตัด FK ออกแล้วลบแถวด้วยคำสั่งชัดเจน (เหมือน `series_id`)
+- ~~ต้องตรวจว่า drizzle-kit generate ADD COLUMN แบบมี FK ได้ตรง~~ → ตรวจแล้ว ไม่ตรง (cascade หาย) จึงใช้ทางสำรอง "ตัด FK แล้วลบแถวด้วยคำสั่งชัดเจน" ตามที่ ADR นี้เปิดไว้ · SQL ยังเป็น `ALTER TABLE … ADD` ไม่ rebuild ตาราง
 - ผลกับข้อมูลเดิม: ทุกแถวเดิม `routine_id = NULL` = พฤติกรรมเดิมทุกอย่าง · rollback แอปอย่างเดียวพอ (รุ่นเดิมไม่อ่านคอลัมน์ใหม่ · แถว routine ที่สร้างไปแล้วยังเป็น busy ธรรมดาที่ลบทีละวันได้ — แต่จะ **นับเข้าเพดาน 300** ในรุ่นเดิม: ต้องบอก boss ก่อน rollback)
 
 ### แถวที่ขยายแล้ว (occurrence) ใน `busy_block`
@@ -167,9 +167,9 @@ CHECK เพิ่ม: `(all_day = 1 and start_min is null and end_min is null) 
 6. title/note ผ่าน `parseBusyTitle` / `parseBusyNote` เดิม
 7. ขยายเป็นแถว (§5) → วันใดตกใน DST gap = `INVALID_LOCAL_TIME` ทั้งคำขอ (สอดคล้อง ADR 0010 §2) · ได้ 0 แถว (เช่น เลือกแต่ อา. ในช่วงที่เหลือไม่มี อา.) → `VALIDATION {fields:{weekdays:'NO_OCCURRENCE'}}`
 8. เพดาน (คำสั่ง INSERT … SELECT … WHERE เดียว ไม่มี check-then-act):
-   - routine ที่ยังไม่จบ (`end_date >= วันนี้`) ต่อคน < **10** → `LIMIT_REACHED {limit:'routines', max:10}`
-   - แถว routine ในอนาคตต่อคน + N ≤ **1,500** → `LIMIT_REACHED {limit:'routineRows', max}` (กันกรณี 10 routine × ทุกวัน × 6 เดือน = 1,840)
-9. rate limit: ใช้ `BUSY_WRITE_RATE_LIMITS` เดิม (create/delete) หรือ bucket ใหม่ `busy:routine` — platform เสนอใน contract (นับต่อคำขอ ไม่ใช่ต่อแถว)
+   - routine ที่ยังไม่จบ (`end_date >= วันนี้`) ต่อคน < **10** → `LIMIT_REACHED {limit:'routines', max:10}` · ใช้กับการ **สร้างใหม่** เท่านั้น — การแก้ "ตั้งแต่…ไป" ที่แยกเป็นสอง routine (§5) **ไม่นับ** เพดานนี้ (เป็น routine เดิม, boss B12 2026-11-11)
+   - แถว routine ในอนาคตต่อคน + N ≤ **1,500** → `LIMIT_REACHED {limit:'routineRows', max}` (กันกรณี 10 routine × ทุกวัน × 6 เดือน = 1,840) · ใช้ทุกกรณีรวมการแยก (B12)
+9. rate limit: bucket ใหม่ `busy:routine` **20 คำขอ / 10 นาที** ต่อผู้ใช้ (`BUSY_ROUTINE_RATE_LIMIT` ใน `src/lib/shared/limits.ts`, platform R14a) · นับต่อคำขอ ไม่ใช่ต่อแถว
 
 `LimitKind` เพิ่ม `routines | routineRows | routineSpan | routineAhead` (UX ต้องแปลข้อความ)
 
@@ -206,11 +206,11 @@ CHECK เพิ่ม: `(all_day = 1 and start_min is null and end_min is null) 
 | **DST (tz อื่นที่ไม่ใช่ Bangkok)** | ขยายเวลาผนังทีละวัน · gap → ปฏิเสธทั้งคำขอ · fold → ครั้งแรก · เทสต์ `America/New_York` ช่วงครอบ 2027-03-14 และ 2026-11-01, `Australia/Lord_Howe` 1 เคส (แบบ ADR 0010 §2) |
 | **เปลี่ยน tz ทีหลัง** | ไม่มี tz ระดับผู้ใช้ในระบบ (§1) · routine เก็บ `tz` ของตัวเอง ไม่เลื่อนตามอัตโนมัติ · ถ้าอนาคตมี tz ผู้ใช้/ตัวเลือก tz → เปลี่ยนผ่าน "แก้ตั้งแต่สัปดาห์นี้ไป" (ขยายใหม่ด้วย tz ใหม่) · UI v1 ไม่มีช่องเลือก tz (ADR 0004 §2) |
 | **ลบ/แก้วันเดียวแล้วแก้ทั้ง routine** | skip ทำให้วันที่ลบไม่ฟื้น · วันที่แก้แยกเป็น busy เดี่ยวแล้ว ไม่ถูกเขียนทับ (อาจซ้อนกับ occurrence ใหม่ถ้าเปลี่ยนเวลา — ยอมรับ, ยูเนียน) |
-| **routine หมดอายุ** | แถวอดีตถูก cron ลบตาม `BUSY_RETENTION_DAYS` (90) เดิม · เพิ่มใน `maintenance.ts`: ลบ `busy_routine` ที่ `end_date` < วันนี้ − 90 วัน (skip ตามไป cascade) |
+| **routine หมดอายุ** | แถวอดีตถูก cron ลบตาม `BUSY_RETENTION_DAYS` (90) เดิม · เพิ่มใน `maintenance.ts`: ลบ `busy_routine` ที่ `end_date` < วันนี้ − **93** วัน (90 + 3 ให้แถว busy หมดอายุก่อน เพราะ `routine_id` ไม่มี FK · R14_CONTRACT §9 · `routineRetentionCutoff`) (skip ตามไป cascade) |
 | **ลบบัญชี** | `account.ts` ต้องลบ `busy_routine` ของผู้ใช้ชัดเจน (บัญชีถูก anonymize ไม่ใช่ลบแถว user → `ON DELETE CASCADE` จาก user **ไม่ทำงาน**) |
 | **ออกจากกลุ่ม** | ไม่มีผลกับ routine (busy ผูกผู้ใช้ — D5) · คนในกลุ่มเดิมเลิกเห็นทันที (กติกา ADR 0006 §1 ข้อ 2) |
 | **รายการ busy ของฉัน** | `listOwnActiveBusy` (limit 400) จะถูกแถว routine ท่วม → แยกแสดง: แถว `routine_id IS NULL` ในรายการเดิม + ส่วน "routine" จาก `GET /api/me/busy-routines` · `listOwnBusyInRange` (ปฏิทินของฉัน ≤ 62 วัน) คืนทุกแถวพร้อม `routineId` (เจ้าของเท่านั้น) — 10 routine × 62 วัน = 620 + one-off ≤ 300 < 1,000 |
-| **ปริมาณในกลุ่มใหญ่ (ความเสี่ยงหลัก)** | ปฏิทินเดือน (42 วัน) กลุ่ม 50 คน แต่ละคน 2 routine จ.–ศ. ≈ 50 × 60 = 3,000 แถว · วันว่าง 62 วัน ≈ 50 × 88 = 4,400 · ใกล้ `CALENDAR_MAX_ITEMS` 5,000 · กรณีหนัก (ทุกคนเต็มเพดาน) เกินแน่ → `truncated: true` = วันว่างผิด (คำนวณ ไม่ใช่วัด) · ทางแก้ให้ platform วัดแล้วเลือก: (ก) เทสต์ perf ใหม่ที่ ~10k แถว แล้วยกเพดานเฉพาะทางวันว่าง/เตือนนัดทับ (ไม่ต้องส่งทุกชิ้นให้ client) (ข) ลดเพดาน routine (ค) รวมช่วงของคนเดียวกันที่ติดกันก่อนส่ง lib · **ยังไม่ยืนยัน (§12)** |
+| **ปริมาณในกลุ่มใหญ่ (ความเสี่ยงหลัก)** | ปฏิทินเดือน (42 วัน) กลุ่ม 50 คน แต่ละคน 2 routine จ.–ศ. ≈ 50 × 60 = 3,000 แถว · วันว่าง 62 วัน ≈ 50 × 88 = 4,400 · ใกล้ `CALENDAR_MAX_ITEMS` 5,000 · กรณีหนัก (ทุกคนเต็มเพดาน) เกินแน่ → `truncated: true` = วันว่างผิด (คำนวณ ไม่ใช่วัด) · ทางแก้ให้ platform วัดแล้วเลือก: (ก) เทสต์ perf ใหม่ที่ ~10k แถว แล้วยกเพดานเฉพาะทางวันว่าง/เตือนนัดทับ (ไม่ต้องส่งทุกชิ้นให้ client) (ข) ลดเพดาน routine (ค) รวมช่วงของคนเดียวกันที่ติดกันก่อนส่ง lib · **วัดแล้ว + ตัดสินแล้ว (R14_CONTRACT §9 B11, boss 2026-11-11)**: perf ของ platform (libSQL ในเครื่อง, 50 คน) 2 routine จ.–ศ./คน = 93% ของ 5,000 ที่วันว่าง 62 วัน · 4 routine/คน = 140% ถูกตัด → เลือก **(ก)+(ค)**: ทางวันว่างร่วมและเตือนนัดทับใช้ `FREE_TIME_MAX_ITEMS = 32,000` (ไม่ส่งรายการให้ client; เกิน → `truncated`/`status 'unknown'` ตามกลไกเดิม) · ปฏิทินกลุ่มที่ส่งรายการคง `CALENDAR_MAX_ITEMS = 5,000` · `mergeBusyForFreeTime` (`src/lib/calendar/free-time.ts`) รวมช่วงที่ติด/ทับกันของสมาชิกคนเดียวกันก่อนป้อน `commonFreeTime` (ผลต้องเท่าเดิม มีเทสต์เทียบ) |
 
 ---
 
@@ -248,8 +248,11 @@ CHECK เพิ่ม: `(all_day = 1 and start_min is null and end_min is null) 
 | B7 | routine สูงสุดต่อคน | 10 (ที่ยังไม่จบ) · ไม่กินโควตา 300 |
 | B8 | สัปดาห์เริ่ม | วันจันทร์ (`WEEK_START = 1`) · UI แสดงเป็นช่วงวันที่ |
 | B9 | แบ่งรอบ | สอง PR: R14a เซิร์ฟเวอร์ (มี migration 0005) → R14b หน้าจอ |
+| B11 | เพดานแถวกลุ่มใหญ่ (หลังวัด perf, §9 ของ contract) | (ก)+(ค): ทางคำนวณวันว่าง/เตือนนัดทับ 32,000 แถว · ปฏิทินกลุ่มคง 5,000 · รวมช่วงต่อคนก่อนคำนวณ (§8) |
+| B12 | การแยกตอนแก้ "ตั้งแต่…ไป" | ไม่นับเพดาน 10 routine · 1,500 แถวยังใช้ทุกกรณี (§6) |
+| — | cron ลบ routine เก่า | จบเกิน 93 วัน (main รับ, contract §9) |
 
-**เพดานที่ใช้ implement (ข้อตัดสิน ไม่ใช่ข้อเสนอแล้ว — R14_CONTRACT §1.2)**: `routineSpan` 26 สัปดาห์ / 6 เดือน · `routineAhead` 12 เดือน · `routines` 10 · `routineRows` 1,500 (วันของ routine ในอนาคตต่อคน — เสนอโดย architect, อยู่ใน contract ที่ boss เห็นชอบ) · busy เดี่ยว 300 เท่าเดิม นับเฉพาะ `routine_id IS NULL` · วันที่แยกออกจาก routine เริ่มนับ 300 · ถ้า perf test (§8) ชี้ว่าต้องเปลี่ยนค่าใด main ต้องถาม boss ก่อน (contract §5)
+**เพดานที่ใช้ implement (ข้อตัดสิน ไม่ใช่ข้อเสนอแล้ว — R14_CONTRACT §1.2)**: `routineSpan` 26 สัปดาห์ / 6 เดือน · `routineAhead` 12 เดือน · `routines` 10 (สร้างใหม่เท่านั้น, B12) · `routineRows` 1,500 · rate limit `busy:routine` 20/10 นาที · `FREE_TIME_MAX_ITEMS` 32,000 (B11) (วันของ routine ในอนาคตต่อคน — เสนอโดย architect, อยู่ใน contract ที่ boss เห็นชอบ) · busy เดี่ยว 300 เท่าเดิม นับเฉพาะ `routine_id IS NULL` · วันที่แยกออกจาก routine เริ่มนับ 300 · ถ้า perf test (§8) ชี้ว่าต้องเปลี่ยนค่าใด main ต้องถาม boss ก่อน (contract §5)
 
 ## 12. ยืนยันแล้ว / ยังไม่ยืนยัน
 **ยืนยันแล้ว** (อ่านโค้ดบน `feat/r14-busy-routine` 2026-11-11 — ไม่ได้รันเทสต์ เพราะรอบนี้เป็นเอกสาร)
@@ -257,10 +260,10 @@ CHECK เพิ่ม: `(all_day = 1 and start_min is null and end_min is null) 
 - กติกา SQLite: ADD COLUMN ที่มี REFERENCES ต้อง default NULL [S1] · `SQLITE_MAX_VARIABLE_NUMBER` 999 ก่อน 3.32.0 / 32766 หลังจากนั้น [S3]
 
 **ยังไม่ยืนยัน**
-- drizzle-kit generate `ADD COLUMN … REFERENCES` เป็น ALTER ตรง ๆ หรือ rebuild — platform ต้องดู SQL ที่ได้จริง
-- ประสิทธิภาพ/การถูกตัด (`truncated`) ในกลุ่มใหญ่ (§8) — ตัวเลขเป็นการคำนวณ ต้องวัดด้วย perf test
+- ~~drizzle-kit generate `ADD COLUMN … REFERENCES`~~ → ปิดแล้ว: platform ตรวจ 2026-11-11 พบ cascade หาย จึงตัด FK (§5)
+- ~~ประสิทธิภาพ/การถูกตัดในกลุ่มใหญ่~~ → platform วัดแล้ว (เครื่อง local ไม่ใช่ Turso prod) และ boss ตัดสิน B11 (§8) · ยังไม่ได้วัดบน Turso prod
 - รุ่น SQLite ของ Turso prod (เกี่ยวกับ rollback DROP COLUMN เท่านั้น — เหมือน ADR 0010 §11)
-- ~~ตัวเลขเพดานใน §4, §6 เป็นข้อเสนอ~~ → **ยืนยันแล้ว 2026-11-11** เป็นข้อตัดสินใน R14_CONTRACT §1.2 (§11) · ยังไม่ได้วัดว่าค่าเหล่านี้พอดีกับ `CALENDAR_MAX_ITEMS` ในกลุ่มใหญ่ (ข้อบน)
+- ~~ตัวเลขเพดานใน §4, §6 เป็นข้อเสนอ~~ → **ยืนยันแล้ว 2026-11-11** เป็นข้อตัดสินใน R14_CONTRACT §1.2 (§11) · เพดานแถวกลุ่มใหญ่ตัดสินใน B11 (ข้อบน)
 
 ## แหล่งอ้างอิง (เข้าถึง 2026-11-11)
 - [S1] SQLite — ALTER TABLE, ADD COLUMN restrictions ("If foreign key constraints are enabled and a column with a REFERENCES clause is added, the column must have a default value of NULL") — https://www.sqlite.org/lang_altertable.html
