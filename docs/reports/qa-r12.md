@@ -57,3 +57,13 @@ branch `feat/r12-add-to-calendar` (HEAD `1336803`) · ผู้ตรวจ: qa 
 
 ## ตรวจไม่ได้
 CI และ Vercel preview · e2e บน Linux · เครื่องจริง iPhone/Android (R12-18/§9) · การเปิด .ics ในแอป Calendar จริงและลิงก์ Google ที่ไม่มีเอกสารทางการ · การทำงานของ LINE in-app browser จริง (ตรวจด้วย UA จำลอง)
+
+## ตรวจซ้ำที่ HEAD `0dab604` (หลังแก้: platform `0dab604` audit + cross-site · ux `b4488df` /privacy · contract `eea8695`)
+verdict หลังตรวจซ้ำ: **ผ่าน** (ข้อสังเกต 1 ปิดแล้ว · ข้อสังเกต 2 เป็น dev เท่านั้น คงเดิม)
+- อ่าน `git diff 41582ed..HEAD`: `getAppointmentIcs` เรียก `auditRead` ก่อนตรวจ cancelled/past (409 ของ super admin นอกกลุ่มจึงมี audit; สมาชิกไม่เขียน) · route ปฏิเสธ `Sec-Fetch-Mode: navigate` + `Sec-Fetch-Site: cross-site` ด้วย FORBIDDEN ก่อนเรียก service → `finalize` แปลงเป็น 303 (ไม่อ่านนัด ไม่เขียน audit) · same-origin/same-site/none/ไม่มี header และการเรียกแบบไม่ navigate ทำงานเหมือนเดิม
+- **R12-14 เรื่องเขตเวลาปิดแล้ว**: th/en `privacy.calendar.body` ระบุ "เขตเวลา/time zone" ส่งไป Google, ".ics (ไม่มีเขตเวลา)", ข้อมูลอยู่ใน URL อาจค้างในประวัติเบราว์เซอร์, ชื่อนัด/สถานที่อาจเป็นข้อความที่คนอื่นพิมพ์ — ครบตาม §6
+- `npm run lint` ไม่มี error · `npm run typecheck` ไม่มี error · `npm run build` สำเร็จ (มี route calendar.ics)
+- Vitest **ไม่ใช้ shim** (tests/calendar, tests/ui/add-to-calendar, tests/security/authorize-first, tests/i18n): pass 664 · fail 52 = EPERM `rmSync` 51 (ข้อความ EPERM ในทุก failure) + Python ไม่มี 1
+- Vitest **ใช้ shim** (กลืน EPERM ของ rmSync เท่านั้น; tests/calendar, tests/ui, authorize-first, tests/i18n, tests/appointments): pass 1307 · fail 1 (Python ไม่มี) · เทสต์ใหม่ "security R12 Low 1/Low 2" อยู่ใน tests/calendar/ics-route.test.ts และผ่านในรอบ shim
+- Playwright `r12-add-to-calendar.spec.ts` + `privacy.spec.ts`: **129 passed** ไม่มี retry · ข้อ R12-2/4 คลิกลิงก์ `cal-add-ics` ใน sheet ของแอปจริงใน Chromium (ส่ง Sec-Fetch-Mode: navigate + Sec-Fetch-Site: same-origin) ได้ download ชื่อ `maewmeet-plan.ics` ยืนยันว่าไม่โดน 303
+- ยังตรวจไม่ได้: CI/Vercel, เครื่องจริง §9 (หมายเหตุ: cross-site navigate ถูก 303 ตามตั้งใจ จึงควรให้ boss ลองเปิดลิงก์ .ics จากในแอปบนเครื่องจริงใน I1/A3 ว่า header ถูกส่งตามคาด)
