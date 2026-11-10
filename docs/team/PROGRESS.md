@@ -1,7 +1,7 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-11 (เวลาไทย) · **R13 กำลังทำ ยังไม่ push/PR** · **R12.1 merge แล้ว (PR #30, `bc0eef8`) ทดสอบ iPhone บางส่วน (ดูหัวข้อ R12.1)** · **R11 merge แล้ว (PR #28, `348bd86`) ยังไม่ออกรุ่น** · **R12 merge แล้ว (PR #29, `bef0b73`) ยังไม่ออกรุ่น** · **R12.1 (เก็บงานหลังทดสอบ iPhone) ส่งงานครบ ผ่านตรวจอิสระ merge แล้ว** · **R10 (F6) merge แล้ว (PR #26) และออก v0.11.0 แล้ว** · ตรวจด้วย `git log origin/main`, `git ls-remote --tags origin` (รอบ R12: ไม่มี v0.12.x), `git tag`, `git rev-list -n1 v0.11.0` (= `a77fc50`) และ `CHANGELOG.md` หัวข้อ `[0.11.0] - 2026-11-10` · ผลการทดสอบ LINE และ `/api/health` = ที่ boss รายงาน (เลขาไม่ได้ตรวจเอง) · รายงานวัน: `docs/reports/2026-11-10.md` · ก่อนหน้า: `docs/contracts/R10_CONTRACT.md`, `docs/reports/qa-r10.md`, `security-r10.md`, `docs/reports/2026-11-09.md`
+> อัปเดตล่าสุด: 2026-11-11 (เวลาไทย) · **R13 ส่งงานครบ ผ่านตรวจอิสระ (qa แบบมีข้อสังเกต, security ผ่าน) รอ push/PR** · **R12.1 merge แล้ว (PR #30, `bc0eef8`) ทดสอบ iPhone บางส่วน (ดูหัวข้อ R12.1)** · **R11 merge แล้ว (PR #28, `348bd86`) ยังไม่ออกรุ่น** · **R12 merge แล้ว (PR #29, `bef0b73`) ยังไม่ออกรุ่น** · **R12.1 (เก็บงานหลังทดสอบ iPhone) ส่งงานครบ ผ่านตรวจอิสระ merge แล้ว** · **R10 (F6) merge แล้ว (PR #26) และออก v0.11.0 แล้ว** · ตรวจด้วย `git log origin/main`, `git ls-remote --tags origin` (รอบ R12: ไม่มี v0.12.x), `git tag`, `git rev-list -n1 v0.11.0` (= `a77fc50`) และ `CHANGELOG.md` หัวข้อ `[0.11.0] - 2026-11-10` · ผลการทดสอบ LINE และ `/api/health` = ที่ boss รายงาน (เลขาไม่ได้ตรวจเอง) · รายงานวัน: `docs/reports/2026-11-10.md` · ก่อนหน้า: `docs/contracts/R10_CONTRACT.md`, `docs/reports/qa-r10.md`, `security-r10.md`, `docs/reports/2026-11-09.md`
 
 ## เสร็จแล้ว
 - R0–R5: foundation, บัญชี PIN, กลุ่ม, ปฏิทิน + busy, วันว่างร่วม + สร้างนัด, หน้า super admin + audit log (ดู CHANGELOG)
@@ -20,21 +20,24 @@
 - **ออก v0.10.0 แล้ว** (2026-11-09, tag `v0.10.0` → commit `d670fcc` `chore(release): v0.10.0`) รวม R8 · **repo เปลี่ยนเป็น public** (2026-11-08) · รายละเอียดหัวข้อ "v0.10.0 + repo public" ด้านล่าง
 - **ออก v0.11.0 แล้ว** (2026-11-10, tag `v0.11.0` → commit `a77fc50` `chore(release): v0.11.0`) รวม **R10** (F6 เตือนก่อนนัดทาง LINE OA + กระดิ่ง, เชื่อม LINE, ปุ่มขั้น 2) · migration `0004` (รันหลัง merge — ดูหัวข้อ R10) · รายละเอียดด้านล่าง
 
-## R13 — สถานที่แบบวางลิงก์ + ลิงก์ปฏิทินที่อ่านง่าย — กำลังทำ ⏳ (ยังไม่ push/PR)
+## R13 — สถานที่แบบวางลิงก์ + ลิงก์ปฏิทินที่อ่านง่าย — ส่งงานครบ ผ่านตรวจอิสระ รอ push/PR ⏳
 - contract `docs/contracts/R13_CONTRACT.md` (main) · **boss เห็นชอบ 2026-11-11** ("เห็นชอบ เริ่มเลย") · **ไม่มี migration** · branch `feat/r13-location-simplify` แตกจาก `main` ที่ `bc0eef8` (ตาม contract)
 - เนื้อหา: เอาการค้นหาสถานที่และภาพแผนที่ OpenStreetMap ออก · ช่องวางลิงก์แผนที่ + ปุ่ม Google Maps / Apple Maps · ลิงก์ในปฏิทิน (`URL` = ลิงก์แผนที่ ป้าย "แผนที่:" / "ดูนัดในแมวเจอกัน:") · แก้ปุ่มตัดบรรทัดที่ 375 (backlog qa R12.1) · ลบ env และ route ค้นหา
 - ใครทำอะไร (ตรวจด้วย `git log` ของ branch):
   - ux `29fa1e7` ถ้อยคำ TH/EN ช่องลิงก์ ปุ่ม ป้ายปฏิทิน
-  - platform `f09c2ab` `ics.ts` (ป้าย, `URL`) · ลบ route/service ค้นหา
+  - platform `f09c2ab` `ics.ts` (ป้าย, `URL`) · ลบ route/service ค้นหา · `5d99338` ป้าย .ics ตามคุกกี้ `mm_locale` → `user.locale` → th
   - architect `f4e89a8` หมายเหตุ ADR ว่าค้นหาสถานที่และภาพแผนที่ถูกเอาออก
   - ops `44be010` env, CSP, docs, CHANGELOG Unreleased
   - auth `e17ea2a` ลบ action `place.search`
   - frontend `dcdc5c3` PlaceField, การ์ดสถานที่, ปุ่มแผนที่, ลบ PlaceMap
+  - test `c469617` e2e `r13-location.spec.ts` และปรับ e2e เดิม · ตามรายงาน main: e2e ทั้งชุด 968 passed / 126 skipped / 0 failed (เลขาไม่ได้รันซ้ำ)
   - main `dd40700`, `d62020a` contract, PRD D11/U10 (ตาม commit message)
-  - test: **กำลังทำ e2e** · ตอนเลขาเขียน มีไฟล์ `tests/e2e/**` และ `tests/security/config-hygiene.test.ts` แก้ค้างใน worktree ยังไม่ commit (ตรวจด้วย `git status`)
-  - qa, security: **ยังไม่ตรวจ** (ยังไม่มี `docs/reports/qa-r13.md`, `security-r13.md`)
+- **ตรวจอิสระ (คนละ agent กับผู้ทำ):**
+  - qa `a6632f7` + `98818aa` รายงาน `docs/reports/qa-r13.md` · **ผ่านแบบมีข้อสังเกต** · แก้ e2e r12 ป้ายตามภาษา (`a6632f7`) · ไม่พบบั๊กโค้ด · ของ qa: vitest ทั้งชุด 5180 ผ่าน / 21 ล้ม (เรื่องเครื่อง Windows: config-hygiene, release CLI, pepper/admin-reset) · R13-1..5 ผ่าน
+  - security `ac0d22c` รายงาน `docs/reports/security-r13.md` · **ผ่าน** · Critical–Low 0 · Info 5
+  - backlog ใหม่จากการตรวจ (ไม่บล็อก): ปุ่ม Apple/Google ที่ 768 กรณีมีแต่ชื่อซ้อนแนวตั้งกว้างไม่เท่ากัน (ความสวยงาม) · `/api/prefs` ไม่บันทึก `user.locale` ตอนสลับภาษา (ของเดิม) · security Info 1: จำกัดโฮสต์ลิงก์แผนที่ถ้าต้องการ
 - ยังไม่ทำ: PR · CI และ Vercel preview · boss ทดสอบ T1–T4 (contract §5) หลัง merge
-- **ยังไม่ยืนยัน:** ผลเทสต์ทั้งหมดของ R13 (เลขาไม่ได้รัน) · iPhone จะแสดงลิงก์แผนที่ในช่อง Location หรือไม่ (ดู T3)
+- **ยังไม่ยืนยัน:** ผลเทสต์ทั้งหมดของ R13 ที่เลขาไม่ได้รันเอง (ใช้ตัวเลขจาก main/qa ตามที่ระบุ) · iPhone จะแสดงลิงก์แผนที่ในช่อง Location หรือไม่ (ดู T3) · CI/Vercel
 
 ## R11 — แจ้งเตือนเหตุการณ์นัดและสมาชิก + LINE ยกเลิกนัด — merge แล้ว (PR #28) · ยังไม่ออกรุ่น ⏳
 - contract `docs/contracts/R11_CONTRACT.md` (main) · boss เห็นชอบขอบเขต 2026-11-10 · **ไม่มี migration**
@@ -236,7 +239,7 @@
 - **R11 แจ้งเตือนเหตุการณ์นัดและสมาชิก** — merge แล้ว (PR #28) · รอ boss ออกรุ่น (เสนอ v0.12.0) · CI ของ `348bd86` ยังไม่ยืนยัน (ดูหัวข้อ R11)
 - **R12 เพิ่มนัดลงปฏิทิน** — merge แล้ว (PR #29) · ยังไม่ออกรุ่น · Android ยังไม่มีรายละเอียดผลทดสอบ (ดูหัวข้อ R12)
 - **R12.1 เก็บงานหลังทดสอบ iPhone** — merge แล้ว (PR #30) · ทดสอบ iPhone บางส่วน (ดูหัวข้อ R12.1) · ยังไม่ออกรุ่น
-- **R13 สถานที่แบบวางลิงก์ + ลิงก์ปฏิทิน** — กำลังทำ · ยังไม่ push/PR · รอ qa/security และ test e2e · หลัง merge boss ทดสอบ T1–T4 (ดูหัวข้อ R13)
+- **R13 สถานที่แบบวางลิงก์ + ลิงก์ปฏิทิน** — ส่งงานครบ · qa ผ่านแบบมีข้อสังเกต · security ผ่าน · รอ push/PR, CI, Vercel และ boss ทดสอบ T1–T4 (ดูหัวข้อ R13)
 - **R7 RSVP 10→9** — ยอมรับตามที่ main เสนอ รอ boss ยืนยัน (ดูหัวข้อ R7 ด้านบน) · merge PR #19 และออก v0.9.1 เสร็จแล้ว
 - **F6 แจ้งเตือนก่อนนัด** — boss เลือกแล้ว (LINE OA + กระดิ่ง, 2026-11-09) · R10 merge และออก v0.11.0 แล้ว (2026-11-10) · ค้างแค่ทดสอบเตือน 1 วันและ `rsvp_nudge` บน LINE จริง · ดูหัวข้อ R10
 - R7 เฟส A เดิม (เปิด preview อ่าน Server-Timing ด้วย DevTools เพื่อวัดเวลาจริงกับ Turso ญี่ปุ่น) — ยังไม่ได้ทำ เลื่อนเป็น backlog ถ้าไม่ต้องการตัวเลขจริงก่อนงานถัดไป
