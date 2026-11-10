@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const SECTIONS = [
   { key: "collect", items: ["account", "busy", "groups", "security", "cookies"] },
   { key: "see", items: ["owner", "members", "note", "outsiders", "groups", "superAdmin"] },
-  { key: "places", items: ["search", "tiles", "noTracking"] },
+  { key: "places", items: ["links", "noTracking"] },
   { key: "line", items: ["body"] },
   { key: "calendar", items: ["body"] },
   { key: "retention", items: ["busy", "notifications", "sessions", "security", "groups", "providers", "line"] },

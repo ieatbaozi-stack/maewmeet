@@ -1,74 +1,77 @@
-// โมเดลแผนที่ (R4B · D11): กริด tile OSM 3×3 · ละติจูดสุดขอบ · ข้ามเส้นแบ่งวัน · ตัวสร้างลิงก์เปิดแอปแผนที่
+// โมเดลแผนที่ (R13 · D11): ตัวสร้างลิงก์เปิดแอปแผนที่ · ลิงก์ค้นหาชื่อ Google/Apple · ตรวจชนิดเครื่องจาก user agent
 import { describe, expect, it } from 'vitest';
-import { MAP_ZOOM, MAX_MERCATOR_LAT, OSM_TILE_ORIGIN, hasCoords, mapOpenLink, tileGrid, tileUrl, worldPoint } from '@/components/places/map-model';
+import { readFileSync } from 'node:fs';
+import { linkTextOf } from '@/components/places/PlaceField';
+import { parseLocationInput } from '@/lib/shared/location-parse';
+import { APPLE_MAPS_HOME, GOOGLE_MAPS_HOME, detectMapApps, hasCoords, mapOpenLink, mapSearchLink } from '@/components/places/map-model';
 
-describe('worldPoint / tileGrid', () => {
-  it('จุด (0,0) ที่ zoom 1 = มุมกลางของโลก (tile 1,1)', () => {
-    const p = worldPoint(0, 0, 1);
-    expect(p.x).toBeCloseTo(1, 9);
-    expect(p.y).toBeCloseTo(1, 9);
+describe('mapSearchLink (R13-2)', () => {
+  it('Google: ?api=1&query=<ชื่อ> · Apple: ?q=<ชื่อ>', () => {
+    expect(mapSearchLink('google', 'ร้านหมูกระทะ')).toBe(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('ร้านหมูกระทะ')}`);
+    expect(mapSearchLink('apple', 'ร้านหมูกระทะ')).toBe(`https://maps.apple.com/?q=${encodeURIComponent('ร้านหมูกระทะ')}`);
+    expect(mapSearchLink('google', 'Siam Paragon')).toBe('https://www.google.com/maps/search/?api=1&query=Siam%20Paragon');
   });
-
-  it('กรุงเทพ zoom 15: tile กลางตรงสูตร slippy-map และหมุดอยู่ในกริด', () => {
-    const g = tileGrid(13.7563, 100.5018);
-    expect(g.zoom).toBe(MAP_ZOOM);
-    expect(g.size).toBe(3);
-    expect(g.cells).toHaveLength(9);
-    const n = 2 ** 15;
-    const x = Math.floor(((100.5018 + 180) / 360) * n);
-    const latRad = (13.7563 * Math.PI) / 180;
-    const y = Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n);
-    const center = g.cells[4]!;
-    expect([center.x, center.y]).toEqual([x, y]);
-    expect(center.url).toBe(`${OSM_TILE_ORIGIN}/15/${x}/${y}.png`);
-    expect(g.marker.x).toBeGreaterThan(1 / 3);
-    expect(g.marker.x).toBeLessThan(2 / 3);
-    expect(g.marker.y).toBeGreaterThan(1 / 3);
-    expect(g.marker.y).toBeLessThan(2 / 3);
-  });
-
-  it('จุดกลาง tile พอดี → หมุดอยู่กลางกริด (0.5, 0.5)', () => {
-    const n = 2 ** 15;
-    const k = 25000;
-    const lng = ((k + 0.5) / n) * 360 - 180;
-    const g = tileGrid(0, lng);
-    expect(g.marker.x).toBeCloseTo(0.5, 6);
-  });
-
-  it('ใช้ origin ของ OSM เท่านั้น (CSP เดิมอนุญาต) และทุก url เป็น https .png', () => {
-    for (const c of tileGrid(35.6762, 139.6503).cells) {
-      expect(c.url).toMatch(/^https:\/\/tile\.openstreetmap\.org\/15\/\d+\/\d+\.png$/);
+  it('encode & และ # และ ? ไม่ให้หลุดเป็นตัวคั่นของ URL', () => {
+    for (const app of ['google', 'apple'] as const) {
+      const u = new URL(mapSearchLink(app, 'A&B #1 ?x=y'));
+      expect(u.hash).toBe('');
+      expect(u.searchParams.get(app === 'google' ? 'query' : 'q')).toBe('A&B #1 ?x=y');
+      expect([...u.searchParams.keys()]).toEqual(app === 'google' ? ['api', 'query'] : ['q']);
     }
-    expect(tileUrl(3, 1, 2)).toBe('https://tile.openstreetmap.org/3/1/2.png');
   });
-
-  it('ละติจูดสุดขอบ: ±90 ถูกหนีบเป็น ±85.0511 · แถวนอกโลกไม่มี tile', () => {
-    expect(worldPoint(90, 0, 15).y).toBeCloseTo(worldPoint(MAX_MERCATOR_LAT, 0, 15).y, 6);
-    const north = tileGrid(90, 10);
-    expect(north.cells.slice(0, 3).every((c) => c.url === null)).toBe(true); // แถวบน (y = −1)
-    expect(north.cells.slice(3).every((c) => c.url !== null)).toBe(true);
-    const south = tileGrid(-90, 10);
-    expect(south.cells.slice(6).every((c) => c.url === null)).toBe(true); // แถวล่าง (y = n)
-    expect(south.cells.slice(0, 6).every((c) => c.url !== null)).toBe(true);
-    const ymax = 2 ** 15 - 1;
-    expect(south.cells[4]!.y).toBe(ymax);
+  it('ชื่อว่าง/เว้นวรรค/null → หน้าแรกของแผนที่', () => {
+    for (const v of ['', '   ', '\n\t', null, undefined]) {
+      expect(mapSearchLink('google', v)).toBe(GOOGLE_MAPS_HOME);
+      expect(mapSearchLink('apple', v)).toBe(APPLE_MAPS_HOME);
+    }
+    expect(GOOGLE_MAPS_HOME).toBe('https://www.google.com/maps');
+    expect(APPLE_MAPS_HOME).toBe('https://maps.apple.com/');
   });
-
-  it('ข้ามเส้นแบ่งวัน: lng ≈ 180 → คอลัมน์ขวาวนกลับเป็น tile 0 · lng = −180 → คอลัมน์ซ้ายเป็น n−1', () => {
-    const n = 2 ** 15;
-    const east = tileGrid(0, 179.9999);
-    expect(east.cells.map((c) => c.x).slice(0, 3)).toEqual([n - 2, n - 1, 0]);
-    const west = tileGrid(0, -180);
-    expect(west.cells.map((c) => c.x).slice(0, 3)).toEqual([n - 1, 0, 1]);
-    // lng = 180 พอดี = จุดเดียวกับ −180
-    expect(worldPoint(0, 180, 15).x).toBeCloseTo(worldPoint(0, -180, 15).x, 9);
-    // ทุก url ยังเป็น tile ที่ถูกต้อง (x ใน [0, n))
-    for (const c of east.cells) expect(c.x >= 0 && c.x < n).toBe(true);
+  it('ตัดช่องว่างหัวท้าย/ยุบช่องว่างซ้อน และทำ NFC', () => {
+    expect(mapSearchLink('apple', '  ร้าน   ป้าแดง ')).toBe(`https://maps.apple.com/?q=${encodeURIComponent('ร้าน ป้าแดง')}`);
   });
+  it('ผลเป็น https เสมอ', () => {
+    expect(mapSearchLink('google', 'x').startsWith('https://')).toBe(true);
+    expect(mapSearchLink('apple', 'x').startsWith('https://')).toBe(true);
+  });
+});
 
-  it('ค่า lng เกินช่วงถูกวน (ไม่ให้ tile index ติดลบ)', () => {
-    const g = tileGrid(10, 540.5); // = 180.5 = −179.5
-    for (const c of g.cells) expect(c.x >= 0 && c.x < 2 ** 15).toBe(true);
+describe('detectMapApps (R13-2)', () => {
+  const UA = {
+    iphone: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+    ipad: 'Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+    mac: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15',
+    // iPadOS 13+ ขอเว็บแบบเดสก์ท็อป บอกตัวเป็น Macintosh
+    ipadOsMac: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15',
+    android: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
+    windows: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+  };
+  it('iPhone / iPad / Mac / iPadOS-Macintosh → Apple ก่อน แล้ว Google', () => {
+    for (const k of ['iphone', 'ipad', 'mac', 'ipadOsMac'] as const) expect(detectMapApps(UA[k]), k).toEqual(['apple', 'google']);
+  });
+  it('Android / Windows / ว่าง / ไม่รู้จัก → Google อย่างเดียว', () => {
+    expect(detectMapApps(UA.android)).toEqual(['google']);
+    expect(detectMapApps(UA.windows)).toEqual(['google']);
+    expect(detectMapApps('')).toEqual(['google']);
+    expect(detectMapApps(null)).toEqual(['google']);
+    expect(detectMapApps(undefined)).toEqual(['google']);
+    expect(detectMapApps('curl/8.0')).toEqual(['google']);
+  });
+});
+
+describe('R13 ซอร์ส: ไม่มีภาพแผนที่/การค้นหา และไม่มี hydration mismatch', () => {
+  const links = readFileSync('src/components/places/MapAppLinks.tsx', 'utf8');
+  const field = readFileSync('src/components/places/PlaceField.tsx', 'utf8');
+  it('ตรวจเครื่องผ่าน useSyncExternalStore: server snapshot = google อย่างเดียว', () => {
+    expect(links).toContain('useSyncExternalStore');
+    expect(links).toContain('const serverSnapshot = (): string => "google"');
+  });
+  it('ปุ่มเป็นลิงก์ https เปิดแท็บใหม่ noopener noreferrer', () => {
+    expect(links).toContain('target="_blank"');
+    expect(links).toContain('rel="noopener noreferrer"');
+  });
+  it('PlaceField ไม่เรียก API ค้นหา/ไม่มีปุ่มค้นหา', () => {
+    expect(field).not.toMatch(/api.places|callApi|place-search|place-chip/);
   });
 });
 
@@ -104,5 +107,22 @@ describe('mapOpenLink', () => {
   it('hasCoords ต้องครบคู่', () => {
     expect(hasCoords({ lat: 1, lng: 2 })).toBe(true);
     expect(hasCoords({ lat: 1, lng: null })).toBe(false);
+  });
+});
+
+describe('linkTextOf — แก้นัดเก่า (R13-4)', () => {
+  it('มีลิงก์ (รวมลิงก์ OSM ของนัดเก่า) → แสดงลิงก์นั้น', () => {
+    const osm = 'https://www.openstreetmap.org/node/123';
+    expect(linkTextOf({ name: 'ร้าน', lat: 13.75, lng: 100.5, mapUrl: osm })).toBe(osm);
+  });
+  it('มีแต่พิกัด → lat,lng และ parse กลับได้ค่าเดิมทุกหลัก', () => {
+    const text = linkTextOf({ name: null, lat: 13.756331, lng: 100.501765, mapUrl: null });
+    expect(text).toBe('13.756331,100.501765');
+    const back = parseLocationInput(text);
+    expect(back).toMatchObject({ ok: true, lat: 13.756331, lng: 100.501765, mapUrl: null });
+  });
+  it('ไม่มีทั้งลิงก์และพิกัด / ไม่มีค่า → ว่าง', () => {
+    expect(linkTextOf({ name: 'ร้าน', lat: null, lng: null, mapUrl: null })).toBe('');
+    expect(linkTextOf(null)).toBe('');
   });
 });

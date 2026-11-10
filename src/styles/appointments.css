@@ -7,10 +7,6 @@
  * สัญญาณที่ไม่ใช่สี (WCAG 1.4.1): สถานะ RSVP = ไอคอนคนละรูป + ข้อความ + วงแหวนหนาเมื่อเลือก · สถานะนัด = ไอคอน + ข้อความ (+ ขีดฆ่าชื่อเมื่อยกเลิก)
  */
 
-:root {
-  --map-h: calc(var(--tap-lg) * 4);            /* ความสูงแผนที่ในหน้ารายละเอียด */
-}
-
 /* ---------- การ์ดนัด (นัดถัดไป · รายละเอียดนัด) ---------- */
 .appt-card { background: var(--surface); border: var(--border) solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
 .appt-band {
@@ -154,34 +150,14 @@
 .rsvp-people .nm { min-width: 0; overflow-wrap: anywhere; }
 .rsvp-people .you { color: var(--ink-muted); font-size: var(--text-sm); margin-left: var(--space-1); }
 
-/* ---------- แผนที่ (OSM) ---------- */
-.map-fig { margin: 0; margin-top: var(--space-3); }
-.map-box {
-  position: relative; height: var(--map-h); overflow: hidden;
-  border: var(--border) solid var(--line-control); border-radius: var(--radius-sm); background: var(--surface-2);
-}
-.map-canvas { position: absolute; inset: 0; }
-.map-caption { display: flex; justify-content: flex-end; }
-.map-caption a { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 var(--space-1); font-size: var(--text-xs); color: var(--accent-ink); }
-.map-fallback {
-  position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: var(--space-2);
-  padding: var(--space-4); text-align: center; background: var(--surface-2); color: var(--ink);
-}
-.map-fallback .icon { color: var(--ink-muted); width: var(--icon-lg); height: var(--icon-lg); }
-.map-fallback b { font-weight: var(--weight-semibold); }
-.map-fallback span { font-size: var(--text-sm); color: var(--ink-muted); max-width: 34ch; }
-.map-loading { position: absolute; inset: 0; display: grid; place-items: center; background: var(--surface-2); color: var(--ink-muted); font-size: var(--text-sm); }
-.map-open { margin-top: var(--space-1); }
-/* ตัวอย่างแผนที่ในหน้าตัวอย่าง (สภาพแวดล้อมโหลด tile จริงไม่ได้) — ลายถนนสมมติด้วย token */
-.map-box.is-sample .map-canvas {
-  background-color: var(--surface-2);
-  background-image:
-    repeating-linear-gradient(90deg, transparent 0 calc(var(--space-7) * 2), var(--surface) calc(var(--space-7) * 2) calc(var(--space-7) * 2 + var(--space-2))),
-    repeating-linear-gradient(0deg, transparent 0 calc(var(--space-7) * 1.5), var(--surface) calc(var(--space-7) * 1.5) calc(var(--space-7) * 1.5 + var(--space-1))),
-    repeating-linear-gradient(60deg, transparent 0 calc(var(--space-7) * 3), var(--free) calc(var(--space-7) * 3) calc(var(--space-7) * 3 + var(--space-5)));
-}
-.map-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -100%); color: var(--danger-ink); }
-.map-pin .icon { width: var(--space-6); height: var(--space-6); fill: var(--surface); }
+/* ---------- R13: ปุ่มเปิดแผนที่ (การ์ดสถานที่ + ช่องสถานที่ในฟอร์ม) · ไม่มีภาพแผนที่ ---------- */
+.map-open, .map-app { display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--tap); padding: var(--space-2) var(--space-4); text-align: center; text-decoration: none; }
+.map-open { width: 100%; margin-top: var(--space-3); }
+.map-open > .icon, .map-app > .icon { flex: none; }
+.map-open-text { min-width: 0; overflow-wrap: anywhere; }
+.map-apps { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+.map-app { flex: 1 1 0; min-width: 0; white-space: nowrap; }
+.map-apps.is-find .map-app { flex: 1 1 100%; white-space: normal; }
 
 /* ---------- ฟอร์มสร้าง/แก้นัด ---------- */
 .appt-form-sub { margin-top: var(--space-1); font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
@@ -234,41 +210,16 @@
 @keyframes ov-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .ov-spin { animation: none; } }
 
-/* ---------- ช่องสถานที่: ค้นหา (กดปุ่ม ไม่ autocomplete) / วางลิงก์ / ชิปที่เลือก ---------- */
-.place-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); align-items: stretch; }
-.place-search .btn { min-height: var(--tap-lg); }
-.place-search .btn[aria-disabled="true"] { background: var(--surface-2); color: var(--ink-muted); border-color: var(--line-control); }
-.place-toggle { margin-top: var(--space-1); }
-.place-results { margin-top: var(--space-2); overflow: hidden; border: var(--border) solid var(--line-control); border-radius: var(--radius-sm); background: var(--surface); }
-.place-results.is-stale { background: var(--surface-2); }
-.place-results > li + li { border-top: var(--border) solid var(--line); }
-.place-opt { display: flex; gap: var(--space-3); align-items: flex-start; width: 100%; min-height: var(--tap-lg); padding: var(--space-3); border: 0; background: transparent; text-align: left; color: var(--ink); }
-.place-opt[aria-checked="true"] { background: var(--accent-soft); color: var(--accent-soft-ink); }
-.place-opt .radio-mark { width: var(--icon); height: var(--icon); flex: none; margin-top: var(--space-1); border-radius: var(--radius-full); border: var(--border-strong) solid var(--line-control); display: grid; place-items: center; }
-.place-opt[aria-checked="true"] .radio-mark { border-color: var(--accent-soft-ink); }
-.place-opt[aria-checked="true"] .radio-mark::after { content: ""; width: var(--space-2); height: var(--space-2); border-radius: var(--radius-full); background: var(--accent-soft-ink); }
-.place-opt .pn { display: block; font-weight: var(--weight-medium); overflow-wrap: anywhere; }
-.place-opt .pa { display: block; font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.place-opt[aria-checked="true"] .pa { color: var(--accent-soft-ink); }
-.place-foot { margin-top: var(--space-1); font-size: var(--text-xs); color: var(--ink-muted); display: flex; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; }
-.place-note { display: flex; gap: var(--space-2); align-items: flex-start; margin-top: var(--space-2); padding: var(--space-3); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); font-size: var(--text-sm); }
-.place-note .icon { margin-top: var(--space-1); }
-.place-note b { display: block; font-weight: var(--weight-semibold); }
-.place-note.is-warn { background: var(--warn); color: var(--warn-ink); }
-.place-note.is-error { background: var(--danger-soft); color: var(--danger-ink); }
-.place-paste { margin-top: var(--space-2); padding: var(--space-3); border: var(--border) solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
-.place-paste .field { margin-top: 0; }
-.place-paste .row2 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); }
-.place-paste .row2 .btn { min-height: var(--tap-lg); }
-.place-chip { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent-soft-ink); }
-.place-chip > .icon { flex: none; }
-.place-chip .tx { flex: 1; min-width: 0; display: grid; }
-.place-chip .pn { font-weight: var(--weight-semibold); overflow-wrap: anywhere; }
-.place-chip .ps { font-size: var(--text-sm); overflow-wrap: anywhere; }
-.place-chip .icon-btn { color: var(--accent-soft-ink); }
+/* ---------- ช่องสถานที่ (R13): ชื่อ + ลิงก์แผนที่ เห็นตลอด + ปุ่ม Google/Apple Maps ---------- */
+.place-link { margin-top: var(--space-4); }
+.place-apps { margin-top: var(--space-4); }
+.place-apps-lead { font-size: var(--text-sm); color: var(--ink-muted); }
+.place-apps .map-apps { margin-top: var(--space-2); }
 
 /* ---------- iPad ---------- */
 @media (min-width: 48em) {
+  .map-app, .map-apps.is-find .map-app { flex: 0 1 auto; min-width: calc(var(--tap-lg) * 3); }
+  .map-open { width: auto; }
   .appt-main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
   .appt-main > .appt-card, .appt-main > .appt-banner, .appt-main > .appt-wide { grid-column: 1 / -1; }
 }
@@ -279,8 +230,8 @@
 .av-seg-btn .chev, .av-seg-btn > .icon:last-child { flex: none; }
 
 /* เป้าแตะขั้นต่ำสำหรับลิงก์ในบรรทัด (กลุ่มในหน้ารายละเอียด, สลับโหมดสถานที่) */
-.appt-fact a, .place-toggle { display: inline-flex; align-items: center; min-height: var(--tap); }
-.home-empty-links .link-btn, .place-paste .link-btn { display: inline-flex; align-items: center; min-height: var(--tap); }
+.appt-fact a { display: inline-flex; align-items: center; min-height: var(--tap); }
+.home-empty-links .link-btn { display: inline-flex; align-items: center; min-height: var(--tap); }
 
 /* R12: sheet เพิ่มลงปฏิทิน + ปุ่มใต้ RSVP (token เดิมทั้งหมด) */
 .appt-cal-add { display: flex; width: 100%; margin-top: var(--space-3); }

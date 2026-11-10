@@ -1,32 +1,21 @@
 "use client";
 
-import { useId, useRef, useState, type KeyboardEvent } from "react";
+import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Icon } from "@/components/icons/Icon";
-import { Name } from "@/components/Name";
 import { parseLocationInput } from "@/lib/shared/location-parse";
-import { callApiFull } from "@/components/appointments/api";
-import {
-  PLACE_NAME_MAX,
-  PLACE_QUERY_MAX,
-  PLACE_QUERY_MIN,
-  coordsText,
-  parsePlaceResults,
-  placeFromResult,
-  placeSearchFailure,
-  textLength,
-  type FormProblem,
-  type PlaceSearchState,
-  type PlaceValue,
-} from "@/components/appointments/model";
+import { PLACE_NAME_MAX, textLength, type FormProblem, type PlaceValue } from "@/components/appointments/model";
+import { MapAppLinks } from "./MapAppLinks";
+
+export type PlaceLinkError = "INVALID_MAP_URL" | "INVALID_COORDINATES";
 
 export interface PlaceFieldProps {
   value: PlaceValue | null;
   onChange: (next: PlaceValue | null) => void;
-  /** ข้อผิดพลาดจากเซิร์ฟเวอร์/ตรวจก่อนส่ง (ชื่อยาวเกิน ฯลฯ) */
+  /** ข้อผิดพลาดจากเซิร์ฟเวอร์/ตรวจก่อนส่ง (ชื่อยาวเกิน ลิงก์ผิด ฯลฯ) */
   problem: FormProblem | null;
-  /** ให้แผงวางลิงก์เปิดอยู่ตอนเริ่ม (เซิร์ฟเวอร์ปฏิเสธลิงก์/พิกัด) */
-  forcePaste?: boolean;
+  /** แจ้งฟอร์มว่าช่องลิงก์ตอนนี้ผิดรูปแบบไหม (null = ถูก/ว่าง) — ฟอร์มใช้กันบันทึกลิงก์ที่ผิด */
+  onLinkError?: (error: PlaceLinkError | null) => void;
 }
 
 const clip = (v: string, max: number): string => {
@@ -34,289 +23,153 @@ const clip = (v: string, max: number): string => {
   return chars.length > max ? chars.slice(0, max).join("") : v;
 };
 
-/** value มี "ตำแหน่งที่ยืนยันแล้ว" (พิกัดหรือลิงก์) → แสดงเป็นชิป · มีแต่ชื่อที่พิมพ์ = ยังเป็นช่องพิมพ์ */
-const isResolved = (v: PlaceValue | null): v is PlaceValue => v !== null && (v.lat !== null || v.mapUrl !== null);
+/** ค่าเริ่มของช่องลิงก์: มีลิงก์ใช้ลิงก์ (รวมลิงก์ OSM ของนัดเก่า) · มีแต่พิกัด (นัดเก่า) แสดงเป็น lat,lng · ไม่มี = ว่าง */
+export function linkTextOf(v: PlaceValue | null): string {
+  if (!v) return "";
+  if (v.mapUrl) return v.mapUrl;
+  if (v.lat !== null && v.lng !== null) return `${v.lat},${v.lng}`;
+  return "";
+}
+
+const placeOf = (name: string, link: Pick<PlaceValue, "lat" | "lng" | "mapUrl">): PlaceValue | null => {
+  const n = name.trim() === "" ? null : name;
+  return n === null && link.lat === null && link.mapUrl === null ? null : { name: n, ...link };
+};
 
 /**
- * ช่องสถานที่ (X56–X58): พิมพ์ชื่อ + กด [ค้นหา] (ไม่ autocomplete) → ผล ≤ 5 เป็น radiogroup · หรือวางลิงก์/พิกัด (ตรวจที่ client ก่อน, เซิร์ฟเวอร์ตรวจซ้ำ)
- * ปิดชั่วคราว/ถี่เกิน/ต้นทางล่ม → ข้อความ + เปิดแผงวางลิงก์ให้เอง · ไม่เรียก Google
+ * ช่องสถานที่ (R13 §1.1): ชื่อ + ลิงก์แผนที่ เห็นตลอด แก้ได้อิสระ · ตรวจลิงก์/พิกัดด้วย parseLocationInput (เซิร์ฟเวอร์ตรวจซ้ำ)
+ * ปุ่ม Google/Apple Maps เป็นลิงก์ https เปิดแท็บใหม่ — ชื่อถูกส่งไปผู้ให้บริการเฉพาะตอนผู้ใช้กดเอง · ไม่มีการค้นหาในแอป
  */
-export function PlaceField({ value, onChange, problem, forcePaste = false }: PlaceFieldProps) {
+export function PlaceField({ value, onChange, problem, onLinkError }: PlaceFieldProps) {
   const t = useTranslations();
   const uid = useId();
-  const seq = useRef(0);
-  const [query, setQuery] = useState(value?.name ?? "");
-  const [search, setSearch] = useState<PlaceSearchState>({ kind: "idle" });
-  const [pasteOpen, setPasteOpen] = useState(forcePaste);
-  const [pasteText, setPasteText] = useState("");
-  const [pasteError, setPasteError] = useState<"INVALID_MAP_URL" | "INVALID_COORDINATES" | null>(null);
-  const [lastForce, setLastForce] = useState(forcePaste);
-  if (forcePaste !== lastForce) {
-    setLastForce(forcePaste);
-    if (forcePaste) setPasteOpen(true);
-  }
+  const [name, setName] = useState(value?.name ?? "");
+  const [linkText, setLinkText] = useState(() => linkTextOf(value));
+  const [linkError, setLinkError] = useState<PlaceLinkError | null>(null);
+  // ค่าลิงก์ที่ยืนยันแล้ว (ใช้ตอนแก้แต่ชื่อ: ไม่แปลงลิงก์/พิกัดเดิมซ้ำ จึงบันทึกกลับได้ค่าเดิม)
+  const [link, setLink] = useState<Pick<PlaceValue, "lat" | "lng" | "mapUrl">>({ lat: value?.lat ?? null, lng: value?.lng ?? null, mapUrl: value?.mapUrl ?? null });
 
-  const resolved = isResolved(value);
-  const hintId = `${uid}-h`;
-  const nameCount = textLength(query);
+  const nameId = `${uid}-n`;
+  const linkId = `${uid}-l`;
+  const nameHintId = `${uid}-nh`;
+  const linkHintId = `${uid}-lh`;
+  const linkErrId = `${uid}-le`;
 
   function typeName(v: string) {
     const next = clip(v, PLACE_NAME_MAX);
-    setQuery(next);
-    seq.current += 1; // ผลค้นหาที่ค้างอยู่เป็นของคำเก่า
-    if (search.kind === "searching") setSearch({ kind: "idle" });
-    onChange(next.trim() === "" ? null : { name: next, lat: null, lng: null, mapUrl: null });
+    setName(next);
+    onChange(placeOf(next, link));
   }
 
-  async function runSearch() {
-    if (search.kind === "searching") return;
-    const q = clip(query.normalize("NFC").replace(/\s+/g, " ").trim(), PLACE_QUERY_MAX);
-    if (textLength(q) < PLACE_QUERY_MIN) {
-      setSearch({ kind: "tooShort" });
+  function typeLink(v: string) {
+    setLinkText(v);
+    if (v.trim() === "") {
+      const none = { lat: null, lng: null, mapUrl: null };
+      setLink(none);
+      setLinkError(null);
+      onLinkError?.(null);
+      onChange(placeOf(name, none));
       return;
     }
-    const mine = ++seq.current;
-    setSearch({ kind: "searching" });
-    const res = await callApiFull<unknown>(`/api/places/search?q=${encodeURIComponent(q)}`);
-    if (mine !== seq.current) return; // ผู้ใช้พิมพ์ต่อ/ค้นหาใหม่แล้ว — ทิ้งผลเก่า
-    if (!res.ok) {
-      const next = placeSearchFailure(res);
-      setSearch(next);
-      if (next.kind === "disabled") setPasteOpen(true);
-      return;
-    }
-    const results = parsePlaceResults(res.data);
-    setSearch(results.length === 0 ? { kind: "none", query: q } : { kind: "results", results });
-  }
-
-  function onKey(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
-      e.preventDefault(); // ไม่ให้ Enter ส่งฟอร์มนัด
-      void runSearch();
-    }
-  }
-
-  function applyPaste() {
-    const parsed = parseLocationInput(pasteText);
+    const parsed = parseLocationInput(v);
     if (!parsed.ok) {
-      setPasteError(parsed.reason === "INVALID_COORDINATES" ? "INVALID_COORDINATES" : "INVALID_MAP_URL");
+      const err: PlaceLinkError = parsed.reason === "INVALID_COORDINATES" ? "INVALID_COORDINATES" : "INVALID_MAP_URL";
+      const none = { lat: null, lng: null, mapUrl: null };
+      setLink(none);
+      onLinkError?.(err);
+      onChange(placeOf(name, none));
       return;
     }
-    setPasteError(null);
-    const name = query.trim() === "" ? null : query;
-    onChange({ name, lat: parsed.lat, lng: parsed.lng, mapUrl: parsed.mapUrl });
-    setPasteOpen(false);
-    setPasteText("");
-    setSearch({ kind: "idle" });
+    const ok = { lat: parsed.lat, lng: parsed.lng, mapUrl: parsed.mapUrl };
+    setLink(ok);
+    setLinkError(null);
+    onLinkError?.(null);
+    onChange(placeOf(name, ok));
   }
 
-  function clear() {
-    seq.current += 1;
-    // ล้างชิป: กลับไปช่องพิมพ์ว่าง
-    setQuery("");
-    onChange(null);
-    setSearch({ kind: "idle" });
+  /** แสดงข้อผิดพลาดลิงก์ตอนออกจากช่อง (ไม่ขัดจังหวะตอนกำลังวาง/พิมพ์) */
+  function checkLink() {
+    if (linkText.trim() === "") return setLinkError(null);
+    const parsed = parseLocationInput(linkText);
+    setLinkError(parsed.ok ? null : parsed.reason === "INVALID_COORDINATES" ? "INVALID_COORDINATES" : "INVALID_MAP_URL");
   }
 
-  const label = (
-    <div className="field-label-row">
-      <label htmlFor={`${uid}-q`}>
-        {t("places.label")} <span className="opt">({t("appointments.form.optional")})</span>
-      </label>
-    </div>
-  );
+  // ข้อผิดพลาดของช่องลิงก์: จากเซิร์ฟเวอร์/ตอนกดบันทึก (problem) มาก่อน ไม่งั้นที่ตรวจในช่อง
+  const linkProblemKey = problem && (problem.ref.key === "errors.INVALID_MAP_URL" || problem.ref.key === "errors.INVALID_COORDINATES") ? problem.ref.key : null;
+  const shownLinkError = linkProblemKey ?? (linkError ? `errors.${linkError}` : null);
+  const nameProblem = problem && !linkProblemKey ? problem : null;
+  const nameCount = textLength(name);
 
-  if (resolved) {
-    const displayName = value.name ?? t("places.selected.defaultName");
-    const sub = coordsText(value) !== null ? t("places.selected.coords", { lat: roundCoord(value.lat), lng: roundCoord(value.lng) }) : t("places.selected.linkOnly", { host: hostOfUrl(value.mapUrl) });
-    return (
-      <div className="field" id={`${uid}-place`} data-testid="place-field">
-        <div className="field-label-row">
-          <span className="label">{t("places.label")}</span>
-        </div>
-        <div className="place-chip" role="group" aria-label={t("places.selected.aria", { name: displayName })} data-testid="place-chip">
-          <Icon name="map-pin" />
-          <div className="tx">
-            <span className="pn" data-testid="place-chip-name">
-              <Name>{displayName}</Name>
-            </span>
-            <span className="ps num" data-testid="place-chip-sub">
-              {sub}
-            </span>
-          </div>
-          <button type="button" className="icon-btn" aria-label={t("places.clearAria", { name: displayName })} data-testid="place-clear" onClick={clear}>
-            <Icon name="x" />
-          </button>
-        </div>
-        {problem ? <PlaceProblem problem={problem} /> : null}
-      </div>
-    );
-  }
-
-  const busy = search.kind === "searching";
-  const disabled = search.kind === "disabled";
   return (
-    <div className="field" id={`${uid}-place`} data-testid="place-field">
-      {label}
-      <div className="place-search">
-        <div className={problem ? "input has-error" : "input"}>
-          <Icon name="map-pin" />
-          <input
-            id={`${uid}-q`}
-            className="input-bare"
-            value={query}
-            autoComplete="off"
-            placeholder={t("places.name.placeholder")}
-            aria-describedby={hintId}
-            aria-invalid={problem ? true : undefined}
-            data-testid="place-query"
-            onChange={(e) => typeName(e.target.value)}
-            onKeyDown={onKey}
-          />
-        </div>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          aria-disabled={disabled || undefined}
-          disabled={busy}
-          aria-label={t("places.search.aria", { query: query.trim() || "…" })}
-          data-testid="place-search"
-          onClick={() => {
-            if (!disabled) void runSearch();
-          }}
-        >
-          <Icon name={busy ? "refresh-cw" : "search"} size={busy ? "sm" : "md"} className={busy ? "ov-spin" : undefined} />
-          <span>{busy ? t("places.search.searching") : t("places.search.button")}</span>
-        </button>
+    <div className="field place-field" id={`${uid}-place`} data-testid="place-field">
+      <div className="field-label-row">
+        <label htmlFor={nameId}>
+          {t("places.label")} <span className="opt">({t("appointments.form.optional")})</span>
+        </label>
       </div>
-      <p className="field-hint" id={hintId}>
+      <div className={nameProblem ? "input has-error" : "input"}>
+        <Icon name="map-pin" />
+        <input
+          id={nameId}
+          className="input-bare"
+          value={name}
+          autoComplete="off"
+          placeholder={t("places.name.placeholder")}
+          aria-describedby={nameHintId}
+          aria-invalid={nameProblem ? true : undefined}
+          data-testid="place-query"
+          onChange={(e) => typeName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.preventDefault(); // ไม่ให้ Enter ส่งฟอร์มนัด
+          }}
+        />
+      </div>
+      <p className="field-hint" id={nameHintId}>
         {t("places.name.hint")} <span className="num">{nameCount}/{PLACE_NAME_MAX}</span>
       </p>
-      {problem ? <PlaceProblem problem={problem} /> : null}
+      {nameProblem ? <PlaceProblem problem={nameProblem} /> : null}
 
-      {search.kind === "results" ? (
-        <>
-          <ul className="place-results" role="radiogroup" aria-label={t("places.search.results")} data-testid="place-results">
-            {search.results.map((r, i) => (
-              <li key={`${r.lat},${r.lng},${i}`}>
-                <button
-                  type="button"
-                  className="place-opt"
-                  role="radio"
-                  aria-checked={false}
-                  aria-label={t("places.search.pickAria", { name: r.name })}
-                  data-testid="place-result"
-                  onClick={() => {
-                    onChange(placeFromResult(r));
-                    setSearch({ kind: "idle" });
-                    setPasteOpen(false);
-                  }}
-                >
-                  <span className="radio-mark" aria-hidden="true" />
-                  <span>
-                    <span className="pn">
-                      <Name>{r.name}</Name>
-                    </span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          <p className="place-foot">
-            <span role="status">{t("places.search.count", { count: search.results.length })}</span>
-            <span>{t("places.search.attribution")}</span>
+      <div className="place-link">
+        <div className="field-label-row">
+          <label htmlFor={linkId}>{t("places.link.label")}</label>
+        </div>
+        <div className={shownLinkError ? "input has-error" : "input"}>
+          <Icon name="link" />
+          <input
+            id={linkId}
+            className="input-bare"
+            value={linkText}
+            autoComplete="off"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            inputMode="url"
+            placeholder={t("places.link.placeholder")}
+            aria-describedby={shownLinkError ? `${linkErrId} ${linkHintId}` : linkHintId}
+            aria-invalid={shownLinkError ? true : undefined}
+            data-testid="place-link"
+            onChange={(e) => typeLink(e.target.value)}
+            onBlur={checkLink}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.preventDefault();
+            }}
+          />
+        </div>
+        {shownLinkError ? (
+          <p className="field-error" id={linkErrId} role="alert" data-testid="place-link-error">
+            <Icon name="circle-alert" size="sm" />
+            <span>{t(shownLinkError)}</span>
           </p>
-        </>
-      ) : null}
+        ) : null}
+        <p className="field-hint" id={linkHintId} data-testid="place-link-hint">
+          {t("places.link.hint")}
+        </p>
+      </div>
 
-      {search.kind === "tooShort" ? (
-        <div className="place-note" role="status" data-testid="place-too-short">
-          <Icon name="info" />
-          <div>{t("places.search.tooShort", { min: PLACE_QUERY_MIN })}</div>
-        </div>
-      ) : null}
-      {search.kind === "none" ? (
-        <div className="place-note" role="status" data-testid="place-none">
-          <Icon name="search" />
-          <div>
-            <b>{t("places.search.noResults.title", { query: search.query })}</b>
-            {t("places.search.noResults.body")}
-          </div>
-        </div>
-      ) : null}
-      {search.kind === "error" ? (
-        <div className="place-note is-error" role="status" data-testid="place-error">
-          <Icon name="circle-alert" />
-          <div>{t("places.search.error")}</div>
-        </div>
-      ) : null}
-      {search.kind === "rate" ? (
-        <div className="place-note is-warn" role="status" data-testid="place-rate">
-          <Icon name="triangle-alert" />
-          <div>{t("places.search.rateLimited")}</div>
-        </div>
-      ) : null}
-      {search.kind === "disabled" ? (
-        <div className="place-note" role="status" data-testid="place-disabled">
-          <Icon name="info" />
-          <div>{t("places.search.disabled")}</div>
-        </div>
-      ) : null}
-
-      {pasteOpen ? (
-        <div className="place-paste" data-testid="place-paste">
-          <div className="field field-first">
-            <label htmlFor={`${uid}-u`}>{t("places.paste.label")}</label>
-            <div className="row2">
-              <div className={pasteError ? "input has-error" : "input"}>
-                <Icon name="link" />
-                <input
-                  id={`${uid}-u`}
-                  className="input-bare"
-                  value={pasteText}
-                  autoComplete="off"
-                  inputMode="url"
-                  placeholder={t("places.paste.placeholder")}
-                  aria-describedby={`${uid}-uh`}
-                  aria-invalid={pasteError ? true : undefined}
-                  data-testid="place-paste-input"
-                  onChange={(e) => {
-                    setPasteText(e.target.value);
-                    setPasteError(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      applyPaste();
-                    }
-                  }}
-                />
-              </div>
-              <button type="button" className="btn btn-primary" data-testid="place-paste-submit" onClick={applyPaste}>
-                {t("places.paste.submit")}
-              </button>
-            </div>
-            {pasteError ? (
-              <p className="field-error" role="alert" data-testid="place-paste-error">
-                <Icon name="circle-alert" size="sm" />
-                <span>{t(`errors.${pasteError}`)}</span>
-              </p>
-            ) : null}
-            <p className="field-hint" id={`${uid}-uh`}>
-              {t("places.paste.hint")}
-            </p>
-          </div>
-          <button type="button" className="link-btn" data-testid="place-paste-back" onClick={() => { setPasteOpen(false); setPasteError(null); }}>
-            <Icon name="search" size="sm" />
-            <span>{t("places.paste.back")}</span>
-          </button>
-        </div>
-      ) : (
-        <button type="button" className="link-btn place-toggle" data-testid="place-paste-toggle" onClick={() => setPasteOpen(true)}>
-          <Icon name="link" size="sm" />
-          <span>{t("places.paste.toggle")}</span>
-        </button>
-      )}
+      <div className="place-apps">
+        <p className="place-apps-lead">{t("places.apps.lead")}</p>
+        <MapAppLinks name={name} variant="apps" groupLabel={t("places.apps.groupAria")} />
+      </div>
     </div>
   );
 }
@@ -330,13 +183,3 @@ function PlaceProblem({ problem }: { problem: FormProblem }) {
     </p>
   );
 }
-
-const roundCoord = (n: number | null): number => (n === null ? 0 : Math.round(n * 1e5) / 1e5);
-const hostOfUrl = (u: string | null): string => {
-  if (!u) return "";
-  try {
-    return new URL(u).hostname;
-  } catch {
-    return "";
-  }
-};

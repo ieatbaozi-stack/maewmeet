@@ -1303,52 +1303,15 @@
       "googleAria": "Search “{name}” in Google Maps (opens in a new tab)",
       "appleAria": "Search “{name}” in Apple Maps (opens in a new tab)"
     },
-    "search": {
-      "button": "Search",
-      "searching": "Searching…",
-      "aria": "Search for “{query}”",
-      "tooShort": "Type at least {min} characters of the place name before searching.",
-      "results": "Search results",
-      "count": "{count, plural, one {Found # place} other {Found # places}}",
-      "pickAria": "Choose {name}",
-      "attribution": "Search results from OpenStreetMap",
-      "noResults": {
-        "title": "No match for “{query}”",
-        "body": "Try different words, or paste a map link instead."
-      },
-      "error": "Search didn’t work. Try again, or paste a map link instead.",
-      "rateLimited": "That’s a lot of searches at once. Wait a moment and try again.",
-      "disabled": "Place search is off for now — paste a link or coordinates instead."
-    },
-    "paste": {
-      "toggle": "Paste a map link or coordinates instead",
-      "back": "Search by name instead",
-      "label": "Map link or coordinates",
-      "placeholder": "https://… or 13.7563, 100.5018",
-      "hint": "Copy the link from your maps app’s Share button (it must start with https://), or enter latitude, longitude.",
-      "submit": "Use this"
-    },
     "selected": {
-      "aria": "Selected place: {name}",
       "coords": "Coordinates {lat}, {lng}",
       "linkOnly": "Has a map link ({host})",
       "defaultName": "Dropped pin"
     },
-    "clear": "Clear",
-    "clearAria": "Clear the place {name}",
     "open": "Open in Maps",
     "openAria": "Open {name} in Maps (opens in a new tab)",
     "openLink": "Open map link ({host})",
-    "openLinkAria": "Open the map link for {name} at {host} (opens in a new tab)",
-    "map": {
-      "region": "Map showing {name}",
-      "loading": "Loading the map…",
-      "failed": {
-        "title": "The map isn’t loading right now",
-        "body": "You can still open it in your maps app, or use the name and coordinates below."
-      },
-      "attribution": "© OpenStreetMap contributors"
-    }
+    "openLinkAria": "Open the map link for {name} at {host} (opens in a new tab)"
   },
   "account": {
     "deletedName": "Deleted account",
@@ -1623,8 +1586,6 @@
     "places": {
       "title": "Places and maps",
       "links": "The app doesn’t search for places or load map images for you. The place name and map link you enter are kept with the plan only. The “Google Maps” and “Apple Maps” buttons are plain links: the place name you typed is sent to that provider only when you tap the button yourself (if you haven’t typed a name, nothing is sent), and once it opens, the provider sees your device as with any website.",
-      "search": "When you search for a place, what you type is sent to OpenStreetMap (Nominatim) through our server, so Nominatim sees our server, not your IP. Results are kept for 30 days to avoid repeat lookups and aren’t linked to any account.",
-      "tiles": "Maps on a plan load map images from OpenStreetMap directly from your device, so OpenStreetMap sees your IP and the area you’re viewing.",
       "noTracking": "No ads, and no third-party trackers or analytics."
     },
     "retention": {
