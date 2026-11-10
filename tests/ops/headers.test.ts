@@ -42,7 +42,7 @@ describe('next.config.ts (production)', () => {
     expect(rules.map((r) => r.source)).toEqual(['/:path*']);
   });
 
-  it('CSP: ไม่มี unsafe-eval · frame-ancestors none · object-src none · tile OSM อยู่ใน img-src เท่านั้น', async () => {
+  it('CSP: ไม่มี unsafe-eval · frame-ancestors none · object-src none · ไม่มี origin ภายนอกใน img-src (R13)', async () => {
     const { headers } = await loadConfig('production');
     const raw = headers.get('content-security-policy');
     expect(raw).toBeDefined();
@@ -53,9 +53,9 @@ describe('next.config.ts (production)', () => {
     expect(d.get('object-src')).toEqual(["'none'"]);
     expect(d.get('base-uri')).toEqual(["'self'"]);
     expect(d.get('form-action')).toEqual(["'self'"]);
-    expect(d.get('img-src')).toContain('https://tile.openstreetmap.org');
+    expect(d.get('img-src')).toEqual(["'self'", 'data:', 'blob:']); // R13: ไม่มี tile OSM แล้ว
     for (const [name, values] of d) {
-      if (name !== 'img-src') expect(values.join(' '), name).not.toContain('openstreetmap');
+      expect(values.join(' '), name).not.toContain('openstreetmap');
       expect(values, `${name} ไม่อนุญาตทุก origin`).not.toContain('*');
       expect(values, `${name} ไม่อนุญาตทุก https`).not.toContain('https:');
     }

@@ -67,16 +67,6 @@ const envObject = z.object({
   // ── pepper: ไม่ตรวจที่นี่ — ผิด/ขาดต้องไม่ทำให้ getEnv() โยน (ทุก route จะ 500) · ADR 0002 §7.1 fail closed เฉพาะ auth
   //    (AUTH_MAINTENANCE) + /api/health 503 ผ่าน readPepperEnv/requirePepper ใน src/lib/auth/pepper.ts
   PIN_PEPPER_CURRENT_VERSION: optionalString,
-  // ── ค้นหาสถานที่ / แผนที่ ──
-  PLACE_SEARCH_ENABLED: z.preprocess(
-    blankToUndefined,
-    z
-      .enum(['true', 'false'])
-      .default('true')
-      .transform((v) => v === 'true'),
-  ),
-  NOMINATIM_BASE_URL: z.preprocess(blankToUndefined, z.url().default('https://nominatim.openstreetmap.org')),
-  NOMINATIM_CONTACT: optionalString,
   // ── R7 §2: ตัวนับ query + header Server-Timing (ไม่ตั้ง = เปิด ยกเว้น production — ดู serverTimingEnabled) ──
   SERVER_TIMING_ENABLED: serverTimingFlagSchema,
   // ── R10: LINE Messaging API (ไม่ตั้ง = ช่องทางปิดเงียบ · ค่าลับ ห้าม log) ──
@@ -87,23 +77,7 @@ const envObject = z.object({
   NODE_ENV: optionalString,
 });
 
-/** NOMINATIM_BASE_URL: https เท่านั้น · http ได้เฉพาะ localhost / 127.0.0.1 นอก production (dev/test mock) — กันส่งคำค้นแบบไม่เข้ารหัส/ชี้ไปโฮสต์ภายใน */
-function nominatimUrlProblem(raw: string, nodeEnv: string | undefined): string | null {
-  let u: URL;
-  try {
-    u = new URL(raw);
-  } catch {
-    return 'must be a valid URL';
-  }
-  if (u.protocol === 'https:') return null;
-  if (u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1') && nodeEnv !== 'production') return null;
-  return 'must be https (http://localhost or http://127.0.0.1 only outside production)';
-}
-
-export const baseEnvSchema = envObject.superRefine((env, ctx) => {
-  const problem = nominatimUrlProblem(env.NOMINATIM_BASE_URL, env.NODE_ENV?.trim());
-  if (problem !== null) ctx.addIssue({ code: 'custom', path: ['NOMINATIM_BASE_URL'], message: problem });
-});
+export const baseEnvSchema = envObject;
 
 /** โปรไฟล์ deployed (Vercel production/preview) — "ต้องมีตอน runtime prod" */
 export const deployedEnvSchema = baseEnvSchema.superRefine((env, ctx) => {

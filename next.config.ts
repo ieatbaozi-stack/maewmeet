@@ -12,10 +12,6 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const isDev = process.env.NODE_ENV === "development";
 
-// แหล่ง tile แผนที่ (D11 · ADR 0001 §1) — อนุญาตเฉพาะใน img-src
-// ต้องตรงกับ NEXT_PUBLIC_MAP_TILE_URL ใน .env.example (ถ้าเปลี่ยนผู้ให้บริการ tile ต้องแก้ที่นี่ด้วย)
-const MAP_TILE_ORIGIN = "https://tile.openstreetmap.org";
-
 /**
  * Content-Security-Policy
  *
@@ -32,7 +28,8 @@ const MAP_TILE_ORIGIN = "https://tile.openstreetmap.org";
  *   (เช่น ตำแหน่ง/สีที่คำนวณของ aurora, Leaflet) ซึ่งถูกบล็อกถ้าไม่มี 'unsafe-inline' หรือ nonce
  *   ความเสี่ยงต่ำกว่า script มาก (CSS ไม่รันโค้ด) — ทบทวนพร้อมเรื่อง nonce
  * - img-src: data: สำหรับ noise ของ aurora (SVG data URL ใน tokens.css), blob: สำหรับภาพที่สร้างฝั่ง client
- * - connect-src 'self': ค้นหาสถานที่ผ่าน /api/places/search ฝั่งเซิร์ฟเวอร์เท่านั้น (ไม่ยิง Nominatim จากเบราว์เซอร์)
+ * - img-src: R13 เอาภาพแผนที่ OSM ออกแล้ว → ไม่มี origin ภายนอกใน img-src (ลิงก์แผนที่เป็นแค่ <a href> เปิดแท็บใหม่ ไม่ต้องผ่าน CSP)
+ * - connect-src 'self': ไม่มีการเรียกบริการภายนอกจากเบราว์เซอร์ (R13 ลบการค้นหาสถานที่ /api/places/search แล้ว)
  *
  * development (`next dev`) ผ่อนเพิ่ม:
  * - 'unsafe-eval' ใน script-src — React ใช้ eval สร้าง stack ของ error ฝั่งเซิร์ฟเวอร์ในเบราว์เซอร์ (เอกสาร Next)
@@ -43,7 +40,7 @@ function contentSecurityPolicy(): string {
     "default-src": ["'self'"],
     "script-src": ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : [])],
     "style-src": ["'self'", "'unsafe-inline'"],
-    "img-src": ["'self'", "data:", "blob:", MAP_TILE_ORIGIN],
+    "img-src": ["'self'", "data:", "blob:"],
     "font-src": ["'self'"],
     "connect-src": ["'self'", ...(isDev ? ["ws:", "wss:"] : [])],
     "manifest-src": ["'self'"],
@@ -59,7 +56,7 @@ function contentSecurityPolicy(): string {
     .join("; ");
 }
 
-// Permissions-Policy: ปิดทุกความสามารถที่แอปไม่ใช้ (แผนที่ใช้ค้นหาด้วยข้อความ ไม่ขอพิกัดจากเครื่อง)
+// Permissions-Policy: ปิดทุกความสามารถที่แอปไม่ใช้ (สถานที่เป็นช่องลิงก์แผนที่ ไม่ขอพิกัดจากเครื่อง)
 // ถ้ารอบไหนต้องใช้ (เช่น geolocation) ให้เปลี่ยนเป็น geolocation=(self) พร้อมเหตุผลใน ADR
 const PERMISSIONS_POLICY = [
   "camera=()",
@@ -84,7 +81,7 @@ const PERMISSIONS_POLICY = [
 const securityHeaders = [
   { key: "Content-Security-Policy", value: contentSecurityPolicy() },
   { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" }, // OSM tile policy ต้องการ Referer (origin พอ)
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" }, // ลิงก์ออกนอกส่ง origin อย่างเดียว ไม่ส่ง path (R13: ไม่มี tile OSM แล้ว ค่าคงเดิม)
   { key: "Permissions-Policy", value: PERMISSIONS_POLICY },
   { key: "X-Frame-Options", value: "DENY" }, // เบราว์เซอร์เก่าที่ไม่รู้จัก frame-ancestors
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
