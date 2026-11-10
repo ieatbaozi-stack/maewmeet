@@ -38,6 +38,8 @@ type Result = {
   cap: number;
   itemsReturned: number;
   truncated: boolean;
+  /** availability เท่านั้น (M2): busy[] ถูกตัดที่ CALENDAR_MAX_ITEMS */
+  detailTruncated: boolean | null;
   pctOfCap: number;
   queries: number;
   dbMsMedian: number;
@@ -153,7 +155,7 @@ async function measure(h: Harness, viewer: Person, gid: string, scenario: string
       totals.push(tm.totalMs);
       queries = tm.queries;
     }
-    const data = last!.data as { busy?: unknown[]; truncated?: boolean; overlap?: { status: string; blocked: unknown[] } };
+    const data = last!.data as { busy?: unknown[]; truncated?: boolean; detailTruncated?: boolean; overlap?: { status: string; blocked: unknown[] } };
     const truncated = r.check ? data.overlap!.status === 'unknown' : data.truncated!;
     results.push({
       scenario,
@@ -164,6 +166,7 @@ async function measure(h: Harness, viewer: Person, gid: string, scenario: string
       cap,
       itemsReturned: r.check ? data.overlap!.blocked.length : data.busy!.length,
       truncated,
+      detailTruncated: r.route === 'GET availability' ? data.detailTruncated! : null,
       pctOfCap: r1((Number(cnt!.n) / cap) * 100),
       queries,
       dbMsMedian: r1(median(dbs)),
@@ -253,9 +256,14 @@ describe('R14 perf — กลุ่ม 50 คน กับ routine', () => {
       await h?.cleanup();
     });
 
-    it('บันทึกตัวเลข (คาดว่า truncated)', async () => {
+    it('ว่างตรงกันไม่ถูกตัดแม้เต็มเพดาน · busy[] ไม่เกิน 5,000 (M2) · คำตอบ < 4.5 MB (เพดาน Vercel)', async () => {
       await measure(h, viewer, gid, 'C');
-      expect(results.filter((r) => r.scenario === 'C')).toHaveLength(4);
+      const mine = results.filter((r) => r.scenario === 'C');
+      expect(mine).toHaveLength(4);
+      for (const r of mine.filter((x) => x.route === 'GET availability')) {
+        expect([r.truncated, r.itemsReturned <= CALENDAR_MAX_ITEMS]).toEqual([false, true]);
+        expect(r.bytes).toBeLessThan(4.5 * 1024 * 1024);
+      }
     }, 1_800_000);
   });
 });
