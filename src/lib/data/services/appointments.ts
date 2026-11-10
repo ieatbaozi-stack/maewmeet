@@ -8,7 +8,7 @@
 //  - เตือนนัดทับ: busy ของสมาชิกปัจจุบันผ่านคิวรีฝั่งแชร์ + serializer เดียวกับปฏิทิน/วันว่าง (ไม่มี note · รายการซ่อนไม่มี title) · ไม่บล็อกการสร้าง/แก้
 //  - R6D (ADR 0009): busy รวมนัดที่ตอบ "ไป" จากทุกกลุ่ม (ตัดนัดตัวเองออก) · myConflicts ของ session user ในรายละเอียด · myConflict ในรายการ
 import { z } from 'zod';
-import { membersBlockedDuring, normalizeBusyInput, overlapsRange, type BusyInputError } from '@/lib/calendar';
+import { buildAppointmentIcs, membersBlockedDuring, normalizeBusyInput, overlapsRange, type BusyInputError } from '@/lib/calendar';
 import { findGroupById } from '@/lib/data/repos/group';
 import { listActiveMemberIds, listMemberIds, listMembers } from '@/lib/data/repos/group-member';
 import {
@@ -552,6 +552,33 @@ export async function getAppointment(actor: Actor, id: string, ctx: DataCtx): Pr
   const { db, now } = ctx;
   await auditRead(db, me, allow, { action: 'appointment.view', targetType: 'appointment', targetId: id, groupId: row.groupId }, now);
   return { appointment: await toDetailDto(db, me, now, row, c.group, c.groupName, true) };
+}
+
+/**
+ * R12 §5: ไฟล์ .ics ของนัด — ด่านเดียวกับ getAppointment (ไม่บังคับว่าต้องตอบ "ไป") · ตรวจสถานะหลัง authorize คนนอกจึงได้ NOT_FOUND ไม่ใช่ 409
+ * ชื่อ/สถานที่ผ่าน sanitizeDisplayText เหมือน DTO (ลิงก์ Google สร้างจาก DTO) · §6 ไม่ส่ง description/พิกัด/ชื่อกลุ่ม/ชื่อสมาชิก
+ */
+export async function getAppointmentIcs(actor: Actor, id: string, appOrigin: string, ctx: DataCtx): Promise<string> {
+  const c = await appointmentFor(actor, id, ctx);
+  const allow = authorize(actor, 'appointment.view', apptRes(c));
+  const me = asUser(actor);
+  const row = c.appointment!;
+  const { db, now } = ctx;
+  // ก่อนตรวจสถานะ: 409 ก็บอกสถานะนัดแก่ super admin นอกกลุ่ม จึงต้องมี audit เหมือน getAppointment (security R12 Low 1)
+  await auditRead(db, me, allow, { action: 'appointment.view', targetType: 'appointment', targetId: id, groupId: row.groupId }, now);
+  if (row.status === 'cancelled') throw new AppError('APPOINTMENT_CANCELLED');
+  if (row.endAt <= now) throw new AppError('APPOINTMENT_PAST');
+  return buildAppointmentIcs(
+    {
+      id: row.id,
+      title: sanitizeDisplayText(row.title),
+      placeName: row.placeName === null ? null : sanitizeDisplayText(row.placeName),
+      startAt: row.startAt,
+      endAt: row.endAt,
+      appOrigin,
+    },
+    now,
+  );
 }
 
 /** U11: นัด active ที่ยังไม่จบ ข้ามทุกกลุ่มของฉัน เรียงเริ่มเร็วสุดก่อน (ไม่รวมนัดที่ยกเลิก/ผ่านแล้ว/กลุ่มที่ลบ) · rsvp=going → เฉพาะที่ฉันตอบ "ไป" (R6D) */

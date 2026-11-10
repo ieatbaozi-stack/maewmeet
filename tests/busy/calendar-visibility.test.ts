@@ -439,7 +439,7 @@ describe('ADR 0006 test 8–9 — ระดับชนิดข้อมูล 
   });
 
   it('ไม่มี endpoint รับ user id ของคนอื่นแล้วคืน busy: manifest ไม่มี path /users/:id/busy และ busy ออกได้เฉพาะ /me/busy กับ /groups/:gid/calendar', () => {
-    const busyish = ROUTE_MANIFEST.filter((e) => /busy|calendar/.test(e.path)).map((e) => e.path);
+    const busyish = ROUTE_MANIFEST.filter((e) => /busy|calendar/.test(e.path) && e.path !== '/api/appointments/:id/calendar.ics').map((e) => e.path);
     expect([...new Set(busyish)].sort()).toEqual(['/api/groups/:gid/calendar', '/api/me/busy', '/api/me/busy/:id']);
   });
 });

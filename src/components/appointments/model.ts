@@ -550,3 +550,29 @@ export function dateBox(localDate: DateISO, locale: CalendarLocale): { day: numb
 export function rowState(a: Pick<AppointmentDto, "status" | "rsvp">): "cancelled" | Rsvp | "none" {
   return a.status === "cancelled" ? "cancelled" : (a.rsvp.mine ?? "none");
 }
+
+// ───────── R12: เพิ่มนัดลงปฏิทิน (ตรวจ UA เพื่อจัดลำดับ/หน้าตาเท่านั้น ไม่ใช้ตัดสินสิทธิ์) ─────────
+export type CalendarOption = "ics" | "google";
+export type CalendarSheetMode = { kind: "options"; order: readonly [CalendarOption, CalendarOption] } | { kind: "line" };
+
+/** ปุ่ม "เพิ่มลงปฏิทิน" (§4.1): ตอบ "ไป" + บันทึกเสร็จ + นัด active + ยังไม่จบ */
+export function showAddToCalendar(a: Pick<AppointmentDetailDto, "status" | "isPast" | "rsvp">, saving: boolean): boolean {
+  return a.rsvp.mine === "going" && !saving && a.status !== "cancelled" && !a.isPast;
+}
+
+/**
+ * ลำดับตัวเลือกตาม UA (§4.2/§4.4) · pure
+ * - มีโทเคน `Line/` = LINE in-app browser → หน้าตาแบบบอกให้เปิดในเบราว์เซอร์ (ไม่แสดง 2 ตัวเลือก)
+ * - iPhone/iPad/iPod หรือ iPadOS (UA เป็น Macintosh + maxTouchPoints > 1) → .ics ก่อน
+ * - อื่น ๆ (Android ฯลฯ) → Google ก่อน
+ */
+export function calendarSheetMode(userAgent: string, maxTouchPoints: number): CalendarSheetMode {
+  if (/\bLine\//.test(userAgent)) return { kind: "line" };
+  const apple = /\b(iPhone|iPad|iPod)\b/.test(userAgent) || (/\bMacintosh\b/.test(userAgent) && maxTouchPoints > 1);
+  return { kind: "options", order: apple ? ["ics", "google"] : ["google", "ics"] };
+}
+
+/** ลิงก์ .ics (ลิงก์ธรรมดา ไม่ใช้ next/link) */
+export const calendarIcsHref = (id: string): string => `/api/appointments/${id}/calendar.ics`;
+/** ลิงก์พาออกจาก LINE in-app browser (§4.4) */
+export const calendarOpenExternalHref = (id: string): string => `/appointments/${id}?openExternalBrowser=1`;

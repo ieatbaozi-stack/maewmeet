@@ -67,6 +67,15 @@ export {
 } from './free-time';
 export { startOfMonthAt } from './zone';
 export {
+  buildAppointmentIcs,
+  escapeIcsText,
+  foldIcsLine,
+  googleCalendarUrl,
+  toCalendarUtc,
+  type CalendarEventInput,
+  type GoogleCalendarInput,
+} from './ics';
+export {
   decideReminder,
   REMINDER_KINDS,
   REMINDER_QUIET_END_MIN,

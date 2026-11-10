@@ -281,3 +281,13 @@
 /* เป้าแตะขั้นต่ำสำหรับลิงก์ในบรรทัด (กลุ่มในหน้ารายละเอียด, สลับโหมดสถานที่) */
 .appt-fact a, .place-toggle { display: inline-flex; align-items: center; min-height: var(--tap); }
 .home-empty-links .link-btn, .place-paste .link-btn { display: inline-flex; align-items: center; min-height: var(--tap); }
+
+/* R12: sheet เพิ่มลงปฏิทิน + ปุ่มใต้ RSVP (token เดิมทั้งหมด) */
+.appt-cal-add { display: flex; width: 100%; margin-top: var(--space-3); }
+.cal-add { display: grid; gap: var(--space-3); min-width: 0; }
+.cal-add-once { display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); }
+.cal-add-once .icon { flex: none; margin-top: var(--space-1); }
+.cal-add-once p { min-width: 0; overflow-wrap: anywhere; }
+.cal-add-item { display: grid; gap: var(--space-1); min-width: 0; }
+.cal-add-note { font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
+.cal-add-row { width: 100%; min-height: var(--tap-lg); text-align: center; }

@@ -202,7 +202,7 @@ describe('C. route ของ busy / ปฏิทิน ผูก action ที�
     expect(e.action).toBe('group.calendar.view');
   });
   it('ไม่มี route ใดเปิดให้ระบุ user id ของคนอื่นเพื่ออ่าน busy (/api/users/:id/busy ฯลฯ)', () => {
-    const bad = ROUTE_MANIFEST.filter((e) => /busy|calendar/.test(e.path) && !/^\/api\/me\/busy|^\/api\/groups\/:gid\/calendar/.test(e.path));
+    const bad = ROUTE_MANIFEST.filter((e) => /busy|calendar/.test(e.path) && !/^\/api\/me\/busy|^\/api\/groups\/:gid\/calendar|^\/api\/appointments\/:id\/calendar\.ics$/.test(e.path));
     expect(bad.map((e) => `${e.method} ${e.path}`)).toEqual([]);
   });
 });
@@ -264,6 +264,17 @@ const R4B_EXPECTED: ExpectedRoute[] = [
         method: "PATCH",
         path: "/api/appointments/:id",
         action: "appointment.update",
+      },
+    ],
+  },
+  {
+    // R12: ไฟล์ .ics ของนัด ใช้สิทธิ์ดูนัดเดียวกับ GET /api/appointments/:id (ไม่ส่ง busy)
+    file: /^src\/app\/api\/appointments\/\[[^/]+\]\/calendar\.ics\/route\.ts$/,
+    routes: [
+      {
+        method: "GET",
+        path: "/api/appointments/:id/calendar.ics",
+        action: "appointment.view",
       },
     ],
   },
