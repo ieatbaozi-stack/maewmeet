@@ -289,6 +289,30 @@ describe('R14-3 — เพดาน', () => {
     expect(await h.count("busy_block WHERE user_id = ? AND local_start_date = '2026-11-18'", [a.id])).toBe(2);
   });
 
+  it('B12: มีครบ 10 ชุด → แก้ "ตั้งแต่สัปดาห์หน้า" (แยกเป็นสองชุด) สำเร็จ ไม่นับเพดาน · สร้างชุดใหม่ยัง 409 routines · แก้ทั้งชุดในที่ยังได้', async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < 10; i++) ids.push((await mustCreate(a, { weekdays: [1], fromWeek: '2026-11-16', toWeek: '2026-11-30' })).routine.id);
+    const split = await patch<Updated>(a.c, `/api/me/busy-routines/${ids[0]}`, body({ weekdays: [2], fromWeek: '2026-11-16', toWeek: '2026-11-30', from: '2026-11-23' }));
+    expect(split.status, JSON.stringify(split.json)).toBe(200);
+    expect(split.data.previous).toMatchObject({ id: ids[0], endDate: '2026-11-22' });
+    expect(split.data.routine).toMatchObject({ startDate: '2026-11-23', endDate: '2026-12-06', weekdays: [2] });
+    expect(await h.count("busy_routine WHERE user_id = ? AND end_date >= '2026-11-11'", [a.id])).toBe(11);
+    const more = await create(a, { weekdays: [3], toWeek: '2026-11-16' });
+    expect([more.status, more.code, more.json.error!.params]).toEqual([409, 'LIMIT_REACHED', { limit: 'routines', max: 10 }]);
+    const inPlace = await patch(a.c, `/api/me/busy-routines/${ids[1]}`, body({ weekdays: [4], fromWeek: '2026-11-16', toWeek: '2026-11-30' }));
+    expect(inPlace.status).toBe(200);
+  });
+
+  it('B12: การแยกยังติดเพดาน 1,500 แถว → 409 routineRows และไม่เปลี่ยนอะไร (ชุดเดิมไม่ถูกตัด)', async () => {
+    const r = await mustCreate(a, { fromWeek: '2026-11-16', toWeek: '2026-11-30' });
+    await seedRoutineRows(a.id, 1490);
+    const before = await h.rows('SELECT * FROM busy_routine ORDER BY id');
+    const res = await patch(a.c, `/api/me/busy-routines/${r.routine.id}`, body({ weekdays: [1, 2, 3, 4, 5, 6, 7], fromWeek: '2026-11-16', toWeek: '2026-11-30', from: '2026-11-23' }));
+    expect([res.status, res.json.error?.params]).toEqual([409, { limit: 'routineRows', max: 1500 }]);
+    expect(await h.rows('SELECT * FROM busy_routine ORDER BY id')).toEqual(before);
+    expect(await rowsOf(r.routine.id)).toHaveLength(15);
+  });
+
   it('rate limit ต่อคำขอ: 20 คำขอ/10 นาที (รวม POST/PATCH/DELETE) → ครั้งที่ 21 = 429 + Retry-After', async () => {
     h.clock.set(NOW + 10 * 60_000 - (NOW % (10 * 60_000)));
     for (let i = 0; i < 20; i++) expect((await del(a.c, `/api/me/busy-routines/${newId()}`)).status).toBe(404);

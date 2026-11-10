@@ -333,8 +333,9 @@ export async function updateRoutine(actor: Actor, id: string, input: UpdateRouti
     const cutEnd = addDays(fromStart!, -1);
     const truncated = await setOwnRoutineEndGuarded(tx, { id, userId: me.id, expectedUpdatedAt: current.updatedAt, endDate: cutEnd }, now);
     if (!truncated) throw await whyUpdateRejected(tx, current, me.id, plan.today);
-    const next = await insertRoutineIfUnderCap(tx, { id: newId(), userId: me.id, write, cap: BUSY_ROUTINE_MAX_ACTIVE, today: plan.today }, now);
-    if (!next) throw await whyRoutineRejected(tx, me.id, plan.today);
+    // R14 B12 (boss 2026-11-11): ชุดใหม่จากการแยกเป็น routine เดิม → ไม่นับเพดาน 10 ชุด (สร้างใหม่ยังนับ) · เพดาน 1,500 แถวยังตรวจด้านล่าง
+    const next = await insertRoutineIfUnderCap(tx, { id: newId(), userId: me.id, write, cap: null, today: plan.today }, now);
+    if (!next) throw new AppError('CONFLICT'); // บัญชีเปลี่ยนสถานะระหว่างทาง
     await moveRoutineSkips(tx, { fromId: id, toId: next.id, userId: me.id, fromDate: fromStart! });
     const skip = new Set(await listRoutineSkips(tx, next.id, me.id));
     await deleteRoutineRowsFrom(tx, { routineId: id, userId: me.id, fromDate: fromStart! });

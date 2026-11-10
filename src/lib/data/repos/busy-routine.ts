@@ -71,20 +71,21 @@ function routineFromRaw(r: Record<string, unknown>): OwnRoutineRow {
 const one = (rows: Record<string, unknown>[]): OwnRoutineRow | null => (rows.length === 1 ? routineFromRaw(rows[0]!) : null);
 
 /**
- * สร้างกฎถ้าผู้ใช้ active และ routine ที่ยังไม่จบ < cap — คำสั่งเดียว · **ต้องเป็นคำสั่งเขียนแรกของ tx** (ได้ write lock ก่อนอ่านอะไร — ADR 0010 §3 [S5])
+ * สร้างกฎถ้าผู้ใช้ active และ routine ที่ยังไม่จบ < cap (cap = null: ไม่ตรวจ — ชุดใหม่จากการแยก R14 B12 · บัญชี active ยังตรวจ) — คำสั่งเดียว · **ต้องเป็นคำสั่งเขียนแรกของ tx** (ได้ write lock ก่อนอ่านอะไร — ADR 0010 §3 [S5])
  * คืน null = ถูกปฏิเสธ (ผู้เรียกวินิจฉัยด้วย countActiveRoutines หลัง rollback)
  */
 export async function insertRoutineIfUnderCap(
   tx: Tx,
-  input: { id: string; userId: string; write: RoutineWrite; cap: number; today: string },
+  input: { id: string; userId: string; write: RoutineWrite; /** null = ไม่ตรวจเพดานชุด (แยกชุดตอนแก้ "ตั้งแต่…" — R14 B12) */ cap: number | null; today: string },
   now: number,
 ): Promise<OwnRoutineRow | null> {
   const w = input.write;
+  const capCond = input.cap === null ? sql`1` : sql`${activeRoutines(input.userId, input.today)} < ${input.cap}`;
   const rows = await tx.all<Record<string, unknown>>(sql`
     INSERT INTO busy_routine (${ROUTINE_COLS})
     SELECT ${input.id}, ${input.userId}, ${w.title}, ${w.note}, ${w.hideDetail ? 1 : 0}, ${w.allDay ? 1 : 0}, ${w.weekdays}, ${w.startMin}, ${w.endMin},
            ${w.rangeKind}, ${w.startDate}, ${w.endDate}, ${w.tz}, ${now}, ${now}
-    WHERE ${userActive(input.userId)} AND ${activeRoutines(input.userId, input.today)} < ${input.cap}
+    WHERE ${userActive(input.userId)} AND ${capCond}
     RETURNING ${ROUTINE_COLS}`);
   return one(rows);
 }
