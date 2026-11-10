@@ -1100,7 +1100,9 @@
       "oneTime": "This is a one-time copy. If the plan moves or gets cancelled later, your calendar won’t update, so you’ll need to change it yourself.",
       "googleNote": "The plan’s title, time, place, map link (if any) and plan link will be sent to Google.",
       "lineHint": "Open this in your browser first, then add it to your calendar app.",
-      "lineOpen": "Open in browser"
+      "lineOpen": "Open in browser",
+      "labelMap": "Map",
+      "labelPlan": "See the plan in maewmeet"
     },
     "rsvp": {
       "question": "Are you going?",
@@ -1278,8 +1280,28 @@
     "label": "Place",
     "name": {
       "placeholder": "Place name, e.g. Auntie Daeng’s hotpot",
-      "hint": "Type a name and press “Search”, or paste a map link instead.",
-      "hintCount": "Up to {max} characters"
+      "hint": "The name friends will see on the plan"
+    },
+    "link": {
+      "label": "Map link",
+      "placeholder": "Paste a https://… link or coordinates like 13.7563, 100.5018",
+      "hint": "Open your maps app, find the place, tap Share, then Copy link, and paste it here. Optional."
+    },
+    "apps": {
+      "lead": "Look it up on a map",
+      "groupAria": "Open a maps app to find the place",
+      "google": "Google Maps",
+      "apple": "Apple Maps",
+      "googleAria": "Search “{name}” in Google Maps (opens in a new tab)",
+      "googleAriaBlank": "Open Google Maps (opens in a new tab)",
+      "appleAria": "Search “{name}” in Apple Maps (opens in a new tab)",
+      "appleAriaBlank": "Open Apple Maps (opens in a new tab)"
+    },
+    "find": {
+      "google": "Search in Google Maps",
+      "apple": "Search in Apple Maps",
+      "googleAria": "Search “{name}” in Google Maps (opens in a new tab)",
+      "appleAria": "Search “{name}” in Apple Maps (opens in a new tab)"
     },
     "search": {
       "button": "Search",
@@ -1578,14 +1600,14 @@
     "eyebrow": "maewmeet",
     "title": "Privacy",
     "draft": "This page explains, based on how the app actually works, what we keep and how we use it. It isn’t a legal document.",
-    "updated": "Last updated 10 Nov 2026",
+    "updated": "Last updated 11 Nov 2026",
     "back": "Back",
     "intro": "maewmeet is an app for making plans with friends. It keeps only what it needs to work, shows no ads, and never sells or shares your data for marketing.",
     "collect": {
       "title": "What we keep",
       "account": "Your account: username, display name and PIN. The PIN is stored as a hash, so it can’t be turned back into the digits. We don’t ask for an email or phone number.",
       "busy": "Busy time you add: dates and times, what you’re doing, and private notes.",
-      "groups": "The groups you’re in and your role, plans (title, time, place and any coordinates), your replies to plans, and in-app notifications.",
+      "groups": "The groups you’re in and your role, plans (title, time, place, map link and any coordinates), your replies to plans, and in-app notifications.",
       "security": "Security data: your sign-ins on each device (including browser details), a wrong-PIN counter, per-IP rate counters stored as a hash rather than the IP itself, PIN reset requests (time, short device name, country), and a log of important actions (the audit log).",
       "cookies": "Only the cookies the app needs: your sign-in (expires within 60 days of your last use), language, theme, and a device cookie when you request a PIN reset."
     },
@@ -1599,7 +1621,8 @@
       "superAdmin": "System admins see usernames, display names, group memberships and counts so they can run the app, suspend or unlock accounts and approve PIN resets. A system admin can also open any group the way a member can (calendar, free days, plans with their title, time and place, invites) and manage it (edit or cancel plans, remove members, hand over group admin, delete the group). Every one of these is recorded in the audit log. System admins never see private notes, or what you’re doing for entries set to “Details hidden”."
     },
     "places": {
-      "title": "Place search and maps",
+      "title": "Places and maps",
+      "links": "The app doesn’t search for places or load map images for you. The place name and map link you enter are kept with the plan only. The “Google Maps” and “Apple Maps” buttons are plain links: the place name you typed is sent to that provider only when you tap the button yourself (if you haven’t typed a name, nothing is sent), and once it opens, the provider sees your device as with any website.",
       "search": "When you search for a place, what you type is sent to OpenStreetMap (Nominatim) through our server, so Nominatim sees our server, not your IP. Results are kept for 30 days to avoid repeat lookups and aren’t linked to any account.",
       "tiles": "Maps on a plan load map images from OpenStreetMap directly from your device, so OpenStreetMap sees your IP and the area you’re viewing.",
       "noTracking": "No ads, and no third-party trackers or analytics."
@@ -1627,7 +1650,7 @@
     },
     "calendar": {
       "title": "Adding a plan to your calendar",
-      "body": "If you tap “Add to your calendar app” on a plan, data leaves the app only when you tap it yourself. If you choose Google Calendar, the plan’s title, time, time zone, place name, map link (if any) and plan link are sent to Google straight from your browser (not through our server). That data is in the URL, so it may stay in your browser history. If you choose the .ics file, the same details sit in a file on your device, though your calendar app may sync it on to your iCloud or Google account. The map link is the one added to the plan, or the link for a place picked from search, and it may contain the place’s coordinates. The title and place may be text another member typed. We don’t send the plan’s details, coordinates on their own, group name or member names. Either way it’s a one-time copy: if the plan changes or is removed from the app, the entry in your calendar won’t change or disappear."
+      "body": "If you tap “Add to your calendar app” on a plan, data leaves the app only when you tap it yourself. If you choose Google Calendar, the plan’s title, time, time zone, place name, map link (if any) and plan link are sent to Google straight from your browser (not through our server). That data is in the URL, so it may stay in your browser history. If you choose the .ics file, the same details sit in a file on your device, though your calendar app may sync it on to your iCloud or Google account. The map link is the one added to the plan (or carried over from an older plan), and it may contain the place’s coordinates. If the plan has a map link, it goes in the entry’s URL field or its Location section, depending on your calendar app, and in the Details with the label “Map:”. The plan link goes in the Details with the label “See the plan in maewmeet:”. With no map link, the URL field is the plan link. The title and place may be text another member typed. We don’t send the plan’s details, coordinates on their own, group name or member names. Either way it’s a one-time copy: if the plan changes or is removed from the app, the entry in your calendar won’t change or disappear."
     },
     "line": {
       "title": "Messages on LINE",
