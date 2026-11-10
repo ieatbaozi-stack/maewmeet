@@ -71,6 +71,12 @@
 
 ถ้ามีไฟล์ที่ไม่มีเจ้าของต้องแก้ ให้แจ้ง main ก่อน
 
+main มอบเพิ่ม 2026-11-11 หลังรายงานของ platform:
+- auth: ลบ action `place.search` ใน `src/lib/rbac/actions.ts`, `src/lib/rbac/can.ts` พร้อมเทสต์ `tests/rbac/appointments.test.ts`, `tests/rbac/matrix.fixture.ts`
+- architect: เพิ่มหมายเหตุสั้นใน ADR 0001 และ 0003 ว่าการค้นหาสถานที่และภาพแผนที่ถูกเอาออกใน R13 (ไม่แก้เนื้อหาเดิม)
+- cron ใน `src/lib/data/repos/maintenance.ts` ที่ลบแถวเก่าของ `place_search_cache` คงไว้ได้ เพราะเป็นการล้างข้อมูล ไม่ใช่การอ่าน/เขียนแคช
+- `.ics` `URL` ใช้ mapUrl เฉพาะเมื่อเป็น ASCII ที่พิมพ์ได้ ไม่มีช่องว่าง/ตัวควบคุม/`\` (platform เพิ่ม เพราะค่า URI ไม่ผ่าน escape) ไม่ผ่าน = ลิงก์นัด
+
 ## 4. เกณฑ์ผ่าน
 | # | เกณฑ์ | วิธีตรวจ |
 |---|---|---|
