@@ -19,11 +19,12 @@ type One = { appointment: ApptDto };
 type List = { appointments: ApptDto[]; nextCursor: string | null };
 
 describe('manifest', () => {
-  it('11 เส้นทางของ R4B ลงทะเบียนครบ เจ้าของ platform auth=actor', () => {
+  it('12 เส้นทางของ R4B (รวม R12 calendar.ics) ลงทะเบียนครบ เจ้าของ platform auth=actor', () => {
     const mine = ROUTE_MANIFEST.filter((e) => e.owner === 'platform' && /appointments|notifications|places/.test(e.path));
     expect(mine.map((e) => `${e.method} ${e.path}`).sort()).toEqual(
       [
         'GET /api/appointments/:id',
+        'GET /api/appointments/:id/calendar.ics',
         'GET /api/groups/:gid/appointments',
         'GET /api/me/appointments',
         'GET /api/me/notifications',
