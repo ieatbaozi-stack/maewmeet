@@ -60,6 +60,7 @@ import { parseMapUrl } from '@/lib/shared/location-parse';
 import { memberAppearance } from '@/lib/shared/member-color';
 import { checkVisibleName, hasForbiddenChars, sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
+import { calendarLinkLabels } from '../calendar-labels';
 import { notify } from '../notifications/notify';
 import { groupRowOf, loadAppointmentCtx, loadGroupCtx, type AppointmentCtx } from '../policy-context';
 import {
@@ -568,6 +569,8 @@ export async function getAppointmentIcs(actor: Actor, id: string, appOrigin: str
   await auditRead(db, me, allow, { action: 'appointment.view', targetType: 'appointment', targetId: id, groupId: row.groupId }, now);
   if (row.status === 'cancelled') throw new AppError('APPOINTMENT_CANCELLED');
   if (row.endAt <= now) throw new AppError('APPOINTMENT_PAST');
+  // R13 §1.4: ป้ายลิงก์ตามภาษาในบัญชีของผู้ดาวน์โหลด ไม่มีค่า = ไทย
+  const labels = calendarLinkLabels((await findUserById(db, me.id))?.locale ?? 'th');
   return buildAppointmentIcs(
     {
       id: row.id,
@@ -578,6 +581,7 @@ export async function getAppointmentIcs(actor: Actor, id: string, appOrigin: str
       endAt: row.endAt,
       tz: row.tz,
       appOrigin,
+      labels,
     },
     now,
   );

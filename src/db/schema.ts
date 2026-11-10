@@ -284,7 +284,9 @@ export const systemHeartbeat = sqliteTable('system_heartbeat', {      // ADR 000
   lastAt: ms('last_at').notNull(),
 }, (t) => [check('heartbeat_source_ck', sql`${t.source} in ('vercel-cron','github-actions')`)]);
 
-export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy Nominatim (ADR 0001)
+// R13 (B3): ไม่ใช้แล้วตั้งแต่ R13 — ลบการค้นหาสถานที่ (proxy Nominatim) ออกแล้ว ไม่มีโค้ดอ่าน/เขียนแคช · คงตารางไว้รอลบด้วย migration ในรอบหลัง
+//   cron (repos/maintenance.ts) ยังลบแถวที่เก่ากว่า 30 วันตามเดิม ตารางจึงว่างเองภายใน 30 วันหลัง deploy
+export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy Nominatim (ADR 0001) — เลิกใช้ R13
   queryNormalized: text('query_normalized').primaryKey(),             // lowercase + trim + collapse space + locale
   results: text('results', { mode: 'json' }).notNull(),               // [{name, lat, lng, osmUrl}] สูงสุด 5
   fetchedAt: ms('fetched_at').notNull(),                              // เก็บ 30 วัน

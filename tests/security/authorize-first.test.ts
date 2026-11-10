@@ -208,7 +208,7 @@ describe('C. route ของ busy / ปฏิทิน ผูก action ที�
 });
 
 /* ──────────────────────────────────────────────────────────────────────────────────────────────
- * D. R4B — route ของนัด / RSVP / check / me/appointments / me/notifications / places/search ผูก action ที่ถูกต้อง
+ * D. R4B — route ของนัด / RSVP / check / me/appointments / me/notifications ผูก action ที่ถูกต้อง (places/search ลบใน R13)
  *    (R4B_CONTRACT §2, §5 R4B-2/3/7; ADR 0003 ตารางแถว 9–11 และ action ผูกผู้ใช้)
  *
  * ตารางด้านล่าง "เขียนมือ" จากสเปก ไม่ได้คัดจาก manifest. Platform เพิ่มไฟล์ route ทีหลัง:
@@ -328,12 +328,7 @@ const R4B_EXPECTED: ExpectedRoute[] = [
       },
     ],
   },
-  {
-    file: /^src\/app\/api\/places\/search\/route\.ts$/,
-    routes: [
-      { method: "GET", path: "/api/places/search", action: "place.search" },
-    ],
-  },
+  // R13 §1.3: GET /api/places/search ถูกลบแล้ว — ตระกูล /api/places ยังอยู่ใน R4B_PATH_FAMILY เพื่อให้ route สถานที่ใดที่โผล่มาใหม่ล้มเป็น "นอกสเปก"
 ];
 /** ชื่อพารามิเตอร์ใน path ไม่สำคัญ (:id / :aid) — เทียบที่ตำแหน่ง */
 const normPath = (p: string) => p.replace(/:[A-Za-z0-9_]+/g, ":p");
@@ -409,8 +404,13 @@ describe("D. R4B route → action (เขียนมือ; skip เฉพา�
     ).toEqual([]);
     for (const x of family)
       expect(x.action, `${x.method} ${x.path}`).toMatch(
-        /^(appointment|notification)\.|^place\.search$/,
+        /^(appointment|notification)\./,
       );
+  });
+
+  it("R13 §1.3: ไม่มีไฟล์ route ใต้ src/app/api/places และไม่มี /api/places ใน ROUTE_MANIFEST", () => {
+    expect(ROUTE_FILES.map(rel).filter((f) => f.startsWith("src/app/api/places/"))).toEqual([]);
+    expect(ROUTE_MANIFEST.filter((x) => x.path.startsWith("/api/places")).map((x) => `${x.method} ${x.path}`)).toEqual([]);
   });
 
   it("ไม่มี route ที่เปิดให้ระบุ user id/group id ของคนอื่นเพื่ออ่านนัดหรือแจ้งเตือน (/api/users/:id/appointments, /api/users/:id/notifications ฯลฯ)", () => {
@@ -449,13 +449,13 @@ describe("D2. service ของ R4B (ถ้ามีไฟล์) เรีย�
     for (const a of used) {
       // group.view ใช้โหลดกลุ่มก่อนตอบ 404 ได้ · นอกนั้นต้องเป็น action ตระกูลเดียวกัน
       expect(a, `${name}: action แปลกปลอม`).toMatch(
-        /^(appointment|notification)\.|^place\.search$|^group\.view$/,
+        /^(appointment|notification)\.|^group\.view$/,
       );
     }
   });
 
   it.skipIf(files.length === 0)(
-    "รวมทุกไฟล์ service ของ R4B: ใช้ครบ create/view/update/cancel/rsvp/list.mine + notification.list.own/markRead.own + place.search",
+    "รวมทุกไฟล์ service ของ R4B: ใช้ครบ create/view/update/cancel/rsvp/list.mine + notification.list.own/markRead.own (place.search ลบใน R13)",
     () => {
       const used = new Set(
         files.flatMap((f) =>
@@ -478,7 +478,6 @@ describe("D2. service ของ R4B (ถ้ามีไฟล์) เรีย�
         );
       if (have(/notification/))
         need.push("notification.list.own", "notification.markRead.own");
-      if (have(/place/)) need.push("place.search");
       for (const a of need)
         expect(
           used.has(a),

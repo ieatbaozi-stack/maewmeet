@@ -73,6 +73,7 @@ export {
   googleCalendarUrl,
   toCalendarUtc,
   type CalendarEventInput,
+  type CalendarLinkLabels,
   type GoogleCalendarInput,
 } from './ics';
 export {

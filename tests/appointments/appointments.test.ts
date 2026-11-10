@@ -19,7 +19,7 @@ type One = { appointment: ApptDto };
 type List = { appointments: ApptDto[]; nextCursor: string | null };
 
 describe('manifest', () => {
-  it('12 เส้นทางของ R4B (รวม R12 calendar.ics) ลงทะเบียนครบ เจ้าของ platform auth=actor', () => {
+  it('11 เส้นทางของ R4B (รวม R12 calendar.ics · R13 ลบ places/search) ลงทะเบียนครบ เจ้าของ platform auth=actor', () => {
     const mine = ROUTE_MANIFEST.filter((e) => e.owner === 'platform' && /appointments|notifications|places/.test(e.path));
     expect(mine.map((e) => `${e.method} ${e.path}`).sort()).toEqual(
       [
@@ -28,7 +28,6 @@ describe('manifest', () => {
         'GET /api/groups/:gid/appointments',
         'GET /api/me/appointments',
         'GET /api/me/notifications',
-        'GET /api/places/search',
         'PATCH /api/appointments/:id',
         'POST /api/appointments/:id/cancel',
         'POST /api/groups/:gid/appointments',

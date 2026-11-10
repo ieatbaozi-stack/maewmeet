@@ -1,4 +1,4 @@
-// R12 §5 + R12.1 §1.2, §1.4 — ไฟล์ .ics และลิงก์ Google Calendar (R12-5..8, R12-10, R12.1-2..6) · ค่าคาดหวังคำนวณมือ
+// R12 §5 + R12.1 §1.4 + R13 §1.4 — ไฟล์ .ics และลิงก์ Google Calendar (R12-5..8, R12-10, R12.1-4..6, R13-5) · ค่าคาดหวังคำนวณมือ
 import { describe, expect, it } from 'vitest';
 import {
   buildAppointmentIcs,
@@ -8,7 +8,11 @@ import {
   parseLocalDateTime,
   toCalendarUtc,
   type CalendarEventInput,
+  type CalendarLinkLabels,
 } from '@/lib/calendar';
+import { calendarLinkLabels } from '@/lib/data/calendar-labels';
+import en from '../../messages/en.json';
+import th from '../../messages/th.json';
 
 const BKK = 'Asia/Bangkok';
 const ORIGIN = 'https://maewmeet.test';
@@ -16,6 +20,9 @@ const ID = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const NOW = Date.UTC(2026, 10, 10, 1, 2, 3);
 const START = Date.UTC(2026, 10, 20, 12, 0, 0);
 const END = Date.UTC(2026, 10, 20, 14, 0, 0);
+/** R13 §1.4 ป้ายเขียนมือ (ตรงกับ messages ตรวจใน describe R13) */
+const LABELS_TH: CalendarLinkLabels = { map: 'แผนที่', plan: 'ดูนัดในแมวเจอกัน' };
+const LABELS_EN: CalendarLinkLabels = { map: 'Map', plan: 'See the plan in maewmeet' };
 
 const event = (over: Partial<CalendarEventInput> = {}): CalendarEventInput => ({
   id: ID,
@@ -26,6 +33,7 @@ const event = (over: Partial<CalendarEventInput> = {}): CalendarEventInput => ({
   endAt: END,
   tz: BKK,
   appOrigin: ORIGIN,
+  labels: LABELS_TH,
   ...over,
 });
 
@@ -113,7 +121,9 @@ describe('รูปไฟล์', () => {
         'DTEND;TZID=Asia/Bangkok:20261120T210000',
         'SUMMARY:กินข้าว',
         'LOCATION:สยาม',
-        `DESCRIPTION:${ORIGIN}/appointments/appt-1`,
+        // R13: 12 + 16×3 + 2 = 62 octet แล้ว ASCII อีก 13 ตัว = 75 → พับ
+        'DESCRIPTION:ดูนัดในแมวเจอกัน: https://maewm',
+        ' eet.test/appointments/appt-1',
         `URL:${ORIGIN}/appointments/appt-1`,
         'STATUS:CONFIRMED',
         'END:VEVENT',
@@ -251,10 +261,10 @@ describe('R12-10 ลิงก์ Google Calendar', () => {
   const parse = (u: string) => new URL(u).searchParams;
 
   it('ตรงตัวอย่างคำนวณมือ', () => {
-    const url = googleCalendarUrl({ ...input, title: 'Lunch', placeName: 'Siam' });
+    const url = googleCalendarUrl({ ...input, title: 'Lunch', placeName: 'Siam', labels: LABELS_EN });
     expect(url).toBe(
       'https://calendar.google.com/calendar/render?action=TEMPLATE&text=Lunch&dates=20261120T120000Z/20261120T140000Z&ctz=Asia%2FBangkok&location=Siam' +
-        `&details=https%3A%2F%2Fmaewmeet.test%2Fappointments%2F${ID}`,
+        `&details=See%20the%20plan%20in%20maewmeet%3A%20https%3A%2F%2Fmaewmeet.test%2Fappointments%2F${ID}`,
     );
   });
 
@@ -267,7 +277,7 @@ describe('R12-10 ลิงก์ Google Calendar', () => {
     expect(q.get('location')).toBe(placeName);
     expect(q.get('dates')).toBe('20261120T120000Z/20261120T140000Z');
     expect(q.get('ctz')).toBe(BKK);
-    expect(q.get('details')).toBe(`${ORIGIN}/appointments/${ID}`);
+    expect(q.get('details')).toBe(`ดูนัดในแมวเจอกัน: ${ORIGIN}/appointments/${ID}`);
   });
 
   it('ช่องว่างและ + encode ถูกต้อง ไม่หายตอน decode', () => {
@@ -303,45 +313,84 @@ describe('R12-10 ลิงก์ Google Calendar', () => {
   });
 });
 
-describe('R12.1 §1.2 ลิงก์แผนที่', () => {
+describe('R13 §1.4 ลิงก์แผนที่ + ป้าย (แทน R12.1 §1.2)', () => {
   const MAP = 'https://www.openstreetmap.org/?mlat=13.74&mlon=100.53#map=17/13.74/100.53';
   const LINK = `${ORIGIN}/appointments/${ID}`;
   const google = (over: Partial<CalendarEventInput> = {}) => new URL(googleCalendarUrl(event(over))).searchParams;
 
-  describe('R12.1-2 มี mapUrl', () => {
-    it('.ics: DESCRIPTION = ลิงก์แผนที่ \\n ลิงก์นัด · LOCATION และ URL ไม่เปลี่ยน', () => {
-      const ics = buildAppointmentIcs(event({ mapUrl: MAP }), NOW);
-      expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:${MAP}\\n${LINK}`);
-      expect(prop(ics, 'LOCATION')).toBe('LOCATION:สยาม');
-      expect(prop(ics, 'URL')).toBe(`URL:${LINK}`);
+  describe('ป้ายมาจาก messages ตามภาษา', () => {
+    it('calendarLinkLabels ตรงคีย์ appointments.calendar.labelMap/labelPlan ของแต่ละภาษา', () => {
+      expect(calendarLinkLabels('th')).toEqual({ map: th.appointments.calendar.labelMap, plan: th.appointments.calendar.labelPlan });
+      expect(calendarLinkLabels('en')).toEqual({ map: en.appointments.calendar.labelMap, plan: en.appointments.calendar.labelPlan });
     });
 
-    it('.ics: จุลภาคและเซมิโคลอนในลิงก์ผ่าน escape', () => {
-      const ics = buildAppointmentIcs(event({ mapUrl: 'https://maps.example/@13.7,100.5;z=15' }), NOW);
-      expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:https://maps.example/@13.7\\,100.5\\;z=15\\n${LINK}`);
+    it('ค่าที่คาดหวังเขียนมือ (ux 29fa1e7): TH "แผนที่" / "ดูนัดในแมวเจอกัน" · EN "Map" / "See the plan in maewmeet" · ไม่มีโคลอนในคีย์', () => {
+      expect(calendarLinkLabels('th')).toEqual(LABELS_TH);
+      expect(calendarLinkLabels('en')).toEqual(LABELS_EN);
     });
 
-    it('Google: details = ลิงก์แผนที่ ขึ้นบรรทัดใหม่ แล้วลิงก์นัด · encode ทั้งก้อน', () => {
-      expect(google({ mapUrl: MAP }).get('details')).toBe(`${MAP}\n${LINK}`);
-      expect(googleCalendarUrl(event({ mapUrl: MAP }))).toContain('%0A');
-    });
-
-    it('ลิงก์ยาว 500 ตัว: ทุกบรรทัด ≤ 75 octet · unfold ได้ค่าเดิม', () => {
-      const long = `https://maps.example/${'a'.repeat(500 - 'https://maps.example/'.length)}`;
-      expect(long).toHaveLength(500);
-      const ics = buildAppointmentIcs(event({ mapUrl: long }), NOW);
-      for (const l of decodedLines(ics)) expect(l.octets, l.text).toBeLessThanOrEqual(75);
-      expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:${long}\\n${LINK}`);
-    });
-
-    it('scheme ตัวพิมพ์ใหญ่ใส่ได้ เหมือน map-model.ts', () => {
-      expect(prop(buildAppointmentIcs(event({ mapUrl: 'HTTPS://maps.example/x' }), NOW), 'DESCRIPTION')).toContain('HTTPS://maps.example/x');
+    it.each([null, undefined])('ไม่มีภาษา (%j) = ไทย', (locale) => {
+      expect(calendarLinkLabels(locale)).toEqual(LABELS_TH);
     });
   });
 
-  describe('R12.1-3 ไม่มี mapUrl: เหมือนเดิมทุกไบต์', () => {
-    // ไฟล์ของ R12 ก่อนแก้ คัดลอกตามตัวอักษร · tz ที่ใช้ไม่ได้ทำให้เวลาเป็น UTC แบบเดิม จึงเทียบได้ทั้งไฟล์
-    const R12_FILE = [
+  describe('R13-5 มี mapUrl https', () => {
+    it('.ics TH: URL = ลิงก์แผนที่ · LOCATION = ชื่อสถานที่ · DESCRIPTION = แผนที่: <map>\\nดูนัดในแมวเจอกัน: <ลิงก์นัด>', () => {
+      const ics = buildAppointmentIcs(event({ mapUrl: MAP }), NOW);
+      expect(prop(ics, 'URL')).toBe(`URL:${MAP}`);
+      expect(prop(ics, 'LOCATION')).toBe('LOCATION:สยาม');
+      expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:แผนที่: ${MAP}\\nดูนัดในแมวเจอกัน: ${LINK}`);
+    });
+
+    it('.ics EN: ป้ายภาษาอังกฤษ', () => {
+      const ics = buildAppointmentIcs(event({ mapUrl: MAP, labels: LABELS_EN }), NOW);
+      expect(prop(ics, 'URL')).toBe(`URL:${MAP}`);
+      expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:Map: ${MAP}\\nSee the plan in maewmeet: ${LINK}`);
+    });
+
+    it('.ics: จุลภาคและเซมิโคลอนในลิงก์ escape ใน DESCRIPTION เท่านั้น · URL (ชนิด URI) ไม่ escape', () => {
+      const m = 'https://maps.example/@13.7,100.5;z=15';
+      const ics = buildAppointmentIcs(event({ mapUrl: m }), NOW);
+      expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:แผนที่: https://maps.example/@13.7\\,100.5\\;z=15\\nดูนัดในแมวเจอกัน: ${LINK}`);
+      expect(prop(ics, 'URL')).toBe(`URL:${m}`);
+    });
+
+    it('Google TH/EN: details มีป้ายแบบเดียวกับ .ics · location = ชื่อสถานที่ · encode ทั้งก้อน', () => {
+      expect(google({ mapUrl: MAP }).get('details')).toBe(`แผนที่: ${MAP}\nดูนัดในแมวเจอกัน: ${LINK}`);
+      expect(google({ mapUrl: MAP, labels: LABELS_EN }).get('details')).toBe(`Map: ${MAP}\nSee the plan in maewmeet: ${LINK}`);
+      expect(google({ mapUrl: MAP }).get('location')).toBe('สยาม');
+      expect(googleCalendarUrl(event({ mapUrl: MAP }))).toContain('%0A');
+    });
+
+    it('ลิงก์ยาว 500 ตัว + ป้ายไทย: ทุกบรรทัด ≤ 75 octet · decode ได้ทีละบรรทัด · unfold ได้ค่าเดิม', () => {
+      const long = `https://maps.example/${'a'.repeat(500 - 'https://maps.example/'.length)}`;
+      expect(long).toHaveLength(500);
+      const ics = buildAppointmentIcs(event({ mapUrl: long }), NOW);
+      for (const l of decodedLines(ics)) {
+        expect(l.octets, l.text).toBeLessThanOrEqual(75);
+        expect(l.text).not.toContain('�');
+      }
+      expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:แผนที่: ${long}\\nดูนัดในแมวเจอกัน: ${LINK}`);
+      expect(prop(ics, 'URL')).toBe(`URL:${long}`);
+    });
+
+    it('ป้ายยาวมาก (ไทย/อิโมจิ) ก็ fold ไม่ตัดกลางตัวอักษร และ unfold ได้ค่าเดิม', () => {
+      const labels = { map: 'แผนที่😺'.repeat(20), plan: 'ดูนัด'.repeat(30) };
+      const ics = buildAppointmentIcs(event({ mapUrl: MAP, labels }), NOW);
+      for (const l of decodedLines(ics)) expect(l.octets, l.text).toBeLessThanOrEqual(75);
+      expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:${labels.map}: ${MAP}\\n${labels.plan}: ${LINK}`);
+    });
+
+    it('scheme ตัวพิมพ์ใหญ่ใส่ได้ เหมือน map-model.ts', () => {
+      const ics = buildAppointmentIcs(event({ mapUrl: 'HTTPS://maps.example/x' }), NOW);
+      expect(prop(ics, 'DESCRIPTION')).toContain('แผนที่: HTTPS://maps.example/x');
+      expect(prop(ics, 'URL')).toBe('URL:HTTPS://maps.example/x');
+    });
+  });
+
+  describe('R13-5 ไม่มี mapUrl: URL = ลิงก์นัด · DESCRIPTION = บรรทัดลิงก์นัดบรรทัดเดียว (มีป้าย)', () => {
+    // tz ที่ใช้ไม่ได้ทำให้เวลาเป็น UTC จึงเทียบได้ทั้งไฟล์ · บรรทัด DESCRIPTION ยาว 103 octet พับที่ 75 (คำนวณมือ: 12 + 16×3 + 2 = 62 แล้ว URL อีก 13 ตัว)
+    const FILE = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//maewmeet//Add to Calendar//EN',
@@ -354,50 +403,86 @@ describe('R12.1 §1.2 ลิงก์แผนที่', () => {
       'DTEND:20261120T140000Z',
       'SUMMARY:กินข้าว',
       'LOCATION:สยาม',
-      `DESCRIPTION:${ORIGIN}/appointments/appt-1`,
+      'DESCRIPTION:ดูนัดในแมวเจอกัน: https://maewm',
+      ' eet.test/appointments/appt-1',
       `URL:${ORIGIN}/appointments/appt-1`,
       'STATUS:CONFIRMED',
       'END:VEVENT',
       'END:VCALENDAR',
       '',
     ].join('\r\n');
-    const R12_GOOGLE =
+    const GOOGLE_EN =
       'https://calendar.google.com/calendar/render?action=TEMPLATE&text=Lunch&dates=20261120T120000Z/20261120T140000Z&ctz=Asia%2FBangkok&location=Siam' +
-      `&details=https%3A%2F%2Fmaewmeet.test%2Fappointments%2F${ID}`;
+      `&details=See%20the%20plan%20in%20maewmeet%3A%20https%3A%2F%2Fmaewmeet.test%2Fappointments%2F${ID}`;
 
-    it.each([null, ''])('.ics mapUrl = %j', (mapUrl) => {
-      expect(buildAppointmentIcs(event({ id: 'appt-1', mapUrl, tz: 'Not/AZone' }), NOW)).toBe(R12_FILE);
+    it.each([null, ''])('.ics mapUrl = %j ตรงไฟล์คำนวณมือทุกไบต์', (mapUrl) => {
+      expect(buildAppointmentIcs(event({ id: 'appt-1', mapUrl, tz: 'Not/AZone' }), NOW)).toBe(FILE);
     });
 
-    it.each([null, ''])('Google mapUrl = %j', (mapUrl) => {
-      expect(googleCalendarUrl(event({ title: 'Lunch', placeName: 'Siam', mapUrl }))).toBe(R12_GOOGLE);
+    it('.ics EN: DESCRIPTION ป้ายอังกฤษบรรทัดเดียว · URL = ลิงก์นัด', () => {
+      const ics = buildAppointmentIcs(event({ labels: LABELS_EN }), NOW);
+      expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:See the plan in maewmeet: ${LINK}`);
+      expect(prop(ics, 'URL')).toBe(`URL:${LINK}`);
     });
 
-    it('Google ไม่ส่งช่อง mapUrl เลย (UI ปัจจุบัน)', () => {
+    it.each([null, ''])('Google EN mapUrl = %j ตรงลิงก์คำนวณมือ', (mapUrl) => {
+      expect(googleCalendarUrl(event({ title: 'Lunch', placeName: 'Siam', mapUrl, labels: LABELS_EN }))).toBe(GOOGLE_EN);
+    });
+
+    it('Google TH: details = ป้ายไทย + ลิงก์นัด', () => {
+      expect(google().get('details')).toBe(`ดูนัดในแมวเจอกัน: ${LINK}`);
+    });
+
+    it('Google รับเฉพาะช่องของ GoogleCalendarInput (UI ปัจจุบัน)', () => {
       const e = event({ title: 'Lunch', placeName: 'Siam' });
-      expect(googleCalendarUrl({ id: e.id, title: e.title, placeName: e.placeName, mapUrl: null, startAt: e.startAt, endAt: e.endAt, tz: e.tz, appOrigin: e.appOrigin })).toBe(R12_GOOGLE);
+      expect(
+        googleCalendarUrl({ id: e.id, title: e.title, placeName: e.placeName, mapUrl: null, startAt: e.startAt, endAt: e.endAt, tz: e.tz, appOrigin: e.appOrigin, labels: LABELS_EN }),
+      ).toBe(GOOGLE_EN);
     });
   });
 
-  describe('R12.1-4 ค่าที่ไม่ปลอดภัย', () => {
+  describe('R13-5 ค่าที่ไม่ปลอดภัย (กฎ R12.1 คงเดิม)', () => {
     it.each(['http://maps.example/x', 'javascript:alert(1)', 'data:text/html,x', 'geo:13.7,100.5', 'ftp://maps.example', ' https://maps.example/x', 'maps.example/x', 'http://x\r\nATTENDEE:mailto:a@b.test'])(
-      'ไม่ใช่ https %j: ไม่ถูกใส่ และไม่เกิดบรรทัดใหม่',
+      'ไม่ใช่ https %j: ไม่ใส่ทั้ง DESCRIPTION และ URL · ไม่เกิดบรรทัดใหม่',
       (mapUrl) => {
         const ics = buildAppointmentIcs(event({ mapUrl }), NOW);
-        expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:${LINK}`);
+        expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:ดูนัดในแมวเจอกัน: ${LINK}`);
+        expect(prop(ics, 'URL')).toBe(`URL:${LINK}`);
         expect(ics).not.toContain('ATTENDEE');
-        expect(google({ mapUrl }).get('details')).toBe(LINK);
+        expect(google({ mapUrl }).get('details')).toBe(`ดูนัดในแมวเจอกัน: ${LINK}`);
       },
     );
 
-    it.each(['https://maps.example/x\r\nATTENDEE:mailto:a@b.test', 'https://maps.example/x\nATTENDEE:mailto:a@b.test', 'https://maps.example/x\rATTENDEE:mailto:a@b.test'])('https ที่มีขึ้นบรรทัด %j: ไม่เกิดบรรทัดใหม่', (mapUrl) => {
-      const ics = buildAppointmentIcs(event({ mapUrl }), NOW);
-      expect(lines(unfold(ics)).filter((l) => l.startsWith('ATTENDEE'))).toEqual([]);
+    it.each(['https://maps.example/x\r\nATTENDEE:mailto:a@b.test', 'https://maps.example/x\nATTENDEE:mailto:a@b.test', 'https://maps.example/x\rATTENDEE:mailto:a@b.test'])(
+      'https ที่มีขึ้นบรรทัด %j: URL ใช้ลิงก์นัด · ไม่เกิดบรรทัดใหม่ · CR/LF ไม่เหลือในไฟล์',
+      (mapUrl) => {
+        const ics = buildAppointmentIcs(event({ mapUrl }), NOW);
+        expect(lines(unfold(ics)).filter((l) => l.startsWith('ATTENDEE'))).toEqual([]);
+        expect(ics.replace(/\r\n/g, '')).not.toMatch(/[\r\n]/);
+        expect(prop(ics, 'URL')).toBe(`URL:${LINK}`);
+      },
+    );
+
+    it.each(['https://maps.example/a b', 'https://maps.example/ร้าน', 'https://maps.example/a\\b', 'https://maps.example/a\u0000b', 'https://maps.example/a\u007fb'])(
+      'https ที่ไม่ใช่ URI ASCII ปลอดภัย %j: URL ใช้ลิงก์นัด (DESCRIPTION ยังมีป้ายแผนที่ผ่าน escape)',
+      (mapUrl) => {
+        const ics = buildAppointmentIcs(event({ mapUrl }), NOW);
+        expect(prop(ics, 'URL')).toBe(`URL:${LINK}`);
+        expect(prop(ics, 'DESCRIPTION')).toMatch(/^DESCRIPTION:แผนที่: https:\/\/maps\.example\//);
+      },
+    );
+
+    it('ป้ายที่มี \\ ; , และขึ้นบรรทัด ผ่าน escapeIcsText · ไม่เกิดบรรทัด/property ใหม่', () => {
+      const labels = { map: 'M;a,p\\\r\nATTENDEE:mailto:a@b.test', plan: 'P\nX-EVIL:1' };
+      const ics = buildAppointmentIcs(event({ mapUrl: MAP, labels }), NOW);
+      expect(prop(ics, 'DESCRIPTION')).toBe(`DESCRIPTION:${escapeIcsText(`${labels.map}: ${MAP}\n${labels.plan}: ${LINK}`)}`);
+      expect(lines(unfold(ics)).filter((l) => /^(ATTENDEE|X-EVIL)/.test(l))).toEqual([]);
       expect(ics.replace(/\r\n/g, '')).not.toMatch(/[\r\n]/);
+      expect(google({ mapUrl: MAP, labels }).get('details')).toBe(`${labels.map}: ${MAP}\n${labels.plan}: ${LINK}`);
     });
   });
 
-  it('R12.1-5: ส่ง DTO ทั้งก้อนมา มีแค่ลิงก์แผนที่เพิ่ม ไม่มีรายละเอียด/lat/lng แยก/ชื่อกลุ่ม/ชื่อสมาชิก', () => {
+  it('R12.1-5 / §6: ส่ง DTO ทั้งก้อนมา มีแค่ลิงก์แผนที่เพิ่ม ไม่มีรายละเอียด/lat/lng แยก/ชื่อกลุ่ม/ชื่อสมาชิก', () => {
     const dto = {
       ...event({ mapUrl: 'https://maps.example/place' }),
       description: 'SECRET-DESC',
@@ -413,6 +498,42 @@ describe('R12.1 §1.2 ลิงก์แผนที่', () => {
     expect(ics).not.toMatch(/^GEO/m);
     expect(ics).toContain('https://maps.example/place');
     expect([...new URL(url).searchParams.keys()].sort()).toEqual(['action', 'ctz', 'dates', 'details', 'location', 'text']);
+  });
+
+  describe('parser อิสระ (เขียนแยกจาก ics.ts: unfold → แยก name;params:value → unescape TEXT ตาม RFC 5545 §3.3.11)', () => {
+    type Prop = { name: string; params: string; value: string };
+    function parseIcs(text: string): Prop[] {
+      expect(text.endsWith('\r\n')).toBe(true);
+      const logical = text.slice(0, -2).replace(/\r\n[ \t]/g, '').split('\r\n');
+      return logical.map((l) => {
+        const colon = l.indexOf(':');
+        expect(colon, l).toBeGreaterThan(0);
+        const head = l.slice(0, colon);
+        const semi = head.indexOf(';');
+        return { name: semi < 0 ? head : head.slice(0, semi), params: semi < 0 ? '' : head.slice(semi + 1), value: l.slice(colon + 1) };
+      });
+    }
+    const unescapeText = (v: string) => v.replace(/\\([\\;,nN])/g, (_m, c: string) => (c === 'n' || c === 'N' ? '\n' : c));
+
+    it.each([
+      ['TH', LABELS_TH],
+      ['EN', LABELS_EN],
+    ] as const)('%s: VEVENT มี URL/LOCATION/DESCRIPTION อย่างละหนึ่ง · ค่าที่ถอดได้ตรงตาม §1.4', (_n, labels) => {
+      const m = 'https://maps.app.goo.gl/AbCdEf123?g_st=ic';
+      const props = parseIcs(buildAppointmentIcs(event({ mapUrl: m, labels, placeName: 'ร้าน A, ชั้น 2; โซน B' }), NOW));
+      const vevent = props.slice(
+        props.findIndex((p) => p.name === 'BEGIN' && p.value === 'VEVENT'),
+        props.findIndex((p) => p.name === 'END' && p.value === 'VEVENT'),
+      );
+      const one = (name: string) => {
+        const found = vevent.filter((p) => p.name === name);
+        expect(found, name).toHaveLength(1);
+        return found[0]!;
+      };
+      expect(one('URL').value).toBe(m);
+      expect(unescapeText(one('LOCATION').value)).toBe('ร้าน A, ชั้น 2; โซน B');
+      expect(unescapeText(one('DESCRIPTION').value).split('\n')).toEqual([`${labels.map}: ${m}`, `${labels.plan}: ${LINK}`]);
+    });
   });
 });
 

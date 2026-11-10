@@ -1,10 +1,17 @@
-// เพิ่มนัดลงปฏิทินในเครื่อง — R12_CONTRACT §5 + R12_1_CONTRACT §1.2, §1.4 (ไฟล์ .ics ตาม RFC 5545 + ลิงก์ Google Calendar แบบกรอกไว้ให้)
+// เพิ่มนัดลงปฏิทินในเครื่อง — R12_CONTRACT §5 + R12_1_CONTRACT §1.2, §1.4 + R13_CONTRACT §1.4 (ไฟล์ .ics ตาม RFC 5545 + ลิงก์ Google Calendar แบบกรอกไว้ให้)
 // pure: ไม่อ่านนาฬิกา (DTSTAMP รับ nowMs จากผู้เรียก) · ใช้จาก client ได้ (ไม่มี server-only)
 // §6: รับเฉพาะช่องที่ออกนอกแอปได้ — ส่ง DTO ทั้งก้อนมาก็ไม่มีรายละเอียด/lat/lng แยก/ชื่อกลุ่ม/ชื่อสมาชิกหลุดออกไป · ลิงก์แผนที่ (mapUrl) ส่งได้ และอาจมีพิกัดของสถานที่อยู่ในลิงก์
+// R13 §1.4: ป้ายของลิงก์ใน DESCRIPTION / details รับเป็นพารามิเตอร์ `labels` จาก messages ตามภาษาผู้ใช้ — ไฟล์นี้ไม่มีข้อความ UI
 import { Temporal } from 'temporal-polyfill';
 import { MAX_YEAR, MIN_YEAR, type EpochMs } from './constants';
 import { failIf } from './errors';
 import { isValidTimeZone } from './zone';
+
+/** ป้ายลิงก์ (R13 §1.4) จาก `appointments.calendar.labelMap` / `labelPlan` · ไม่มีโคลอน ไฟล์นี้ต่อ ": " เอง */
+export type CalendarLinkLabels = {
+  readonly map: string;
+  readonly plan: string;
+};
 
 export type CalendarEventInput = {
   readonly id: string;
@@ -19,11 +26,14 @@ export type CalendarEventInput = {
   readonly tz: string;
   /** origin ของแอปแบบไม่มี / ท้าย เช่น https://maewmeet.example */
   readonly appOrigin: string;
+  /** ป้ายของลิงก์แผนที่และลิงก์นัด (บังคับส่ง) */
+  readonly labels: CalendarLinkLabels;
 };
 
-/** mapUrl บังคับส่ง (null = ไม่มี) เพื่อกันลืมส่งจาก UI */
-export type GoogleCalendarInput = Omit<CalendarEventInput, 'mapUrl'> & {
+/** mapUrl และ labels บังคับส่ง (mapUrl null = ไม่มี) เพื่อกันลืมส่งจาก UI */
+export type GoogleCalendarInput = Omit<CalendarEventInput, 'mapUrl' | 'labels'> & {
   readonly mapUrl: string | null;
+  readonly labels: CalendarLinkLabels;
 };
 
 /** ขอบเขตของ Temporal.Instant / Date (±10^8 วัน) */
@@ -136,17 +146,34 @@ export function foldIcsLine(line: string): string {
 
 const appointmentUrl = (appOrigin: string, id: string): string => `${appOrigin}/appointments/${id}`;
 
-/** R12.1 §1.2: ลิงก์แผนที่ (ถ้าเป็น https) ขึ้นก่อน ตามด้วยลิงก์นัด · ตรวจ scheme ซ้ำแบบ map-model.ts แม้เซิร์ฟเวอร์ตรวจตอนบันทึกแล้ว */
-function detailsText(mapUrl: string | null | undefined, link: string): string {
-  return mapUrl && /^https:\/\//i.test(mapUrl) ? `${mapUrl}\n${link}` : link;
+/** ตรวจ scheme ซ้ำแบบ map-model.ts แม้เซิร์ฟเวอร์ตรวจตอนบันทึกแล้ว */
+const isHttpsMapUrl = (mapUrl: string | null | undefined): mapUrl is string => !!mapUrl && /^https:\/\//i.test(mapUrl);
+
+/**
+ * ค่า `URL` เป็นชนิด URI (ไม่ผ่าน escapeIcsText) จึงรับเฉพาะ ASCII ที่พิมพ์ได้ ไม่มีช่องว่าง/ตัวควบคุม/backslash
+ * (ค่าที่ parseMapUrl บันทึกเป็นแบบนี้อยู่แล้ว) · ไม่ผ่าน = ใช้ลิงก์นัดแทน กันแทรกบรรทัด/parameter จากแถวเก่าใน DB
+ */
+const isSafeUriValue = (value: string): boolean => /^[\x21-\x5b\x5d-\x7e]+$/.test(value);
+
+/**
+ * R13 §1.4: `<ป้ายแผนที่>: <ลิงก์แผนที่>` ขึ้นบรรทัด `<ป้ายนัด>: <ลิงก์นัด>` · ไม่มีลิงก์แผนที่ https = บรรทัดลิงก์นัดบรรทัดเดียว (มีป้าย)
+ * ป้ายเป็นข้อความธรรมดา: .ics ผ่าน escapeIcsText ทั้งก้อน · Google ผ่าน encodeURIComponent ทั้งก้อน
+ */
+function detailsText(mapUrl: string | null | undefined, link: string, labels: CalendarLinkLabels): string {
+  const plan = `${labels.plan}: ${link}`;
+  return isHttpsMapUrl(mapUrl) ? `${labels.map}: ${mapUrl}\n${plan}` : plan;
 }
 
-/** ไฟล์ .ics ของนัดหนึ่งนัด: UID คงที่ต่อนัด · CRLF ทุกบรรทัดรวมบรรทัดสุดท้าย · ไม่มี BOM · ไม่มี ORGANIZER/ATTENDEE/VALARM */
+/**
+ * ไฟล์ .ics ของนัดหนึ่งนัด: UID คงที่ต่อนัด · CRLF ทุกบรรทัดรวมบรรทัดสุดท้าย · ไม่มี BOM · ไม่มี ORGANIZER/ATTENDEE/VALARM
+ * R13 §1.4: `URL` = ลิงก์แผนที่ถ้าเป็น https (และเป็น URI ที่ปลอดภัย) ไม่งั้นลิงก์นัด · LOCATION = ชื่อสถานที่ · DESCRIPTION มีป้าย
+ */
 export function buildAppointmentIcs(event: CalendarEventInput, nowMs: EpochMs): string {
-  const { id, title, placeName, mapUrl, startAt, endAt, tz, appOrigin } = event;
+  const { id, title, placeName, mapUrl, startAt, endAt, tz, appOrigin, labels } = event;
   assertEventRange(startAt, endAt);
   const times = icsTimes(startAt, endAt, tz);
   const url = appointmentUrl(appOrigin, id);
+  const urlValue = isHttpsMapUrl(mapUrl) && isSafeUriValue(mapUrl) ? mapUrl : url;
   const location = placeName ? escapeIcsText(placeName) : '';
   const lines = [
     'BEGIN:VCALENDAR',
@@ -162,8 +189,8 @@ export function buildAppointmentIcs(event: CalendarEventInput, nowMs: EpochMs): 
     times.end,
     `SUMMARY:${escapeIcsText(title)}`,
     ...(location ? [`LOCATION:${location}`] : []),
-    `DESCRIPTION:${escapeIcsText(detailsText(mapUrl, url))}`,
-    `URL:${url}`,
+    `DESCRIPTION:${escapeIcsText(detailsText(mapUrl, url, labels))}`,
+    `URL:${urlValue}`,
     'STATUS:CONFIRMED',
     'END:VEVENT',
     'END:VCALENDAR',
@@ -176,7 +203,7 @@ const encodeField = (value: string): string => encodeURIComponent(value.replace(
 
 /** ลิงก์ Google Calendar แบบกรอกไว้ให้ (§5) · ทุกค่า encodeURIComponent ยกเว้น `/` คั่นใน `dates` · เรียกจาก client ได้ */
 export function googleCalendarUrl(event: GoogleCalendarInput): string {
-  const { id, title, placeName, mapUrl, startAt, endAt, appOrigin, tz } = event;
+  const { id, title, placeName, mapUrl, startAt, endAt, appOrigin, tz, labels } = event;
   assertEventRange(startAt, endAt);
   const fields = [
     'action=TEMPLATE',
@@ -184,7 +211,7 @@ export function googleCalendarUrl(event: GoogleCalendarInput): string {
     `dates=${toCalendarUtc(startAt)}/${toCalendarUtc(endAt)}`,
     `ctz=${encodeField(tz)}`,
     ...(placeName ? [`location=${encodeField(placeName)}`] : []),
-    `details=${encodeField(detailsText(mapUrl, appointmentUrl(appOrigin, id)))}`,
+    `details=${encodeField(detailsText(mapUrl, appointmentUrl(appOrigin, id), labels))}`,
   ];
   return `https://calendar.google.com/calendar/render?${fields.join('&')}`;
 }
