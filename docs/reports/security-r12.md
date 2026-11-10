@@ -85,3 +85,60 @@
 - ค่า `Sec-Fetch-Site` จากเบราว์เซอร์จริงในการเปิดลิงก์ข้ามไซต์ (ตรวจระดับ handler ด้วย header ที่ตั้งเอง)
 - `npm test` ทั้งชุดและ CI · branch นี้ยังไม่มี PR
 - การทำงานบนเครื่องจริง iPhone/Android ตาม §9 (R12-18) และเวลาตอบบน Turso production
+
+---
+
+# R12.1 — ลิงก์แผนที่ในปฏิทิน · TZID/VTIMEZONE · คำบนปุ่ม
+
+- ผู้ตรวจ: Security (อิสระ) · 2026-11-10 · branch `feat/r12-1-calendar-polish` HEAD `0c843fa` · ช่วง `origin/main...HEAD` · เทียบ R12_1_CONTRACT §1.2, §1.3, §1.4, R12.1-4, R12.1-5
+- วิธี: อ่านโค้ดจริง + รันเทสต์ของทีม + เทสต์ทดลองนอก repo · **เทสต์ที่ใช้ DB รันผ่าน config และ shim นอก repo** (กลืน `EPERM`/`EBUSY` ตอน `rmSync` เท่านั้น)
+
+## สรุป R12.1
+| ระดับ | จำนวน |
+|---|---|
+| Critical | 0 |
+| High | 0 |
+| Medium | 0 |
+| Low | 0 |
+| Info | 4 |
+
+**Verdict R12.1: ผ่าน** — `mapUrl` และ tz แทรกบรรทัดหรือ parameter ใน `.ics` ไม่ได้ ไม่ออกนอกช่องที่ §1.2 กำหนด สิทธิ์และ 404/303 ของ R12 ไม่ถอย ไม่มีข้อมูลใน log · ยังต้องผ่าน CI และเครื่องจริงตาม §5
+
+## ผลต่อเกต
+| เกต | ผล | หลักฐาน |
+|---|---|---|
+| **`mapUrl` ไม่แทรกบรรทัด** (R12.1-4) | **PASS** | 📖 `ics.ts` `detailsText` แล้วผ่าน `escapeIcsText` ทั้งก้อน · ✅ ลิงก์ที่มี CRLF/CR/LF, `\u0085`, ` `, NUL, `END:VEVENT`, `ATTENDEE:` ผ่าน builder และ fuzz 2000 รอบ: ไม่มีบรรทัดนอก allowlist ลำดับ property คงที่ ทุกบรรทัด ≤ 75 octet ถอด escape แล้วได้ค่าเดิม (ลิงก์ยาว 2008 ตัว และลิงก์ไทยผ่าน) |
+| **แถวเก่าใน DB ที่ไม่ผ่าน `parseMapUrl`** | **PASS (Info 1)** | ✅ เขียน `map_url` ตรง ๆ ลง DB แล้วยิง route จริง: โครงไฟล์ไม่เสียทุกกรณี `URL:` ยังเป็นลิงก์นัด · 📖 `parseMapUrl` อยู่ตั้งแต่ R4B แถวแบบนี้จึงเกิดจากการแก้ DB ตรง ๆ เป็นหลัก |
+| **scheme อื่น** (R12.1-4) | **PASS** | ✅ `http:`, `javascript:`, `data:`, `ftp:`, `webcal:`, `file:`, `//x`, ไม่มี scheme, ช่องว่างนำหน้า: ไม่ถูกใส่ทั้ง `.ics` และ Google · `https` ตัวพิมพ์ใหญ่ผ่านตรงกับ `map-model.ts` |
+| **ด่านตอนบันทึก** | **PASS** | ✅ `POST` นัดด้วยค่าข้างต้นทั้งหมด + credentials, `localhost`, IP ภายใน, ตัวควบคุม, bidi: 400 ทุกค่า |
+| **ลิงก์ Google** | **PASS** | 📖 `AddToCalendarSheet.tsx:42` ส่งทีละช่อง · `noopener noreferrer` · ✅ `details` decode ได้ `<mapUrl>\n<ลิงก์นัด>` · คีย์มีแค่ `action,ctz,dates,details,location,text` · ลิงก์ที่มี CRLF ถูก encode ไม่แทรกพารามิเตอร์ · ไม่มี `mapUrl` = เฉพาะลิงก์นัด |
+| **`TZID`/`VTIMEZONE` แทรกไม่ได้** | **PASS** | 📖 `isSafeTzid` = allowlist `^[A-Za-z0-9_+/-]+$` + `isValidTimeZone` · ค่าใช้ไม่ได้ตกไป UTC · ✅ tz ใน DB ที่มี CRLF, `\n` ท้าย, `;X=1`, `:`, `"`, `,`, ช่องว่าง, `../`, `+07:00`, `Foo/Bar`, ค่าว่าง: 200 แบบ UTC ไม่มี `TZID` และ `VTIMEZONE` โครงไฟล์ไม่เสีย · ไม่มีค่าที่ทำให้ route ล้ม |
+| **เวลาจาก TZID ถูกต้อง** (R12.1-6 ส่วนความปลอดภัย) | **PASS** | ✅ 8 tz รวม offset เศษนาที: `TZID` ตรงกับ `VTIMEZONE` · เวลาผนังแปลงกลับได้ instant เดิม · นัดคร่อม DST และช่วงเวลาซ้ำตกไป UTC |
+| **ข้อมูลที่ออกตาม §1.2** (R12.1-5) | **PASS** | ✅ route: มีลิงก์แผนที่ ไม่มีรายละเอียด, `lat`/`lng` แยก, ชื่อกลุ่ม, ชื่อสมาชิก · `buildAppointmentIcs` และ `googleCalendarUrl` รับ DTO เกินมาก็ไม่รั่ว |
+| **`/privacy` และ `googleNote`** (§1.3) | **PASS (Info 2)** | 📖 TH/EN บอกลิงก์แผนที่ (ถ้ามี) ที่มาของลิงก์ และโอกาสมีพิกัด · ประโยคพิกัดเปลี่ยนเป็น "แบบแยกต่างหาก" ไม่ขัดกัน · ✅ คีย์ TH/EN ครบเท่ากัน · `updated` = 10 พ.ย. 2569 |
+| **สิทธิ์และ 404/303 ไม่ถอย** | **PASS** | ✅ ชุด oracle/redirect/audit/cross-site ของ R12 รันซ้ำบน HEAD นี้ · คนนอกที่นัดมี `mapUrl` ยังเท่ากับนัดที่ไม่มีทุกไบต์ · diff ไม่แตะ `route.ts`/`manifest`/`authorize` ของ route นี้ |
+| **ไม่มีข้อมูลใน log** | **PASS** | ✅ spy console ทุกระดับ กรณีสำเร็จ, SA, คนนอก, ไม่ล็อกอิน, tz เสีย, ปีนอกช่วง: ไม่พบชื่อนัด สถานที่ หรือลิงก์แผนที่ · diff ไม่เพิ่ม `console.*` |
+| **ความลับ / migration** | **PASS** | ✅ diff ไม่มี token หรือไฟล์ migration/env |
+
+## Findings R12.1
+ไม่มีระดับ Low ขึ้นไป
+
+### Info
+1. **แถวเก่าที่ไม่ผ่าน `parseMapUrl` แต่ขึ้นต้น `https://` ยังออกไปตามนั้น**: ✅ `https://user:pass@x.example/` อยู่ใน `DESCRIPTION` · `ics.ts` ตรวจแค่ scheme ตามที่ contract §1.2 กำหนด และ `map-model.ts` ทำเหมือนกัน · ค่าที่มีตัวควบคุมถูก escape จึงเป็นบรรทัดในโน้ตเท่านั้น ไม่เกิด property ใหม่ · ถ้าต้องการเข้มขึ้น ใช้ `parseMapUrl` ซ้ำตอนสร้างไฟล์
+2. **`/privacy` บอกว่าไฟล์ `.ics` มี "ข้อมูลชุดเดียวกัน" กับ Google**: นัดส่วนใหญ่มีเขตเวลาจริง แต่นัดคร่อม DST หรือ tz ใช้ไม่ได้จะเป็น UTC ไม่มีเขตเวลา · ไม่มีข้อมูลเกินจากที่บอก
+3. **ความเสี่ยงที่ boss รับทราบแล้ว (§1.2)**: ลิงก์ `https` โดเมนใดก็ได้และในปฏิทินไม่เห็นชื่อโดเมนก่อนกด ผู้สร้างนัดจึงใส่ลิงก์หลอกในโน้ตของคนอื่นได้ · ไม่จำกัดโดเมนตาม §2
+4. **`mapUrl` ลงท้าย CR ใน `.ics`**: CR กับตัวคั่น `\n` รวมเป็นบรรทัดเดียว ✅ เกิดเฉพาะแถวที่แก้ DB ตรง ๆ ไม่กระทบโครงไฟล์
+
+## คำสั่งที่รัน + ผลจริง (`0c843fa` · ผ่าน shim นอก repo)
+| คำสั่ง | ผล |
+|---|---|
+| `npx vitest run --config <นอก repo> tests/calendar tests/ui/add-to-calendar tests/security tests/appointments/appointments tests/busy/calendar-visibility tests/ops/headers tests/rbac` | ไฟล์ 28 ผ่าน / 2 ล้ม · เทสต์ 3155 ผ่าน / 3 ล้ม / 1 ข้าม |
+| 3 ข้อที่ล้ม | `config-hygiene` 2 ข้อ (CRLF เดิมของเครื่อง) · `tests/calendar/free-time.test.ts` ข้อ `oracle.py` เพราะเครื่องนี้ไม่มี `python3` · branch ไม่แตะไฟล์ทั้งสอง |
+| เทสต์ทดลอง R12.1 นอก repo (mapUrl, tz, ข้อมูลออก, log) | 107 ผ่าน |
+| เทสต์ทดลอง R12 นอก repo: cross-site/audit 15 ข้อ | 15 ผ่าน |
+| เทสต์ทดลอง R12 นอก repo: ชุด oracle/redirect/audit/Google/origin/log | 33 ผ่าน / 1 ล้มตามคาด (ข้อที่บันทึกพฤติกรรมก่อนแก้ Low 2) |
+
+## สิ่งที่ตรวจไม่ได้ (R12.1)
+- e2e บนเบราว์เซอร์และเซิร์ฟเวอร์จริง
+- การอ่าน `TZID`/`VTIMEZONE` และลิงก์ในโน้ตบน iPhone จริง (T2, T3) และแอปปฏิทินอื่น
+- `npm test` ทั้งชุดและ CI
