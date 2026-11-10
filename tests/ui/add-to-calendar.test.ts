@@ -63,9 +63,15 @@ describe('ลิงก์ของ sheet', () => {
     expect(calendarOpenExternalHref('abc')).toBe('/appointments/abc?openExternalBrowser=1');
   });
   it('ลิงก์ Google ไม่มีรายละเอียดนัด (ส่งเฉพาะลิงก์นัดใน details)', () => {
-    const url = new URL(googleCalendarUrl({ id: 'a1', title: 'กินข้าว, เย็น;นี้', placeName: 'ร้าน', startAt: Date.UTC(2026, 10, 12, 12), endAt: Date.UTC(2026, 10, 12, 14), tz: 'Asia/Bangkok', appOrigin: 'https://x.example' }));
+    const url = new URL(googleCalendarUrl({ id: 'a1', title: 'กินข้าว, เย็น;นี้', placeName: 'ร้าน', mapUrl: null, startAt: Date.UTC(2026, 10, 12, 12), endAt: Date.UTC(2026, 10, 12, 14), tz: 'Asia/Bangkok', appOrigin: 'https://x.example' }));
     expect(url.searchParams.get('details')).toBe('https://x.example/appointments/a1');
     expect(url.searchParams.get('text')).toBe('กินข้าว, เย็น;นี้');
+  });
+  it('R12.1: มี mapUrl → details = ลิงก์แผนที่ ขึ้นบรรทัดใหม่ แล้วลิงก์นัด · mapUrl เป็น null → มีแค่ลิงก์นัด', () => {
+    const ev = { id: 'a1', title: 'x', placeName: 'ร้าน', startAt: Date.UTC(2026, 10, 12, 12), endAt: Date.UTC(2026, 10, 12, 14), tz: 'Asia/Bangkok', appOrigin: 'https://x.example' };
+    const map = 'https://www.openstreetmap.org/?mlat=1&mlon=2';
+    expect(new URL(googleCalendarUrl({ ...ev, mapUrl: map })).searchParams.get('details')).toBe(`${map}\nhttps://x.example/appointments/a1`);
+    expect(new URL(googleCalendarUrl({ ...ev, mapUrl: null })).searchParams.get('details')).toBe('https://x.example/appointments/a1');
   });
 });
 

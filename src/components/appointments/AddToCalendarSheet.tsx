@@ -8,7 +8,7 @@ import { googleCalendarUrl } from "@/lib/calendar";
 import { calendarIcsHref, calendarOpenExternalHref, calendarSheetMode, type CalendarOption, type CalendarSheetMode } from "./model";
 
 export interface AddToCalendarSheetProps {
-  appointment: { id: string; title: string; placeName: string | null; startAt: number; endAt: number; tz: string };
+  appointment: { id: string; title: string; placeName: string | null; mapUrl: string | null; startAt: number; endAt: number; tz: string };
   /** origin ของแอป ไม่มี `/` ท้าย (จาก page.tsx) */
   appOrigin: string;
   onClose: () => void;
@@ -39,7 +39,7 @@ export function AddToCalendarSheet({ appointment: a, appOrigin, onClose }: AddTo
     }
     return (
       <div className="cal-add-item" key="google">
-        <a className={cls} href={googleCalendarUrl({ id: a.id, title: a.title, placeName: a.placeName, startAt: a.startAt, endAt: a.endAt, tz: a.tz, appOrigin })} target="_blank" rel="noopener noreferrer" aria-describedby={noteId} data-testid="cal-add-google">
+        <a className={cls} href={googleCalendarUrl({ id: a.id, title: a.title, placeName: a.placeName, mapUrl: a.mapUrl, startAt: a.startAt, endAt: a.endAt, tz: a.tz, appOrigin })} target="_blank" rel="noopener noreferrer" aria-describedby={noteId} data-testid="cal-add-google">
           <Icon name="external-link" />
           <span>{t("google")}</span>
         </a>

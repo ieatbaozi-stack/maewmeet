@@ -21,9 +21,9 @@ export type CalendarEventInput = {
   readonly appOrigin: string;
 };
 
-/** mapUrl ไม่บังคับ: UI ปัจจุบัน (AddToCalendarSheet) เลือกส่งทีละช่อง และยังไม่ส่งช่องนี้ */
+/** mapUrl บังคับส่ง (null = ไม่มี) เพื่อกันลืมส่งจาก UI */
 export type GoogleCalendarInput = Omit<CalendarEventInput, 'mapUrl'> & {
-  readonly mapUrl?: string | null;
+  readonly mapUrl: string | null;
 };
 
 /** ขอบเขตของ Temporal.Instant / Date (±10^8 วัน) */
