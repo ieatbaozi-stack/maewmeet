@@ -42,6 +42,7 @@ type Avail = {
   days: Day[];
   busy: View[];
   truncated: boolean;
+  detailTruncated: boolean;
 };
 
 const url = (g: string, from: string, to = from) => `/api/groups/${g}/availability?from=${from}&to=${to}`;
@@ -161,6 +162,7 @@ describe('ADR 0005 — ข้อมูล T1/T2/T24 ผ่าน API ตรง�
             .strict(),
         ),
         truncated: z.boolean(),
+        detailTruncated: z.boolean(),
       })
       .strict();
     const r = await avail(carol, '2026-11-01', '2026-11-07');
@@ -187,7 +189,7 @@ describe('ADR 0005 — ข้อมูล T1/T2/T24 ผ่าน API ตรง�
     expect(r.data.members.map((m) => m.userId).sort()).toEqual(ids(alice, bob, carol).sort());
     for (const m of r.data.members) expect([m.colorIndex, m.shapeIndex]).toEqual([memberColorIndex(gid, m.userId), memberColorIndex(gid, m.userId)]); // R6C-1
     expect(r.data.members.find((m) => m.userId === bob.id)!.displayName).toBe(bob.displayName);
-    expect([r.data.from, r.data.to, r.data.truncated]).toEqual(['2026-11-01', '2026-11-07', false]);
+    expect([r.data.from, r.data.to, r.data.truncated, r.data.detailTruncated]).toEqual(['2026-11-01', '2026-11-07', false, false]);
     expect(r.headers.get('cache-control')).toBe('private, no-store');
   });
 
@@ -401,15 +403,17 @@ describe('ADR 0006 canary — availability ไม่รั่ว note / title �
     expect(FREE_TIME_MAX_ITEMS).toBeGreaterThan(CALENDAR_MAX_ITEMS);
     await bulkBusy(alice.id, CALENDAR_MAX_ITEMS + 1);
     const over = await avail(bob, '2026-11-20');
-    expect([over.status, over.data.truncated]).toEqual([200, false]);
+    expect([over.status, over.data.truncated, over.data.detailTruncated]).toEqual([200, false, true]); // คำนวณจากครบ · รายละเอียดที่ส่ง (busy[]) ตัดที่ CALENDAR_MAX_ITEMS
+    expect(over.data.busy).toHaveLength(CALENDAR_MAX_ITEMS);
     await h.rows("DELETE FROM busy_block WHERE id LIKE 'cap-%'");
     await bulkBusy(alice.id, FREE_TIME_MAX_ITEMS);
     expect((await avail(bob, '2026-11-20')).data.truncated).toBe(false);
     await h.rows("DELETE FROM busy_block WHERE id LIKE 'cap-%'");
     await bulkBusy(alice.id, FREE_TIME_MAX_ITEMS + 1);
     const r = await avail(bob, '2026-11-20');
-    expect([r.status, r.data.truncated]).toEqual([200, true]);
-    expect((await avail(bob, '2026-11-25')).data.truncated).toBe(false);
+    expect([r.status, r.data.truncated, r.data.detailTruncated]).toEqual([200, true, true]);
+    const quiet = await avail(bob, '2026-11-25');
+    expect([quiet.data.truncated, quiet.data.detailTruncated]).toEqual([false, false]);
   }, 60_000);
 
   it('R14 B11: appointments/check — busy เกิน FREE_TIME_MAX_ITEMS → overlap.status = unknown · พอดีเพดาน → ok', async () => {
