@@ -77,6 +77,7 @@ export {
   commonFreeTime,
   FREE_TIME_MAX_RANGE_DAYS,
   membersBlockedDuring,
+  mergeBusyForFreeTime,
   overlapsRange,
   subtract,
   type AppointmentBlockedMember,

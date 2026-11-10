@@ -38,6 +38,12 @@ export const BUSY_MAX_BACKDATE_DAYS = 7;
 export const CALENDAR_MAX_RANGE_DAYS = 62;
 /** ปฏิทินกลุ่ม: แถว busy สูงสุดต่อคำตอบ (เกิน → truncated: true) */
 export const CALENDAR_MAX_ITEMS = 5000;
+/**
+ * R14 B11 (boss 2026-11-11, R14_CONTRACT §9): เพดานแถวที่ใช้ *คำนวณ* วันว่างร่วม (GET availability) และเตือนนัดทับ (appointments check/create/update)
+ * เกิน → truncated / status 'unknown' · ไม่ใช่จำนวนที่ส่งให้ client: ปฏิทินกลุ่มที่ส่งรายการยังใช้ CALENDAR_MAX_ITEMS
+ * วัด R14: 50 คน × 10 routine ทุกวัน ใน 62 วัน ≈ 31,500 แถว (tests/perf/r14-routine-big-group.test.ts)
+ */
+export const FREE_TIME_MAX_ITEMS = 32_000;
 /** GET /api/me/busy?from&to: แถวสูงสุดต่อคำตอบ (เกิน → truncated: true) */
 export const ME_BUSY_RANGE_MAX_ITEMS = 1000;
 /** แถว busy ที่จบนานกว่านี้ถูก cron รายวันลบถาวร (วัน) — ต้องมากกว่า BUSY_MAX_BACKDATE_DAYS มาก */

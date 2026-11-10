@@ -5,13 +5,15 @@
 //   B  หนักขึ้น: A + ยิม จ. พ. ศ. 06–07 + เสาร์–อาทิตย์ทั้งวัน (4 ชุด/คน)
 //   C  เต็มเพดาน (R14_PERF_HEAVY=1 เท่านั้น — ช้า): 50 คน × 10 ชุด ทุกวัน ช่วง 9 สัปดาห์ (ไม่เกิน 1,500 แถว/คน)
 // ผล: console (ตาราง) · R14_PERF_OUT=<ไฟล์> → JSON · เวลา = มัธยฐาน 5 รอบหลัง warm-up 1 รอบ (เครื่อง dev + libSQL ไฟล์ — ไม่ใช่ Turso)
-// เกณฑ์ที่ assert: A ต้องไม่ truncated ทุกเส้นทาง (R14-6 "ไม่ถูกตัดในกรณีที่ตกลง") · B/C บันทึกตัวเลขเท่านั้น
+// เกณฑ์ที่ assert: A ต้องไม่ truncated ทุกเส้นทาง (R14-6) · B (R14 B11, boss 2026-11-11): ว่างตรงกัน/check ไม่ถูกตัด (เพดานคำนวณ FREE_TIME_MAX_ITEMS 32,000
+//   + รวมช่วงของคนเดียวกันก่อนคำนวณ) — ปฏิทินกลุ่มที่ส่งรายการยังใช้ CALENDAR_MAX_ITEMS 5,000 · C บันทึกตัวเลข
+// mergedRows = ชิ้นที่ป้อน commonFreeTime หลัง mergeBusyForFreeTime (เฉพาะเส้นทางว่างตรงกัน)
 import { writeFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createRoutine, type CreateRoutineInput } from '@/lib/data/services/busy-routines';
 import type { DataCtx } from '@/lib/data/context';
-import { CALENDAR_MAX_ITEMS } from '@/lib/shared/limits';
-import { addDays, startOfDay } from '@/lib/calendar';
+import { CALENDAR_MAX_ITEMS, FREE_TIME_MAX_ITEMS } from '@/lib/shared/limits';
+import { addDays, mergeBusyForFreeTime, startOfDay } from '@/lib/calendar';
 import { AVAILABILITY_FETCH_MARGIN_MS } from '@/lib/data/services/availability';
 import { newId } from '@/lib/shared/id';
 import type { UserActor } from '@/lib/rbac/types';
@@ -32,6 +34,8 @@ type Result = {
   route: string;
   days: number;
   busyRowsInDb: number;
+  mergedRows: number | null;
+  cap: number;
   itemsReturned: number;
   truncated: boolean;
   pctOfCap: number;
@@ -114,6 +118,17 @@ async function measure(h: Harness, viewer: Person, gid: string, scenario: string
     const margin = r.route === 'GET calendar' ? 0 : AVAILABILITY_FETCH_MARGIN_MS;
     const fromMs = startOfDay(r.fromDate, 'Asia/Bangkok') - margin;
     const toMs = startOfDay(addDays(r.toDate, 1), 'Asia/Bangkok') + margin;
+    const cap = r.route === 'GET calendar' ? CALENDAR_MAX_ITEMS : FREE_TIME_MAX_ITEMS;
+    let mergedRows: number | null = null;
+    if (r.route === 'GET availability') {
+      const raw = await h.rows<{ id: string; user_id: string; all_day: number; start_at: number; end_at: number; local_start_date: string; local_end_date: string }>(
+        'SELECT b.id, b.user_id, b.all_day, b.start_at, b.end_at, b.local_start_date, b.local_end_date FROM busy_block b JOIN group_member gm ON gm.user_id = b.user_id WHERE gm.group_id = ? AND b.start_at < ? AND b.end_at > ?',
+        [gid, toMs, fromMs],
+      );
+      mergedRows = mergeBusyForFreeTime(
+        raw.map((x) => ({ id: x.id, userId: x.user_id, allDay: x.all_day === 1, startAt: x.start_at, endAt: x.end_at, localStartDate: x.local_start_date, localEndDate: x.local_end_date })),
+      ).length;
+    }
     const [cnt] = await h.rows<{ n: number }>(
       'SELECT count(*) AS n FROM busy_block b JOIN group_member gm ON gm.user_id = b.user_id WHERE gm.group_id = ? AND b.start_at < ? AND b.end_at > ?',
       [gid, toMs, fromMs],
@@ -145,9 +160,11 @@ async function measure(h: Harness, viewer: Person, gid: string, scenario: string
       route: r.route,
       days: r.days,
       busyRowsInDb: Number(cnt!.n),
+      mergedRows,
+      cap,
       itemsReturned: r.check ? data.overlap!.blocked.length : data.busy!.length,
       truncated,
-      pctOfCap: r1((Number(cnt!.n) / CALENDAR_MAX_ITEMS) * 100),
+      pctOfCap: r1((Number(cnt!.n) / cap) * 100),
       queries,
       dbMsMedian: r1(median(dbs)),
       totalMsMedian: r1(median(totals)),
@@ -185,7 +202,7 @@ describe('R14 perf — กลุ่ม 50 คน กับ routine', () => {
       const mine = results.filter((r) => r.scenario === 'A');
       expect(mine).toHaveLength(4);
       for (const r of mine) expect(r.truncated, `${r.route} ${r.days}d`).toBe(false);
-      for (const r of mine) expect(r.busyRowsInDb).toBeLessThan(CALENDAR_MAX_ITEMS);
+      for (const r of mine) expect(r.busyRowsInDb).toBeLessThan(r.cap);
     }, 600_000);
   });
 
@@ -210,9 +227,11 @@ describe('R14 perf — กลุ่ม 50 คน กับ routine', () => {
       await h?.cleanup();
     });
 
-    it('บันทึกตัวเลข (ไม่ assert truncated)', async () => {
+    it('ว่างตรงกัน 42/62 วัน และ check ไม่ถูกตัด (B11) · ปฏิทิน 42 วันบันทึกตัวเลข', async () => {
       await measure(h, viewer, gid, 'B');
-      expect(results.filter((r) => r.scenario === 'B')).toHaveLength(4);
+      const mine = results.filter((r) => r.scenario === 'B');
+      expect(mine).toHaveLength(4);
+      for (const r of mine.filter((x) => x.route !== 'GET calendar')) expect(r.truncated, `${r.route} ${r.days}d`).toBe(false);
     }, 600_000);
   });
 

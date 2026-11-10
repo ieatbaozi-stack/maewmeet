@@ -23,10 +23,12 @@ export async function loadMemberBusy(
   fromMs: number,
   toMs: number,
   excludeAppointmentId?: string,
+  /** เพดานแถวต่อแหล่ง (busy / going) — ปฏิทินที่ส่งรายการ = CALENDAR_MAX_ITEMS (ดีฟอลต์) · ทางคำนวณ = FREE_TIME_MAX_ITEMS (R14 B11) */
+  max: number = CALENDAR_MAX_ITEMS,
 ): Promise<{ items: MemberBusyItem[]; truncated: boolean }> {
   const [busy, going] = await Promise.all([
-    listSharedBusyInGroup(db, groupId, fromMs, toMs, CALENDAR_MAX_ITEMS),
-    listGoingBusyInGroup(db, groupId, fromMs, toMs, CALENDAR_MAX_ITEMS, excludeAppointmentId),
+    listSharedBusyInGroup(db, groupId, fromMs, toMs, max),
+    listGoingBusyInGroup(db, groupId, fromMs, toMs, max, excludeAppointmentId),
   ]);
   const items: MemberBusyItem[] = busy.rows.map((r) => ({ key: r.id, input: r, view: toBusyForViewers(r) }));
   mergeOtherGroupViews(going.rows.map(toGoingForViewers)).forEach((view, i) => {
