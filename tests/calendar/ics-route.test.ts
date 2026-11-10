@@ -341,13 +341,43 @@ describe('เนื้อหาไฟล์', () => {
     expect(text).toContain(`URL:${ORIGIN}/appointments/${other.id}\r\n`);
   });
 
-  it('R13-5: ป้ายตามภาษาในบัญชีของผู้ดาวน์โหลด (en) ไม่ใช่ของผู้สร้างนัด', async () => {
-    await h.rows("UPDATE user SET locale = 'en' WHERE id = ?", [w.c.id]);
-    const en = unfolded((await ics(w.c.c, ap.id)).text);
-    expect(en).toContain(`DESCRIPTION:Map: ${FULL.mapUrl}\\nSee the plan in maewmeet: ${ORIGIN}/appointments/${ap.id}\r\n`);
-    expect(en).toContain(`URL:${FULL.mapUrl}\r\n`);
-    // ผู้ใช้อื่นที่ยังเป็น th ได้ป้ายไทย
-    expect(unfolded((await ics(w.a.c, ap.id)).text)).toContain(`DESCRIPTION:แผนที่: ${FULL.mapUrl}\\nดูนัดในแมวเจอกัน: `);
+  describe('R13-5 ภาษาของป้าย: คุกกี้ mm_locale ของคำขอ → user.locale → th', () => {
+    const EN_DESC = () => `DESCRIPTION:Map: ${FULL.mapUrl}\\nSee the plan in maewmeet: ${ORIGIN}/appointments/${ap.id}\r\n`;
+    const TH_DESC = () => `DESCRIPTION:แผนที่: ${FULL.mapUrl}\\nดูนัดในแมวเจอกัน: ${ORIGIN}/appointments/${ap.id}\r\n`;
+    /** ตั้ง/ลบคุกกี้ภาษาในโถของ client (login ตั้ง mm_locale = user.locale ไว้แล้ว) */
+    const setLocaleCookie = (c: Client, v: string | null) => (v === null ? c.jar.delete('mm_locale') : c.jar.set('mm_locale', v));
+
+    it('คุกกี้ en + user.locale th → ป้าย en (สลับภาษาหลังสมัคร /api/prefs ไม่บันทึก user.locale)', async () => {
+      setLocaleCookie(w.c.c, 'en');
+      const text = unfolded((await ics(w.c.c, ap.id)).text);
+      expect(text).toContain(EN_DESC());
+      expect(text).toContain(`URL:${FULL.mapUrl}\r\n`);
+    });
+
+    it('คุกกี้ th + user.locale en → ป้าย th (คุกกี้ชนะ)', async () => {
+      await h.rows("UPDATE user SET locale = 'en' WHERE id = ?", [w.c.id]);
+      setLocaleCookie(w.c.c, 'th');
+      expect(unfolded((await ics(w.c.c, ap.id)).text)).toContain(TH_DESC());
+    });
+
+    it('ไม่มีคุกกี้ → ใช้ user.locale (en) ของผู้ดาวน์โหลด ไม่ใช่ของผู้สร้างนัด', async () => {
+      await h.rows("UPDATE user SET locale = 'en' WHERE id = ?", [w.c.id]);
+      setLocaleCookie(w.c.c, null);
+      setLocaleCookie(w.a.c, null);
+      expect(unfolded((await ics(w.c.c, ap.id)).text)).toContain(EN_DESC());
+      expect(unfolded((await ics(w.a.c, ap.id)).text)).toContain(TH_DESC());
+    });
+
+    it.each(['fr', 'EN', '', '%65n', ' th-TH'])('คุกกี้ค่าผิด %j → ใช้ user.locale (en)', async (bad) => {
+      await h.rows("UPDATE user SET locale = 'en' WHERE id = ?", [w.c.id]);
+      setLocaleCookie(w.c.c, bad);
+      expect(unfolded((await ics(w.c.c, ap.id)).text)).toContain(EN_DESC());
+    });
+
+    it('คุกกี้ค่าผิด + user.locale th → th', async () => {
+      setLocaleCookie(w.c.c, 'fr');
+      expect(unfolded((await ics(w.c.c, ap.id)).text)).toContain(TH_DESC());
+    });
   });
 
   it('R12.1-4: แถวเก่าใน DB ที่ mapUrl ไม่ใช่ https ไม่ถูกใส่ (ทั้ง DESCRIPTION และ URL)', async () => {

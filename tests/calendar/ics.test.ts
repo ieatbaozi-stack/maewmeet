@@ -10,7 +10,7 @@ import {
   type CalendarEventInput,
   type CalendarLinkLabels,
 } from '@/lib/calendar';
-import { calendarLinkLabels } from '@/lib/data/calendar-labels';
+import { calendarLinkLabels, localeFromCookie, resolveCalendarLocale } from '@/lib/data/calendar-labels';
 import en from '../../messages/en.json';
 import th from '../../messages/th.json';
 
@@ -331,6 +331,29 @@ describe('R13 §1.4 ลิงก์แผนที่ + ป้าย (แทน 
 
     it.each([null, undefined])('ไม่มีภาษา (%j) = ไทย', (locale) => {
       expect(calendarLinkLabels(locale)).toEqual(LABELS_TH);
+    });
+
+    const req = (cookie?: string) => new Request('https://maewmeet.test/x', cookie === undefined ? {} : { headers: { cookie } });
+    it.each([
+      ['mm_locale=en', 'en'],
+      ['a=1; mm_locale=th; b=2', 'th'],
+      ['mm_locale=fr', null],
+      ['mm_locale=EN', null],
+      ['mm_locale=', null],
+      ['other=en', null],
+      [undefined, null],
+    ] as const)('localeFromCookie(%j) = %j', (cookie, expected) => {
+      expect(localeFromCookie(req(cookie))).toBe(expected);
+    });
+
+    it.each([
+      ['en', 'th', 'en'],
+      ['th', 'en', 'th'],
+      [null, 'en', 'en'],
+      [null, null, 'th'],
+      [null, undefined, 'th'],
+    ] as const)('resolveCalendarLocale(คุกกี้ %j, บัญชี %j) = %j', (cookie, account, expected) => {
+      expect(resolveCalendarLocale(cookie, account)).toBe(expected);
     });
   });
 
