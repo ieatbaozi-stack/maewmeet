@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { ROUTE_MANIFEST } from '@/app/api/_lib/manifest';
 import { sharedBusyInGroupQuery } from '@/lib/data/repos/busy';
 import { availabilityFetchRange, AVAILABILITY_FETCH_MARGIN_MS } from '@/lib/data/services/availability';
+import { CALENDAR_MAX_ITEMS, FREE_TIME_MAX_ITEMS } from '@/lib/shared/limits';
 import { memberColorIndex } from '@/lib/shared/member-color';
 import { Client, call, del, get, join, makeGroup, patch, person, post, setupHarness, type Harness, type Person } from '../groups/harness';
 
@@ -389,23 +390,40 @@ describe('ADR 0006 canary — availability ไม่รั่ว note / title �
     for (const d of refs) expect(d.blockers).toEqual([{ userId: bob.id, itemIdx: [0] }]);
   });
 
-  it('เกินเพดานแถว → truncated=true และยังตอบ 200 (ใช้เพดานเดียวกับปฏิทิน)', async () => {
-    const t0 = Date.UTC(2026, 10, 20, 2);
-    const stmts: string[] = [];
-    const args: (string | number)[] = [];
-    for (let i = 0; i < 5001; i++) {
-      stmts.push("(?, ?, NULL, NULL, 0, ?, ?, '2026-11-20', '2026-11-20', 'Asia/Bangkok', 0, 1, 1)");
-      args.push(`7b0f6b5e-8f55-4a3e-9c1d-${String(i).padStart(12, '0')}`, alice.id, t0 + i * 10_000, t0 + i * 10_000 + 5_000);
-      if (stmts.length === 500 || i === 5000) {
-        await h.rows(`INSERT INTO busy_block (id, user_id, title, note, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at) VALUES ${stmts.join(',')}`, args);
-        stmts.length = 0;
-        args.length = 0;
-      }
-    }
+  /** แทรก n แถว busy ของ owner ใน 2026-11-20 (09:00 BKK เป็นต้นไป · เริ่มไม่ซ้ำ · เว้น 1 วินาที — 32,001 แถวยังอยู่ในวันเดียว) ด้วย recursive CTE ครั้งเดียว */
+  const bulkBusy = (ownerId: string, n: number) =>
+    h.rows(
+      `WITH RECURSIVE c(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM c WHERE n < ${n}) INSERT INTO busy_block (id, user_id, title, note, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at) SELECT 'cap-' || printf('%06d', n), ?, NULL, NULL, 0, ? + n * 1000, ? + n * 1000 + 500, '2026-11-20', '2026-11-20', 'Asia/Bangkok', 0, 1, 1 FROM c`,
+      [ownerId, Date.UTC(2026, 10, 20, 2), Date.UTC(2026, 10, 20, 2)],
+    );
+
+  it('R14 B11: availability ใช้เพดานคำนวณ FREE_TIME_MAX_ITEMS — CALENDAR_MAX_ITEMS+1 แถว → truncated=false · พอดีเพดาน → false · FREE_TIME_MAX_ITEMS+1 → true (ยังตอบ 200)', async () => {
+    expect(FREE_TIME_MAX_ITEMS).toBeGreaterThan(CALENDAR_MAX_ITEMS);
+    await bulkBusy(alice.id, CALENDAR_MAX_ITEMS + 1);
+    const over = await avail(bob, '2026-11-20');
+    expect([over.status, over.data.truncated]).toEqual([200, false]);
+    await h.rows("DELETE FROM busy_block WHERE id LIKE 'cap-%'");
+    await bulkBusy(alice.id, FREE_TIME_MAX_ITEMS);
+    expect((await avail(bob, '2026-11-20')).data.truncated).toBe(false);
+    await h.rows("DELETE FROM busy_block WHERE id LIKE 'cap-%'");
+    await bulkBusy(alice.id, FREE_TIME_MAX_ITEMS + 1);
     const r = await avail(bob, '2026-11-20');
     expect([r.status, r.data.truncated]).toEqual([200, true]);
     expect((await avail(bob, '2026-11-25')).data.truncated).toBe(false);
-  });
+  }, 60_000);
+
+  it('R14 B11: appointments/check — busy เกิน FREE_TIME_MAX_ITEMS → overlap.status = unknown · พอดีเพดาน → ok', async () => {
+    const slot = { startDate: '2026-11-20', startTime: '09:00', endDate: '2026-11-20', endTime: '10:00' };
+    const check = () => post<{ overlap: { status: string; blocked: unknown[] } }>(bob.c, `/api/groups/${gid}/appointments/check`, slot);
+    await bulkBusy(alice.id, FREE_TIME_MAX_ITEMS);
+    const exact = await check();
+    expect([exact.status, exact.data.overlap.status]).toEqual([200, 'ok']);
+    expect(exact.data.overlap.blocked).toHaveLength(1);
+    await h.rows("DELETE FROM busy_block WHERE id LIKE 'cap-%'");
+    await bulkBusy(alice.id, FREE_TIME_MAX_ITEMS + 1);
+    const over = await check();
+    expect([over.status, over.data.overlap.status]).toEqual([200, 'unknown']);
+  }, 60_000);
 });
 
 describe('M1/M3 — ขนาด response ไม่พองตามจำนวนวัน', () => {
