@@ -316,17 +316,40 @@ describe('R12-4 header', () => {
 });
 
 describe('เนื้อหาไฟล์', () => {
-  it('มีเวลา/ชื่อ/สถานที่/ลิงก์ · §6 ไม่มีรายละเอียด/พิกัด/ลิงก์แผนที่/ชื่อกลุ่ม/ชื่อสมาชิก', async () => {
+  it('มีเวลา/ชื่อ/สถานที่/ลิงก์นัด/ลิงก์แผนที่ · ไม่มีรายละเอียด/lat-lng แยก/ชื่อกลุ่ม/ชื่อสมาชิก', async () => {
     const text = unfolded((await ics(w.c.c, ap.id)).text);
     expect(text).toContain(`UID:${ap.id}@maewmeet\r\n`);
-    expect(text).toContain('DTSTART:20261024T030000Z\r\n'); // 10:00 กรุงเทพฯ
-    expect(text).toContain('DTEND:20261024T040000Z\r\n');
+    expect(text).toContain('DTSTART;TZID=Asia/Bangkok:20261024T100000\r\n'); // tz ของนัด
+    expect(text).toContain('DTEND;TZID=Asia/Bangkok:20261024T110000\r\n');
+    expect(text).toContain('TZID:Asia/Bangkok\r\n');
+    expect(text).toContain('TZOFFSETTO:+0700\r\n');
     expect(text).toContain('DTSTAMP:20261018T030000Z\r\n'); // now ของ request จาก clock
     expect(text).toContain(`SUMMARY:${TITLE}\r\n`);
     expect(text).toContain(`LOCATION:${PLACE}\r\n`);
-    expect(text).toContain(`DESCRIPTION:${ORIGIN}/appointments/${ap.id}\r\n`);
+    expect(text).toContain(`DESCRIPTION:${FULL.mapUrl}\\n${ORIGIN}/appointments/${ap.id}\r\n`);
     expect(text).toContain(`URL:${ORIGIN}/appointments/${ap.id}\r\n`);
-    expect(text).not.toMatch(/CANARY-DESC|13\.1234|100\.5678|openstreetmap|ก๊วนแมว|ชื่อ bob|ชื่อ alice/);
+    expect(text).not.toMatch(/^GEO/m);
+    // พิกัดมีได้เฉพาะในลิงก์แผนที่ · ตัดลิงก์ออกแล้วต้องไม่เหลือ
+    expect(text.split(FULL.mapUrl).join('')).not.toMatch(/CANARY-DESC|13\.1234|100\.5678|openstreetmap|ก๊วนแมว|ชื่อ bob|ชื่อ alice/);
+  });
+
+  it('R12.1-3: นัดไม่มีลิงก์แผนที่ DESCRIPTION มีแค่ลิงก์นัด', async () => {
+    const other = await mustCreate(w.b, w.gid);
+    expect(unfolded((await ics(w.c.c, other.id)).text)).toContain(`DESCRIPTION:${ORIGIN}/appointments/${other.id}\r\n`);
+  });
+
+  it('R12.1-4: แถวเก่าใน DB ที่ mapUrl ไม่ใช่ https ไม่ถูกใส่', async () => {
+    await h.rows('UPDATE appointment SET map_url = ? WHERE id = ?', ['javascript:alert(1)', ap.id]);
+    const text = unfolded((await ics(w.c.c, ap.id)).text);
+    expect(text).toContain(`DESCRIPTION:${ORIGIN}/appointments/${ap.id}\r\n`);
+    expect(text).not.toContain('javascript');
+  });
+
+  it('R12.1-6: ใช้ tz ของแถวนัด ไม่ใช่ค่าตายตัว', async () => {
+    await h.rows('UPDATE appointment SET tz = ? WHERE id = ?', ['Asia/Tokyo', ap.id]);
+    const text = unfolded((await ics(w.c.c, ap.id)).text);
+    expect(text).toContain('DTSTART;TZID=Asia/Tokyo:20261024T120000\r\n');
+    expect(text).toContain('TZOFFSETTO:+0900\r\n');
   });
 
   it('ไม่มีสถานที่ = ไม่มีบรรทัด LOCATION', async () => {
