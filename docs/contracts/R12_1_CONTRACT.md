@@ -59,7 +59,7 @@ Subscribe/feed · เลือกปฏิทินปลายทาง · จ�
 | ops | `CHANGELOG.md` ส่วน Unreleased |
 | qa, security | ตรวจอิสระ (กฎ 5) · รายงานต่อท้าย `docs/reports/qa-r12.md`, `security-r12.md` |
 
-`frontend` ไม่ต้องทำงาน เพราะ `googleCalendarUrl({ ...a, appOrigin })` ส่ง DTO ทั้งก้อนอยู่แล้ว ถ้า type หรือ UI ต้องแก้ ให้แจ้ง main
+`frontend`: `AddToCalendarSheet.tsx` เลือกส่งทีละช่อง จึงต้องเพิ่ม `mapUrl` และเทสต์ · main มอบให้แก้ `GoogleCalendarInput.mapUrl` ใน `ics.ts` เป็น required บรรทัดเดียวด้วย
 
 ## 4. เกณฑ์ผ่าน
 | # | เกณฑ์ | วิธีตรวจ |
