@@ -130,3 +130,8 @@
 - **L1:** `setOwnRoutineEndGuarded` / `deleteOwnRoutine` ตรวจบัญชี active ในคำสั่งเดียวกับการเขียน
 - **Info 2:** "วันนี้" ตอนแก้คิดจาก tz เดิมของ routine ไม่ใช่ tz ใหม่ในคำขอ (ไม่ลบแถวเมื่อวาน)
 - ข้อ qa 3 (หยุดตั้งแต่วันนี้ลบแถววันนี้ที่จบไปแล้ว) ยอมรับ · ux ระบุในข้อความ R14b
+
+## 11. main มอบเพิ่มใน R14b (2026-11-11, R14a merge แล้ว PR #32 · migration 0005 รันครบ preview + prod)
+- **platform:** แก้บั๊ก `GET /api/me/busy-routines` คืน `remaining = 0` เสมอ (subquery ใน `listOwnRoutines` อ้างคอลัมน์ไม่ระบุตาราง) + เทสต์ · บั๊กนี้อยู่บน production แล้วแต่ยังไม่มี UI เรียก
+- **ux:** คีย์ที่ frontend ขอ (`busy.routine.mine.deleteAria`, `busy.routine.mine.truncated`) · ตัดสินรูปชื่อเดือน (ยาว vs "พ.ย. 2569") · ตรวจไอคอน `repeat` และเพิ่มใน `docs/design/tools/lucide-icons.json` · ตรวจภาพหน้าจอของ frontend
+- ป้าย "ประจำ" ไม่แสดงในมุมมองว่างตรงกัน (ยอมรับ ไม่ยิงคำขอเพิ่ม)
