@@ -457,9 +457,10 @@ export function formStateOfRoutine(r: RoutineView, scope: EditScope, periodStart
     endTime: r.endTime ?? "10:00",
     rangeKind: r.rangeKind,
     fromWeek: r.rangeKind === "weeks" ? start : base.fromWeek,
-    toWeek: r.rangeKind === "weeks" ? startOfWeek(r.endDate) : base.toWeek,
+    // ต่ออายุชุดที่จบแล้ว: วันจบเดิมอยู่ก่อน "ตั้งแต่" → ตั้ง "ถึง" = "ตั้งแต่" (ไม่เปิดมาพร้อม error ช่วงกลับด้าน)
+    toWeek: r.rangeKind === "weeks" ? (startOfWeek(r.endDate) < start ? start : startOfWeek(r.endDate)) : base.toWeek,
     fromMonth: r.rangeKind === "months" ? ymOf(start) : base.fromMonth,
-    toMonth: r.rangeKind === "months" ? ymOf(r.endDate) : base.toMonth,
+    toMonth: r.rangeKind === "months" ? (ymOf(r.endDate) < ymOf(start) ? ymOf(start) : ymOf(r.endDate)) : base.toMonth,
     title: r.title ?? "",
     note: r.note ?? "",
     hideDetail: r.hidden,

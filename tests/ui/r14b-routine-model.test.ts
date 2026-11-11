@@ -273,6 +273,12 @@ describe('routine จากเซิร์ฟเวอร์ → ฟอร์ม
     expect(s).toMatchObject({ rangeKind: 'weeks', fromWeek: '2026-11-09', toWeek: '2026-12-21', weekdays: [1, 2, 3, 4, 5], startTime: '09:00', endTime: '18:00', title: 'ทำงาน' });
     expect(formStateOfRoutine(routine({ startDate: '2026-12-07', endDate: '2027-01-31' }), 'all', '2026-12-07', TODAY).fromWeek).toBe('2026-12-07');
   });
+  it('ต่ออายุชุดที่จบแล้ว: "ถึง" ไม่อยู่ก่อน "ตั้งแต่" (ไม่เปิดมาพร้อม error) · ทั้งสัปดาห์และเดือน', () => {
+    const w = formStateOfRoutine(routine({ startDate: '2026-10-12', endDate: '2026-11-08' }), 'all', '2026-11-09', TODAY);
+    expect(w).toMatchObject({ fromWeek: '2026-11-09', toWeek: '2026-11-09' });
+    const m = formStateOfRoutine(routine({ rangeKind: 'months', startDate: '2026-09-01', endDate: '2026-10-31', allDay: true, startTime: null, endTime: null }), 'all', '2026-11-01', TODAY);
+    expect(m).toMatchObject({ fromMonth: '2026-11', toMonth: '2026-11' });
+  });
   it('แก้ตั้งแต่ช่วงที่เลือก: "ตั้งแต่" = ช่วงนั้น · เดือน → YYYY-MM', () => {
     expect(formStateOfRoutine(routine(), 'from', '2026-11-23', TODAY).fromWeek).toBe('2026-11-23');
     const m = routine({ rangeKind: 'months', startDate: '2026-11-01', endDate: '2027-01-31', allDay: true, startTime: null, endTime: null });
