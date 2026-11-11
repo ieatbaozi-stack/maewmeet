@@ -1,7 +1,7 @@
 // อัลกอริทึมหาวันว่างร่วม — ADR 0005 §1–2, §4 · R4A_CONTRACT §2
 // pure: รับ array เข้า คืนค่าออก · ไม่แตะ DB/HTTP/นาฬิกา · ไม่กรองรายละเอียดตาม ADR 0006 (หน้าที่ของ serializer ฝั่ง Platform)
 import { failIf } from './errors';
-import { compareDates, daysBetween, eachDate, toPlainDate } from './date';
+import { addDays, compareDates, daysBetween, eachDate, toPlainDate } from './date';
 import { assertTimeZone, dayWindow, toLocal } from './zone';
 import { MINUTES_PER_DAY, type DateISO, type EpochMs } from './constants';
 
@@ -182,6 +182,64 @@ export function commonFreeTime(
     });
   }
   return result;
+}
+
+/**
+ * R14 B11 (ค): รวมช่วงที่ทับ/ชนขอบของสมาชิกคนเดียวกันก่อนป้อน commonFreeTime — ลดจำนวนชิ้น (routine หลายชุดในวันเดียว)
+ * timed: ยูเนียนของช่วงครึ่งเปิดที่ start ≤ end ของช่วงก่อนหน้า (ชนขอบรวมได้ — ยูเนียนเท่าเดิม) · ยาวศูนย์/กลับด้านถูกทิ้ง (commonFreeTime เมินอยู่แล้ว)
+ * all-day: ช่วงวันที่ลอยที่ทับหรือติดกัน (วันถัดไป) รวมเป็นช่วงเดียว
+ * ผลของ commonFreeTime (segments, freeMembers, freeMemberIds, allFree, สมาชิกใน blockers) เท่าเดิมทุกกรณี · ต่างแค่ blockers[].blocks ที่เป็นชิ้นที่รวมแล้ว
+ * → ใช้เฉพาะทางคำนวณ ห้ามใช้ผลนี้แทนรายการที่ส่งให้ผู้ใช้ · id ของชิ้นที่รวม = 'm:<userId>:<ลำดับ>' (ภายในเท่านั้น)
+ */
+export function mergeBusyForFreeTime(blocks: readonly BusyInput[]): BusyInput[] {
+  const timedBy = new Map<string, BusyInput[]>();
+  const allDayBy = new Map<string, BusyInput[]>();
+  for (const b of blocks) {
+    const by = b.allDay ? allDayBy : timedBy;
+    if (!b.allDay && !(b.endAt > b.startAt)) continue;
+    const list = by.get(b.userId);
+    if (list) list.push(b);
+    else by.set(b.userId, [b]);
+  }
+  const out: BusyInput[] = [];
+  let n = 0;
+  const push = (userId: string, v: Omit<BusyInput, 'id' | 'userId'>) => out.push({ id: `m:${userId}:${n++}`, userId, ...v });
+  for (const [userId, list] of timedBy) {
+    list.sort((a, b) => a.startAt - b.startAt || a.endAt - b.endAt);
+    let cur: { startAt: EpochMs; endAt: EpochMs } | null = null;
+    const flush = () => {
+      if (cur) push(userId, { allDay: false, startAt: cur.startAt, endAt: cur.endAt, localStartDate: '', localEndDate: '' });
+    };
+    for (const b of list) {
+      if (cur && b.startAt <= cur.endAt) {
+        if (b.endAt > cur.endAt) cur.endAt = b.endAt;
+        continue;
+      }
+      flush();
+      cur = { startAt: b.startAt, endAt: b.endAt };
+    }
+    flush();
+  }
+  for (const [userId, list] of allDayBy) {
+    list.sort((a, b) => (a.localStartDate < b.localStartDate ? -1 : a.localStartDate > b.localStartDate ? 1 : 0));
+    let cur: { s: DateISO; e: DateISO; startAt: EpochMs; endAt: EpochMs } | null = null;
+    const flush = () => {
+      if (cur) push(userId, { allDay: true, startAt: cur.startAt, endAt: cur.endAt, localStartDate: cur.s, localEndDate: cur.e });
+    };
+    for (const b of list) {
+      if (cur && b.localStartDate <= addDays(cur.e, 1)) {
+        if (b.localEndDate > cur.e) {
+          cur.e = b.localEndDate;
+          cur.endAt = Math.max(cur.endAt, b.endAt);
+        }
+        continue;
+      }
+      flush();
+      cur = { s: b.localStartDate, e: b.localEndDate, startAt: b.startAt, endAt: b.endAt };
+    }
+    flush();
+  }
+  return out;
 }
 
 export interface AppointmentBlockedMember {

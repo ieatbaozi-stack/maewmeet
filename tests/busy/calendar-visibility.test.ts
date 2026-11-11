@@ -403,7 +403,7 @@ describe('ADR 0006 test 8–9 — ระดับชนิดข้อมูล 
     // title ว่างหลังทำความสะอาด → ไม่มีฟิลด์
     expect('title' in toBusyForViewers({ ...row, title: '​' } as never)).toBe(false);
     expect(Object.keys(toBusyOwnView({ ...row, hideDetail: true, createdAt: 1, updatedAt: 1 } as never)).sort()).toEqual(
-      ['allDay', 'endAt', 'hidden', 'id', 'localEndDate', 'localStartDate', 'note', 'seriesId', 'startAt', 'title', 'tz', 'userId'], // R6F (ADR 0010 §6): + seriesId (เจ้าของเท่านั้น)
+      ['allDay', 'endAt', 'hidden', 'id', 'localEndDate', 'localStartDate', 'note', 'routineId', 'seriesId', 'startAt', 'title', 'tz', 'userId'], // R6F (ADR 0010 §6): + seriesId (เจ้าของเท่านั้น)
     );
   });
 
@@ -440,7 +440,7 @@ describe('ADR 0006 test 8–9 — ระดับชนิดข้อมูล 
 
   it('ไม่มี endpoint รับ user id ของคนอื่นแล้วคืน busy: manifest ไม่มี path /users/:id/busy และ busy ออกได้เฉพาะ /me/busy กับ /groups/:gid/calendar', () => {
     const busyish = ROUTE_MANIFEST.filter((e) => /busy|calendar/.test(e.path) && e.path !== '/api/appointments/:id/calendar.ics').map((e) => e.path);
-    expect([...new Set(busyish)].sort()).toEqual(['/api/groups/:gid/calendar', '/api/me/busy', '/api/me/busy/:id']);
+    expect([...new Set(busyish)].sort()).toEqual(['/api/groups/:gid/calendar', '/api/me/busy', '/api/me/busy-routines', '/api/me/busy-routines/:id', '/api/me/busy/:id']); // R14: routine = owner-only (/api/me/*)
   });
 });
 

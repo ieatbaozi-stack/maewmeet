@@ -6,6 +6,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
   appointmentRsvp,
   busyBlock,
+  busyRoutine,
   groupInvite,
   groupMember,
   lineLinkCode,
@@ -74,6 +75,8 @@ export type PurgeCounts = {
   sessions: number;
   memberships: number;
   busy: number;
+  /** R14: กฎ busy_routine (แถวของ routine นับใน busy แล้ว) */
+  routines: number;
   rsvps: number;
   notifications: number;
   invitesRevoked: number;
@@ -121,6 +124,8 @@ export async function purgeDeletedUserFootprint(
   const sessions = await db.delete(session).where(eq(session.userId, userId)).returning({ id: session.id });
   const memberships = await db.delete(groupMember).where(eq(groupMember.userId, userId)).returning({ g: groupMember.groupId });
   const busy = await db.delete(busyBlock).where(eq(busyBlock.userId, userId)).returning({ id: busyBlock.id });
+  // R14 (ADR 0012 §8): บัญชีถูก anonymize ไม่ได้ลบแถว user → FK cascade จาก user ไม่ทำงาน · ลบกฎ routine เอง (skip ตาม FK cascade ของ busy_routine)
+  const routines = await db.delete(busyRoutine).where(eq(busyRoutine.userId, userId)).returning({ id: busyRoutine.id });
   const rsvps = await db.delete(appointmentRsvp).where(eq(appointmentRsvp.userId, userId)).returning({ a: appointmentRsvp.appointmentId });
   await db.delete(notificationOutbox).where(eq(notificationOutbox.userId, userId));
   await db.delete(lineLinkCode).where(eq(lineLinkCode.userId, userId));
@@ -148,6 +153,7 @@ export async function purgeDeletedUserFootprint(
     sessions: sessions.length,
     memberships: memberships.length,
     busy: busy.length,
+    routines: routines.length,
     rsvps: rsvps.length,
     notifications: notifications.length,
     invitesRevoked: invitesRevoked.length,

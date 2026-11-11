@@ -32,8 +32,11 @@ export type OtherGroupBusyView = { kind: 'other_group_appointment'; userId: stri
 /** ชิ้นเดียวใน busy[] ของปฏิทิน/วันว่าง/เตือนนัดทับ */
 export type MemberBusyView = BusySharedView | BusyHiddenView | AppointmentBusyView | OtherGroupBusyView;
 export type MemberBusyKind = MemberBusyView['kind'];
-/** เจ้าของเห็นครบ · R6F: seriesId (ชุดรายวัน · null = รายการเดี่ยว) — **เจ้าของเท่านั้น** ไม่อยู่ใน BUSY_SHARED_FIELDS (ADR 0010 §6) */
-export type BusyOwnView = BusyBase & { title: string | null; note: string | null; hidden: boolean; seriesId: string | null };
+/**
+ * เจ้าของเห็นครบ · R6F: seriesId (ชุดรายวัน · null = รายการเดี่ยว) · R14: routineId (วันของ routine · null = ไม่ใช่/แยกออกแล้ว)
+ * — **เจ้าของเท่านั้น** ไม่อยู่ใน BUSY_SHARED_FIELDS (ADR 0010 §6, ADR 0012 §7)
+ */
+export type BusyOwnView = BusyBase & { title: string | null; note: string | null; hidden: boolean; seriesId: string | null; routineId: string | null };
 
 /** ชื่อฟิลด์ของ kind 'busy' ที่ส่งให้คนอื่นได้ทั้งหมด (allowlist — เทสต์ใช้ตรวจ) */
 export const BUSY_SHARED_FIELDS = ['kind', 'id', 'userId', 'allDay', 'startAt', 'endAt', 'localStartDate', 'localEndDate', 'tz', 'title'] as const;
@@ -62,6 +65,7 @@ export function toBusyOwnView(r: OwnBusyRow): BusyOwnView {
     note: r.note,
     hidden: r.hideDetail,
     seriesId: r.seriesId ?? null,
+    routineId: r.routineId ?? null,
   };
 }
 

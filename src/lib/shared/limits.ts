@@ -38,6 +38,12 @@ export const BUSY_MAX_BACKDATE_DAYS = 7;
 export const CALENDAR_MAX_RANGE_DAYS = 62;
 /** ปฏิทินกลุ่ม: แถว busy สูงสุดต่อคำตอบ (เกิน → truncated: true) */
 export const CALENDAR_MAX_ITEMS = 5000;
+/**
+ * R14 B11 (boss 2026-11-11, R14_CONTRACT §9): เพดานแถวที่ใช้ *คำนวณ* วันว่างร่วม (GET availability) และเตือนนัดทับ (appointments check/create/update)
+ * เกิน → truncated / status 'unknown' · ไม่ใช่จำนวนที่ส่งให้ client: ปฏิทินกลุ่มที่ส่งรายการยังใช้ CALENDAR_MAX_ITEMS
+ * วัด R14: 50 คน × 10 routine ทุกวัน ใน 62 วัน ≈ 31,500 แถว (tests/perf/r14-routine-big-group.test.ts)
+ */
+export const FREE_TIME_MAX_ITEMS = 32_000;
 /** GET /api/me/busy?from&to: แถวสูงสุดต่อคำตอบ (เกิน → truncated: true) */
 export const ME_BUSY_RANGE_MAX_ITEMS = 1000;
 /** แถว busy ที่จบนานกว่านี้ถูก cron รายวันลบถาวร (วัน) — ต้องมากกว่า BUSY_MAX_BACKDATE_DAYS มาก */
@@ -56,6 +62,29 @@ export const BUSY_WRITE_RATE_LIMITS = {
   delete: { prefix: 'busy:delete', limit: 60, windowMs: 10 * MINUTE_MS },
 } as const;
 
+// ───────── busy routine — R14_CONTRACT §1.2 (boss ตัดสิน B3, B7 · 2026-11-11) · ADR 0012 §4, §6 ─────────
+/** routine ที่ยังไม่จบ (end_date >= วันนี้) ต่อคน — B7 · เกิน → LIMIT_REACHED { limit: 'routines', max } */
+export const BUSY_ROUTINE_MAX_ACTIVE = 10;
+/**
+ * M1 (security R14a · R14_CONTRACT §10): เพดานแข็งของ routine ที่ยังไม่จบต่อคน — ใช้กับทุกทางที่เพิ่มชุด รวมการแยกชุด (B12 ยกเว้นเฉพาะ 10)
+ * ตรวจในคำสั่ง INSERT เดียวกัน · เกิน → LIMIT_REACHED { limit: 'routines', max: 20 }
+ */
+export const BUSY_ROUTINE_HARD_MAX_ACTIVE = 20;
+/** แถวของ routine ในอนาคต (routine_id IS NOT NULL AND end_at > now) ต่อคน — §1.2 · เกิน → LIMIT_REACHED { limit: 'routineRows', max } */
+export const BUSY_ROUTINE_MAX_FUTURE_ROWS = 1500;
+/** ช่วงต่อ routine — B3 · เกิน → LIMIT_REACHED { limit: 'routineSpan', max, rangeKind } */
+export const BUSY_ROUTINE_MAX_WEEKS = 26;
+export const BUSY_ROUTINE_MAX_MONTHS = 6;
+/** end_date ≤ วันนี้ + N เดือน — B3 · เกิน → LIMIT_REACHED { limit: 'routineAhead', max } */
+export const BUSY_ROUTINE_MAX_AHEAD_MONTHS = 12;
+/** GET /api/me/busy-routines: ชุดที่ยังไม่จบคืนครบทุกชุด (≤ BUSY_ROUTINE_HARD_MAX_ACTIVE) · ชุดที่จบแล้วคืนสูงสุดเท่านี้ (ใหม่สุดก่อน) — cron ลบเมื่อจบเกิน 93 วัน */
+export const BUSY_ROUTINE_LIST_MAX = 50;
+/**
+ * R14 (platform เสนอ — ADR 0012 §6 ข้อ 9): limiter ของ routine แยกจาก busy เดี่ยว — นับต่อคำขอ (ไม่ใช่ต่อแถว) รวม POST/PATCH/DELETE /api/me/busy-routines
+ * 20 คำขอ/10 นาที/ผู้ใช้ → เขียนได้สูงสุด ~20 × 184 แถว · แก้/ลบวันเดียว (/api/me/busy/:id) ใช้ BUSY_WRITE_RATE_LIMITS เดิม
+ */
+export const BUSY_ROUTINE_RATE_LIMIT = { prefix: 'busy:routine', limit: 20, windowMs: 10 * MINUTE_MS } as const;
+
 /** ชนิดเพดานที่ใส่ใน params ของ LIMIT_REACHED (UX แปลตามนี้) */
 export type LimitKind =
   | 'groups'
@@ -67,7 +96,11 @@ export type LimitKind =
   | 'busyBackdate'
   | 'appointments'
   | 'appointmentsPerDay'
-  | 'appointmentSpan';
+  | 'appointmentSpan'
+  | 'routines'
+  | 'routineRows'
+  | 'routineSpan'
+  | 'routineAhead';
 
 // ───────── นัด / แจ้งเตือน / สถานที่ — R4B_CONTRACT §2 ─────────
 export const APPOINTMENT_TITLE_MAX = 80;

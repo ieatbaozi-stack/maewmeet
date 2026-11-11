@@ -293,6 +293,7 @@
       "cta": "Add busy time"
     },
     "truncated": "There’s so much busy time in this range that we couldn’t count all of it. Some days may look freer than they are. Try one month at a time.",
+    "detailTruncated": "There’s so much busy time in this range that we couldn’t show everyone’s details. The free times are still worked out correctly.",
     "loading": "Working out when everyone’s free…",
     "error": {
       "title": "Couldn’t load free days",
@@ -840,7 +841,7 @@
     "INVITE_INVALID": "This code doesn’t work. Ask someone in the group for a new one.",
     "ALREADY_MEMBER": "That person’s already in this group.",
     "USER_NOT_FOUND": "No one has that username. Check the spelling, or send them an invite code instead.",
-    "LIMIT_REACHED": "{limit, select, groups {You can create up to {max} groups. Delete one you no longer use to make a new one.} members {This group is full ({max} members at most). An admin can remove members who aren’t active.} codes {This group already has {max} active invite codes. Revoke one you don’t need to make a new one.} busyCount {You already have {max} upcoming busy entries, the most we allow. Delete ones you don’t need, then add this one.} busySpan {One entry can cover {max} days at most. Try splitting it into a few.} busyBackdate {You can add busy time up to {max} days back. Pick a more recent date.} appointments {This group already has {max} upcoming plans, the most we allow. Cancel one you don’t need to make a new one.} appointmentSpan {One plan can run {max} days at most. Try splitting it into a few.} appointmentsPerDay {You’ve already created {max} plans today, the most we allow. Try again tomorrow, or edit one you already have.} other {You’ve hit a limit. Free something up and try again.}}",
+    "LIMIT_REACHED": "{limit, select, groups {You can create up to {max} groups. Delete one you no longer use to make a new one.} members {This group is full ({max} members at most). An admin can remove members who aren’t active.} codes {This group already has {max} active invite codes. Revoke one you don’t need to make a new one.} busyCount {You already have {max} upcoming busy entries, the most we allow. Delete ones you don’t need, then add this one.} busySpan {One entry can cover {max} days at most. Try splitting it into a few.} busyBackdate {You can add busy time up to {max} days back. Pick a more recent date.} appointments {This group already has {max} upcoming plans, the most we allow. Cancel one you don’t need to make a new one.} appointmentSpan {One plan can run {max} days at most. Try splitting it into a few.} appointmentsPerDay {You’ve already created {max} plans today, the most we allow. Try again tomorrow, or edit one you already have.} routines {You already have {max} routines running, the most we allow. Stop one you don’t need to add a new one.} routineRows {That would take your routine days past {max}. Try a shorter stretch or stop a routine you don’t need.} routineSpan {That stretch is longer than one routine can cover. Try splitting it into a few.} routineAhead {You can plan up to {max} months ahead. Pick an end that’s closer.} other {You’ve hit a limit. Free something up and try again.}}",
     "INVALID_RANGE": "{kind, select, dates {The last day can’t come before the first day.} other {The end has to be after the start.}}",
     "INVALID_DATE": "That date doesn’t exist (like 30 February). Pick one from the calendar.",
     "INVALID_LOCAL_TIME": "That time doesn’t exist here because the clocks skip ahead. Pick another time.",
@@ -1028,6 +1029,193 @@
       "confirmAllBodyCount": "All {count, plural, one {# day} other {# days}} in this series go, including days that have passed, and disappear from every friend’s calendar right away. You can’t undo it.",
       "confirmAll": "Delete the whole series",
       "cancel": "Cancel"
+    },
+    "routine": {
+      "add": "Add a routine",
+      "addHelp": "Like work Mon–Fri, or the gym every Tuesday. Add it once for the whole stretch.",
+      "form": {
+        "title": "Add a routine",
+        "editTitle": "Edit routine",
+        "submit": "{count, plural, one {Add # day} other {Add # days}}",
+        "submitEdit": "Save changes",
+        "editing": {
+          "all": "Editing: everything still to come",
+          "fromWeek": "Editing: from the week of {range} on",
+          "fromMonth": "Editing: from {month} on"
+        }
+      },
+      "preset": {
+        "label": "Start from",
+        "hint": "Tap one to fill things in. You can still change the days, times and name before saving.",
+        "work": "Work",
+        "class": "Class",
+        "gym": "Gym",
+        "weekend": "Weekends",
+        "custom": "From scratch",
+        "weekendTitle": "Weekend"
+      },
+      "weekdays": {
+        "label": "Which days",
+        "help": "Tap to pick or unpick",
+        "groupAria": "Days of the week",
+        "required": "Pick at least one day",
+        "every": "Every day",
+        "range": "{from}–{to}",
+        "quick": {
+          "weekdays": "Mon–Fri",
+          "weekend": "Sat–Sun",
+          "every": "Every day"
+        },
+        "short": {
+          "mon": "Mon",
+          "tue": "Tue",
+          "wed": "Wed",
+          "thu": "Thu",
+          "fri": "Fri",
+          "sat": "Sat",
+          "sun": "Sun"
+        },
+        "long": {
+          "mon": "Monday",
+          "tue": "Tuesday",
+          "wed": "Wednesday",
+          "thu": "Thursday",
+          "fri": "Friday",
+          "sat": "Saturday",
+          "sun": "Sunday"
+        }
+      },
+      "time": {
+        "label": "Time",
+        "allDay": "All day",
+        "timed": "Set hours",
+        "allDayHelp": "Busy the whole day on the days you pick",
+        "start": "Starts",
+        "end": "Ends",
+        "endMidnight": "24:00 (midnight)",
+        "midnightNote": "Ending at 24:00 means busy right up to midnight, not into the next day.",
+        "overnight": "Runs past midnight",
+        "overnightNote": "Counts as the day it starts. Pick “{day}” and you’re busy {day} {start} until {nextDay} {end}."
+      },
+      "range": {
+        "label": "How long for",
+        "kind": {
+          "weeks": "By week",
+          "months": "By month"
+        },
+        "from": "From",
+        "to": "Until",
+        "fromAria": "Start of the stretch, currently {value}",
+        "toAria": "End of the stretch, currently {value}",
+        "week": "{start}–{end}",
+        "thisWeek": "This week",
+        "thisMonth": "This month",
+        "fromLocked": "Starts {start}, as you picked",
+        "limitWeeks": "Up to {max} weeks",
+        "limitMonths": "Up to {max} months",
+        "pastNote": "You can pick a stretch that’s already started. We’ll only add days from today on.",
+        "shortcut": {
+          "label": "Shortcuts",
+          "thisMonth": "This whole month",
+          "next4Weeks": "Next 4 weeks",
+          "next3Months": "Next 3 months"
+        }
+      },
+      "summary": {
+        "days": "{count, plural, one {Adds # day} other {Adds # days}}",
+        "line": "{days} · {time}",
+        "lineAllDay": "{days} · All day",
+        "span": "{start} to {end}",
+        "pastNote": "Days that have already passed aren’t included.",
+        "zero": "None of the days in this stretch match what you picked. Add a day or make the stretch longer.",
+        "overlapGoing": "{count, plural, one {Overlaps 1 plan you’re going to} other {Overlaps # plans you’re going to}}",
+        "aria": "Summary: {count, plural, one {adds # day} other {adds # days}}, {days}"
+      },
+      "visibility": "Friends in every group you’re in will see this stretch",
+      "visibilityHide": "To show only “Busy”, turn on hide details. The private note is for you alone.",
+      "mine": {
+        "title": "My routines",
+        "lead": "Add it once for the whole stretch. Change or stop it later.",
+        "count": "{count, plural, =0 {None yet} one {1 active routine} other {# active routines}}",
+        "loading": "Loading your routines…",
+        "when": "{days} · {time}",
+        "whenAllDay": "{days} · All day",
+        "span": "{start} – {end}",
+        "remaining": "{count, plural, =0 {No days left} one {1 day left} other {# days left}}",
+        "ended": "Finished",
+        "extend": "Extend",
+        "openAria": "Manage {title}, {days}, {span}",
+        "limitNear": "You’re using {count} of {max} routines. Stop ones you don’t need to free up space.",
+        "empty": {
+          "title": "No routines yet",
+          "body": "Work, class or the gym every week. Add it once for the whole stretch."
+        },
+        "error": {
+          "title": "Couldn’t load your routines",
+          "body": "Check your connection and try again. Nothing you added is lost."
+        }
+      },
+      "scope": {
+        "cancel": "Cancel",
+        "edit": {
+          "title": "Which days do you want to change?",
+          "one": "Just this day",
+          "oneHelp": "This day becomes its own entry. The other days stay as they are.",
+          "fromWeek": "From the week of {range} on",
+          "fromMonth": "From {month} on",
+          "fromHelp": "Earlier days stay as they are",
+          "all": "Everything still to come",
+          "allHelp": "Days that have passed aren’t changed"
+        },
+        "delete": {
+          "title": "What do you want to delete?",
+          "one": "Just this day",
+          "oneHelp": "The other days stay, and this one won’t come back even if you change the routine later.",
+          "fromWeek": "Stop from the week of {range}",
+          "fromMonth": "Stop from {month}",
+          "fromHelp": "Earlier days stay. Everything from there on is removed. If you start from today, today’s hours that have already passed go too.",
+          "all": "Delete all of it",
+          "allHelp": "Removes every day of this routine, including days that have passed. You can’t undo it."
+        },
+        "confirmAll": {
+          "title": "Delete the whole routine?",
+          "body": "Every day of “{title}” goes, including days that have passed, and friends in your groups stop seeing it right away. You can’t undo it.",
+          "bodyNoTitle": "Every day of this routine goes, including days that have passed, and friends in your groups stop seeing it right away. You can’t undo it.",
+          "confirm": "Delete all of it"
+        }
+      },
+      "toast": {
+        "saved": "{count, plural, one {Added # day} other {Added # days}}",
+        "updated": "Changes saved",
+        "deletedOne": "Day deleted. The rest is still there.",
+        "stopped": "Stopped from {date}",
+        "deletedAll": "Routine deleted"
+      },
+      "calendar": {
+        "tag": "Routine",
+        "tagAria": "This entry comes from a routine",
+        "detail": "One day of a routine ({days} · {time})",
+        "detailAllDay": "One day of a routine ({days} · All day)",
+        "detailPlain": "One day of a routine"
+      },
+      "error": {
+        "save": "Couldn’t save, and none of these days were added. What you typed is still here, so try again.",
+        "gone": "This routine no longer exists. It may have been deleted on another device.",
+        "rate": "You’re adding a lot at once. Wait a moment and try again. None of these days were added.",
+        "routines": "You already have {max} routines running, the most we allow. Stop one you don’t need, then add this one. Nothing was changed.",
+        "routinesEdit": "Changing it this way splits it into a second routine, but you already have {max} running, the most we allow. Nothing was changed. Try editing “Everything still to come” instead, or stop one you don’t need first.",
+        "routineRows": "That would take your routine days past {max}, so none were added. Try a shorter stretch, fewer days a week, or stop a routine you don’t need.",
+        "spanWeeks": "One routine can cover {max} weeks at most, and none of these days were added. Try splitting it in two, or come back and extend it later.",
+        "spanMonths": "One routine can cover {max} months at most, and none of these days were added. Try splitting it in two, or come back and extend it later.",
+        "ahead": "You can plan up to {max} months ahead, and none of these days were added. Pick an end that’s closer.",
+        "ended": "That stretch is already over. Pick one that’s running now or still to come.",
+        "weekdaysRequired": "Pick at least one day of the week",
+        "noOccurrence": "None of the days left in this stretch match what you picked. Add a day or make the stretch longer.",
+        "noOccurrenceEdit": "After this change no days would be left, so nothing was changed. If you’re done with this routine, use “Stop from…” or delete all of it instead.",
+        "dst": "Some days in this stretch don’t have that time because the clocks skip ahead, so none were added. Nudge the time a little.",
+        "end": "The end time can’t be the same as the start time.",
+        "generic": "Couldn’t add them, and none of these days were added. What you typed is still here, so try again."
+      }
     }
   },
   "home": {

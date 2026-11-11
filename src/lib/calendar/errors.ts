@@ -12,6 +12,12 @@ export const CALENDAR_ERROR_CODES = [
   'SPAN_TOO_LONG', // ช่วงยาวเกินเพดาน (เพดานส่งเป็นพารามิเตอร์)
   'TOO_FAR_BACK', // ลงย้อนหลังเกินเพดาน (เพดานส่งเป็นพารามิเตอร์)
   'INVALID_FORMAT', // format(): สไตล์ที่ต้องมีเวลา แต่ได้วันที่ล้วน
+  // R14 (ADR 0012 §6) — busy routine
+  'TOO_FAR_AHEAD', // วันจบไกลเกินเพดาน (เพดานส่งเป็นพารามิเตอร์)
+  'RANGE_ENDED', // ช่วงจบก่อนวันนี้แล้ว (routine ที่จบแล้ว)
+  'WEEKDAYS_REQUIRED', // ไม่ได้เลือกวันในสัปดาห์
+  'INVALID_WEEKDAYS', // วันในสัปดาห์ไม่ใช่ 1–7 / ซ้ำ / bitmask นอก 1–127
+  'NO_OCCURRENCE', // ขยายแล้วไม่ได้สักวัน
 ] as const;
 
 export type CalendarErrorCode = (typeof CALENDAR_ERROR_CODES)[number];

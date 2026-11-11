@@ -113,6 +113,19 @@ export const MATRIX = {
     resource: 'busy',
     cases: { own: ANY_USER, other: NOT_OWNER },
   },
+  // R14 (ADR 0012 §6 · R14_CONTRACT §8): busy ประจำ = กติกาเดียวกับ busy เดี่ยว (PRD §3 แถว 2–3)
+  'busy.routine.list.own': { ref: 'R14 §8 · §3 แถว 2 routine ของตัวเอง', resource: 'none', cases: { any: ANY_USER } },
+  'busy.routine.create': { ref: 'R14 §8 · §3 แถว 2 สร้าง routine ของตัวเอง', resource: 'none', cases: { any: ANY_USER } },
+  'busy.routine.update': {
+    ref: 'R14 §8 · §3 แถว 3 แก้ routine ของตัวเอง ✅ / ของคนอื่น ❌ ทุกคนรวม SA',
+    resource: 'busy',
+    cases: { own: ANY_USER, other: NOT_OWNER },
+  },
+  'busy.routine.delete': {
+    ref: 'R14 §8 · §3 แถว 3 ลบ routine ของตัวเอง ✅ / ของคนอื่น ❌ ทุกคนรวม SA',
+    resource: 'busy',
+    cases: { own: ANY_USER, other: NOT_OWNER },
+  },
 
   // ───────── §3 แถว 4–5 (Q3: SA ดูได้ทุกกลุ่ม) ─────────
   'group.view': { ref: '§3 ดูปฏิทินกลุ่ม/สมาชิก (ADR0003 แถว 4)', resource: 'group', cases: { any: MEMBERS } },

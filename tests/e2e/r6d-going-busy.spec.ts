@@ -117,7 +117,8 @@ test.describe('R6D เรื่องเล่า', () => {
     expect((ck!.expires - Date.now() / 1000) / 86_400, 'อายุ ~1 ปี').toBeGreaterThan(360);
     await go(u.page, '/');
     await navTo('calendar');
-    await expect(u.page).toHaveURL(/\/calendar$/);
+    // CalendarView ใส่ g/v/d ลง URL ด้วย replaceState หลัง mount — ยอมรับ query แต่ถ้ามี g ต้องเป็นกลุ่ม X
+    await expect(u.page).toHaveURL(new RegExp(`/calendar(\\?(.*&)?g=${gidOf[X]}(&.*)?)?$`));
     await expect(switcher(u.page)).toHaveAttribute('aria-label', labelRe(locale, X));
 
     // 1b) เปิด /groups/<gid> ซ้ำเมื่อคุกกี้ตรง gid แล้ว → ไม่มี PUT ซ้ำ · เปิดกลุ่มอื่น → PUT 1 ครั้ง

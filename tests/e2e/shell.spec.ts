@@ -71,7 +71,7 @@ test('แถบนำทางล่างพาไปทุกแท็บ แ�
   const nav = page.getByRole('navigation', { name: msg('en', 'nav.label') });
   for (const [tab, path] of [['calendar', '/calendar'], ['groups', '/groups'], ['me', '/me'], ['home', '/']] as const) {
     await nav.getByRole('link', { name: msg('en', `nav.${tab}`), exact: true }).click();
-    await expect(page).toHaveURL(new RegExp(`${path === '/' ? '/$' : path}$`));
+    await expect(page).toHaveURL(new RegExp(path === '/' ? '/$' : `${path}(\\?.*)?$`));
     await expect(nav.getByRole('link', { name: msg('en', `nav.${tab}`), exact: true })).toHaveAttribute('aria-current', 'page');
   }
   expect(problems).toEqual([]);

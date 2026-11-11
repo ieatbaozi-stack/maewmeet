@@ -9,6 +9,7 @@ import { z } from 'zod';
 import {
   commonFreeTime,
   dayWindow,
+  mergeBusyForFreeTime,
   overlapsRange,
   type DateISO,
   type FreeSegment,
@@ -18,6 +19,7 @@ import { listMembers } from '@/lib/data/repos/group-member';
 import { authorize } from '@/lib/rbac/can';
 import type { Actor, Allow, UserActor } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
+import { CALENDAR_MAX_ITEMS, FREE_TIME_MAX_ITEMS } from '@/lib/shared/limits';
 import { memberAppearance } from '@/lib/shared/member-color';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
@@ -70,8 +72,13 @@ export type GroupAvailabilityDto = {
    * มี kind: busy | appointment | other_group_appointment (ADR 0009 §2) · เรียง startAt, endAt, kind, id
    */
   busy: AvailabilityBusyView[];
-  /** true = busy หรือ going เกิน CALENDAR_MAX_ITEMS ในช่วงนี้ → คำนวณจากส่วนแรก (ผลอาจดู "ว่าง" เกินจริง) */
+  /** true = busy หรือ going เกิน FREE_TIME_MAX_ITEMS (R14 B11) ในช่วงนี้ → คำนวณจากส่วนแรก (ผลอาจดู "ว่าง" เกินจริง) */
   truncated: boolean;
+  /**
+   * M2 (security R14a · R14_CONTRACT §10): true = มีชิ้นที่ถูกอ้างเกิน CALENDAR_MAX_ITEMS (5,000) → `busy[]` ส่งเฉพาะ 5,000 ชิ้นแรก (เรียง startAt, endAt, kind, id)
+   * และ blockers อ้างเฉพาะชิ้นที่ส่ง (สมาชิกที่ไม่มีชิ้นเหลือไม่อยู่ใน blockers ของวันนั้น) · วันว่าง (segments, freeMembers, notFreeUserIds, allFree) ยังคำนวณจากทุกแถว ถูกต้องครบ
+   */
+  detailTruncated: boolean;
 };
 
 type WindowCfg = { tz: string; freeWindowStartMin: number; freeWindowEndMin: number };
@@ -114,7 +121,7 @@ async function availabilityFor(ctx: DataCtx, me: UserActor, allow: Allow, row: G
   const range = parseDateRange(query.from!, query.to!);
   const groupId = row.id;
   const { fromMs, toMs } = availabilityFetchRange(range, row);
-  const [memberRows, { items, truncated }] = await Promise.all([listMembers(ctx.db, groupId), loadMemberBusy(ctx.db, groupId, row.tz, fromMs, toMs)]);
+  const [memberRows, { items, truncated }] = await Promise.all([listMembers(ctx.db, groupId), loadMemberBusy(ctx.db, groupId, row.tz, fromMs, toMs, undefined, FREE_TIME_MAX_ITEMS)]);
   const members: AvailabilityMemberDto[] = memberRows.map((m) => ({
     userId: m.userId,
     displayName: sanitizeDisplayText(m.displayName),
@@ -131,7 +138,8 @@ async function availabilityFor(ctx: DataCtx, me: UserActor, allow: Allow, row: G
 
   const win = { tz: row.tz, winStartMin: row.freeWindowStartMin, winEndMin: row.freeWindowEndMin, minFreeMin: row.minFreeMinutes };
   // busy_block (SharedBusyRow ⊇ BusyInput ไม่มี note) + going เป็น timed ที่คีย์ภายใน g:* (ADR 0009 §2)
-  const free = commonFreeTime(win, memberIds, items.map((i) => i.input), range.from, range.to);
+  // R14 B11 (ค): รวมช่วงที่ติด/ทับกันของคนเดียวกันก่อนคำนวณ (ผลเท่าเดิม — tests/calendar/free-time-merge.test.ts) · blockers ด้านล่างใช้แถวจริงเหมือนเดิม
+  const free = commonFreeTime(win, memberIds, mergeBusyForFreeTime(items.map((i) => i.input)), range.from, range.to);
 
   // blockers = ทุกสมาชิกที่มี busy ตัดกับหน้าต่างของวัน (all-day ครอบวันนั้น หรือ timed ทับหน้าต่าง) — lib ให้เฉพาะคนที่นับว่าไม่ว่าง
   const sortedRows = items.filter((r) => r.input.allDay || r.input.endAt > r.input.startAt); // loadMemberBusy เรียงแล้ว (compareBusyViews)
@@ -156,11 +164,16 @@ async function availabilityFor(ctx: DataCtx, me: UserActor, allow: Allow, row: G
     return { d, blockers };
   });
 
-  // บีบดัชนี: เก็บเฉพาะแถวที่ถูกอ้าง (คงลำดับ startAt,id) แล้วแปลงดัชนี
+  // บีบดัชนี: เก็บเฉพาะแถวที่ถูกอ้าง (คงลำดับ startAt,id) แล้วแปลงดัชนี · M2: ส่งไม่เกิน CALENDAR_MAX_ITEMS ชิ้น (คำนวณจาก FREE_TIME_MAX_ITEMS ได้ แต่ไม่ส่งทุกชิ้น)
   const busy: AvailabilityBusyView[] = [];
   const remap = new Map<number, number>();
+  let detailTruncated = false;
   sortedRows.forEach((r, i) => {
     if (!referenced.has(i)) return;
+    if (busy.length >= CALENDAR_MAX_ITEMS) {
+      detailTruncated = true;
+      return;
+    }
     remap.set(i, busy.length);
     busy.push(r.view);
   });
@@ -174,7 +187,9 @@ async function availabilityFor(ctx: DataCtx, me: UserActor, allow: Allow, row: G
       allFree: d.allFree,
       notFreeUserIds: memberIds.filter((id) => !freeSet.has(id)),
       segments: d.segments,
-      blockers: blockers.map((b) => ({ userId: b.userId, itemIdx: b.idx.map((i) => remap.get(i)!) })),
+      blockers: blockers
+        .map((b) => ({ userId: b.userId, itemIdx: b.idx.flatMap((i) => (remap.has(i) ? [remap.get(i)!] : [])) }))
+        .filter((b) => b.itemIdx.length > 0),
     };
   });
 
@@ -186,5 +201,6 @@ async function availabilityFor(ctx: DataCtx, me: UserActor, allow: Allow, row: G
     days,
     busy,
     truncated,
+    detailTruncated,
   };
 }

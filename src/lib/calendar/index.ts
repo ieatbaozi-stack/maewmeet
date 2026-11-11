@@ -49,12 +49,35 @@ export {
   type NormalizeBusyResult,
   type TimedBusyInput,
 } from './busy';
+export {
+  expandRoutine,
+  formatRoutineTime,
+  isOvernight,
+  maskToWeekdays,
+  parseRoutineTimes,
+  planRoutine,
+  routinePeriods,
+  routinePeriodStart,
+  routineRange,
+  weekdaysToMask,
+  type ExpandRoutineOptions,
+  type RoutinePlan,
+  type RoutinePlanOptions,
+  type RoutineRange,
+  type RoutineRangeInput,
+  type RoutineRangeKind,
+  type RoutineRangeOptions,
+  type RoutineResult,
+  type RoutineRule,
+  type RoutineSpec,
+} from './routine';
 export { earliestAllowedDate, exceedsMaxSpan, isTooFarBack, spanDays } from './limits';
 export { format, weekdayLabels, type CalendarLocale, type FormatOptions, type FormatStyle } from './format';
 export {
   commonFreeTime,
   FREE_TIME_MAX_RANGE_DAYS,
   membersBlockedDuring,
+  mergeBusyForFreeTime,
   overlapsRange,
   subtract,
   type AppointmentBlockedMember,

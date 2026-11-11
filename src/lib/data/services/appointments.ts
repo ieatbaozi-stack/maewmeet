@@ -55,6 +55,7 @@ import {
   APPOINTMENT_TITLE_MAX,
   APPOINTMENT_MY_CONFLICTS_MAX,
   APPOINTMENT_LIST_CONFLICT_SCAN_MAX,
+  FREE_TIME_MAX_ITEMS,
 } from '@/lib/shared/limits';
 import { parseMapUrl } from '@/lib/shared/location-parse';
 import { memberAppearance } from '@/lib/shared/member-color';
@@ -377,12 +378,12 @@ async function toDetailDto(
  * U10.1 (ADR 0005 §4 · ADR 0006 §3): สมาชิกปัจจุบันที่ busy ทับ [startAt, endAt) — ไม่บล็อก
  * busy มาจากคิวรีฝั่งแชร์ตัวเดียวกับปฏิทิน/วันว่าง (ไม่ SELECT note · title ซ่อนตัดใน SQL) และออกผ่าน serializer busy · ดึงช่วงขยาย 26 ชม. (busy ทั้งวันเก็บเที่ยงคืนใน tz เจ้าของ)
  * R6D (ADR 0009 §4): รวมนัดที่สมาชิกตอบ "ไป" (ทุกกลุ่ม) · excludeAppointmentId = นัดที่กำลังสร้าง/แก้/ตรวจ (ไม่เตือนว่าชนนัดตัวเอง)
- * busy หรือ going ถูกตัดที่ CALENDAR_MAX_ITEMS → status 'unknown' (ห้ามสรุปว่าไม่มีใครติด)
+ * busy หรือ going ถูกตัดที่ FREE_TIME_MAX_ITEMS (R14 B11 — ทางคำนวณ) → status 'unknown' (ห้ามสรุปว่าไม่มีใครติด)
  */
 async function computeOverlap(db: Reader, groupId: string, tz: string, startAt: number, endAt: number, excludeAppointmentId?: string): Promise<OverlapDto> {
   const [members, { items, truncated }] = await Promise.all([
     listMembers(db, groupId),
-    loadMemberBusy(db, groupId, tz, startAt - AVAILABILITY_FETCH_MARGIN_MS, endAt + AVAILABILITY_FETCH_MARGIN_MS, excludeAppointmentId),
+    loadMemberBusy(db, groupId, tz, startAt - AVAILABILITY_FETCH_MARGIN_MS, endAt + AVAILABILITY_FETCH_MARGIN_MS, excludeAppointmentId, FREE_TIME_MAX_ITEMS),
   ]);
   const byKey = new Map<string, MemberBusyItem>(items.map((i) => [i.key, i]));
   const order = new Map<string, number>(items.map((i, n) => [i.key, n])); // items เรียงตาม compareBusyViews แล้ว

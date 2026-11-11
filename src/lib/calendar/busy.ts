@@ -81,8 +81,8 @@ export interface BusyInputError {
 export type NormalizeBusyResult = { ok: true; value: BusyRow } | { ok: false; error: BusyInputError };
 export type ExpandDailyBusyResult = { ok: true; value: BusyRow[] } | { ok: false; error: BusyInputError };
 
-/** CalendarError → Result (ข้อผิดพลาดอื่น เช่น TypeError ของผู้เรียก โยนต่อ) */
-function toResult<T>(fn: () => T): { ok: true; value: T } | { ok: false; error: BusyInputError } {
+/** CalendarError → Result (ข้อผิดพลาดอื่น เช่น TypeError ของผู้เรียก โยนต่อ) — routine.ts ใช้ด้วย */
+export function toResult<T>(fn: () => T): { ok: true; value: T } | { ok: false; error: BusyInputError } {
   try {
     return { ok: true, value: fn() };
   } catch (e) {
