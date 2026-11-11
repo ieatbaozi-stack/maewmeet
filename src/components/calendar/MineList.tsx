@@ -14,10 +14,12 @@ export interface MineListProps {
   nowMs: EpochMs;
   onOpen: (item: OwnBusy) => void;
   onAdd: () => void;
+  /** R14: ปุ่มรองใต้ปุ่ม "ลงวันไม่ว่าง" ในหน้าว่าง (ลงแบบประจำ) */
+  onAddRoutine?: () => void;
 }
 
 /** "ของฉัน" (UX X32): รายการช่วงไม่ว่างที่ยังไม่สิ้นสุด ใช้ทุกกลุ่ม · แตะแถว = เปิดฟอร์มแก้ไข */
-export function MineList({ items, nowMs, onOpen, onAdd }: MineListProps) {
+export function MineList({ items, nowMs, onOpen, onAdd, onAddRoutine }: MineListProps) {
   const t = useTranslations();
   const locale = useLocale() as CalendarLocale;
 
@@ -31,6 +33,15 @@ export function MineList({ items, nowMs, onOpen, onAdd }: MineListProps) {
           <Icon name="plus" />
           <span>{t("busy.add")}</span>
         </button>
+        {onAddRoutine ? (
+          <>
+            <button type="button" className="btn btn-secondary" data-testid="routine-add-empty-mine" onClick={onAddRoutine}>
+              <Icon name="repeat" />
+              <span>{t("busy.routine.add")}</span>
+            </button>
+            <p className="small muted">{t("busy.routine.addHelp")}</p>
+          </>
+        ) : null}
       </section>
     );
   }

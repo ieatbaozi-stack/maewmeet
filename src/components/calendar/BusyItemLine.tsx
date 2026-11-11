@@ -20,6 +20,8 @@ export interface BusyItemLineProps {
   subText: string | null;
   /** data-testid ของรายการ busy ปกติ (ของเดิม — cal-item / free-item) */
   busyTestId: string;
+  /** R14: วันของ routine ของฉันเอง (เจ้าของเท่านั้น) → ป้าย "ประจำ" + ปุ่มแก้/ลบ (เปิด sheet เลือกขอบเขต) */
+  routine?: { onEdit: () => void; onDelete: () => void; editAria: string; deleteAria: string };
 }
 
 /**
@@ -27,7 +29,7 @@ export interface BusyItemLineProps {
  *  busy = ข้อความเดิม · appointment = ไอคอนปฏิทิน + "นัด: <ชื่อ>" แตะไปหน้านัด · other_group_appointment = ไอคอนกุญแจ + "ติดนัดกลุ่มอื่น" แตะไม่ได้
  * นัดกลุ่มอื่นไม่มีชื่อนัด/กลุ่ม/สถานที่ในข้อมูลอยู่แล้ว — ที่นี่ไม่ใส่อะไรเพิ่มใน DOM / title / aria
  */
-export function BusyItemLine({ kind, whenText, title, memberName, href, subText, busyTestId }: BusyItemLineProps) {
+export function BusyItemLine({ kind, whenText, title, memberName, href, subText, busyTestId, routine }: BusyItemLineProps) {
   const t = useTranslations();
   if (kind === "other_group_appointment") {
     return (
@@ -64,7 +66,7 @@ export function BusyItemLine({ kind, whenText, title, memberName, href, subText,
     );
   }
   return (
-    <div className="cal-item" data-testid={busyTestId}>
+    <div className={routine ? "cal-item is-routine" : "cal-item"} data-testid={busyTestId}>
       <span className="when">{whenText}</span>
       {title ? (
         <span className="what">
@@ -74,6 +76,20 @@ export function BusyItemLine({ kind, whenText, title, memberName, href, subText,
         <span className="what plain">{t("calendar.day.busyPlain")}</span>
       )}
       {subText ? <span className="sub">{subText}</span> : null}
+      {routine ? (
+        <span className="rt-day-tools">
+          <span className="rt-tag" aria-label={t("busy.routine.calendar.tagAria")} data-testid="routine-tag">
+            <Icon name="repeat" size="sm" />
+            <span>{t("busy.routine.calendar.tag")}</span>
+          </span>
+          <button type="button" className="icon-btn" aria-label={routine.editAria} data-testid="routine-day-edit" onClick={routine.onEdit}>
+            <Icon name="pencil" />
+          </button>
+          <button type="button" className="icon-btn" aria-label={routine.deleteAria} data-testid="routine-day-delete" onClick={routine.onDelete}>
+            <Icon name="trash-2" />
+          </button>
+        </span>
+      ) : null}
     </div>
   );
 }

@@ -51,6 +51,8 @@ export interface BusyFormSheetProps {
   /** จำนวนกลุ่มของผู้ใช้ (บรรทัดความเป็นส่วนตัว) */
   groupCount: number;
   userId: string;
+  /** R14: แก้ "เฉพาะวันนี้" ของวันใน routine — วันนี้จะแยกเป็นรายการเดี่ยว (บรรทัดเตือนเหนือปุ่มบันทึก) */
+  routineDayNote?: boolean;
   onClose: () => void;
   /** count = จำนวนวันจาก response (สร้างชุด / ลบทั้งชุด) · created = busy ที่เพิ่งสร้างจาก response ของ POST (R7 B-5 — ให้หน้าอัปเดตเองโดยไม่ GET ซ้ำ) */
   onDone: (result: BusyDone, count?: number, created?: OwnBusy[]) => void;
@@ -82,7 +84,7 @@ function createdFrom(data: unknown): OwnBusy[] | undefined {
 }
 
 /** ฟอร์มลง/แก้ช่วงไม่ว่าง (UX §7 X30–X33) — sheet สูง · ทุกข้อความมาจาก messages · วันที่ส่ง ISO ค.ศ. */
-export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, onClose, onDone }: BusyFormSheetProps) {
+export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, routineDayNote = false, onClose, onDone }: BusyFormSheetProps) {
   const t = useTranslations();
   const locale = useLocale() as CalendarLocale;
   const uid = useId();
@@ -249,6 +251,11 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, on
         initialFocusRef={firstRef}
         footer={
           <>
+            {routineDayNote ? (
+              <p className="field-hint rt-day-note" data-testid="busy-routine-day-note">
+                {t("busy.routine.scope.edit.oneHelp")}
+              </p>
+            ) : null}
             <p className="visibility-line" data-testid="busy-visibility">
               <Icon name="info" size="sm" />
               <span>

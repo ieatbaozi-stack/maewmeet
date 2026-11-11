@@ -94,6 +94,8 @@ export interface OwnBusy {
   hidden: boolean;
   /** R6F: ชุดรายวัน (เจ้าของเท่านั้นที่ได้คีย์นี้) · null/ไม่มี = ไม่ได้อยู่ในชุด */
   seriesId?: string | null;
+  /** R14: วันของ routine (เจ้าของเท่านั้น) · null/ไม่มี = ไม่ใช่/แยกออกเป็นรายการเดี่ยวแล้ว */
+  routineId?: string | null;
 }
 
 export interface MessageRef {
