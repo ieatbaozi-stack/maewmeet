@@ -48,6 +48,7 @@ import {
   updateRequest,
   weekRangeValues,
   weekdaysText,
+  timeRangeText,
   ymOf,
   type EditScope,
   type PeriodOption,
@@ -94,6 +95,8 @@ export function RoutineFormSheet({ mode, groupCount, onClose, onDone, onStale }:
   const [s, setS] = useState<RoutineFormState>(() => (edit ? formStateOfRoutine(edit.routine, edit.scope, edit.periodStart, today) : initialRoutineState(today)));
   const [problems, setProblems] = useState<Problems>(NO_PROBLEMS);
   const [saving, setSaving] = useState(false);
+  // "เลือกอย่างน้อย 1 วัน": จาง (muted) ตอนเริ่ม เป็นสีผิดพลาดเมื่อผู้ใช้เลิกเลือกจนว่าง
+  const [deselected, setDeselected] = useState(false);
 
   const split = edit ? isSplitEdit(edit.routine, edit.scope, edit.periodStart, today) : false;
   const fromLocked = edit !== null && edit.scope === "from";
@@ -110,7 +113,7 @@ export function RoutineFormSheet({ mode, groupCount, onClose, onDone, onStale }:
   const short = (d: number) => t(`busy.routine.weekdays.short.${WEEKDAY_KEYS[d - 1]}`);
   const long = (d: number) => t(`busy.routine.weekdays.long.${WEEKDAY_KEYS[d - 1]}`);
   const daysText = weekdaysText(t, s.weekdays);
-  const timeText = `${s.startTime}–${s.endTime}`;
+  const timeText = timeRangeText(s.startTime, s.endTime);
   const okCount = summary.kind === "ok" ? summary.count : null;
   const summaryAria = okCount !== null ? t("busy.routine.summary.aria", { count: okCount, days: daysText }) : undefined;
   const optionLabel = (kind: RoutineRangeKind, o: PeriodOption): string => {
@@ -185,6 +188,7 @@ export function RoutineFormSheet({ mode, groupCount, onClose, onDone, onStale }:
             <span>
               {t("busy.routine.visibility")}
               {groupCount > 0 ? <small>{t("busy.form.visibilityGroups", { count: groupCount })}</small> : null}
+              <small className="rt-hide-hint" data-testid="routine-visibility-hide">{t("busy.routine.visibilityHide")}</small>
             </span>
           </p>
           <BusyButton
@@ -260,7 +264,11 @@ export function RoutineFormSheet({ mode, groupCount, onClose, onDone, onStale }:
                   aria-pressed={on}
                   aria-label={long(d)}
                   data-testid={`routine-day-${d}`}
-                  onClick={() => patch({ ...s, weekdays: toggleWeekday(s.weekdays, d) })}
+                  onClick={() => {
+                    const next = toggleWeekday(s.weekdays, d);
+                    setDeselected(next.length === 0);
+                    patch({ ...s, weekdays: next });
+                  }}
                 >
                   <span aria-hidden="true">{short(d)}</span>
                   {on ? <Icon name="check" size="sm" /> : null}
@@ -276,7 +284,7 @@ export function RoutineFormSheet({ mode, groupCount, onClose, onDone, onStale }:
             ))}
           </div>
           {s.weekdays.length === 0 ? (
-            <p className="field-error" role="alert" data-testid="routine-weekdays-required">
+            <p className={deselected ? "field-error" : "field-hint rt-required-muted"} role={deselected ? "alert" : undefined} data-testid="routine-weekdays-required">
               <Icon name="circle-alert" size="sm" />
               <span>{t("busy.routine.weekdays.required")}</span>
             </p>
@@ -507,9 +515,7 @@ export function RoutineFormSheet({ mode, groupCount, onClose, onDone, onStale }:
           </div>
         ) : null}
         {err(problems.summary, `${uid}-sum-err`, "routine-noocc-error")}
-        <p className="field-hint rt-hide-hint" data-testid="routine-visibility-hide">
-          {t("busy.routine.visibilityHide")}
-        </p>
+
       </form>
     </Sheet>
   );

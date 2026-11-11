@@ -43,7 +43,9 @@
 .rt-summary p + p { margin-top: var(--space-1); }
 .rt-summary-big { font-weight: var(--weight-semibold); font-size: var(--text-lg); font-variant-numeric: tabular-nums; }
 .rt-day-note { margin-bottom: var(--space-2); }
-.rt-hide-hint { margin-top: var(--space-3); }
+.rt-hide-hint { font-size: var(--text-xs); }
+.rt-required-muted { display: flex; gap: var(--space-1); align-items: flex-start; color: var(--ink-muted); }
+.rt-required-muted .icon { margin-top: var(--space-1); }
 
 /* ---------- ส่วน "แบบประจำของฉัน" ---------- */
 .rt-section { margin-top: var(--space-5); }

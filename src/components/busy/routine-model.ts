@@ -312,6 +312,17 @@ export function weekRangeValues(monday: DateISO, locale: CalendarLocale): { star
 }
 
 /** เดือน ตามภาษา ("พฤศจิกายน พ.ศ. 2569" / "November 2026") */
+/** ช่วงเวลา "09:00–18:00" — word joiner รอบขีดกลาง ไม่ตัดบรรทัดตรงขีด */
+export const timeRangeText = (start: string, end: string): string => `${start}⁠–⁠${end}`;
+
+/** ช่วงวันที่ในแถวรายการ: ปีเดียวกัน "1–30 พ.ย. 2569" / "1 พ.ย.–30 ธ.ค. 2569" · ต่างปีใช้ date-medium ทั้งสองข้าง */
+export function dateSpanText(start: DateISO, end: DateISO, locale: CalendarLocale): string {
+  const endMed = format(end, { locale, style: "date-medium" });
+  if (start.slice(0, 4) !== end.slice(0, 4)) return `${format(start, { locale, style: "date-medium" })} – ${endMed}`;
+  const startText = start.slice(0, 7) === end.slice(0, 7) ? String(Number(start.slice(8, 10))) : format(start, { locale, style: "day-month" });
+  return `${startText}⁠–⁠${endMed}`;
+}
+
 export const monthLabel = (ym: string, locale: CalendarLocale): string => format(monthStartOf(ym), { locale, style: "month-year" });
 
 // ───────── แผน / สรุป ─────────

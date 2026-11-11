@@ -4,9 +4,9 @@ import { useLocale, useTranslations } from "next-intl";
 import { Cat } from "@/components/brand";
 import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
-import { format, type CalendarLocale, type DateISO } from "@/lib/calendar";
+import { type CalendarLocale, type DateISO } from "@/lib/calendar";
 import { BUSY_ROUTINE_MAX_ACTIVE } from "@/lib/shared/limits";
-import { canExtend, isEnded, nearRoutineLimit, splitRoutines, weekdaysText, type RoutineView } from "./routine-model";
+import { canExtend, dateSpanText, isEnded, nearRoutineLimit, splitRoutines, timeRangeText, weekdaysText, type RoutineView } from "./routine-model";
 
 /** สถานะโหลดของส่วน "แบบประจำของฉัน" — โหลด/ผิดพลาดเฉพาะส่วนนี้ ไม่ทำให้รายการ busy เดี่ยวหาย */
 export type RoutineListState = { status: "loading" } | { status: "error" } | { status: "ready"; routines: RoutineView[]; truncated: boolean };
@@ -70,20 +70,20 @@ export function RoutineList({ state, today, onAdd, onRetry, onEdit, onDelete, on
           </button>
         </div>
       ) : (
-        <RoutineRows routines={state.routines} today={today} locale={locale} onEdit={onEdit} onDelete={onDelete} onExtend={onExtend} />
+        <RoutineRows routines={state.routines} truncated={state.truncated} today={today} locale={locale} onEdit={onEdit} onDelete={onDelete} onExtend={onExtend} />
       )}
     </section>
   );
 }
 
-function RoutineRows({ routines, today, locale, onEdit, onDelete, onExtend }: { routines: RoutineView[]; today: DateISO; locale: CalendarLocale } & Pick<RoutineListProps, "onEdit" | "onDelete" | "onExtend">) {
+function RoutineRows({ routines, truncated, today, locale, onEdit, onDelete, onExtend }: { routines: RoutineView[]; truncated: boolean; today: DateISO; locale: CalendarLocale } & Pick<RoutineListProps, "onEdit" | "onDelete" | "onExtend">) {
   const t = useTranslations();
   const { active, ended } = splitRoutines(routines, today);
   const row = (r: RoutineView) => {
     const done = isEnded(r, today);
     const days = weekdaysText(t, r.weekdays);
-    const when = r.allDay ? t("busy.routine.mine.whenAllDay", { days }) : t("busy.routine.mine.when", { days, time: `${r.startTime}–${r.endTime}` });
-    const span = t("busy.routine.mine.span", { start: format(r.startDate, { locale, style: "date-medium" }), end: format(r.endDate, { locale, style: "date-medium" }) });
+    const when = r.allDay ? t("busy.routine.mine.whenAllDay", { days }) : t("busy.routine.mine.when", { days, time: timeRangeText(r.startTime ?? "", r.endTime ?? "") });
+    const span = dateSpanText(r.startDate, r.endDate, locale);
     const name = r.title && r.title !== "" ? r.title : null;
     return (
       <li key={r.id} className="rt-item" data-testid={`routine-row-${r.id}`} data-ended={done || undefined}>
@@ -121,7 +121,7 @@ function RoutineRows({ routines, today, locale, onEdit, onDelete, onExtend }: { 
               <span>{t("busy.routine.mine.extend")}</span>
             </button>
           ) : null}
-          <button type="button" className="icon-btn" aria-label={`${t("busy.form.delete")}: ${name ?? t("busy.mine.noTitle")}`} data-testid={`routine-delete-${r.id}`} onClick={() => onDelete(r)}>
+          <button type="button" className="icon-btn" aria-label={t("busy.routine.mine.deleteAria", { title: name ?? t("busy.mine.noTitle") })} data-testid={`routine-delete-${r.id}`} onClick={() => onDelete(r)}>
             <Icon name="trash-2" />
           </button>
         </div>
@@ -141,6 +141,11 @@ function RoutineRows({ routines, today, locale, onEdit, onDelete, onExtend }: { 
       ) : null}
       {active.length > 0 ? <ul className="rows busy-list rt-list">{active.map(row)}</ul> : null}
       {ended.length > 0 ? <ul className="rows busy-list rt-list rt-ended" data-testid="routine-ended-list">{ended.map(row)}</ul> : null}
+      {truncated ? (
+        <p className="small muted" data-testid="routine-ended-truncated">
+          {t("busy.routine.mine.truncated", { count: ended.length })}
+        </p>
+      ) : null}
     </div>
   );
 }

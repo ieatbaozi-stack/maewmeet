@@ -12,6 +12,7 @@ import {
   deleteRequest,
   mapDeleteFailure,
   monthLabel,
+  timeRangeText,
   scopeChoices,
   weekRangeValues,
   weekdaysText,
@@ -64,7 +65,12 @@ export function RoutineScopeSheet({ action, target, onClose, onEdit, onDone, onS
     help: t(`busy.routine.scope.${action}.${c}Help`),
   });
 
-  const rule = r.allDay ? t("busy.routine.calendar.detailAllDay", { days: weekdaysText(t, r.weekdays) }) : t("busy.routine.calendar.detail", { days: weekdaysText(t, r.weekdays), time: `${r.startTime}–${r.endTime}` });
+  const days = weekdaysText(t, r.weekdays);
+  const time = timeRangeText(r.startTime ?? "", r.endTime ?? "");
+  // จากแถวทั้งชุด: วัน/เวลาของชุด · จากวันเดียว: "วันหนึ่งในรายการแบบประจำ (…)"
+  const rule = target.day
+    ? r.allDay ? t("busy.routine.calendar.detailAllDay", { days }) : t("busy.routine.calendar.detail", { days, time })
+    : r.allDay ? t("busy.routine.mine.whenAllDay", { days }) : t("busy.routine.mine.when", { days, time });
 
   async function runDelete(choice: ScopeChoice) {
     if (busyChoice) return;

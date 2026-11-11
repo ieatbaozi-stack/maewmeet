@@ -11,6 +11,8 @@ import {
   buildRoutinePayload,
   canExtend,
   canSubmit,
+  dateSpanText,
+  timeRangeText,
   deleteRequest,
   doneRef,
   formStateOfRoutine,
@@ -189,6 +191,19 @@ describe('ตัวเลือกช่วง / เพดาน', () => {
     const m = setRangeKind(w, 'months');
     expect(m).toMatchObject({ rangeKind: 'months', fromMonth: '2026-11', toMonth: '2026-12' });
     expect(setRangeKind(m, 'weeks')).toMatchObject({ rangeKind: 'weeks', fromWeek: '2026-10-26', toWeek: '2026-12-28' });
+  });
+});
+
+describe('ข้อความช่วงวันที่/เวลาในรายการ', () => {
+  it('ปีเดียวกันย่อเป็น "1–30 พ.ย. 2569" ไม่ซ้ำปี · ข้ามเดือน/ข้ามปี', () => {
+    const j = '⁠';
+    expect(dateSpanText('2026-11-01', '2026-11-30', 'th')).toBe(`1${j}–${j}30 พ.ย. 2569`);
+    expect(dateSpanText('2026-11-01', '2026-12-27', 'th')).toBe(`1 พ.ย.${j}–${j}27 ธ.ค. 2569`);
+    expect(dateSpanText('2026-12-28', '2027-01-03', 'th')).toBe('28 ธ.ค. 2569 – 3 ม.ค. 2570');
+    expect(dateSpanText('2026-11-01', '2026-11-30', 'en')).toContain('30 Nov 2026');
+  });
+  it('เวลามี word joiner รอบขีดกลาง (ไม่ตัดบรรทัดตรงขีด)', () => {
+    expect(timeRangeText('09:00', '18:00')).toBe('09:00⁠–⁠18:00');
   });
 });
 
