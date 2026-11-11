@@ -81,6 +81,14 @@ export function FreeView({ data, gid, groupName = "", myId, month, monthTitle, n
           </div>
         </div>
       ) : null}
+      {data && !data.truncated && data.detailTruncated === true ? (
+        <div className="alert alert-warn" role="status" data-testid="free-detail-truncated">
+          <Icon name="info" />
+          <div>
+            <span>{t("availability.detailTruncated")}</span>
+          </div>
+        </div>
+      ) : null}
       {data && nobody ? (
         <div className="alert alert-warn" role="status" data-testid="free-nobody">
           <Icon name="info" />

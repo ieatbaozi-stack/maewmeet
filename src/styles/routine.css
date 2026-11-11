@@ -1,0 +1,89 @@
+/*
+ * busy แบบ routine (R14b) — เจ้าของ: Front-end · ต้นแบบ docs/design/R14_BUSY_ROUTINE.md
+ * ใช้คลาสกลางเดิม (.btn .segmented .field .input .tag .alert .rows .row .icon-btn .sheet) · ไม่มีสี/ระยะใหม่ — ทุกค่ามาจาก tokens
+ * ชื่อคลาสขึ้นต้น rt- · จุดตัด 48em = iPad แนวตั้ง (เหมือนไฟล์อื่น)
+ */
+
+/* ---------- ฟอร์ม ---------- */
+.rt-scope-line { margin-bottom: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent-soft-ink); font-weight: var(--weight-medium); overflow-wrap: anywhere; }
+.rt-err-line { display: block; }
+
+/* ชิป preset / ทางลัดช่วง — ห่อบรรทัด ปุ่มละ ≥ --tap */
+.rt-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.rt-chip {
+  min-height: var(--tap); padding: 0 var(--space-3);
+  border: var(--border) solid var(--line-control); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--ink); font: inherit; font-weight: var(--weight-medium);
+}
+.rt-chip[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-soft-ink); border-color: var(--accent-ink); font-weight: var(--weight-semibold); }
+.rt-shortcuts { margin-top: var(--space-3); }
+
+/* ปุ่มวัน 7 ปุ่ม: 7 ปุ่มกว้าง --tap พอดีจอแคบสุด (design §2 ข้อ 2) */
+.rt-days { display: grid; grid-template-columns: repeat(7, minmax(var(--tap), 1fr)); gap: var(--space-1); margin-top: var(--space-2); }
+.rt-day {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: var(--tap); min-height: var(--tap); padding: 0;
+  border: var(--border) solid var(--line-control); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--ink); font: inherit; font-size: var(--text-sm); font-weight: var(--weight-medium);
+}
+.rt-day[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-soft-ink); border-color: var(--accent-ink); border-width: var(--border-strong); font-weight: var(--weight-semibold); }
+.rt-day .icon { flex: none; margin-top: calc(var(--space-1) * -1); }
+.rt-quick { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); margin-top: var(--space-1); }
+.rt-quick-btn { min-width: var(--tap); justify-content: center; padding: 0 var(--space-2); }
+.rt-quick-btn[aria-pressed="true"] { text-decoration: underline; text-underline-offset: var(--space-1); font-weight: var(--weight-semibold); }
+
+.rt-overnight { display: grid; gap: var(--space-1); justify-items: start; margin-top: var(--space-2); }
+.rt-overnight .field-hint { margin-top: 0; }
+
+.rt-range { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-1); }
+.rt-range .select-bare { text-overflow: ellipsis; }
+.rt-locked { padding: var(--space-3); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); overflow-wrap: anywhere; }
+
+/* สรุปก่อนบันทึก */
+.rt-summary { margin-top: var(--space-4); padding: var(--space-3) var(--space-4); border: var(--border) solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); overflow-wrap: anywhere; }
+.rt-summary p + p { margin-top: var(--space-1); }
+.rt-summary-big { font-weight: var(--weight-semibold); font-size: var(--text-lg); font-variant-numeric: tabular-nums; }
+.rt-day-note { margin-bottom: var(--space-2); }
+.rt-hide-hint { font-size: var(--text-xs); }
+.rt-required-muted { display: flex; gap: var(--space-1); align-items: flex-start; color: var(--ink-muted); }
+.rt-required-muted .icon { margin-top: var(--space-1); }
+
+/* ---------- ส่วน "แบบประจำของฉัน" ---------- */
+.rt-section { margin-top: var(--space-5); }
+.rt-head h3 { font-size: var(--text-lg); font-weight: var(--weight-semibold); line-height: var(--leading-heading); }
+.rt-head p { margin-top: var(--space-1); }
+.rt-empty { display: grid; justify-items: center; gap: var(--space-2); padding: var(--space-5) var(--space-4); text-align: center; }
+.rt-empty p { max-width: 30ch; }
+.rt-list .rt-item { display: grid; grid-template-columns: minmax(0, 1fr); }
+.rt-list .rt-item + .rt-item { border-top: var(--border) solid var(--line); }
+.rt-list .rt-item .rt-open { border-top: 0; min-height: var(--tap-lg); }
+.rt-list .rt-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-2); padding: 0 var(--space-2) var(--space-2) var(--space-3); }
+.rt-extend { min-height: var(--tap); }
+.rt-ended { margin-top: var(--space-3); }
+.rt-ended .row-title, .rt-ended .row-meta { color: var(--ink-muted); }
+.rt-remaining { font-weight: var(--weight-semibold); color: var(--ink); font-variant-numeric: tabular-nums; }
+.rt-add { margin-top: var(--space-3); }
+
+/* ---------- sheet เลือกขอบเขต ---------- */
+.rt-scope-rule { overflow-wrap: anywhere; }
+.rt-scope-list { display: grid; gap: var(--space-2); margin-top: var(--space-3); }
+.rt-scope-btn {
+  display: grid; gap: var(--space-1); width: 100%; min-height: var(--tap-lg); padding: var(--space-3) var(--space-4); text-align: left;
+  border: var(--border) solid var(--line-control); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit;
+}
+.rt-scope-btn b { font-weight: var(--weight-semibold); overflow-wrap: anywhere; }
+.rt-scope-btn span { font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
+.rt-scope-btn:disabled { color: var(--ink-muted); }
+.rt-scope-btn.is-danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
+.rt-scope-btn.is-danger span { color: var(--on-danger); }
+
+/* ---------- ป้าย "ประจำ" + ปุ่มแก้/ลบ ในปฏิทินของฉัน ---------- */
+.cal-item.is-routine { display: grid; gap: var(--space-1); justify-items: end; }
+.rt-day-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-1); }
+.rt-tag { display: inline-flex; align-items: center; gap: var(--space-1); padding: 0 var(--space-2); border: var(--border) solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink-muted); font-size: var(--text-xs); font-weight: var(--weight-medium); white-space: nowrap; }
+.cal-person:has(.is-routine) .items { text-align: right; }
+
+@media (min-width: 48em) {
+  .rt-range { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+  .rt-days { grid-template-columns: repeat(7, var(--tap)); }
+  .rt-scope-btn { padding: var(--space-3) var(--space-4); }
+}

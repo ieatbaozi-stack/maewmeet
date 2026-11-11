@@ -9,6 +9,7 @@ import { Icon } from "@/components/icons/Icon";
 import { Name, withNames } from "@/components/Name";
 import { format, type CalendarLocale, type DateISO } from "@/lib/calendar";
 import { BusyItemLine } from "./BusyItemLine";
+import type { OwnBusy } from "./model";
 import { busyKindOf, dayRows, itemApptHref, joinNames, nowPercent, segmentLabel, segmentTitle, stripBox, type ItemSpan, type MemberInfo } from "./model";
 
 const AXIS = [0, 6, 12, 18, 24] as const;
@@ -25,13 +26,17 @@ export interface DayPanelProps {
   onNext: () => void;
   onToday: () => void;
   onAdd: () => void;
+  /** R14: วันของ routine ของฉัน (busy id → รายการ) — ใช้แสดงป้าย "ประจำ" เฉพาะแถวของฉันเอง */
+  routineDays?: ReadonlyMap<string, OwnBusy>;
+  onRoutineEdit?: (own: OwnBusy) => void;
+  onRoutineDelete?: (own: OwnBusy) => void;
 }
 
 /**
  * มุมมองวัน (UX X26–X29): หัววัน + ปุ่มก่อน/ถัด/วันนี้ · "ติด N จาก M คน" · แถบเวลา 00–24 ต่อสมาชิก (aria-hidden — ข้อมูลเดียวกันอยู่ในรายการข้อความ) ·
  * รายการ "ใครไม่ว่างเมื่อไร" · รายการซ่อน/ไม่ได้ใส่ → "ไม่ว่าง" · คนที่ไม่มีรายการ = "ไม่ได้ลงว่าติด" (ไม่ใช่ "ว่าง" — X29)
  */
-export function DayPanel({ date, today, members, spans, myId, nowMinute, onPrev, onNext, onToday, onAdd }: DayPanelProps) {
+export function DayPanel({ date, today, members, spans, myId, nowMinute, onPrev, onNext, onToday, onAdd, routineDays, onRoutineEdit, onRoutineDelete }: DayPanelProps) {
   const t = useTranslations();
   const locale = useLocale() as CalendarLocale;
   const uid = useId();
@@ -120,16 +125,22 @@ export function DayPanel({ date, today, members, spans, myId, nowMinute, onPrev,
                   {segments.map((seg) => {
                     const label = segmentLabel(seg);
                     const title = segmentTitle(seg);
+                    const own = member.userId === myId && busyKindOf(seg.item) === "busy" ? routineDays?.get(seg.item.id) : undefined;
+                    const whenText = t(label.ref.key, label.ref.values);
+                    const who = title ?? t("busy.mine.noTitle");
                     return (
                       <BusyItemLine
                         key={`${seg.item.id}-${seg.from}`}
                         kind={busyKindOf(seg.item)}
-                        whenText={t(label.ref.key, label.ref.values)}
+                        whenText={whenText}
                         title={title}
                         memberName={member.displayName}
                         href={itemApptHref(seg.item)}
                         subText={label.dayOf ? t(label.dayOf.key, label.dayOf.values) : null}
                         busyTestId="cal-item"
+                        {...(own && onRoutineEdit && onRoutineDelete
+                          ? { routine: { onEdit: () => onRoutineEdit(own), onDelete: () => onRoutineDelete(own), editAria: t("busy.mine.openAria", { title: who, when: whenText }), deleteAria: `${t("busy.form.delete")}: ${who}` } }
+                          : {})}
                       />
                     );
                   })}

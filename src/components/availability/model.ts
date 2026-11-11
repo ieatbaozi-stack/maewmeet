@@ -60,6 +60,8 @@ export interface AvData {
   busy: SharedBusy[];
   days: AvDay[];
   truncated: boolean;
+  /** R14 (M2): รายละเอียดว่าใครติดอะไรถูกตัด (> 5,000 ชิ้น) แต่ช่วงว่างยังถูกต้อง · ไม่ส่ง = false */
+  detailTruncated?: boolean;
 }
 
 /**
@@ -209,7 +211,7 @@ export function summarize(days: readonly AvDay[], today: DateISO): Summary {
 }
 
 /** ไม่มีใครลงวันไม่ว่างเลยในช่วงที่เห็น (ทุกวันไม่มี blockers) — ผลทุกวันจะดูว่างหมด (X43) */
-export const nobodyLoggedBusy = (days: readonly AvDay[]): boolean => days.length > 0 && days.every((d) => d.blockers.length === 0);
+export const nobodyLoggedBusy = (days: readonly AvDay[]): boolean => days.length > 0 && days.every((d) => d.blockers.length === 0 && d.notFreeUserIds.length === 0);
 
 /** วันที่แผงขวา (iPad) แสดงตอนยังไม่เลือก: วันแรกที่ว่างร่วม → ใกล้เคียงที่สุด → วันแรกที่กดได้ในช่วง */
 export function defaultPanelDate(days: readonly AvDay[], today: DateISO): DateISO | null {

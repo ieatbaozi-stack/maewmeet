@@ -570,6 +570,35 @@ describe('R14a review fixes (security M1, M2, L1, Info 2 · R14_CONTRACT §10)',
   });
 });
 
+describe('R14b §11 — GET remaining นับจริง (บั๊ก subquery อ้าง "id" ไม่ระบุตาราง)', () => {
+  it('ชุดใหม่ = จำนวนวันทั้งหมด · ผ่านไปบางส่วน = เฉพาะที่ยังไม่สิ้นสุด · จบแล้ว = 0 · ไม่ปนชุดอื่น/คนอื่น', async () => {
+    const fresh = await mustCreate(a); // 16–29 พ.ย. จ.–ศ. = 10 วัน
+    const partial = await mustCreate(a, { fromWeek: '2026-11-09', toWeek: '2026-11-16' }); // 11,12,13,16–20 = 8 วัน
+    const ended = await mustCreate(a, { fromWeek: '2026-11-09', toWeek: '2026-11-09' }); // 11,12,13 = 3 วัน (จบ 15 พ.ย.)
+    await mustCreate(b, { weekdays: [1, 2, 3, 4, 5, 6, 7] }); // ของคนอื่น ต้องไม่ปน
+    const at = async () => {
+      const r = await get<{ routines: RoutineView[] }>(a.c, '/api/me/busy-routines');
+      expect(r.status).toBe(200);
+      return Object.fromEntries(r.data.routines.map((x) => [x.id, x.remaining]));
+    };
+    expect(await at()).toEqual({ [fresh.routine.id]: 10, [partial.routine.id]: 8, [ended.routine.id]: 3 });
+    h.clock.set(bkk(2026, 11, 17, 12)); // อังคาร 17 พ.ย. เที่ยง: แถว 17 (จบ 18:00) ยังไม่สิ้นสุด
+    expect(await at()).toEqual({ [fresh.routine.id]: 9, [partial.routine.id]: 4, [ended.routine.id]: 0 });
+    const list = await get<{ routines: RoutineView[] }>(a.c, '/api/me/busy-routines');
+    expect(list.data.routines.map((x) => x.id)).toEqual([partial.routine.id, fresh.routine.id, ended.routine.id]); // ยังไม่จบก่อน แล้วชุดที่จบ
+  });
+
+  it('SQL ของ listOwnRoutines อ้างคอลัมน์ของ busy_routine แบบมีชื่อตาราง (กันถอยหลัง)', async () => {
+    const { listOwnRoutines } = await import('@/lib/data/repos/busy-routine');
+    const r = await mustCreate(a);
+    const rows = await listOwnRoutines(h.db, a.id, NOW, '2026-11-11', 'active');
+    expect(rows.map((x) => [x.id, x.remaining])).toEqual([[r.routine.id, 10]]);
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync('src/lib/data/repos/busy-routine.ts', 'utf8');
+    expect(src).toMatch(/b\.routine_id = "busy_routine"\."id"/);
+  });
+});
+
 describe('R14-5 — เจ้าของเท่านั้น', () => {
   it('คนอื่น / super admin: PATCH/DELETE routine ของ a = 404 · แก้/ลบวันของ a ผ่าน /api/me/busy/:id = 404 · ไม่มีอะไรเปลี่ยน (ไม่มี skip)', async () => {
     const root = await person(h, 'root', { admin: true });

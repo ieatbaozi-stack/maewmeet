@@ -7,7 +7,12 @@ import { useLocale, useTranslations } from "next-intl";
 import { callApi } from "@/components/auth/api";
 import { rememberGroup } from "./RememberGroup";
 import { GoingList } from "./GoingList";
+import { callApiFull } from "@/components/appointments/api";
 import { BusyFormSheet, type BusyDone } from "@/components/busy/BusyFormSheet";
+import { RoutineFormSheet, type RoutineFormMode } from "@/components/busy/RoutineFormSheet";
+import { RoutineList, type RoutineListState } from "@/components/busy/RoutineList";
+import { RoutineScopeSheet } from "@/components/busy/RoutineScopeSheet";
+import { doneRef, type RoutineDone, type RoutineView, type ScopeAction, type ScopeChoice, type ScopeTarget } from "@/components/busy/routine-model";
 import { CreateAppointmentButton } from "@/components/appointments/CreateAppointmentButton";
 import { FreeView } from "@/components/availability/FreeView";
 import { Cat } from "@/components/brand";
@@ -17,7 +22,7 @@ import { Bell } from "@/components/shell/Bell";
 import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
 import { EmptyState } from "@/components/shell/EmptyState";
-import { DEFAULT_TZ, addDays, format, toLocal, todayIn, type CalendarLocale, type DateISO, type EpochMs } from "@/lib/calendar";
+import { DEFAULT_TZ, addDays, format, routinePeriodStart, toLocal, todayIn, type CalendarLocale, type DateISO, type EpochMs } from "@/lib/calendar";
 import type { GroupAvailabilityDto } from "@/lib/data/services/availability";
 import type { GroupCalendarDto } from "@/lib/data/services/calendar";
 import type { AppointmentDto } from "@/lib/data/serializers/appointments";
@@ -66,7 +71,9 @@ export interface CalendarViewProps {
 type CalState = { key: string; nowMs: EpochMs; status: "ready"; data: GroupCalendarDto } | { key: string; nowMs: EpochMs; status: "error" | "gone" };
 type AvState = { key: string; nowMs: EpochMs; status: "ready"; data: GroupAvailabilityDto } | { key: string; nowMs: EpochMs; status: "error" | "gone" };
 type MineState = { key: string; nowMs: EpochMs; status: "ready"; items: OwnBusy[]; truncated: boolean; going: AppointmentDto[] | null } | { key: string; nowMs: EpochMs; status: "error" };
-type FormState = { edit: OwnBusy | null; today: DateISO; defaultDate: DateISO } | null;
+type FormState = { edit: OwnBusy | null; today: DateISO; defaultDate: DateISO; routineDayNote?: boolean } | null;
+/** R14: sheet ขอบเขต / ฟอร์ม routine ที่เปิดอยู่ (own = วันของ routine ที่แตะ — ใช้เปิดฟอร์ม busy เดิมเมื่อเลือก "เฉพาะวันนี้") */
+type RoutineUi = { type: "scope"; action: ScopeAction; target: ScopeTarget; own: OwnBusy | null } | { type: "form"; mode: RoutineFormMode } | null;
 
 const WIDE = "(min-width: 48em)";
 function subscribeWide(cb: () => void): () => void {
@@ -121,6 +128,8 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   const [version, setVersion] = useState(0);
   const [form, setForm] = useState<FormState>(null);
   const [switching, setSwitching] = useState(false);
+  const [routineUi, setRoutineUi] = useState<RoutineUi>(null);
+  const [routineToast, setRoutineToast] = useState<RoutineDone | null>(null);
   const [toast, setToast] = useState<{ result: BusyDone; count?: number } | null>(null);
   const [missingShown, setMissingShown] = useState(groupMissing);
   // มุมมองว่างตรงกัน: วันที่ผู้ใช้เลือก (null = ใช้วันตั้งต้น) · sheet รายละเอียดวัน (มือถือ)
@@ -146,6 +155,9 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     return initialAvailability.status === "ready" ? { key, nowMs: initialNowMs, status: "ready", data: initialAvailability.data } : { key, nowMs: initialNowMs, status: initialAvailability.status };
   });
   const mineKey = `mine|${version}`;
+  // R14: ส่วน "แบบประจำของฉัน" โหลดแยกจากรายการ busy เดี่ยว (ล้มเหลวเฉพาะส่วนนี้) · วันของ routine ของฉันในช่วงที่เห็น (ไว้แสดงป้าย "ประจำ")
+  const [rt, setRt] = useState<{ key: string; state: RoutineListState } | null>(null);
+  const [ownDays, setOwnDays] = useState<{ key: string; map: ReadonlyMap<string, OwnBusy> } | null>(null);
   const [mine, setMine] = useState<MineState | null>(() => (initialMine ? { key: "mine|0", nowMs: initialNowMs, ...initialMine } : null));
 
   // ───────── โหลดข้อมูล (setState เฉพาะใน callback หลัง await — ไม่ซิงก์ใน effect) ─────────
@@ -200,6 +212,34 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     };
   }, [view, mine?.key, mineKey]);
 
+  useEffect(() => {
+    if (view !== "mine" || rt?.key === mineKey) return;
+    let live = true;
+    void callApiFull<{ routines: RoutineView[]; truncated?: boolean }>("/api/me/busy-routines", { method: "GET" }).then((res) => {
+      if (!live) return;
+      setRt({ key: mineKey, state: res.ok ? { status: "ready", routines: res.data.routines ?? [], truncated: res.data.truncated === true } : { status: "error" } });
+    });
+    return () => {
+      live = false;
+    };
+  }, [view, rt?.key, mineKey]);
+
+  // R14: วันของ routine ในช่วงที่เห็น (GET /api/me/busy?from&to ส่ง routineId ให้เจ้าของเท่านั้น) — ล้มเหลว = ไม่มีป้าย ไม่กระทบปฏิทิน
+  const ownKey = `own|${range.from}|${range.to}|${version}`;
+  useEffect(() => {
+    if ((view !== "month" && view !== "day") || ownDays?.key === ownKey) return;
+    let live = true;
+    void callApiFull<{ busy: OwnBusy[] }>(`/api/me/busy?from=${range.from}&to=${range.to}`, { method: "GET" }).then((res) => {
+      if (!live) return;
+      const map = new Map<string, OwnBusy>();
+      if (res.ok && Array.isArray(res.data?.busy)) for (const b of res.data.busy) if (b.routineId) map.set(b.id, b);
+      setOwnDays({ key: ownKey, map });
+    });
+    return () => {
+      live = false;
+    };
+  }, [view, ownDays?.key, ownKey, range.from, range.to]);
+
   // R10: เปิดฟอร์มลง busy ครั้งเดียวตอนมาจากปุ่มขั้น 2 (ฟอร์มเป็น portal จึงเปิดหลัง mount ไม่ใช่ตอน SSR)
   const autoOpened = useRef(false);
   useEffect(() => {
@@ -241,6 +281,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   // ───────── การกระทำ ─────────
   function changeView(next: CalView) {
     setToast(null);
+    setRoutineToast(null);
     setMissingShown(false);
     setSheetOpen(false);
     setView(next);
@@ -291,6 +332,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
 
   function openForm(edit: OwnBusy | null) {
     setToast(null);
+    setRoutineToast(null);
     const formToday = todayIn(DEFAULT_TZ, clock.now());
     setForm({ edit, today: formToday, defaultDate: view === "day" ? selected : formToday });
   }
@@ -311,6 +353,62 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     if (mine?.status === "ready" && mine.key === mineKey && !mine.truncated) {
       setMine({ ...mine, key: `mine|${next}`, items: [...mine.items, ...created] });
     }
+  }
+
+  // ───────── R14: routine ─────────
+  const refreshAll = () => setVersion((v) => v + 1);
+
+  function onRoutineDone(done: RoutineDone) {
+    setRoutineUi(null);
+    setForm(null);
+    setToast(null);
+    setRoutineToast(done);
+    refreshAll();
+  }
+
+  function openRoutineForm() {
+    setToast(null);
+    setRoutineToast(null);
+    setRoutineUi({ type: "form", mode: { type: "create" } });
+  }
+
+  function openScope(action: ScopeAction, target: ScopeTarget, own: OwnBusy | null = null) {
+    setToast(null);
+    setRoutineToast(null);
+    setRoutineUi({ type: "scope", action, target, own });
+  }
+
+  /** แตะแก้/ลบบนวันของ routine ในปฏิทิน: โหลดกฎมาหาชุดของวันนั้น (หายแล้ว → แจ้งและโหลดใหม่) */
+  async function openDayScope(action: ScopeAction, own: OwnBusy) {
+    const res = await callApiFull<{ routines: RoutineView[] }>("/api/me/busy-routines", { method: "GET" });
+    const routine = res.ok ? res.data.routines?.find((r) => r.id === own.routineId) : undefined;
+    if (!routine) {
+      if (res.ok) onRoutineDone({ type: "gone" });
+      else setRoutineToast({ type: "gone" });
+      return;
+    }
+    openScope(action, { routine, day: { busyId: own.id, date: own.localStartDate } }, own);
+  }
+
+  function onScopeEdit(choice: ScopeChoice, periodStart: DateISO, ui: Extract<RoutineUi, { type: "scope" }>) {
+    if (choice === "one") {
+      if (!ui.own) return;
+      setRoutineUi(null);
+      setForm({ edit: ui.own, today: todayIn(DEFAULT_TZ, clock.now()), defaultDate: ui.own.localStartDate, routineDayNote: true });
+      return;
+    }
+    setRoutineUi({ type: "form", mode: { type: "edit", routine: ui.target.routine, scope: choice === "from" ? "from" : "all", periodStart } });
+  }
+
+  function extendRoutine(r: RoutineView) {
+    setToast(null);
+    setRoutineToast(null);
+    setRoutineUi({ type: "form", mode: { type: "edit", routine: r, scope: "all", periodStart: routinePeriodStart(todayIn(DEFAULT_TZ, clock.now()), r.rangeKind), focusTo: true } });
+  }
+
+  function routineToastText(done: RoutineDone): string {
+    const r = doneRef(done, locale);
+    return t(r.key, r.values);
   }
 
   function toastText(result: BusyDone, count: number | undefined): string {
@@ -375,9 +473,15 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       onNext={() => moveDay(1)}
       onToday={goToday}
       onAdd={() => openForm(null)}
+      {...(ownDays?.key === ownKey && ownDays.map.size > 0
+        ? { routineDays: ownDays.map, onRoutineEdit: (own: OwnBusy) => void openDayScope("edit", own), onRoutineDelete: (own: OwnBusy) => void openDayScope("delete", own) }
+        : {})}
     />
   ) : null;
 
+  const mineRoutines: RoutineListState | null = view === "mine" && mine?.status === "ready" ? (rt && rt.key === mineKey ? rt.state : { status: "loading" }) : null;
+  const hasRoutines = mineRoutines?.status === "ready" && mineRoutines.routines.length > 0;
+  const mineToday = todayIn(DEFAULT_TZ, mine?.nowMs ?? initialNowMs);
   let body: React.ReactNode;
   let showFab = true;
   // R6C L1: ปุ่มแถบบนจอกว้าง ซ่อนเฉพาะ gone/error/loading (ไม่ผูกกับ showFab)
@@ -401,11 +505,22 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       showTopActions = false;
       body = errorBlock(t("busy.mine.error.title"), t("busy.mine.error.body"), retryCal, "cal-error");
     } else {
-      showFab = mine.items.length > 0;
+      showFab = mine.items.length > 0 || hasRoutines;
       body = (
         <>
           {mine.truncated ? <TruncatedNote messageKey="busy.mine.truncated" /> : null}
-          <MineList items={mine.items} nowMs={mine.nowMs} onOpen={(it) => openForm(it)} onAdd={() => openForm(null)} />
+          {hasRoutines && mine.items.length === 0 ? null : <MineList items={mine.items} nowMs={mine.nowMs} onOpen={(it) => openForm(it)} onAdd={() => openForm(null)} onAddRoutine={openRoutineForm} />}
+          {mineRoutines && !(mine.items.length === 0 && mineRoutines.status === "ready" && mineRoutines.routines.length === 0) ? (
+            <RoutineList
+              state={mineRoutines}
+              today={mineToday}
+              onAdd={openRoutineForm}
+              onRetry={refreshAll}
+              onEdit={(r) => openScope("edit", { routine: r, day: null })}
+              onDelete={(r) => openScope("delete", { routine: r, day: null })}
+              onExtend={extendRoutine}
+            />
+          ) : null}
           <GoingList items={mine.going} onRetry={retryCal} />
         </>
       );
@@ -580,10 +695,21 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
             <Notice kind={toast.result === "gone" ? "error" : "ok"}>{toastText(toast.result, toast.count)}</Notice>
           </div>
         ) : null}
+        {routineToast ? (
+          <div data-testid="cal-toast" data-kind="routine">
+            <Notice kind={routineToast.type === "gone" ? "error" : "ok"}>{routineToastText(routineToast)}</Notice>
+          </div>
+        ) : null}
         {view === "mine" ? (
           <div className="busy-head">
             <h2>{t("busy.mine.title")}</h2>
             <p>{t("busy.mine.lead")}</p>
+            {mine?.status === "ready" && mine.key === mineKey ? (
+              <button type="button" className="btn btn-secondary rt-add" data-testid="routine-add" onClick={openRoutineForm}>
+                <Icon name="repeat" />
+                <span>{t("busy.routine.add")}</span>
+              </button>
+            ) : null}
           </div>
         ) : null}
         {body}
@@ -600,8 +726,19 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
 
       {switching ? <GroupSwitchSheet groups={groups} currentId={gid} onPick={pickGroup} onClose={() => setSwitching(false)} /> : null}
       {form ? (
-        <BusyFormSheet edit={form.edit} defaultDate={form.defaultDate} today={form.today} groupCount={groups.length} userId={userId} onClose={() => setForm(null)} onDone={onDone} />
+        <BusyFormSheet edit={form.edit} defaultDate={form.defaultDate} today={form.today} groupCount={groups.length} userId={userId} routineDayNote={form.routineDayNote === true} onClose={() => setForm(null)} onDone={onDone} />
       ) : null}
+      {routineUi?.type === "scope" ? (
+        <RoutineScopeSheet
+          action={routineUi.action}
+          target={routineUi.target}
+          onClose={() => setRoutineUi(null)}
+          onEdit={(choice, periodStart) => onScopeEdit(choice, periodStart, routineUi)}
+          onDone={onRoutineDone}
+          onStale={refreshAll}
+        />
+      ) : null}
+      {routineUi?.type === "form" ? <RoutineFormSheet mode={routineUi.mode} groupCount={groups.length} onClose={() => setRoutineUi(null)} onDone={onRoutineDone} onStale={refreshAll} /> : null}
     </>
   );
 }

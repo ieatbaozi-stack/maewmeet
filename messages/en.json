@@ -1145,7 +1145,9 @@
         "ended": "Finished",
         "extend": "Extend",
         "openAria": "Manage {title}, {days}, {span}",
+        "deleteAria": "Delete {title}",
         "limitNear": "You’re using {count} of {max} routines. Stop ones you don’t need to free up space.",
+        "truncated": "Showing only the {count} most recent finished routines. Older ones aren’t listed here.",
         "empty": {
           "title": "No routines yet",
           "body": "Work, class or the gym every week. Add it once for the whole stretch."
