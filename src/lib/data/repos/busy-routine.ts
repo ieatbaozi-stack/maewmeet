@@ -169,7 +169,8 @@ export async function listOwnRoutines(
   const rows = await db
     .select({
       routine: busyRoutine,
-      remaining: sql<number>`(SELECT count(*) FROM busy_block b WHERE b.user_id = ${busyRoutine.userId} AND b.routine_id = ${busyRoutine.id} AND b.end_at > ${now})`,
+      // R14b §11: ระบุตารางนอกเอง — select ตารางเดียว drizzle เขียน ${busyRoutine.id} เป็น "id" ไม่มีชื่อตาราง ซึ่งใน subquery ผูกกับ busy_block b (remaining = 0 เสมอ)
+      remaining: sql<number>`(SELECT count(*) FROM busy_block b WHERE b.user_id = "busy_routine"."user_id" AND b.routine_id = "busy_routine"."id" AND b.end_at > ${now})`,
     })
     .from(busyRoutine)
     .where(and(eq(busyRoutine.userId, userId), which === 'active' ? gte(busyRoutine.endDate, today) : lt(busyRoutine.endDate, today)))
