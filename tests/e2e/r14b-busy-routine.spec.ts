@@ -8,6 +8,7 @@
 //   จำนวนวันของ "ทั้งเดือนนี้" ขึ้นกับวันนี้ → ตรวจเป็น "สรุปก่อนบันทึก = toast = แถวใน DB" และอยู่ในช่วง [lo, hi] ที่คิดจากปฏิทินอิสระ
 //   (hi นับรวมวันนี้ · lo ไม่นับวันนี้ เผื่อเซิร์ฟเวอร์ตัดแถววันนี้ที่เวลาจบผ่านไปแล้ว)
 // ผู้ใช้ใหม่ต่อเทสต์ (rate limit routine 20 ต่อ 10 นาทีต่อผู้ใช้)
+import { randomUUID } from 'node:crypto';
 import { createClient } from '@libsql/client';
 import type { APIRequestContext, Page } from '@playwright/test';
 import { expect, test } from './support/auth';
@@ -702,5 +703,108 @@ for (const { loc, theme } of COMBOS) {
     expect([d.truncated, d.detailTruncated]).toEqual([false, true]);
     expect(d.busy.length, 'ส่งรายละเอียดเต็มเพดาน 5,000').toBe(5000);
     expect(problems, 'console').toEqual([]);
+  });
+}
+
+// ═════════════════════════════════════════════════════════════
+// ต่ออายุชุดที่จบแล้ว (qa 7f3273e: เปิดฟอร์มแล้ว "ถึง" ต้องไม่อยู่ก่อน "ตั้งแต่") · ตั้งฉากชุดที่จบด้วย SQL (ลงชุดที่จบแล้วผ่าน API ไม่ได้)
+// ═════════════════════════════════════════════════════════════
+async function seedEndedRoutine(userId: string, id: string, startDate: DateISO, endDate: DateISO, title: string): Promise<void> {
+  const db = createClient({ url: E2E_DATABASE_URL, authToken: process.env.TURSO_AUTH_TOKEN || undefined, timeout: 15_000 });
+  try {
+    for (let k = 0; ; k++) {
+      try {
+        await db.execute({
+          sql: `INSERT INTO busy_routine (id, user_id, title, note, hide_detail, all_day, weekdays, start_min, end_min, range_kind, start_date, end_date, tz, created_at, updated_at) VALUES (?, ?, ?, NULL, 0, 0, 31, 540, 1080, 'weeks', ?, ?, 'Asia/Bangkok', 1, 1)`,
+          args: [id, userId, title, startDate, endDate],
+        });
+        break;
+      } catch (e) {
+        if (k >= 8 || !/database is locked|SQLITE_BUSY/.test(String(e))) throw e;
+        await new Promise((r) => setTimeout(r, 250 * (k + 1)));
+      }
+    }
+  } finally {
+    db.close();
+  }
+}
+
+for (const { loc, theme } of COMBOS) {
+  test(`R14b ต่ออายุ ${loc}/${theme}: ชุดที่จบแล้ว → เปิดฟอร์มไม่มี error ช่วง · สรุป N วัน · บันทึกได้ · เหลือวัน > 0`, async ({ newDevice, baseURL }, testInfo) => {
+    test.setTimeout(240_000);
+    const T = (k: string, v?: Record<string, string | number>) => msg(loc, k, v);
+    const scene = await makeScene(newDevice, baseURL!, { locale: loc, theme, labels: ['Ann'] });
+    const A = scene.members[0]!;
+    const a = A.page;
+    const problems = watchConsole(a);
+    const today = todayBkk();
+    const mon0 = mondayOf(today);
+    const id = randomUUID(); // เซิร์ฟเวอร์ตรวจ id เป็น uuid
+    await seedEndedRoutine(A.userId, id, addDays(mon0, -14), addDays(mon0, -1), 'ชุดเก่า');
+
+    await openCalendar(a, { gid: scene.gid, view: 'mine' });
+    await expect(a.getByTestId(`routine-row-${id}`).getByTestId('routine-remaining')).toHaveText(T('busy.routine.mine.ended'));
+    await a.getByTestId(`routine-extend-${id}`).click();
+    const sheet = dialogs(a);
+    await expect(sheet.getByTestId('routine-editing')).toHaveText(T('busy.routine.form.editing.all'));
+    // เปิดมาแล้วต้องไม่มี error ช่วง/ถึง ก่อนผู้ใช้แตะอะไร (บั๊กเดิม: "ถึง" ก่อน "ตั้งแต่")
+    await expect(sheet.getByTestId('routine-range-error')).toHaveCount(0);
+    await expect(sheet.getByTestId('routine-to-error')).toHaveCount(0);
+    await expect(sheet.getByTestId('routine-to')).not.toHaveAttribute('aria-invalid', 'true');
+    await expect(sheet.getByTestId('routine-from')).not.toHaveAttribute('aria-invalid', 'true');
+    // ต่อไปอีก 3 สัปดาห์จากสัปดาห์นี้ (ช่วงที่เหลือต้องมีวันแน่ ไม่ขึ้นกับวันนี้เป็นวันหยุดหรือไม่)
+    await sheet.getByTestId('routine-to').selectOption(addDays(mon0, 21));
+    const n = await summaryCount(sheet);
+    const [lo, hi] = expectedRange(mon0, addDays(mon0, 27), WORK, today);
+    expect(n).toBeGreaterThanOrEqual(lo);
+    expect(n).toBeLessThanOrEqual(hi);
+    await expect(sheet.getByTestId('routine-range-error')).toHaveCount(0);
+    await expect(sheet.getByTestId('routine-submit')).toBeEnabled();
+    await checkLayout(a, testInfo, 'r14b-extend', loc, theme);
+    await sheet.getByTestId('routine-submit').click();
+    await expect(dialogs(a)).toHaveCount(0);
+    await expect(toastOf(a)).toContainText(T('busy.routine.toast.updated'));
+    const r = (await routinesOf(A.context.request)).find((x) => x.id === id)!;
+    expect(r.endDate).toBe(addDays(mon0, 27));
+    expect(r.remaining, 'ต่ออายุแล้วต้องเหลือวัน').toBeGreaterThan(0);
+    const { from, to } = horizon();
+    expect((await routineRowsIn(A.context.request, from, to)).length).toBe(n);
+    await expect(a.getByTestId(`routine-row-${id}`).getByTestId('routine-remaining')).toHaveText(T('busy.routine.mine.remaining', { count: r.remaining }));
+    expect(problems, 'console').toEqual([]);
+  });
+
+  test(`R14b โน้ตไม่รั่ว ${loc}/${theme}: ไม่ซ่อนรายละเอียด → อีกคนเห็นชื่อ แต่ไม่เห็นโน้ตเลย`, async ({ newDevice, baseURL }) => {
+    test.setTimeout(240_000);
+    const T = (k: string, v?: Record<string, string | number>) => msg(loc, k, v);
+    const scene = await makeScene(newDevice, baseURL!, { locale: loc, theme, labels: ['Ann', 'Bob'] });
+    const [A, B] = [scene.members[0]!, scene.members[1]!];
+    const bApi = recordApi(B.page);
+    const [title, note] = [canary('title'), canary('note')];
+    const mon1 = addDays(mondayOf(todayBkk()), 7);
+    await postRoutine(A.context.request, { rangeKind: 'weeks', fromWeek: mon1, toWeek: mon1, weekdays: [1, 2, 3, 4, 5, 6, 7], allDay: false, startTime: '09:00', endTime: '18:00', title, note, hideDetail: false });
+    const d = addDays(mon1, 2);
+
+    await openCalendar(B.page, { gid: scene.gid, view: 'day', date: d });
+    await expect(B.page.getByTestId('cal-day-panel')).toHaveAttribute('data-date', d);
+    await expect(B.page.getByTestId('cal-day-panel')).toContainText(title); // ไม่ซ่อน → เห็นชื่อ
+    await expect(B.page.getByTestId('routine-tag')).toHaveCount(0);
+    await openFree(B.page, { gid: scene.gid, date: d });
+    await pickDay(B.page, d);
+    await expect(freeDay(B.page).getByTestId(`free-blocker-${A.userId}`)).toContainText(title);
+    await expect(freeDay(B.page).getByText(T('availability.day.segments.row', { start: '18:00', end: '22:00' }))).toBeVisible();
+    for (const q of [`calendar?from=${mon1}&to=${addDays(mon1, 6)}`, `availability?from=${mon1}&to=${addDays(mon1, 6)}`]) {
+      const r = await api(B.context.request, 'GET', `/api/groups/${scene.gid}/${q}`);
+      expect(r.status, r.text).toBe(200);
+      bApi.bodies.push({ path: `/api/groups/${scene.gid}/${q}`, text: r.text });
+    }
+    await bApi.settled();
+    expect(bApi.bodies.some((x) => x.text.includes(title)), 'ชื่ออยู่ใน response (ไม่ซ่อน) — ยืนยันว่าตรวจข้อมูลจริง').toBe(true);
+    for (const x of bApi.bodies) {
+      expect(x.text, `${x.path} ต้องไม่มีโน้ต`).not.toContain(note);
+      expect(x.text, `${x.path} ต้องไม่มี routineId/rangeKind`).not.toMatch(/routineId|rangeKind/);
+    }
+    const dump = await pageDump(B.page);
+    expect(dump, 'DOM ของ Bob ต้องไม่มีโน้ต').not.toContain(note);
+    expect(dump).not.toMatch(/routineId|rangeKind/);
   });
 }
