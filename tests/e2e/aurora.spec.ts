@@ -33,7 +33,7 @@ for (const path of AURORA_PAGES) {
   test(`${path}: เลเยอร์ filter เดียว ≤ 4 ก้อน ซ่อนจาก screen reader`, async ({ world, openAs }) => {
     const { page } = await openAs(NEEDS_LOGIN.has(path) ? world.user : ANON);
     await page.goto(path, { waitUntil: 'networkidle' });
-    await expect(page).toHaveURL(new RegExp(`${path === '/' ? '/$' : path}$`));
+    await expect(page).toHaveURL(new RegExp(path === '/' ? '/$' : `${path}(\\?.*)?$`));
     const a = await auroraInfo(page);
     expect(a.filterLayers).toBe(1);
     expect(a.blobs).toBeGreaterThanOrEqual(1);
