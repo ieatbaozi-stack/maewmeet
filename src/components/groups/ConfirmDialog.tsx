@@ -7,7 +7,8 @@ import { BusyButton } from "@/components/shell/BusyButton";
 
 export interface ConfirmDialogProps {
   title: string;
-  body: string;
+  /** ข้อความล้วน หรือข้อความที่มีชื่อผู้ใช้ครอบด้วย <bdi> (withNames) */
+  body: ReactNode;
   confirmLabel: string;
   onConfirm: () => void;
   onClose: () => void;

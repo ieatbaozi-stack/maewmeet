@@ -15,6 +15,7 @@
 @import "../styles/home.css";
 @import "../styles/notifications.css";
 @import "../styles/admin.css";
+@import "../styles/routine.css";
 
 /* Tailwind: ล้างค่าดีฟอลต์ทั้งหมด แล้ว map เข้ากับ tokens เท่านั้น — utility ที่ไม่มี token ใช้ไม่ได้ */
 @theme inline {
