@@ -84,3 +84,12 @@
 - คีย์ en/th ยังเท่ากัน (ตรวจรอบแรก; รอบนี้เพิ่มคู่ครบ 3 คีย์ทั้งสองภาษา)
 
 ตรวจไม่ได้: CI/Vercel · ภาพ UI ของข้อความใหม่ (R14b)
+
+---
+
+## หมายเหตุ: CI PR #32 ล้มที่ `r6d-going-busy.spec.ts:120` (แก้ใน `cc1f9ba`)
+
+**Verdict: การวิเคราะห์ถูก เป็นปัญหาของเทสต์ ไม่ใช่ regression ของแอป**
+1. effect ที่ `replaceState` ใส่ `g`/`v`/`d` อยู่ใน `src/components/calendar/CalendarView.tsx` มาตั้งแต่ commit `1e11bc4` (R3) · `git diff origin/main...HEAD` ของ `src/components` และ `src/app` มีเฉพาะ API ใหม่ 3 ไฟล์ (`manifest.ts` + route `busy-routines`) ไม่แตะ UI → assert `/calendar$` แบบตรงตัวแข่งกับ effect นี้ (เกิดได้ทุกรุ่น ขึ้นกับจังหวะ)
+2. regex ใหม่ตรวจโค้ดแล้ว: r6d `/calendar(\?(.*&)?g=<gidX>(&.*)?)?$` รับ `/calendar`, `?g=X&v=month&d=…`, `?v=month&g=X` และ **ปฏิเสธ** `g` ของกลุ่มอื่น (ส่วน query เป็น optional ทั้งก้อนแต่ถ้ามี `?` ต้องมี `g=X`) จึงยังพิสูจน์ว่าจำกลุ่ม X ได้ · aurora/shell `path(\?.*)?$` ยังกันไม่ให้ไปหน้าอื่น (ยังอยู่ท้าย URL) — ใช้ได้
+3. รันจริง `npx playwright test tests/e2e/r6d-going-busy.spec.ts tests/e2e/aurora.spec.ts tests/e2e/shell.spec.ts --retries=0 --workers=1` (HEAD `cc1f9ba`, ทั้ง 3 project: mobile-375/390 + tablet-768): **144 ผ่าน / 12 skip / 0 ล้ม (8.9 นาที)** ไม่มี timeout ที่ workers=1 → ไม่ต้องเทียบกับ origin/main (ไม่เกิดปัญหาเครื่องให้เทียบ) · รายงานแบบ line ไม่แยกผลต่อ project (รวม 156 เทสต์ = 52 ต่อ project)
