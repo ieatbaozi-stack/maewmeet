@@ -197,12 +197,21 @@ describe('C. route ของ busy / ปฏิทิน ผูก action ที�
   it.each(busyRoutes.map((e) => [`${e.method} ${e.path}`, e] as const))('%s → busy.* ที่ตรงกับ method', (_n, e) => {
     expect(e.auth).toBe('actor');
     const table = e.path.startsWith('/api/me/busy-routines') ? ROUTINE_OK : BUSY_OK;
-    expect(e.action).toBe(table[e.method]);
+    // R15a: POST .../skips (เว้น/คืนหลายวันในคำขอเดียว) ใช้ busy.routine.update
+    const expected = e.path.endsWith('/skips') ? 'busy.routine.update' : table[e.method];
+    if (e.path.endsWith('/skips')) expect(e.method).toBe('POST');
+    expect(e.action).toBe(expected);
   });
   it.each(calRoutes.map((e) => [`${e.method} ${e.path}`, e] as const))('%s → group.calendar.view (GET เท่านั้น)', (_n, e) => {
     expect(e.method).toBe('GET');
     expect(e.auth).toBe('actor');
     expect(e.action).toBe('group.calendar.view');
+  });
+  it('R15a: PUT /api/groups/:gid/icon → group.icon.update (auth=actor)', () => {
+    const e = ROUTE_MANIFEST.find((r) => r.method === 'PUT' && r.path === '/api/groups/:gid/icon');
+    expect(e, 'PUT /api/groups/:gid/icon ไม่อยู่ใน ROUTE_MANIFEST').toBeDefined();
+    expect(e!.auth).toBe('actor');
+    expect(e!.action).toBe('group.icon.update');
   });
   it('ไม่มี route ใดเปิดให้ระบุ user id ของคนอื่นเพื่ออ่าน busy (/api/users/:id/busy ฯลฯ)', () => {
     const bad = ROUTE_MANIFEST.filter((e) => /busy|calendar/.test(e.path) && !/^\/api\/me\/busy|^\/api\/groups\/:gid\/calendar|^\/api\/appointments\/:id\/calendar\.ics$/.test(e.path));
