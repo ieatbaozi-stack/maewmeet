@@ -1,5 +1,7 @@
 # NEXT_PHASE — เอกสารส่งต่อให้ Claude Code (อัปเดต 2026-10-31)
 
+> **หมายเหตุ (2026-11-15):** B1, F1, F3, F4, F5 และ F6 เสร็จแล้วตาม `docs/contracts/R15_CONTRACT.md` §0 · **F2 ความเร็วยังเปิดบางส่วน** (R15b §3) · แผนที่ใช้งานจริงตอนนี้คือ **[docs/contracts/R15_CONTRACT.md](contracts/R15_CONTRACT.md)** (R15a กำลังทำ, R15b ถัดไป) · เนื้อหาด้านล่างเป็นประวัติการตัดสินใจ ไม่ใช่แผนปัจจุบัน
+
 อ่านไฟล์นี้ก่อนเริ่มงาน แล้วอ่าน `CLAUDE.md`, `PROCESS.md`, `TEAM.md`, `docs/OPERATIONS.md`, `docs/VERSIONING.md` ตามต้องการ
 เจ้าของ: boss (Jimmy) · สื่อสารภาษาไทย · แอปอยู่ที่ v0.7.0 ใช้งานจริง ~10 คน
 
