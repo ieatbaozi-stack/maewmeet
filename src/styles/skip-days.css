@@ -1,0 +1,45 @@
+/*
+ * "เว้นบางวัน" ของแบบประจำ (R15a §1.1) — เจ้าของ: Front-end · ต้นแบบ docs/design/tools/build-r15.mjs (ค่าคงที่ CSS) / docs/design/R15_FEEDBACK.md §3
+ * ใช้คลาสกลางเดิม (.btn .segmented .alert .icon-btn .link-btn .sheet) · ทุกค่ามาจาก tokens (ไม่มี hex/px)
+ */
+.sk-tabs { margin-top: var(--space-3); }
+.sk-nav { display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-3); }
+.sk-nav b { font-weight: var(--weight-semibold); }
+.sk-nav .icon-btn[aria-disabled="true"] { opacity: 1; color: var(--ink-muted); }
+.sk-dow, .sk-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-1); }
+.sk-dow { margin-top: var(--space-2); text-align: center; font-size: var(--text-sm); color: var(--ink-muted); }
+.sk-grid { margin-top: var(--space-1); }
+.sk-day {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: var(--tap); padding: 0;
+  border: var(--border) solid var(--line-control); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: var(--text-sm); font-weight: var(--weight-medium); font-variant-numeric: tabular-nums;
+}
+.sk-day .icon { width: var(--icon-sm); height: var(--icon-sm); margin-top: calc(var(--space-1) * -1); }
+.sk-day[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-soft-ink); border: var(--border-strong) solid var(--accent-ink); font-weight: var(--weight-semibold); }
+/* เว้นไว้แล้ว: ลายเฉียง + ขีดฆ่าตัวเลข — ไม่พึ่งสีอย่างเดียว */
+.sk-day.is-skipped { border-color: var(--line); background-color: var(--surface-2); background-image: repeating-linear-gradient(135deg, var(--hatch) 0 var(--border), transparent var(--border) var(--space-1)); color: var(--ink); text-decoration: line-through; }
+.sk-day.is-skipped[aria-pressed="true"] { text-decoration: none; background-image: none; background-color: var(--accent-soft); color: var(--accent-soft-ink); border: var(--border-strong) solid var(--accent-ink); }
+.sk-day[aria-disabled="true"] { cursor: default; }
+.sk-day.is-locked { color: var(--ink-muted); background: var(--surface-2); border-color: var(--line); }
+.sk-off { display: flex; align-items: center; justify-content: center; min-height: var(--tap); color: var(--ink-muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.sk-legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin-top: var(--space-3); font-size: var(--text-sm); color: var(--ink-muted); }
+.sk-legend span { display: inline-flex; align-items: center; gap: var(--space-2); }
+.sk-sw { width: var(--icon); height: var(--icon); border-radius: var(--radius-sm); border: var(--border) solid var(--line-control); background: var(--surface); display: inline-flex; align-items: center; justify-content: center; }
+.sk-sw.sel { background: var(--accent-soft); border: var(--border-strong) solid var(--accent-ink); color: var(--accent-soft-ink); }
+.sk-sw.sel .icon { width: calc(var(--icon-sm) - var(--space-1)); height: calc(var(--icon-sm) - var(--space-1)); stroke-width: 3; }
+.sk-sw.skp { background-color: var(--surface-2); background-image: repeating-linear-gradient(135deg, var(--hatch) 0 var(--border), transparent var(--border) var(--space-1)); border-color: var(--line); }
+.sk-count { margin-top: var(--space-3); font-weight: var(--weight-semibold); font-variant-numeric: tabular-nums; }
+.sk-limit { display: flex; gap: var(--space-2); align-items: flex-start; margin-top: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--warn); color: var(--warn-ink); font-size: var(--text-sm); }
+.sk-limit .icon { flex: none; margin-top: var(--space-1); }
+.sk-note { margin-top: var(--space-3); font-size: var(--text-sm); color: var(--ink-muted); }
+.sk-alert { margin-top: var(--space-3); }
+.sk-empty { display: grid; justify-items: center; gap: var(--space-2); padding: var(--space-5) var(--space-4); text-align: center; }
+.sk-foot { display: flex; align-items: center; gap: var(--space-3); }
+.sk-foot .btn-primary { flex: 1; min-height: var(--tap-lg); }
+.sk-foot .link-btn { min-width: var(--tap); justify-content: center; }
+.sk-foot .link-btn[aria-disabled="true"] { color: var(--ink-muted); }
+.sk-foot .btn-primary[aria-disabled="true"], .gi-sheet-save[aria-disabled="true"] { background: var(--surface-2); color: var(--ink-muted); border-color: var(--line-control); }
+
+/* ชิป "เว้นไว้ N วัน" บนการ์ดแบบประจำ (ข้อความ + ไอคอน ไม่พึ่งสี) */
+.sk-chip { display: inline-flex; align-items: center; gap: var(--space-1); margin-top: var(--space-1); padding: 0 var(--space-2); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); font-size: var(--text-xs); min-height: var(--icon-lg); }
+.sk-chip .icon { width: var(--icon-sm); height: var(--icon-sm); }

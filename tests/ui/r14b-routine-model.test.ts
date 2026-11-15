@@ -79,6 +79,7 @@ const routine = (over: Partial<RoutineView> = {}): RoutineView => ({
   endDate: '2026-12-27',
   tz: TZ,
   remaining: 30,
+  skippedDates: [],
   ...over,
 });
 

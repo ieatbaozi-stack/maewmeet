@@ -14,7 +14,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: name, template: `%s — ${name}` },
     description: t("description"),
-    icons: { icon: "/brand/logo-mark.svg" },
+    icons: {
+      icon: "/brand/logo-mark.svg",
+      apple: [{ url: "/brand/app/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    },
+    // R15a §1.3: เปิดจากหน้าจอโฮมเป็นแอป · ชื่อใต้ไอคอนตามภาษาผู้ใช้ (app.name) · แถบสถานะ default = ไม่ทับเนื้อหา อ่านออกทั้งสองธีม
+    appleWebApp: { capable: true, title: name, statusBarStyle: "default" },
   };
 }
 

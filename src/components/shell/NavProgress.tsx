@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { NAV_START_EVENT, isPathChange } from "./nav-start";
 
 /** หน่วงก่อนแสดง = --loading-delay (tokens) · ค่าสำรองเมื่ออ่านไม่ได้ */
 const FALLBACK_DELAY_MS = 150;
@@ -83,8 +84,7 @@ export function NavProgress() {
       finish();
     }
 
-    function onClick(e: MouseEvent) {
-      if (!isInternalNavClick(e)) return;
+    function begin() {
       clear(fadeTimer);
       clear(delayTimer);
       clear(giveUpTimer);
@@ -99,9 +99,21 @@ export function NavProgress() {
       observer.current.observe(document.body, { childList: true, subtree: true });
     }
 
+    function onClick(e: MouseEvent) {
+      if (isInternalNavClick(e)) begin();
+    }
+
+    // R15a §1.4: router.push จากโค้ด (สร้างนัด/สร้างกลุ่ม ฯลฯ) — ผู้เรียกส่ง signalNavStart(href) ก่อน push
+    function onSignal(e: Event) {
+      const href = (e as CustomEvent<{ href?: unknown }>).detail?.href;
+      if (typeof href === "string" && isPathChange(href, window.location)) begin();
+    }
+
     document.addEventListener("click", onClick, true);
+    window.addEventListener(NAV_START_EVENT, onSignal);
     return () => {
       document.removeEventListener("click", onClick, true);
+      window.removeEventListener(NAV_START_EVENT, onSignal);
       clear(delayTimer);
       clear(giveUpTimer);
       clear(fadeTimer);

@@ -34,6 +34,7 @@ import {
   type OverlapView,
 } from "./model";
 import { BusyButton } from "@/components/shell/BusyButton";
+import { signalNavStart } from "@/components/shell/nav-start";
 
 export interface AppointmentFormSheetProps {
   mode: "create" | "edit";
@@ -145,6 +146,7 @@ export function AppointmentFormSheet({ mode, groupId, groupName, memberCount, tz
       setProblems({});
       const res = await callApiFull<{ appointment: AppointmentDetailDto }>(`/api/groups/${groupId}/appointments`, { method: "POST", body: built.payload });
       if (res.ok) {
+        signalNavStart(`/appointments/${res.data.appointment.id}`);
         router.push(`/appointments/${res.data.appointment.id}`);
         return; // คง saving ไว้จนหน้าเปลี่ยน (กันกดซ้ำ)
       }

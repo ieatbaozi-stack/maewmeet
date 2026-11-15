@@ -27,6 +27,8 @@ export interface HomeAppointment {
   id: string;
   groupId: string;
   groupName: string;
+  /** R15a: ไอคอนกลุ่ม (null/ไม่มี → แมว) */
+  groupIcon?: string | null;
   title: string;
   placeName: string | null;
   lat: number | null;

@@ -188,7 +188,6 @@ export function RoutineFormSheet({ mode, groupCount, onClose, onDone, onStale }:
             <span>
               {t("busy.routine.visibility")}
               {groupCount > 0 ? <small>{t("busy.form.visibilityGroups", { count: groupCount })}</small> : null}
-              <small className="rt-hide-hint" data-testid="routine-visibility-hide">{t("busy.routine.visibilityHide")}</small>
             </span>
           </p>
           <BusyButton
@@ -467,6 +466,10 @@ export function RoutineFormSheet({ mode, groupCount, onClose, onDone, onStale }:
           </div>
           <button type="button" className="switch" role="switch" aria-checked={s.hideDetail} aria-labelledby={hideId} data-testid="routine-hide" onClick={() => patch({ ...s, hideDetail: !s.hideDetail })} />
         </div>
+        {/* R15a §1.4: ย้ายจากแถบล่าง (ลดแถบที่ 375) — อธิบายสวิตช์ "ซ่อนว่าทำอะไร" โดยตรง */}
+        <p className="field-hint rt-hide-hint" data-testid="routine-visibility-hide">
+          {t("busy.routine.visibilityHide")}
+        </p>
 
         <div className="field">
           <div className="field-label-row">

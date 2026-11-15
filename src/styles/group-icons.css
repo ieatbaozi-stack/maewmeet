@@ -1,0 +1,47 @@
+/*
+ * ไอคอนกลุ่ม + ตัวเลือก (R15a §1) — เจ้าของ: Front-end · ต้นแบบ docs/design/tools/build-r15.mjs (ค่าคงที่ CSS) / docs/design/R15_FEEDBACK.md §1.3–§1.4
+ * ทุกค่ามาจาก tokens (ไม่มี hex/px) · tile ขนาด sm = --icon-lg + --space-1
+ */
+.gi { display: inline-flex; align-items: center; justify-content: center; flex: none; background: var(--accent-soft); color: var(--accent-soft-ink); border-radius: var(--radius-sm); }
+.gi[data-size="sm"] { width: calc(var(--icon-lg) + var(--space-1)); height: calc(var(--icon-lg) + var(--space-1)); }
+.gi[data-size="sm"] .icon { width: var(--icon-sm); height: var(--icon-sm); }
+.gi[data-size="md"] { width: var(--tap); height: var(--tap); }
+.gi[data-size="md"] .icon { width: var(--icon-lg); height: var(--icon-lg); }
+.gi[data-size="lg"] { width: var(--tap-lg); height: var(--tap-lg); border-radius: var(--radius-lg); }
+.gi[data-size="lg"] .icon { width: calc(var(--icon-lg) + var(--space-1)); height: calc(var(--icon-lg) + var(--space-1)); }
+.gi-glyph { display: inline-flex; flex: none; color: var(--ink-muted); }
+.gi-glyph .icon { width: var(--icon); height: var(--icon); }
+.gi-glyph.sm .icon { width: var(--icon-sm); height: var(--icon-sm); }
+
+/* ---- ตัวเลือกไอคอน (sheet) ---- */
+.gi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); margin-top: var(--space-3); }
+.gi-opt {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1);
+  min-height: calc(var(--tap) * 2); padding: var(--space-2) var(--space-1);
+  border: var(--border) solid var(--line-control); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: var(--text-xs); line-height: 1.25; text-align: center; overflow-wrap: anywhere;
+}
+.gi-opt .icon { width: calc(var(--icon-lg) + var(--space-1)); height: calc(var(--icon-lg) + var(--space-1)); }
+.gi-opt[aria-checked="true"] { border: var(--border-strong) solid var(--accent-ink); background: var(--accent-soft); color: var(--accent-soft-ink); font-weight: var(--weight-semibold); }
+.gi-opt .gi-check { position: absolute; top: var(--space-1); right: var(--space-1); display: none; align-items: center; justify-content: center; width: var(--icon); height: var(--icon); border-radius: var(--radius-full); background: var(--accent); color: var(--on-accent); }
+.gi-opt .gi-check .icon { width: calc(var(--icon-sm) - var(--border) * 2); height: calc(var(--icon-sm) - var(--border) * 2); stroke-width: 3; }
+.gi-opt[aria-checked="true"] .gi-check { display: inline-flex; }
+@media (min-width: 48em) { .gi-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+
+/* ---- ส่วนตั้งค่าในหน้าตั้งค่ากลุ่ม ---- */
+.gi-set { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
+.gi-set .t { flex: 1; min-width: 0; font-weight: var(--weight-medium); overflow-wrap: anywhere; }
+
+/* ---- จุดที่แสดงไอคอน ---- */
+.group-switch .gi { margin-right: var(--space-1); }
+.gi-line { display: inline-flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.gi-change, .gi-viewonly { margin-top: var(--space-3); }
+.gi-alert { margin-top: var(--space-3); }
+.gi-status { margin-top: var(--space-3); min-height: var(--space-5); }
+
+/* แผ่นสลับกลุ่ม: tile นำหน้า · วงกลมเลือกอยู่ขวาสุด (spec §1.3) · แถวที่เลือกพื้น accent-soft เหมือน tile → tile ใช้พื้น surface ให้ยังเห็น */
+.place > .gi { align-self: center; }
+.place:has(> .gi) > .radio { align-self: center; margin-top: 0; }
+.place[aria-checked="true"] > .gi { background: var(--surface); }
+.appt-fact > .gi-glyph { margin-top: var(--space-1); }
+.appt-row-meta > .gi-glyph { vertical-align: text-bottom; margin-right: var(--space-1); }

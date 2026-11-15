@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Cat } from "@/components/brand";
 import { Icon } from "@/components/icons/Icon";
+import { useMinSkeleton } from "@/components/shell/useMinSkeleton";
 import { withNames } from "@/components/Name";
 import type { AppointmentDto } from "@/lib/data/serializers/appointments";
 import { APPOINTMENT_MAX_ACTIVE_PER_GROUP } from "@/lib/shared/limits";
@@ -45,6 +46,7 @@ export function AppointmentList({ groupId, groupName, memberCount, tz, userId, n
   });
 
   const cur = data[tab];
+  const listSkel = useMinSkeleton(cur === null || cur.status === "loading");
 
   async function load(which: ListTab, cursor: string | null) {
     const append = cursor !== null;
@@ -112,7 +114,7 @@ export function AppointmentList({ groupId, groupName, memberCount, tz, userId, n
           </p>
         ) : null}
 
-        {cur === null || cur.status === "loading" ? (
+        {cur === null || cur.status === "loading" || listSkel ? (
           <div aria-busy="true">
             <div className="skeleton" style={{ height: "calc(var(--space-7) * 2)", marginBottom: "var(--space-2)" }} />
             <div className="skeleton" style={{ height: "calc(var(--space-7) * 2)" }} />

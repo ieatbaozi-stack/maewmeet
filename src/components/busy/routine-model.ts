@@ -534,6 +534,9 @@ export type RoutineDone =
   | { type: "deletedOne" }
   | { type: "stopped"; periodStart: DateISO; rangeKind: RoutineRangeKind }
   | { type: "deletedAll" }
+  /** R15a: เว้น/เอากลับหลายวัน — count = จำนวนที่เปลี่ยนจริงจากเซิร์ฟเวอร์ */
+  | { type: "skipped"; count: number }
+  | { type: "restored"; count: number }
   | { type: "gone" };
 
 /** ผลสำเร็จ → ข้อความ toast (stopped: {date} = วันเริ่มของสัปดาห์/เดือนที่เลือก) */
@@ -549,6 +552,10 @@ export function doneRef(d: RoutineDone, locale: CalendarLocale): MessageRef {
       return ref("busy.routine.toast.stopped", { date: d.rangeKind === "weeks" ? format(d.periodStart, { locale, style: "date-long" }) : monthLabel(ymOf(d.periodStart), locale) });
     case "deletedAll":
       return ref("busy.routine.toast.deletedAll");
+    case "skipped":
+      return ref("busy.routine.skip.toast.skipped", { count: d.count });
+    case "restored":
+      return ref("busy.routine.skip.toast.restored", { count: d.count });
     case "gone":
       return ref("busy.routine.error.gone");
   }

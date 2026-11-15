@@ -6,6 +6,7 @@ import { useId, useRef, useState, type FormEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { callApi } from "@/components/auth/api";
 import { Cat } from "@/components/brand";
+import { GroupIcon } from "@/components/icons/GroupIcon";
 import { Icon } from "@/components/icons/Icon";
 import { Sheet } from "@/components/shell/Sheet";
 import type { GroupSummaryDto } from "@/lib/data/serializers/groups";
@@ -16,6 +17,7 @@ import { GROUP_NAME_MAX, formatShortDate, groupNameLength } from "./helpers";
 import { FlashNotice, Notice } from "./Notice";
 import { Name, withNames } from "@/components/Name";
 import { BusyButton } from "@/components/shell/BusyButton";
+import { signalNavStart } from "@/components/shell/nav-start";
 
 type Sheets = null | "create" | "join";
 type Status = { kind: "ok" | "error"; text: string } | null;
@@ -121,6 +123,7 @@ export function GroupsView({ groups, invites }: { groups: GroupSummaryDto[]; inv
                 {groups.map((g) => (
                   <li key={g.id}>
                     <Link className="row" href={`/groups/${g.id}`} aria-label={t("groups.openAria", { name: g.name, count: g.memberCount })}>
+                      <GroupIcon icon={g.icon} size="md" />
                       <span className="row-main">
                         <span className="row-title"><Name>{g.name}</Name></span>
                         <span className="row-meta">
@@ -142,6 +145,7 @@ export function GroupsView({ groups, invites }: { groups: GroupSummaryDto[]; inv
           onClose={() => setSheet(null)}
           onDone={(id, name) => {
             setFlash({ key: "groups.createSheet.created", values: { name } });
+            signalNavStart(`/groups/${id}`);
             router.push(`/groups/${id}`);
           }}
         />
@@ -155,6 +159,7 @@ export function GroupsView({ groups, invites }: { groups: GroupSummaryDto[]; inv
                 ? { key: "groups.join.already", values: { name: r.groupName } }
                 : { key: "groups.join.joined", values: { name: r.groupName } },
             );
+            signalNavStart(`/groups/${r.groupId}`);
             router.push(`/groups/${r.groupId}`);
           }}
         />

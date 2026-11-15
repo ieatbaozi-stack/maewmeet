@@ -1,17 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { Icon } from "@/components/icons/Icon";
-import { stepBusyAddHref, type StepId, type StepState } from "./steps-model";
+import { readFreeSeen, subscribeFreeSeen } from "./free-seen";
+import { STEP_TOTAL, computeSteps, stepBusyAddHref, type StepId, type StepsInput } from "./steps-model";
 
 export interface StepBarProps {
   groupId: string;
-  steps: { id: StepId; n: number; state: StepState }[];
-  doneCount: number;
-  total: number;
-  allDone: boolean;
+  /** ผู้ดู (คีย์ localStorage ของขั้น 3 ผูกกับบัญชี+กลุ่ม) */
+  userId: string;
+  /** ค่าจากเซิร์ฟเวอร์ — freeSeen ฝั่ง client เติมเองหลัง hydrate (SSR = ยังไม่เห็น) */
+  input: Omit<StepsInput, "freeSeen">;
   /** กลุ่มคนเดียว: ขั้น 1 ใช้ข้อความ soloBody */
   solo: boolean;
   /** ปุ่มสร้างนัดเดิม (ขั้น 4) — ไม่ส่ง = ไม่แสดง (เช่น กลุ่มคนเดียว) */
@@ -22,8 +23,12 @@ export interface StepBarProps {
  * แถบขั้นตอนเริ่มใช้กลุ่ม (R8 · docs/design/R8_ONBOARDING.md §2) — สถานะคำนวณจากเซิร์ฟเวอร์ (steps-model) ส่งมาให้
  * ครบ (ขั้น 1, 2, 4) → ยุบเป็นแถบบาง สลับแสดง/ซ่อนได้ (ไม่จำสถานะ) · ขั้นถัดไปมี aria-current="step"
  */
-export function StepBar({ groupId, steps, doneCount, total, allDone, solo, planAction }: StepBarProps) {
+export function StepBar({ groupId, userId, input, solo, planAction }: StepBarProps) {
   const t = useTranslations();
+  // R15a §4.2: ขั้น 3 เสร็จเมื่อเคยเปิดแท็บ "ว่างตรงกัน" (localStorage) · SSR/hydrate = false แล้วอัปเดตหลัง mount (ไม่ประกาศ aria-live)
+  const freeSeen = useSyncExternalStore(subscribeFreeSeen, () => readFreeSeen(userId, groupId), () => false);
+  const { steps, doneCount, allDone } = computeSteps({ ...input, freeSeen });
+  const total = STEP_TOTAL;
   const id = useId();
   const [open, setOpen] = useState(false);
   const headingId = `${id}-h`;
@@ -58,6 +63,7 @@ export function StepBar({ groupId, steps, doneCount, total, allDone, solo, planA
           );
         }
         const done = s.state === "done";
+        const doneLinkLabel = done && s.id === "free" ? t("group.steps.free.ctaDone") : null;
         const inner = (
           <>
             <span className="steps-mark" aria-hidden="true">{done ? <Icon name="circle-check" /> : null}</span>
@@ -66,6 +72,7 @@ export function StepBar({ groupId, steps, doneCount, total, allDone, solo, planA
               <span className="steps-title">{title}</span>
             </span>
             {done ? <span className="steps-done">{t("group.steps.done")}</span> : null}
+            {doneLinkLabel ? <span className="steps-redo" data-testid="group-step-cta-free-done">{doneLinkLabel}</span> : null}
           </>
         );
         return (

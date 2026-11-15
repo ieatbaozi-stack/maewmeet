@@ -7,6 +7,7 @@ import type { GroupDetailDto, InviteDto } from "@/lib/data/serializers/groups";
 import { AppearanceSection } from "./AppearanceSection";
 import { DeleteSection, LeaveSection, TransferSection } from "./DangerSections";
 import { canEditSettings, viewerRole } from "./helpers";
+import { IconSection } from "./IconSection";
 import { InviteSection } from "./InviteSection";
 import { MemberList } from "./MemberList";
 import { NameSection } from "./NameSection";
@@ -41,6 +42,7 @@ export function SettingsView({ group, invites, myId }: { group: GroupDetailDto; 
       ) : null}
 
       <NameSection {...base} name={group.name} editable={editable} />
+      <IconSection {...base} icon={group.icon} editable={editable} />
       <WindowSection
         {...base}
         editable={editable}
