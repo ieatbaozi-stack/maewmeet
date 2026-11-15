@@ -130,7 +130,7 @@ const JOBS = [
       out.push(['home', s, s === 'normal' || s === 'many' || s === 'long' ? 'full' : 'view', ['normal', 'empty', 'long'].includes(s) ? VARIANTS : s === 'today' || s === 'only-cancelled' ? V2b : V2]);
     }
     out.push(['home', 'normal', 'view', VARIANTS]);
-    for (const s of ['normal', 'member', 'today', 'ongoing', 'past', 'cancelled', 'cancelled-gone', 'nolink', 'nocoords', 'noplace', 'map-failed', 'map-loading', 'unanswered', 'rsvp-error', 'rsvp-saving', 'cancel-confirm', 'cancel-error', 'overnight', 'long', 'loading', 'error', 'gone']) {
+    for (const s of ['normal', 'member', 'today', 'ongoing', 'past', 'cancelled', 'cancelled-gone', 'nolink', 'nocoords', 'coords-only', 'noplace', 'unanswered', 'rsvp-error', 'rsvp-saving', 'cancel-confirm', 'cancel-error', 'overnight', 'long', 'loading', 'error', 'gone']) {
       out.push(['appt-detail', s, ['cancel-confirm', 'cancel-error', 'loading', 'error', 'gone'].includes(s) ? 'view' : 'full', ['normal', 'cancelled', 'past', 'long'].includes(s) ? VARIANTS : V2]);
     }
     for (const s of ['upcoming', 'past', 'empty-upcoming', 'empty-past', 'loading', 'error', 'near-limit', 'long', 'past-capped']) {
@@ -146,8 +146,8 @@ const JOBS = [
     out.push(['appt-form', 'create', 'view', V2, { scroll: 'end' }]);
     out.push(['appt-form', 'edit', 'view', V2, { scroll: 'end' }]);
     out.push(['appt-form', 'long', 'view', V2, { scroll: 'end' }]);
-    for (const s of ['place-typed', 'place-searching', 'place-results', 'place-picked', 'place-none', 'place-error', 'place-rate', 'place-disabled', 'place-short', 'place-paste', 'place-paste-error', 'place-coords-error', 'place-chip', 'place-link', 'place-pin', 'place-long']) {
-      out.push(['appt-form', s, 'view', ['place-results', 'place-disabled', 'place-chip'].includes(s) ? VARIANTS : V2b, { scrollTo: '#place' }]);
+    for (const s of ['place-name', 'place-link', 'place-link-error', 'place-coords-error', 'place-long']) {
+      out.push(['appt-form', s, 'view', ['place-link'].includes(s) ? VARIANTS : V2b, { scrollTo: '#place' }]);
     }
     return out;
   })(),

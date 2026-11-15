@@ -22,7 +22,7 @@ const N = (i) => MEMBERS[i];
 
 // ---------- ข้อมูลตัวอย่าง ----------
 // a = { title, sd, st, ed, et, place?, group, creator, desc?, going[], maybe[], notGoing[], none[], my, status }
-const PLACE_FULL = { name: 'ป้าแดงหมูกระทะ ลาดพร้าว 71', sub: 'ซอยลาดพร้าว 71 แขวงลาดพร้าว เขตลาดพร้าว กรุงเทพมหานคร', lat: '13.8016', lng: '100.6032' };
+const PLACE_FULL = { name: 'ป้าแดงหมูกระทะ ลาดพร้าว 71', link: 'https://maps.app.goo.gl/Kd3xT9aPq' }; // R13: นัดใหม่เก็บชื่อ + ลิงก์ https
 const base = (o) => ({ title: 'หมูกระทะวันเกิดต้นข้าว', sd: '2026-10-24', st: '18:00', ed: '2026-10-24', et: '21:00', place: PLACE_FULL, group: GROUP, creator: 0, desc: 'เจอกันหน้าร้านตอน 18:00 นะ ต้นข้าวเลี้ยงน้ำแข็ง ใครอยากกินเมนูพิเศษสั่งเพิ่มเองได้เลย\nถ้ามาช้าบอกในกลุ่มด้วย', going: [0, 1, 2, 3], maybe: [4], notGoing: [], none: [5], my: 'going', status: 'active', total: 6, ...o, ed: o.ed || o.sd || '2026-10-24' });
 const NEXT = base({});
 const LATER = [
@@ -115,7 +115,7 @@ const minePill = (a) => {
 function row(a, { group = true, today = TODAY } = {}) {
   const st = state(a, today);
   const sk = a.status === 'cancelled' ? 'cancelled' : a.my;
-  const aria = both((l) => ({ title: a.title, when: whenPlain(l, a), group: a.group, state: sk }));
+  const aria = both((l) => ({ title: a.title, countdown: msg(l, 'home.countdown.aria', { days: Math.max(0, diffDays(today, a.sd)) }), when: whenPlain(l, a), group: a.group, state: sk }));
   const cls = st === 'cancelled' ? ' is-cancelled' : st === 'past' ? ' is-past' : '';
   const c = rsvpOf(a);
   const goingTxt = T('appointments.rsvp.summary.going', { count: c.going });
@@ -196,25 +196,25 @@ function homePage(scn) {
 }
 
 // ====================== รายละเอียดนัด ======================
-function mapBlock(a, mode) {
+function mapBlock(a) {
+  // R13: ไม่มีภาพแผนที่/OSM · การ์ดสถานที่ = ชื่อ + ข้อความย่อย + ปุ่มเดียวตามกรณี (ลิงก์ https | พิกัดเก่า | มีแต่ชื่อ → ค้นหาใน Google/Apple Maps)
   const p = a.place; if (!p) return '';
   const hasCoords = !!p.lat;
-  const subLine = hasCoords ? `<p class="appt-place-sub num">${T('places.selected.coords', { lat: p.lat, lng: p.lng })}</p>` : (p.link ? `<p class="appt-place-sub">${T('places.selected.linkOnly', { host: 'maps.app.goo.gl' })}</p>` : '');
+  const host = 'maps.app.goo.gl';
+  const subLine = p.link ? `<p class="appt-place-sub">${T('places.selected.linkOnly', { host })}</p>` : hasCoords ? `<p class="appt-place-sub num">${T('places.selected.coords', { lat: p.lat, lng: p.lng })}</p>` : '';
   const nameAria = both(() => ({ name: p.name }));
-  const open = hasCoords
-    ? `<a class="btn btn-secondary map-open" href="#" data-m-aria="places.openAria" data-m-v='${j(nameAria)}'>${icon('external-link')}<span data-m="places.open"></span></a>`
-    : p.link ? `<a class="btn btn-secondary map-open" href="#" data-m-aria="places.openLinkAria" data-m-v='${j(both(() => ({ name: p.name, host: 'maps.app.goo.gl' })))}'>${icon('external-link')}<span>${T('places.openLink', { host: 'maps.app.goo.gl' })}</span></a>` : '';
-  let map = '';
-  if (hasCoords) {
-    const inner = mode === 'failed'
-      ? `<div class="map-fallback">${icon('map-pin')}<b data-m="places.map.failed.title"></b><span data-m="places.map.failed.body"></span></div>`
-      : mode === 'loading'
-        ? `<div class="map-loading" role="status">${icon('refresh-cw', 'sm ov-spin')}<span style="margin-left: var(--space-2)" data-m="places.map.loading"></span></div>`
-        : `<div class="map-canvas" aria-hidden="true"></div><span class="map-pin" aria-hidden="true">${icon('map-pin')}</span>`;
-    map = `<figure class="map-fig"><div class="map-box is-sample" role="img" data-m-aria="places.map.region" data-m-v='${j(nameAria)}'>${inner}</div>${mode === 'failed' ? '' : `<figcaption class="map-caption"><a href="#" rel="noopener noreferrer"><span data-m="places.map.attribution"></span></a></figcaption>`}</figure>`;
+  let open = '';
+  if (p.link) {
+    open = `<a class="btn btn-secondary map-open" href="#" data-m-aria="places.openLinkAria" data-m-v='${j(both(() => ({ name: p.name, host })))}'>${icon('external-link')}<span class="map-open-text">${T('places.openLink', { host })}</span></a>`;
+  } else if (hasCoords) {
+    open = `<a class="btn btn-secondary map-open" href="#" data-m-aria="places.openAria" data-m-v='${j(nameAria)}'>${icon('external-link')}<span class="map-open-text" data-m="places.open"></span></a>`;
+  } else {
+    // มีแต่ชื่อ: iPhone/iPad/Mac เห็น 2 ปุ่ม (Apple Maps ก่อน) · เครื่องอื่นเห็น Google Maps ปุ่มเดียว — ตัวอย่างนี้แสดงแบบ iPhone
+    const find = (app) => `<a class="btn btn-secondary map-app" href="#" data-m-aria="places.find.${app}Aria" data-m-v='${j(nameAria)}'>${icon('map-pin')}<span data-m="places.find.${app}"></span></a>`;
+    open = `<div class="map-apps is-find" role="group">${find('apple')}${find('google')}</div>`;
   }
   return `<section class="appt-section" aria-labelledby="pl-h"><h2 id="pl-h" data-m="appointments.detail.place"></h2>
-    <p class="appt-place-name">${bdi(p.name)}</p>${subLine}${map}${open}</section>`;
+    <p class="appt-place-name">${bdi(p.name)}</p>${subLine}${open}</section>`;
 }
 function peopleGroup(k, key, ids, n) {
   if (!ids.length) return '';
@@ -225,12 +225,12 @@ function detailPage(scn) {
     normal: {}, member: { creator: 1, can: false }, today: { sd: '2026-10-20', ed: '2026-10-20', st: '19:00', et: '22:00', my: 'none', going: [1, 2], maybe: [], none: [0, 3, 4, 5] },
     ongoing: { sd: '2026-10-20', ed: '2026-10-20', st: '16:00', et: '20:00' }, past: { sd: '2026-10-17', ed: '2026-10-17', st: '18:00', et: '21:00', going: [0, 1, 2, 3], notGoing: [4], none: [5], maybe: [] },
     cancelled: { status: 'cancelled', cancelledBy: 1, cancelledOn: '2026-10-19', can: false }, 'cancelled-gone': { status: 'cancelled', cancelledBy: null, cancelledOn: '2026-10-19', can: false, canceller: 'gone' },
-    nolink: { place: { name: 'ร้านชาบูหน้าปากซอย', link: 'https://maps.app.goo.gl/…' } }, nocoords: { place: { name: 'ร้านชาบูหน้าปากซอย' } }, noplace: { place: null }, 'map-failed': {}, 'map-loading': {},
+    nolink: { place: { name: 'ร้านชาบูหน้าปากซอย', link: 'https://maps.app.goo.gl/…' } }, nocoords: { place: { name: 'ร้านชาบูหน้าปากซอย' } }, 'coords-only': { place: { name: 'ร้านชาบูหน้าปากซอย', lat: '13.8016', lng: '100.6032' } }, noplace: { place: null },
     unanswered: { my: 'none', going: [1, 2, 3], maybe: [4], none: [0, 5] }, 'rsvp-error': {}, 'rsvp-saving': {}, 'cancel-confirm': {}, 'cancel-error': {},
     overnight: { title: 'ปาร์ตี้ข้ามปี', sd: '2026-12-31', st: '22:00', ed: '2027-01-01', et: '02:00', place: { name: 'ดาดฟ้าคอนโดมายด์' } },
     long: {
       title: 'ปาร์ตี้ฉลองครบรอบสิบปีของแก๊งมัธยม พร้อมกินข้าวเย็นและร้องคาราโอเกะต่อจนดึก (ใครมีรูปเก่าเอามาด้วย)', group: 'ก๊วนเพื่อนสมัยมัธยมปลายห้องคิงส์ รุ่น 2559 และเพื่อนพี่เพื่อนน้อง', total: 12,
-      place: { name: 'โรงแรมเดอะแกรนด์ เซ็นทรัลพลาซา ลาดพร้าว ห้องบอลรูมชั้น 12 อาคาร B', lat: '13.8016', lng: '100.5' },
+      place: { name: 'โรงแรมเดอะแกรนด์ เซ็นทรัลพลาซา ลาดพร้าว ห้องบอลรูมชั้น 12 อาคาร B', link: 'https://www.google.com/maps/place/…' },
       desc: 'ขอบคุณทุกคนที่ตอบรับ! สรุปคือ 18:00 ลงทะเบียน รับป้ายชื่อ 18:30 เริ่มเลี้ยงอาหารเย็น 20:30 เล่นเกมทายชื่อเพื่อน 21:30 ย้ายไปห้องคาราโอเกะ\nที่จอดรถ: ลานจอดชั้น B2 ฟรี 4 ชม. ประทับตราที่เคาน์เตอร์\nอย่าลืมเอารูปเก่ามาด้วย https://example.com/a/very/long/link/that/should/wrap/instead/of/overflowing/the/screen/width',
       going: MANY.slice(0, 8), maybe: [8, 9], none: [10, 11], creator: 8,
     },
@@ -239,7 +239,6 @@ function detailPage(scn) {
   const st = state(a);
   const can = O.can === false ? false : st === 'active' || st === 'ongoing';
   const rmode = scn === 'rsvp-error' ? 'error' : scn === 'rsvp-saving' ? 'saving' : st === 'past' ? 'closed' : 'idle';
-  const mapMode = scn === 'map-failed' ? 'failed' : scn === 'map-loading' ? 'loading' : 'ok';
   const creator = a.creator == null ? null : N(a.creator);
   const edit = can ? `<a class="icon-btn" href="appt-form.html" data-m-aria="appointments.detail.editAria" data-m-v='${j(both(() => ({ title: a.title })))}'>${icon('pencil')}</a>` : '';
   const banner = st === 'cancelled'
@@ -277,7 +276,7 @@ function detailPage(scn) {
       <div class="sheet-foot sheet-actions"><button class="btn btn-danger btn-block" data-m="appointments.cancel.confirm"></button><button class="btn btn-secondary btn-block" style="min-height: var(--tap-lg)" data-m="appointments.cancel.keep"></button></div>
     </section>` : '';
   return `${topBack('home.html', T('appointments.detail.title'), edit)}<main class="main appt-main" id="main">
-    ${banner}${card}${mapBlock(a, mapMode)}${desc}${rsvpSec}${who}${manage}${created}
+    ${banner}${card}${mapBlock(a)}${desc}${rsvpSec}${who}${manage}${created}
   </main>${dialog}`;
 }
 function detailState(scn) {
@@ -316,7 +315,7 @@ const K = {
   'group.invite.accepted': { ico: 'circle-check', cls: 'k-ok', key: 'notifications.group.invite.accepted', v: () => ({ inviteeName: 'นุ่น', groupName: GROUP }) },
   'group.invite.declined': { ico: 'circle-x', cls: '', key: 'notifications.group.invite.declined', v: () => ({ inviteeName: 'Kwan', groupName: GROUP }) },
   'appointment.created': { ico: 'calendar-plus', cls: 'k-appt', key: 'notifications.appointment.created', v: (l) => ({ groupName: GROUP, title: 'หมูกระทะวันเกิดต้นข้าว', when: `${fmtDate(l, '2026-10-24', 'wdShort')} 18:00` }) },
-  'appointment.cancelled': { ico: 'ban', cls: 'k-cancel', key: 'notifications.appointment.cancelled', v: (l) => ({ groupName: 'บ้านเรา', title: 'กินข้าวบ้านยาย', when: `${fmtDate(l, '2026-11-08', 'wdShort')} 11:30` }) },
+  'appointment.cancelled': { ico: 'ban', cls: 'k-cancel', key: 'notifications.appointment.cancelled', v: (l) => ({ actorName: 'ต้นข้าว', groupName: 'บ้านเรา', title: 'กินข้าวบ้านยาย', when: `${fmtDate(l, '2026-11-08', 'wdShort')} 11:30` }) },
   'pin_reset.approved': { ico: 'key', cls: '', key: 'notifications.pin_reset.approved', v: (l) => ({ expiresAt: `${fmtDate(l, '2026-10-21', 'wdShort')} 17:42` }) },
   'pin_reset.cancelled_by_login': { ico: 'shield', cls: '', key: 'notifications.pin_reset.cancelled_by_login', v: () => ({}) },
 };
@@ -389,54 +388,34 @@ function ovBlock(kind, opts = {}) {
   return live(`${head}${list0}<p class="ov-body">${T('appointments.overlap.nonBlocking')}</p><p class="ov-body" style="opacity: 1">${T('availability.explain')}</p>`, 'is-warn');
 }
 
-const PLACES = [
-  { n: 'ป้าแดงหมูกระทะ', a: 'ซอยลาดพร้าว 71 แขวงลาดพร้าว เขตลาดพร้าว กรุงเทพมหานคร 10230' },
-  { n: 'ป้าแดงหมูกระทะ สาขารัชดา', a: 'ถนนรัชดาภิเษก แขวงสามเสนนอก เขตห้วยขวาง กรุงเทพมหานคร' },
-  { n: 'แดงหมูกระทะ บางปู', a: 'ตำบลบางปู อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ' },
-  { n: 'Daeng Moo Kratha', a: 'Lat Phrao 71 Alley, Lat Phrao, Bangkok' },
-  { n: 'ร้านหมูกระทะป้าแดง', a: 'ถนนสุขุมวิท 101/1 แขวงบางจาก เขตพระโขนง กรุงเทพมหานคร' },
-];
-function placeBlock(st, o = {}) {
-  const q = o.q ?? 'ป้าแดงหมูกระทะ';
-  const label = `<div class="field-label-row"><label for="pl-q"><span data-m="places.label"></span> <span class="opt">(<span data-m="appointments.form.optional"></span>)</span></label></div>`;
-  const disabledBtn = st === 'disabled';
-  const searchRow = (val, { busy = false } = {}) => `<div class="place-search"><div class="input">${icon('map-pin')}<input id="pl-q" class="input-bare" value="${val}" data-m-ph="places.name.placeholder" aria-describedby="pl-h"></div>
-    <button class="btn btn-secondary" ${disabledBtn ? 'aria-disabled="true"' : busy ? 'disabled' : ''} data-m-aria="places.search.aria" data-m-v='${j(both(() => ({ query: val || '…' })))}'>${icon(busy ? 'refresh-cw' : 'search', busy ? 'sm ov-spin' : '')}<span data-m="${busy ? 'places.search.searching' : 'places.search.button'}"></span></button></div>`;
-  const hint = `<p class="field-hint" id="pl-h" data-m="places.name.hint"></p>`;
-  const toggle = `<button class="link-btn place-toggle">${icon('link', 'sm')}<span data-m="places.paste.toggle"></span></button>`;
-  const paste = (val, err) => `<div class="place-paste"><div class="field field-first"><label for="pl-u" data-m="places.paste.label"></label>
-      <div class="row2"><div class="input${err ? ' has-error' : ''}">${icon('link')}<input id="pl-u" class="input-bare" value="${val}" data-m-ph="places.paste.placeholder" aria-describedby="pl-uh"${err ? ' aria-invalid="true"' : ''}></div><button class="btn btn-primary" data-m="places.paste.submit"></button></div>
-      ${err ? `<p class="field-error" role="alert">${icon('circle-alert', 'sm')}<span data-m="errors.${err}"></span></p>` : ''}<p class="field-hint" id="pl-uh" data-m="places.paste.hint"></p></div>
-      <button class="link-btn">${icon('search', 'sm')}<span data-m="places.paste.back"></span></button></div>`;
-  const results = (sel, stale = false) => `<ul class="place-results${stale ? ' is-stale' : ''}" role="radiogroup" data-m-aria="places.search.results">${PLACES.map((p, i) => `<li><button class="place-opt" role="radio" aria-checked="${sel === i}" data-m-aria="places.search.pickAria" data-m-v='${j(both(() => ({ name: p.n })))}'><span class="radio-mark" aria-hidden="true"></span><span><span class="pn">${bdi(p.n)}</span><span class="pa">${p.a}</span></span></button></li>`).join('')}</ul>
-    <p class="place-foot"><span role="status">${T('places.search.count', { count: PLACES.length })}</span><span data-m="places.search.attribution"></span></p>`;
-  const note = (cls, ic, inner) => `<div class="place-note ${cls}" role="status">${icon(ic)}<div>${inner}</div></div>`;
-  let body;
-  switch (st) {
-    case 'idle': body = `${searchRow('')}${hint}${toggle}`; break;
-    case 'typed': body = `${searchRow(q)}${hint}${toggle}`; break;
-    case 'searching': body = `${searchRow(q, { busy: true })}${hint}${results(-1, true)}${toggle}`; break;
-    case 'results': body = `${searchRow(q)}${results(-1)}${toggle}`; break;
-    case 'picked': body = `${searchRow(q)}${results(0)}${toggle}`; break;
-    case 'none': body = `${searchRow('ร้านลับสุดซอย')}${note('', 'search', `<b>${T('places.search.noResults.title', { query: 'ร้านลับสุดซอย' })}</b>${T('places.search.noResults.body')}`)}${toggle}`; break;
-    case 'error': body = `${searchRow(q)}${note('is-error', 'circle-alert', `<span data-m="places.search.error"></span>`)}${toggle}`; break;
-    case 'rate': body = `${searchRow(q)}${note('is-warn', 'triangle-alert', `<span data-m="places.search.rateLimited"></span>`)}${toggle}`; break;
-    case 'disabled': body = `${searchRow(q)}${note('', 'info', `<span data-m="places.search.disabled"></span>`)}${paste('', null)}`; break;
-    case 'tooshort': body = `${searchRow('ป')}${note('', 'info', T('places.search.tooShort', { min: 2 }))}${toggle}`; break;
-    case 'paste': body = `${searchRow(q)}${paste('', null)}`; break;
-    case 'paste-error': body = `${searchRow(q)}${paste('http://maps.example.com/abc', 'INVALID_MAP_URL')}`; break;
-    case 'paste-coords-error': body = `${searchRow(q)}${paste('95.5, 100.5', 'INVALID_COORDINATES')}`; break;
-    case 'chip': body = chip({ n: PLACES[0].n, s: T('places.selected.coords', { lat: '13.8016', lng: '100.6032' }) }); break;
-    case 'chip-link': body = chip({ n: 'ร้านชาบูหน้าปากซอย', s: T('places.selected.linkOnly', { host: 'maps.app.goo.gl' }) }); break;
-    case 'chip-pin': body = chip({ n: T('places.selected.defaultName'), s: T('places.selected.coords', { lat: '13.7563', lng: '100.5018' }) }); break;
-    case 'chip-long': body = chip({ n: 'โรงแรมเดอะแกรนด์ เซ็นทรัลพลาซา ลาดพร้าว ห้องบอลรูมชั้น 12 อาคาร B ติดกับลานจอดรถชั้นใต้ดิน', s: T('places.selected.coords', { lat: '13.80160', lng: '100.60320' }) }); break;
-    default: throw new Error('place st ' + st);
-  }
-  function chip({ n, s }) {
-    return `<div class="place-chip" role="group" data-m-aria="places.selected.aria" data-m-v='${j(both(() => ({ name: 'สถานที่' })))}'>${icon('map-pin')}<div class="tx"><span class="pn">${bdi(n)}</span><span class="ps num">${s}</span></div>
-      <button class="icon-btn" data-m-aria="places.clearAria" data-m-v='${j(both(() => ({ name: 'สถานที่' })))}'>${icon('x')}</button></div>`;
-  }
-  return `<div class="field" id="place">${label}${body}</div>`;
+// R13: ช่องสถานที่ = ชื่อ + ลิงก์แผนที่ เห็นตลอดและแก้อิสระ + ปุ่ม Apple/Google Maps (ลิงก์ https ธรรมดา) · ไม่มีการค้นหา ไม่มีชิป "เลือกแล้ว"
+// st: idle | name | link | long | link-error | coords-error
+function placeBlock(st) {
+  const NAME = 'ป้าแดงหมูกระทะ ลาดพร้าว 71';
+  const LONG = 'โรงแรมเดอะแกรนด์ เซ็นทรัลพลาซา ลาดพร้าว ห้องบอลรูมชั้น 12 อาคาร B';
+  const v = {
+    idle: ['', ''], name: [NAME, ''], link: [NAME, 'https://maps.app.goo.gl/Kd3xT9aPq'],
+    long: [LONG, 'https://www.google.com/maps/place/%E0%B9%82%E0%B8%A3%E0%B8%87%E0%B9%81%E0%B8%A3%E0%B8%A1/@13.8016,100.6032,17z'],
+    'link-error': [NAME, 'http://maps.example.com/abc'], 'coords-error': [NAME, '95.5, 100.5'],
+  }[st];
+  if (!v) throw new Error('place st ' + st);
+  const [name, link] = v;
+  const err = st === 'link-error' ? 'INVALID_MAP_URL' : st === 'coords-error' ? 'INVALID_COORDINATES' : null;
+  const apple = `<a class="btn btn-secondary map-app" href="#">${icon('map-pin')}<span data-m="places.apps.apple"></span></a>`;
+  const google = `<a class="btn btn-secondary map-app" href="#">${icon('map-pin')}<span data-m="places.apps.google"></span></a>`;
+  return `<div class="field place-field" id="place">
+    <div class="field-label-row"><label for="pl-n"><span data-m="places.label"></span> <span class="opt">(<span data-m="appointments.form.optional"></span>)</span></label></div>
+    <div class="input">${icon('map-pin')}<input id="pl-n" class="input-bare" value="${name}" data-m-ph="places.name.placeholder" aria-describedby="pl-nh" autocomplete="off"></div>
+    <p class="field-hint" id="pl-nh"><span data-m="places.name.hint"></span> <span class="num">${[...name].length}/120</span></p>
+    <div class="place-link">
+      <div class="field-label-row"><label for="pl-l" data-m="places.link.label"></label></div>
+      <div class="input${err ? ' has-error' : ''}">${icon('link')}<input id="pl-l" class="input-bare" value="${link}" data-m-ph="places.link.placeholder" aria-describedby="${err ? 'pl-le ' : ''}pl-lh" inputmode="url" autocapitalize="none" autocomplete="off"${err ? ' aria-invalid="true"' : ''}></div>
+      ${err ? `<p class="field-error" id="pl-le" role="alert">${icon('circle-alert', 'sm')}<span data-m="errors.${err}"></span></p>` : ''}
+      <p class="field-hint" id="pl-lh" data-m="places.link.hint"></p>
+    </div>
+    <div class="place-apps"><p class="place-apps-lead" data-m="places.apps.lead"></p>
+      <div class="map-apps" role="group" data-m-aria="places.apps.groupAria">${apple}${google}</div></div>
+  </div>`;
 }
 
 const FORM_BASE = { title: '', sd: '2026-10-24', st: '18:00', ed: '2026-10-24', et: '21:00', desc: '', place: 'idle', ov: 'clear', mode: 'create' };
@@ -444,7 +423,7 @@ const FORM = {
   create: {},
   empty: { ov: 'none', sd: null },
   prefilled: { title: '', prefilled: true, st: '16:00', et: '19:00', sd: '2026-10-25', ed: '2026-10-25' },
-  filled: { title: 'หมูกระทะวันเกิดต้นข้าว', desc: 'เจอกันหน้าร้านตอน 18:00 นะ', place: 'chip' },
+  filled: { title: 'หมูกระทะวันเกิดต้นข้าว', desc: 'เจอกันหน้าร้านตอน 18:00 นะ', place: 'link' },
   warn: { title: 'หมูกระทะวันเกิดต้นข้าว', ov: 'warn' },
   'warn-min': { title: 'หมูกระทะวันเกิดต้นข้าว', ov: 'warn-min' },
   'warn-many': { title: 'หมูกระทะวันเกิดต้นข้าว', ov: 'warn-many', total: 12 },
@@ -453,22 +432,11 @@ const FORM = {
   checking: { title: 'หมูกระทะวันเกิดต้นข้าว', ov: 'checking' },
   'check-error': { title: 'หมูกระทะวันเกิดต้นข้าว', ov: 'error' },
   overnight: { title: 'ปาร์ตี้ข้ามปี', sd: '2026-12-31', st: '22:00', ed: '2027-01-01', et: '02:00', ov: 'clear', place: 'idle' },
-  'place-typed': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'typed', focus: 'place' },
-  'place-searching': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'searching', focus: 'place' },
-  'place-results': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'results', focus: 'place' },
-  'place-picked': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'picked', focus: 'place' },
-  'place-none': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'none', focus: 'place' },
-  'place-error': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'error', focus: 'place' },
-  'place-rate': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'rate', focus: 'place' },
-  'place-disabled': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'disabled', focus: 'place' },
-  'place-short': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'tooshort', focus: 'place' },
-  'place-paste': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'paste', focus: 'place' },
-  'place-paste-error': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'paste-error', focus: 'place' },
-  'place-coords-error': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'paste-coords-error', focus: 'place' },
-  'place-chip': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'chip', focus: 'place' },
-  'place-link': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'chip-link', focus: 'place' },
-  'place-pin': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'chip-pin', focus: 'place' },
-  'place-long': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'chip-long', focus: 'place' },
+  'place-name': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'name', focus: 'place' },
+  'place-link': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'link', focus: 'place' },
+  'place-link-error': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'link-error', focus: 'place' },
+  'place-coords-error': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'coords-error', focus: 'place' },
+  'place-long': { title: 'หมูกระทะวันเกิดต้นข้าว', place: 'long', focus: 'place' },
   'error-fields': { title: '', sd: null, ov: 'none', errors: { title: 'appointments.form.error.title.required', date: 'appointments.form.error.date.required' } },
   'error-past': { title: 'หมูกระทะวันเกิดต้นข้าว', sd: '2026-10-20', st: '15:00', ed: '2026-10-20', et: '17:00', ov: 'clear', errors: { time: 'start.past' } },
   'error-range': { title: 'หมูกระทะวันเกิดต้นข้าว', ed: '2026-10-24', et: '18:00', ov: 'none', errors: { time: 'INVALID_RANGE' } },
@@ -476,11 +444,11 @@ const FORM = {
   'error-limit': { title: 'หมูกระทะวันเกิดต้นข้าว', alert: 'LIMIT_REACHED' },
   'error-rate': { title: 'หมูกระทะวันเกิดต้นข้าว', alert: 'RATE_LIMITED' },
   saving: { title: 'หมูกระทะวันเกิดต้นข้าว', saving: true },
-  edit: { mode: 'edit', title: 'หมูกระทะวันเกิดต้นข้าว', desc: 'เจอกันหน้าร้านตอน 18:00 นะ', place: 'chip' },
+  edit: { mode: 'edit', title: 'หมูกระทะวันเกิดต้นข้าว', desc: 'เจอกันหน้าร้านตอน 18:00 นะ', place: 'link' },
   'edit-cancelled': { mode: 'edit', title: 'หมูกระทะวันเกิดต้นข้าว', alert: 'APPOINTMENT_CANCELLED', ov: 'none' },
   long: {
     title: 'ปาร์ตี้ฉลองครบรอบสิบปีของแก๊งมัธยม พร้อมกินข้าวเย็นและร้องคาราโอเกะต่อจนดึก (ใครมีรูปเก่าเอามาด้วย)', group: 'ก๊วนเพื่อนสมัยมัธยมปลายห้องคิงส์ รุ่น 2559 และเพื่อนพี่เพื่อนน้อง',
-    desc: 'ลงทะเบียน 18:00 เริ่มอาหารเย็น 18:30 ที่จอดรถชั้น B2 https://example.com/a/very/long/link/that/should/wrap/instead/of/overflowing/the/screen', place: 'chip-long', ov: 'warn-many', total: 12,
+    desc: 'ลงทะเบียน 18:00 เริ่มอาหารเย็น 18:30 ที่จอดรถชั้น B2 https://example.com/a/very/long/link/that/should/wrap/instead/of/overflowing/the/screen', place: 'long', ov: 'warn-many', total: 12,
   },
 };
 function formSheet(scn) {
@@ -573,5 +541,5 @@ export function expandAppointments(html) {
   });
 }
 export const FORM_SCENARIOS = [...Object.keys(FORM), 'created'];
-export const DETAIL_SCENARIOS = ['normal', 'member', 'today', 'ongoing', 'past', 'cancelled', 'cancelled-gone', 'nolink', 'nocoords', 'noplace', 'map-failed', 'map-loading', 'unanswered', 'rsvp-error', 'rsvp-saving', 'cancel-confirm', 'cancel-error', 'overnight', 'long', 'loading', 'error', 'gone'];
+export const DETAIL_SCENARIOS = ['normal', 'member', 'today', 'ongoing', 'past', 'cancelled', 'cancelled-gone', 'nolink', 'nocoords', 'coords-only', 'noplace', 'unanswered', 'rsvp-error', 'rsvp-saving', 'cancel-confirm', 'cancel-error', 'overnight', 'long', 'loading', 'error', 'gone'];
 export const HOME_SCENARIOS = [...Object.keys(HOME), 'rsvp-error', 'rsvp-saving', 'empty', 'nogroup', 'loading', 'error'];
