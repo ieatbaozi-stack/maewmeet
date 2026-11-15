@@ -200,6 +200,11 @@ export const MATRIX = {
     resource: 'group',
     cases: { any: r(OK, OK, OK, OK, FB, NF, AUTH) },
   },
+  'group.icon.update': {
+    ref: 'R15 B2 ตั้งไอคอนกลุ่ม: ผู้ดูแลและผู้ช่วยดูแล (เหมือนเปลี่ยนชื่อกลุ่ม)',
+    resource: 'group',
+    cases: { any: r(OK, OK, OK, OK, FB, NF, AUTH) },
+  },
   'member.setRole': {
     ref: '§3 แต่งตั้ง/ปลด moderator: SA GA ✅ · เป้าหมาย admin ❌',
     resource: 'member',

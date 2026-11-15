@@ -60,6 +60,8 @@ export const ACTIONS = [
   // ── §3 แถว 12–17: จัดการกลุ่ม/สมาชิก ──
   'member.remove',
   'group.update',
+  // R15 B2: ตั้งไอคอนกลุ่ม — กติกาเดียวกับ group.update (ผู้ดูแล/ผู้ช่วยดูแล + SA)
+  'group.icon.update',
   'member.setRole',
   'group.transferAdmin',
   'group.delete',
@@ -197,6 +199,7 @@ export const ACTION_RESOURCE = {
 
   'member.remove': ['member'],
   'group.update': ['group'],
+  'group.icon.update': ['group'],
   'member.setRole': ['member'],
   'group.transferAdmin': ['member'],
   'group.delete': ['group'],
