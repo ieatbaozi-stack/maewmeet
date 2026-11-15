@@ -233,6 +233,7 @@ soccer:    <circle cx="12" cy="12" r="10"/> <path d="m12 8.5 3.33 2.42-1.27 3.91
 - **เพดาน 31 วันต่อคำขอ:** เลือกครบ 31 → ช่องที่ยังไม่เลือกกลายเป็น `is-locked` (`aria-disabled`) + แถบเหลือง `skip.limit` ("เลือกได้ครั้งละไม่เกิน 31 วัน") แทนที่จะปล่อยให้กดแล้วค่อยพัง · ถ้ายังเหลือวันเว้นอีก ทำอีกรอบหลังยืนยันได้ · เซิร์ฟเวอร์ตอบ `LIMIT_REACHED skipDays` → ข้อความกลาง `errors.LIMIT_REACHED` (เพิ่มชนิด `skipDays` แล้ว)
 - **ปุ่มล่าง (sticky):** ซ้าย "ล้างที่เลือก" (`skip.clear` ปุ่มลิงก์ ≥ 44px) · ขวาปุ่มหลักเต็มที่เหลือ **"เว้น N วัน"** (`skip.confirm` ตัวเลขตามที่เลือก) · เลือก 0 วัน = `aria-disabled` ทั้งคู่ · ระหว่างบันทึก `skip.saving` + `aria-busy`
 - **ยืนยันครั้งเดียว ไม่มี dialog ซ้อน** เพราะเอากลับได้ (แท็บ "วันที่เว้นไว้") — ต่างจากลบทั้งชุดที่ย้อนไม่ได้ · ปุ่มระบุจำนวนวันอยู่แล้วจึงเป็นการยืนยันที่ชัด
+- แท็บ "วันที่เว้นไว้" แสดง `skip.restoreNote` เหนือปุ่มล่าง (ADR 0012 §13.3) · ตัด `skip.chipAria` (ชิปเป็นข้อความธรรมดา)
 - ข้อความอธิบาย (`skip.note`) อยู่เหนือปุ่มล่าง: เพื่อนเห็นทันที, ไม่กลับมาแม้แก้ทั้งชุด, เอากลับได้จนถึงวันนั้น
 
 ### 3.3 สถานะ
@@ -246,6 +247,7 @@ soccer:    <circle cx="12" cy="12" r="10"/> <path d="m12 8.5 3.33 2.42-1.27 3.91
 | ล้มเหลวทั่วไป/เครือข่าย | alert เหนือปุ่มล่าง `skip.error.generic` ค่าที่เลือกยังอยู่ |
 | วันที่เลือกผ่านไปแล้ว/ไม่อยู่ในชุด (VALIDATION) | `skip.error.stale` (ให้ปิดแล้วเปิดใหม่ → โหลดรายการใหม่) |
 | NOT_FOUND (ชุดถูกลบจากเครื่องอื่น) | ข้อความเดิม `busy.routine.error.gone` + รีเฟรชรายการ ปิดแผ่น |
+| LIMIT_REACHED `routineRows` ตอนคืนวัน ({max}) | `skip.error.rows` |
 | RATE_LIMITED | `skip.error.rate` (ไม่ใช้ `busy.routine.error.rate` เพราะข้อความนั้นพูดถึง "ไม่มีวันที่ถูกเพิ่ม") |
 
 ### 3.4 สัญญากับ platform/frontend
@@ -318,7 +320,7 @@ soccer:    <circle cx="12" cy="12" r="10"/> <path d="m12 8.5 3.33 2.42-1.27 3.91
 | กลุ่ม | คีย์ |
 |---|---|
 | ไอคอนกลุ่ม | `groupIcon.aria` · `groupIcon.names.<24 key>` · `groupSettings.icon.{title,body,current,currentDefault,change,changeAria,viewOnly}` · `groupSettings.icon.picker.{title,hint,listAria,selected,save,saving,unchanged}` · `groupSettings.icon.toast.saved` · `groupSettings.icon.error.{generic,forbidden}` |
-| เว้นบางวัน | `busy.routine.skip.{button,buttonAria,chip,chipAria,title,lead,note,restoreCalendarAria,count,limit,clear,confirm,confirmRestore,saving}` · `skip.mode.{label,skip,restore}` · `skip.calendar.{aria,prev,next}` · `skip.day.aria` · `skip.legend.{available,selected,skipped}` · `skip.empty.{title,body}` · `skip.toast.{skipped,restored}` · `skip.error.{generic,stale,rate}` · `errors.LIMIT_REACHED` เพิ่มชนิด `skipDays` |
+| เว้นบางวัน | `busy.routine.skip.{button,buttonAria,chip,restoreNote,title,lead,note,restoreCalendarAria,count,limit,clear,confirm,confirmRestore,saving}` · `skip.mode.{label,skip,restore}` · `skip.calendar.{aria,prev,next}` · `skip.day.aria` · `skip.legend.{available,selected,skipped}` · `skip.empty.{title,body}` · `skip.toast.{skipped,restored}` · `skip.error.{generic,stale,rate,rows}` · `errors.LIMIT_REACHED` เพิ่มชนิด `skipDays` |
 | ขั้น 3 | `group.steps.free.ctaDone` |
 | privacy | `privacy.see.busyStatus` · `privacy.updated` (ค่าใหม่) |
 | กลาง | `common.systemAdmin` |

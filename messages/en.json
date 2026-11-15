@@ -1249,7 +1249,6 @@
         "button": "Skip some days",
         "buttonAria": "Skip some days of {title}",
         "chip": "{count, plural, one {# day skipped} other {# days skipped}}",
-        "chipAria": "{count, plural, one {# day skipped} other {# days skipped}}, view or bring back",
         "title": "Skip some days",
         "lead": "Tap the days you want to skip. Pick as many as you like, then confirm once.",
         "note": "Skipped days disappear from every friend’s calendar right away, and they stay gone even if you edit the whole routine. Changed your mind? You can bring a day back until that day arrives.",
@@ -1289,8 +1288,10 @@
         "error": {
           "generic": "Couldn’t save, and nothing changed. Your picks are still here, so try again.",
           "stale": "Some of the days you picked have passed or are no longer in this routine, so nothing changed. Close this and reopen it to see the latest days.",
-          "rate": "That’s a lot at once. Wait a moment and try again. Nothing changed."
-        }
+          "rate": "That’s a lot at once. Wait a moment and try again. Nothing changed.",
+          "rows": "That would take your routine days past {max}, so nothing was brought back and nothing changed. Delete or stop a routine you don’t need, then try again."
+        },
+        "restoreNote": "A day you edited on its own stays as its own entry. Bringing the routine day back may leave you with two for that date. If you don’t need the separate one, delete it from the list."
       }
     }
   },
