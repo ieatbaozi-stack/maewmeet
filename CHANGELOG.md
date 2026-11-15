@@ -22,7 +22,7 @@
 
 ### Upgrade notes
 รุ่นนี้มี **migration `0006`** (`drizzle/0006_r15_group_icon_drop_place_cache.sql`): เพิ่มคอลัมน์ `groups.icon` และ **ลบตาราง `place_search_cache` (ย้อนไม่ได้)** — ขั้นตอนเต็มและคำสั่งตรวจอยู่ที่ `docs/OPERATIONS.md` (หมายเหตุ R15a):
-1. boss รัน migration กับ preview ก่อนเปิด PR แล้วกับ prod **ก่อน merge** (`npx drizzle-kit migrate`) · ถ้ารันหลัง deploy การเลือกไอคอนกลุ่มจะล้มเพราะไม่มีคอลัมน์
+1. boss รัน migration กับ preview ก่อนเปิด PR แล้วกับ prod **ในรอบเดียวกับการกด merge ทันทีก่อน merge และก่อน 02:00 เวลาไทย** (`npx drizzle-kit migrate`) — ถ้า cron v0.12.0 รันก่อนโค้ดใหม่ deploy การล้างของวันนั้นถูกข้าม 1 วัน (วันถัดไปปกติ) · ถ้ารันหลัง deploy การเลือกไอคอนกลุ่มจะล้มเพราะไม่มีคอลัมน์
 2. ตรวจหลังรัน: `groups` มีคอลัมน์ `icon` และไม่มีตาราง `place_search_cache`
 3. ไม่มี env ใหม่ ไม่ต้องแก้ Vercel/GitHub
 4. Rollback: ย้อนแอปอย่างเดียวได้ แต่ตารางที่ลบไม่กลับมา และ v0.12.0 ยังลบจาก `place_search_cache` ใน cron รายวัน — จากโค้ด batch ล้างทั้งชุดจะล้มบนฐานที่ไม่มีตาราง (ยังไม่ได้รันจริง) → ถ้าอยู่รุ่นเก่านานเกิน 1 วัน ให้สร้างตารางเปล่ากลับด้วย SQL ใน `docs/OPERATIONS.md` (หมายเหตุ R15a, Rollback)
