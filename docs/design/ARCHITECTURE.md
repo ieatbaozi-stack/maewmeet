@@ -2,12 +2,12 @@
 
 > เจ้าของไฟล์: Architect · สถานะ: **ร่างเฟส 2 (Proposed)** รอ Lead/boss รับพร้อม ADR 0001–0008
 > แก้รอบ 2 (2026-10-16): การจัดการ pepper (ADR 0002 §7) — env `PIN_PEPPER_V<n>`, ตาราง `pepper_fingerprint`, `AUTH_MAINTENANCE` · keep-alive Turso 2 ชั้น (ADR 0001 §3.1) — ตาราง `system_heartbeat`, `/api/cron/heartbeat`, GitHub Actions · สัปดาห์เริ่มวันจันทร์ (ADR 0004)
-> แหล่งความจริงของความต้องการ: [PRD](../prd/PRD.md) · ตัดสินใจรายเรื่อง: [ADR 0001](../adr/0001-stack-and-project-structure.md) · [0002](../adr/0002-auth-pin.md) · [0003](../adr/0003-rbac.md) · [0004](../adr/0004-time-and-timezone.md) · [0005](../adr/0005-common-free-time-algorithm.md) · [0006](../adr/0006-busy-visibility.md) · [0007](../adr/0007-notifications.md) · [0008](../adr/0008-i18n-and-theme.md) · [0010](../adr/0010-daily-busy-series.md) · [0012](../adr/0012-busy-routines.md)
-> **หมายเหตุ R13 (2026-11-11, boss อนุมัติ):** การค้นหาสถานที่ผ่าน Nominatim (U10 `GET /api/places/search`, action `place.search`, env `PLACE_SEARCH_ENABLED`/`NOMINATIM_*`/`NEXT_PUBLIC_MAP_*`) และภาพแผนที่ OSM ถูกเอาออกแล้ว — ผู้ใช้วางลิงก์แผนที่เอง + ปุ่มเปิด Google Maps / Apple Maps · ตาราง `place_search_cache` ยังอยู่ (cron ล้างแถวเก่ายังทำงาน) รอลบใน migration ครั้งถัดไป · ส่วนที่พูดถึงเรื่องนี้ด้านล่างคงไว้เป็นประวัติ · ดู [R13_CONTRACT §1.3](../contracts/R13_CONTRACT.md) และ [PRD D11](../prd/PRD.md)
+> แหล่งความจริงของความต้องการ: [PRD](../prd/PRD.md) · ตัดสินใจรายเรื่อง: [ADR 0001](../adr/0001-stack-and-project-structure.md) · [0002](../adr/0002-auth-pin.md) · [0003](../adr/0003-rbac.md) · [0004](../adr/0004-time-and-timezone.md) · [0005](../adr/0005-common-free-time-algorithm.md) · [0006](../adr/0006-busy-visibility.md) · [0007](../adr/0007-notifications.md) · [0008](../adr/0008-i18n-and-theme.md) · [0010](../adr/0010-daily-busy-series.md) · [0012](../adr/0012-busy-routines.md) · [0013](../adr/0013-drop-place-search-cache.md)
+> **หมายเหตุ R13 (2026-11-11, boss อนุมัติ):** การค้นหาสถานที่ผ่าน Nominatim (U10 `GET /api/places/search`, action `place.search`, env `PLACE_SEARCH_ENABLED`/`NOMINATIM_*`/`NEXT_PUBLIC_MAP_*`) และภาพแผนที่ OSM ถูกเอาออกแล้ว — ผู้ใช้วางลิงก์แผนที่เอง + ปุ่มเปิด Google Maps / Apple Maps · ตาราง `place_search_cache` + งาน cron ล้างมัน **ถูกลบใน migration `0006` (R15, [ADR 0013](../adr/0013-drop-place-search-cache.md), ย้อนไม่ได้)** · ส่วนที่พูดถึงเรื่องนี้ด้านล่างคงไว้เป็นประวัติ · ดู [R13_CONTRACT §1.3](../contracts/R13_CONTRACT.md) และ [PRD D11](../prd/PRD.md)
 > โค้ดในเอกสารนี้เป็น **ร่าง/pseudo-code** สำหรับ R0–R1 นำไปเขียนจริง — ชื่อไฟล์/คอลัมน์ถือเป็นสัญญา เปลี่ยนต้องผ่าน Lead
 
 ## สารบัญ
-1. โครงโฟลเดอร์และเจ้าของ · 2. การไหลของ request · 3. Schema Drizzle ฉบับร่าง · 4. Session และ actor · 5. API endpoint ต่อ story · 6. รหัส error · 7. ตัวแปร env (`.env.example`) · 8. งานตามเวลา (cron) · 9. คำถามถึง Lead / ประเด็นเปิด
+1. โครงโฟลเดอร์และเจ้าของ · 2. การไหลของ request · 3. Schema Drizzle ฉบับร่าง · 4. Session และ actor · 5. API endpoint ต่อ story · 6. รหัส error · 7. ตัวแปร env (`.env.example`) · 8. งานตามเวลา (cron) · 9. คำถามถึง Lead / ประเด็นเปิด · 10. เปิดแบบแอปบนหน้าจอโฮม (R15)
 
 ---
 
@@ -197,6 +197,7 @@ export const groups = sqliteTable('groups', {
   freeWindowStartMin: integer('free_window_start_min').notNull().default(480),   // 08:00
   freeWindowEndMin: integer('free_window_end_min').notNull().default(1320),      // 22:00
   minFreeMinutes: integer('min_free_minutes').notNull().default(120),
+  icon: text('icon'),                                                 // R15 (0006): คีย์ใน allowlist กลาง · NULL = ไอคอนเริ่มต้น (แมว) — ดู "ไอคอนกลุ่ม" ใต้บล็อกนี้
   createdBy: text('created_by').notNull().references(() => user.id),
   createdAt: ms('created_at').notNull(),
   updatedAt: ms('updated_at').notNull(),
@@ -361,6 +362,7 @@ export const systemHeartbeat = sqliteTable('system_heartbeat', {      // ADR 000
   lastAt: ms('last_at').notNull(),
 }, (t) => [check('heartbeat_source_ck', sql`${t.source} in ('vercel-cron','github-actions')`)]);
 
+// ⚠ R15: ตารางนี้ถูกลบใน migration 0006 (ADR 0013) — คงไว้ในร่างเป็นประวัติ
 export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy Nominatim (ADR 0001)
   queryNormalized: text('query_normalized').primaryKey(),             // lowercase + trim + collapse space + locale
   results: text('results', { mode: 'json' }).notNull(),               // [{name, lat, lng, osmUrl}] สูงสุด 5
@@ -377,6 +379,14 @@ export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy N
 - cron (`maintenance.ts`) ลบ `busy_routine` ที่จบเกิน 93 วัน (90 + 3 ให้แถว busy หมดอายุก่อน)
 - เพดานแถวต่อคำขอ (B11): ปฏิทินกลุ่มที่ส่งรายการให้ client = `CALENDAR_MAX_ITEMS` 5,000 · ทางคำนวณวันว่างร่วม/เตือนนัดทับ (ไม่ส่งรายการ) = คำนวณจาก `FREE_TIME_MAX_ITEMS` 32,000 แต่ availability ส่งรายละเอียด busy ให้ client ≤ 5,000 ชิ้น + ธง `detailTruncated` (วันว่างยังถูก, §10) · ก่อนป้อน `commonFreeTime` รวมช่วงที่ติด/ทับกันของสมาชิกคนเดียวกันด้วย `mergeBusyForFreeTime` (ผลวันว่างเท่าเดิม)
 
+### ไอคอนกลุ่ม + migration 0006 (R15, [R15_CONTRACT](../contracts/R15_CONTRACT.md) §1.2, §1.5)
+- **`groups.icon text NULL`** — เพิ่มอย่างเดียว (`ALTER TABLE groups ADD icon text` ไม่ rebuild ตาราง · ไม่ backfill · แถวเดิมเป็น NULL = ไอคอนเริ่มต้น "แมว") · **ไม่ใส่ CHECK ใน DB** เพื่อให้เพิ่ม/ถอดคีย์ได้โดยไม่ต้อง migration (allowlist บังคับใน service + เทสต์)
+- **allowlist คีย์เป็น constant กลางที่เดียว** (platform ทำจากรายการของ ux · ข้อเสนอ path `src/lib/shared/group-icons.ts`): `GROUP_ICON_KEYS` (`as const`, ~24 คีย์ ASCII kebab-case เช่น `food`, `badminton`) + `DEFAULT_GROUP_ICON` · เซิร์ฟเวอร์ใช้ใน zod (`z.enum(GROUP_ICON_KEYS).nullable()`) · UI ใช้ map คีย์ → ไฟล์ SVG ของ ux · ห้ามรับรูป/URL/emoji/ข้อความอิสระ
+- **อ่าน**: ค่าใน DB ที่ไม่อยู่ใน allowlist ปัจจุบัน (เช่นคีย์ที่ถอดออกภายหลัง) → แสดงเป็นไอคอนเริ่มต้น ไม่ error · DTO ส่ง `icon: string | null` ทุกที่ที่ส่งชื่อกลุ่มอยู่แล้ว (หัวปฏิทิน/ตัวเลือกกลุ่ม, การ์ดหน้ากลุ่ม, หน้าหลัก)
+- **เขียน**: action `group.icon.update` (auth, R15 §8 — ผู้ดูแล/ผู้ช่วยดูแล + SA ตามกติกาแก้กลุ่มเดิม) ตรวจที่เซิร์ฟเวอร์ (กฎ 6) · กลุ่มที่ลบแล้ว → `NOT_FOUND` แบบเดียวกับ `group.update` · ส่ง `null` = กลับไปไอคอนเริ่มต้น · ค่าเดิม = ไม่ต้องเขียน (ข้อเสนอ)
+- **ลบ `place_search_cache`** + งาน cron `stalePlaceSearchCache` ในไฟล์ migration เดียวกัน — ย้อนไม่ได้ ([ADR 0013](../adr/0013-drop-place-search-cache.md)) · rollback = ย้อนแอปอย่างเดียว ตารางหายถาวร (รุ่นเก่ามีงาน cron ที่อ้างตารางนี้ใน batch เดียว → ดูขั้นตอนใน ADR 0013)
+- ผลกับรุ่นเดิม: รุ่นก่อน 0006 ไม่อ่าน `groups.icon` → ไม่กระทบ · เทสต์ข้อเสนอ: `tests/platform/migration-0006.test.ts` (ฐานที่มีข้อมูล R14 → ข้อมูลเดิมเท่าเดิม, `groups.icon` NULL, ไม่มีตาราง cache — R15-1)
+
 ### ความต่างจาก "โมเดลข้อมูลร่าง" ใน PRD §5 (เหตุผลสั้น)
 | PRD ร่าง | ฉบับนี้ | เหตุผล |
 |---|---|---|
@@ -385,7 +395,7 @@ export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy N
 | — | `user.pin_pepper_version`, `updated_at`, `deleted_at` | rotation pepper, ลบบัญชี (U13) |
 | `session(id, user_id, expires_at, user_agent)` | + `created_at`, `last_seen_at`; `id` = hash ของ token | ADR 0002 §4 |
 | `pin_reset_request` | + `device_token_hash`, `requester_ua/country`, `pending_expires_at`, `used_at` | ผูก `123456` กับเครื่อง + ข้อมูลให้ admin ยืนยัน (ADR 0002 §6) |
-| `group` | ชื่อตาราง `groups` + `tz`, `updated_at` | คำสงวน SQL · ADR 0004 §4 |
+| `group` | ชื่อตาราง `groups` + `tz`, `updated_at` · + `icon` (R15) | คำสงวน SQL · ADR 0004 §4 · ไอคอนกลุ่ม R15 §1.2 |
 | `group_invite` | + `code_hint`, `uses_count`, `revoked_by` | U5/U6 รายการโค้ด + audit |
 | `busy_block` | + `created_at/updated_at`, index · + `series_id` (R6F) · + `routine_id` (R14) | ชุดรายวัน ADR 0010 · routine ADR 0012 |
 | — | `busy_routine`, `busy_routine_skip` (R14) | busy ทำซ้ำรายสัปดาห์ (ADR 0012) |
@@ -393,7 +403,7 @@ export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy N
 | `appointment_rsvp` | + `updated_at` | — |
 | `audit_log(target)` | แยก `target_type`, `target_id`, `group_id`, `meta` | ค้น/กรองในหน้า admin (U12) |
 | `notification_outbox` | + `notification_id`, `next_attempt_at`, `last_error`, `sent_at` | retry (ADR 0007) |
-| — | `rate_limit_bucket`, `place_search_cache` | rate limit ไม่มี Redis (ADR 0002) · Nominatim policy (ADR 0001) |
+| — | `rate_limit_bucket`, ~~`place_search_cache`~~ (ลบใน 0006) | rate limit ไม่มี Redis (ADR 0002) · Nominatim policy (ADR 0001) — เลิกใช้ R13, ลบ R15 (ADR 0013) |
 | — | `pepper_fingerprint`, `system_heartbeat` | ตรวจ pepper ผิดค่า (ADR 0002 §7.2) · keep-alive Turso (ADR 0001 §3.1) |
 
 ### กฎข้อมูลที่ schema บังคับไม่ได้ (บังคับใน service + เทสต์)
@@ -425,6 +435,7 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | U4 | `GET /api/groups` | `group.list.mine` | กลุ่มที่เป็นสมาชิก + role ของฉัน | Platform |
 | U4, U6 | `GET /api/groups/:gid` | `group.view` | รายละเอียด + สมาชิก (id, display name, role, สี) | Platform |
 | U6, D9 | `PATCH /api/groups/:gid` | `group.update` | `{name?, freeWindowStartMin?, freeWindowEndMin?, minFreeMinutes?}` | Platform |
+| U6 (R15) | ข้อเสนอ `PUT /api/groups/:gid/icon` (platform ตั้งชื่อจริง) | `group.icon.update` | `{icon: <คีย์ใน allowlist> \| null}` · `.strict()` · route แยกเพื่อให้ 1 route = 1 action ใน manifest | Platform |
 | U6 | `DELETE /api/groups/:gid` | `group.delete` | soft delete + audit | Platform |
 | U6, D7 | `DELETE /api/groups/:gid/members/:uid` | `member.remove` | 409 ถ้าเป้าหมายเป็น admin | Platform |
 | U6 | `PATCH /api/groups/:gid/members/:uid` | `member.setRole` | `{role: 'moderator' \| 'member'}` | Platform |
@@ -445,9 +456,10 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | U7 (R14) | `POST /api/me/busy-routines` | `busy.routine.create` | กฎ (`weekdays`, เวลา/all-day, ช่วง weeks/months) → ขยายแถวใน tx เดียว · zod `.strict()` | Platform |
 | U7 (R14) | `PATCH /api/me/busy-routines/:id` | `busy.routine.update` | เจ้าของเท่านั้น (SA ไม่ได้) · `from` = แก้ตั้งแต่สัปดาห์/เดือนนั้น (ไม่ส่ง = ทุกวันที่ยังไม่ผ่าน) | Platform |
 | U7 (R14) | `DELETE /api/me/busy-routines/:id?from=` | `busy.routine.delete` | เจ้าของเท่านั้น · มี `from` = หยุดตั้งแต่วันนั้น · ไม่มี = ลบทั้งหมดรวมอดีต | Platform |
+| U7 (R15) | ข้อเสนอ `POST /api/me/busy-routines/:id/skips` (platform ตั้งชื่อจริง) | `busy.routine.update` | `{add?, remove?}` ≤ 31 วัน · tx เดียว ทั้งหมดหรือไม่มี · RL `busy:routine` · คืนวัน = ขยายใหม่ตามกฎปัจจุบัน เฉพาะวันที่ยังไม่ผ่านและกฎยังมีวันนั้น · เพดาน 1,500 · GET เพิ่ม `skippedDates` — ADR 0012 §13 | Platform |
 | U8 | `GET /api/groups/:gid/calendar?from&to` | `group.calendar.view` | ≤ 62 วัน · หน้าจอเดือนส่งช่วง `monthGrid()` **เริ่มวันจันทร์** (ADR 0004) · busy กรองตาม ADR 0006 · นัดในช่วง | Platform |
 | U9, U9.1 | `GET /api/groups/:gid/availability?from&to` | `group.availability.view` | ผล ADR 0005 + blockers (กรอง ADR 0006) · คำนวณจาก ≤ 32,000 แถว + รวมช่วงต่อคน (R14 B11) · ส่งรายละเอียด ≤ 5,000 + `detailTruncated` — ปฏิทิน U8 คง 5,000 | Platform |
-| U10 | `GET /api/places/search?q=` | `place.search` | proxy Nominatim + cache + 1 req/s + kill switch | Platform |
+| U10 | ~~`GET /api/places/search?q=`~~ | ~~`place.search`~~ | เอาออกแล้ว R13 · ตาราง cache ลบ R15 (ADR 0013) | — |
 | U10, U10.1 | `POST /api/groups/:gid/appointments/preview` | `appointment.create` | dry-run คืน `warnings` (นัดทับ busy) ไม่บันทึก | Platform |
 | U10, U10.1 | `POST /api/groups/:gid/appointments` | `appointment.create` | บันทึก + `warnings` + notification `appointment.created` | Platform |
 | U8, U10 | `GET /api/groups/:gid/appointments?from&to` | `appointment.view` | รวมนัดที่ยกเลิก (U10.2) | Platform |
@@ -525,7 +537,7 @@ LOG_LEVEL=info                 # debug|info|warn|error — ห้าม log PIN/
 งาน (ทุกข้อ idempotent — Vercel อาจยิงซ้ำหรือข้าม):
 1. ลบ `session` ที่หมดอายุ · `rate_limit_bucket` ที่ `window_start` เก่ากว่า 2 วัน · `login_throttle` ที่ไม่ล็อกและไม่ขยับ 30 วัน
 2. เปลี่ยนสถานะ `pin_reset_request`/`group_invite` ที่หมดอายุ (สำรอง — กลไกหลักคือ lazy)
-3. ลบ `notification` เก่ากว่า 90 วัน · `place_search_cache` เก่ากว่า 30 วัน
+3. ลบ `notification` เก่ากว่า 90 วัน · ~~`place_search_cache` เก่ากว่า 30 วัน~~ (งานนี้ลบพร้อมตารางใน 0006 — ADR 0013)
 4. (v1.x) เก็บตก `notification_outbox` ที่ถึงเวลา retry
 0. (ทำก่อนทุกข้อ) **เขียน** `system_heartbeat('vercel-cron')` — keep-alive ชั้นที่ 1 (ADR 0001 §3.1)
 5. ตรวจ fingerprint pepper (ADR 0002 §7.2) ไปด้วย — ถ้าไม่ผ่าน response เป็น 503 ให้เห็นใน log ของ cron
@@ -548,3 +560,25 @@ LOG_LEVEL=info                 # debug|info|warn|error — ห้าม log PIN/
 | Q11 | คำขอ reset ที่ไม่มีใครตัดสิน ค้างได้นานแค่ไหน | U2 ไม่ระบุ | 7 วันแล้ว `expired` (ผู้ใช้ขอใหม่ได้) |
 | Q12 | username อนุญาตเฉพาะ `a-z 0-9 . _` 3–20 ตัว (ไม่มีภาษาไทย) | D2 ไม่ระบุรูปแบบ | ตามข้อเสนอ — กันตัวอักษรหน้าเหมือน/ปัญหาตัวพิมพ์ · ชื่อที่แสดงใช้ไทยได้ |
 | Q13 | path `scripts/pepper-fingerprint.ts`, `scripts/admin-reset-pin.ts`, `.github/workflows/keepalive.yml` | ADR 0002 §7.4, ADR 0001 §3.1 | เจ้าของ OPS (TEAM.md ให้ OPS เฉพาะ `.github/**` — `scripts/**` ยังมีแค่ `scripts/release*.ts` ของ Release) |
+
+## 10. เปิดแบบแอปบนหน้าจอโฮม (R15 §1.3)
+ข้อเสนอของ Architect (frontend implement · ux ทำ PNG · ops ดู headers) · ยืนยันบนเครื่องจริงที่ T3 (boss)
+
+| เรื่อง | ข้อเสนอ | เหตุผล / แหล่ง |
+|---|---|---|
+| manifest | **`src/app/manifest.ts`** (file convention ของ Next, `MetadataRoute.Manifest`) — ไม่ใช้ `public/manifest.webmanifest` | Next สร้าง `<link rel="manifest">` ให้เอง · มี type ตรวจ · import `THEME_COLOR` จาก `src/styles/tokens.meta.ts` ได้ (สีไม่หลุดจาก tokens) · เป็น route handler ที่ cache เป็นค่าคงที่ถ้าไม่ใช้ request-time API [N2] → **ห้ามอ่าน cookie/locale ใน manifest** |
+| เนื้อหา manifest | `name: "แมวเจอกัน"` · `short_name: "maewmeet"` (ux ยืนยันคำ) · `start_url: "/"` · `scope: "/"` · `display: "standalone"` · `theme_color`/`background_color` = `THEME_COLOR.light` · `lang: "th"` · icons 192, 512 (`purpose: "any"`) + 512 `purpose: "maskable"` | ตาม contract §1.3 · ตัวอย่างของ Next ใช้ `display: 'standalone'` + icons 192/512 [N2] |
+| ไฟล์ไอคอน | PNG คงที่ใต้ `public/brand/app/` (เช่น `apple-touch-icon-180.png`, `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`) — ux ทำจาก `public/brand/cats` · ไม่ใช้ file convention `app/apple-icon.png`/`app/icon.png` เพราะ file-based metadata มีลำดับเหนือ `metadata` [N1] อาจทับ favicon SVG เดิม | ไฟล์ static ไม่ผ่านโค้ด · ระวังชื่อชน: `public/brand/cats/manifest.json` เดิมเป็นรายการภาพของ ux ไม่ใช่ web manifest |
+| apple-touch-icon | `metadata.icons.apple: [{ url: "/brand/app/apple-touch-icon-180.png", sizes: "180x180", type: "image/png" }]` ใน `generateMetadata` ของ `src/app/layout.tsx` (คง `icon` SVG เดิม) | Next ออก `<link rel="apple-touch-icon" sizes="180x180">` [N1] · iOS เลือกไอคอนจาก `link rel=apple-touch-icon` ตามขนาดที่เหมาะกับเครื่อง [A1] |
+| metadata iOS | `appleWebApp: { capable: true, title: t("name"), statusBarStyle: "default" }` | Next 16 ออก `<meta name="mobile-web-app-capable">` (ไม่ใช่ `apple-mobile-web-app-capable`) + `apple-mobile-web-app-title` + `apple-mobile-web-app-status-bar-style` [N1] · iOS/iPadOS 26 เปิดเว็บที่เพิ่มหน้าจอโฮมเป็นแอปโดยดีฟอลต์ และ manifest ยังให้ไอคอน/ค่าอื่น [A2] · `default` = แถบสถานะไม่ทับเนื้อหา (ง่ายกว่า `black-translucent` ที่ต้องเว้น safe area บนเอง) |
+| iOS รุ่นเก่า (< 26) | ถ้า T3 บนเครื่องรุ่นเก่ายังเปิดเป็น Safari: เพิ่ม `other: { "apple-mobile-web-app-capable": "yes" }` | แท็กเดิมของ Apple [A1] · Next ไม่ออกแท็กนี้แล้ว [N1] — **ยังไม่ยืนยัน**ว่าจำเป็นบนรุ่นเก่า (ไม่ได้ทดสอบ) |
+| safe area | `viewport.viewportFit: "cover"` มีแล้วใน layout · ux/frontend ใช้ `env(safe-area-inset-top/bottom)` ที่แถบบน/แถบล่าง/ปุ่มลอย | contract §1.3 |
+| CSP / proxy | `manifest-src 'self'` มีแล้ว (`next.config.ts`) · `img-src 'self'` ครอบไอคอน · ไม่มี `middleware`/`proxy` ที่จะ redirect `/manifest.webmanifest` ไปหน้า login (ตรวจโค้ด 2026-11-15) → ops ไม่ต้องแก้ headers ถ้ายังเป็นแบบนี้ | อ่านโค้ด |
+| ลิงก์ภายนอก / login | ลิงก์ Google Maps / LINE / Google Calendar คง `<a href target="_blank" rel="noopener">` เดิม · ไม่ใส่ service worker (ไม่มี offline) · cookie session เดิมใช้ได้ | **ยังไม่ยืนยัน**ว่า iOS เปิดลิงก์นอก scope ในโหมดแอปอย่างไร และต้อง login ใหม่ในแอปครั้งแรกหรือไม่ (เอกสาร WebKit ที่อ่านไม่ระบุ [A2]) → ทดสอบ T3 แล้วให้ secretary ใส่ quickstart ตามผลจริง |
+| ⚠ metadata แบบ stream | `generateMetadata` ของ root layout อ่าน locale (cookie) → Next อาจ stream metadata ไปต่อท้าย `<body>` สำหรับ browser ที่ไม่ใช่ bot [N1] | **ยังไม่ยืนยัน**ว่ามีผลกับ Safari ตอน "เพิ่มไปยังหน้าจอโฮม" · frontend ตรวจ HTML จริง (`curl -A "<UA ของ iPhone Safari>"`) ว่า `rel="manifest"` / `apple-touch-icon` อยู่ตรงไหน · ถ้าอยู่ใน body และ T3 ไม่ได้ไอคอน → ทางสำรอง: ใส่ `<link>` ตรงใน `<head>` ของ root layout |
+
+แหล่งอ้างอิง §10 (เข้าถึง 2026-11-15)
+- [N1] Next.js — generateMetadata (`icons.apple`, `manifest`, `appleWebApp` → `<meta name="mobile-web-app-capable">`, file-based metadata มีลำดับเหนือ, streaming metadata ต่อท้าย `<body>`) · lastUpdated 2026-11-06 — https://nextjs.org/docs/app/api-reference/functions/generate-metadata
+- [N2] Next.js — manifest file convention (`app/manifest.(json|webmanifest)` หรือ `app/manifest.ts`; "cached by default unless it uses a Request-time API") · lastUpdated 2026-03-03 — https://nextjs.org/docs/app/api-reference/file-conventions/metadata/manifest · PWA guide (lastUpdated 2026-07-30) — https://nextjs.org/docs/app/guides/progressive-web-apps
+- [A1] Apple — Safari Web Content Guide: Configuring Web Applications (`apple-touch-icon` + sizes, `apple-mobile-web-app-capable`, status-bar-style · เอกสาร archive อัปเดต 2016-12-12 ใช้เป็นประวัติ) — https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariWebContent/ConfiguringWebApplications/ConfiguringWebApplications.html
+- [A2] WebKit — WebKit Features in Safari 26.0 ("By default, every website added to the Home Screen opens as a web app"; manifest ยังใช้ไอคอน) — https://webkit.org/blog/17333/webkit-features-in-safari-26-0/
