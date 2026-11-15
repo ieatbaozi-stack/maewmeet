@@ -14,6 +14,8 @@ export type GroupPatch = {
   freeWindowStartMin?: number;
   freeWindowEndMin?: number;
   minFreeMinutes?: number;
+  /** R15: คีย์ allowlist ที่ service ตรวจแล้ว · null = ล้าง (แสดงแมว) */
+  icon?: string | null;
 };
 
 /**

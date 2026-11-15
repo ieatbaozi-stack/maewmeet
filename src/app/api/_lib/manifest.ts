@@ -49,6 +49,7 @@ export const ROUTE_MANIFEST = [
   { method: 'GET', path: '/api/groups/:gid', action: 'group.view', auth: 'actor', owner: 'platform' },
   { method: 'PATCH', path: '/api/groups/:gid', action: 'group.update', auth: 'actor', owner: 'platform' },
   { method: 'DELETE', path: '/api/groups/:gid', action: 'group.delete', auth: 'actor', owner: 'platform' },
+  { method: 'PUT', path: '/api/groups/:gid/icon', action: 'group.icon.update', auth: 'actor', owner: 'platform' }, // R15 §1.2
   { method: 'DELETE', path: '/api/groups/:gid/members/:uid', action: 'member.remove', auth: 'actor', owner: 'platform' },
   { method: 'PATCH', path: '/api/groups/:gid/members/:uid', action: 'member.setRole', auth: 'actor', owner: 'platform' },
   { method: 'PATCH', path: '/api/groups/:gid/members/me/appearance', action: 'member.setOwnAppearance', auth: 'actor', owner: 'platform' },

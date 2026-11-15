@@ -5,6 +5,7 @@
 //  - busy ในผลเตือนนัดทับผ่าน toBusyForViewers ตัวเดียวกับปฏิทิน/วันว่าง — ไม่มี note · รายการซ่อนไม่มี title
 import type { AppointmentRow, MyCommitmentRow, RsvpResponse, RsvpRow } from '@/lib/data/repos/appointment';
 import { daysUntil } from '@/lib/calendar';
+import { normalizeGroupIcon, type GroupIconKey } from '@/lib/shared/group-icons';
 import { memberAppearance, type AppearanceSlots, type MemberAppearance } from '@/lib/shared/member-color';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { MemberBusyView } from './busy';
@@ -33,6 +34,8 @@ export type AppointmentDto = {
   id: string;
   groupId: string;
   groupName: string;
+  /** R15: ไอคอนของกลุ่ม (allowlist src/lib/shared/group-icons) · null = ยังไม่ตั้ง/ไม่รู้จัก → UI แสดงแมว */
+  groupIcon: GroupIconKey | null;
   title: string;
   description: string | null;
   placeName: string | null;
@@ -126,6 +129,8 @@ export type AppointmentContext = {
   viewerId: string;
   now: number;
   groupName: string;
+  /** R15: groups.icon ดิบ — normalize ที่นี่ (ไม่อยู่ในรายการ → null) */
+  groupIcon: string | null;
   /** สมาชิกปัจจุบันของกลุ่มที่นัดสังกัด (userId → ชื่อ + slot หน้าตา) */
   members: ReadonlyMap<string, MemberLook>;
   memberCount: number;
@@ -159,6 +164,7 @@ function toBase(row: AppointmentRow, c: AppointmentContext): Omit<AppointmentDto
     id: row.id,
     groupId: row.groupId,
     groupName: sanitizeDisplayText(c.groupName),
+    groupIcon: normalizeGroupIcon(c.groupIcon),
     title: sanitizeDisplayText(row.title),
     description: row.description === null ? null : cleanMultiline(row.description),
     placeName: row.placeName === null ? null : sanitizeDisplayText(row.placeName),
