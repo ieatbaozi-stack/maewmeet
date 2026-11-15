@@ -205,7 +205,7 @@ describe('แมป error ทุกรูป (§3.3)', () => {
   });
   it('LIMIT_REACHED: skipDays → errors.LIMIT_REACHED {limit,max} · routineRows → ข้อความแถวรวม', () => {
     expect(mapSkipFailure(api('LIMIT_REACHED', { limit: 'skipDays', max: 31 }))).toEqual({ type: 'error', refs: [{ key: 'errors.LIMIT_REACHED', values: { limit: 'skipDays', max: 31 } }] });
-    expect(mapSkipFailure(api('LIMIT_REACHED', { limit: 'routineRows', max: 1500 }, 409))).toEqual({ type: 'error', refs: [{ key: 'busy.routine.error.routineRows', values: { max: 1500 } }] });
+    expect(mapSkipFailure(api('LIMIT_REACHED', { limit: 'routineRows', max: 1500 }, 409))).toEqual({ type: 'error', refs: [{ key: 'busy.routine.skip.error.rows', values: { max: 1500 } }] });
   });
 });
 
@@ -223,6 +223,8 @@ describe('คีย์ข้อความ', () => {
       expect(t('busy.routine.skip.day.aria', { date: '18', state: 'skipped' })).not.toBe(t('busy.routine.skip.day.aria', { date: '18', state: 'off' }));
       expect(t('errors.LIMIT_REACHED', { limit: 'skipDays', max: 31 })).toMatch(/31/);
       expect(t('busy.routine.skip.toast.skipped', { count: 2 })).toMatch(/2/);
+      expect(t('busy.routine.skip.restoreNote')).toBeTruthy();
+      expect(t('busy.routine.skip.error.rows', { max: 1500 })).toMatch(/1500/);
     }
   });
 });

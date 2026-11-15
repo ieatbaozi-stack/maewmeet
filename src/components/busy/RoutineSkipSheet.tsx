@@ -237,6 +237,11 @@ export function RoutineSkipSheet({ routine, onClose, onDone }: RoutineSkipSheetP
               </p>
             ) : null}
             <p className="sk-note">{t("busy.routine.skip.note")}</p>
+            {mode === "restore" ? (
+              <p className="sk-note" data-testid="skip-restore-note">
+                {t("busy.routine.skip.restoreNote")}
+              </p>
+            ) : null}
             {error ? (
               <div className="alert sk-alert" role="alert" data-testid="skip-error">
                 <Icon name="circle-alert" />

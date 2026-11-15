@@ -146,7 +146,7 @@ export type SkipFailure = { type: "gone" } | { type: "error"; refs: MessageRef[]
 /**
  * ผลล้มเหลว → ข้อความ (R15_FEEDBACK §3.3) ทุกข้อความบอกว่า "ยังไม่มีอะไรเปลี่ยน"
  * NOT_FOUND = ชุดหาย (gone) · VALIDATION = วันที่เลือกผ่านไป/ไม่อยู่ในชุด (stale) · RATE_LIMITED = skip.error.rate
- * LIMIT_REACHED skipDays → errors.LIMIT_REACHED · routineRows (คืนวันแล้วแถวรวมเกินเพดาน) → busy.routine.error.routineRows · อื่นๆ/เครือข่าย = generic
+ * LIMIT_REACHED skipDays → errors.LIMIT_REACHED · routineRows (คืนวันแล้วแถวรวมเกินเพดาน) → busy.routine.skip.error.rows · อื่นๆ/เครือข่าย = generic
  */
 export function mapSkipFailure(res: Failure): SkipFailure {
   const generic: SkipFailure = { type: "error", refs: [ref("busy.routine.skip.error.generic")] };
@@ -161,7 +161,7 @@ export function mapSkipFailure(res: Failure): SkipFailure {
       return { type: "error", refs: [ref("busy.routine.skip.error.rate")] };
     case "LIMIT_REACHED": {
       const limit = typeof values.limit === "string" ? values.limit : "";
-      if (limit === "routineRows") return { type: "error", refs: [ref("busy.routine.error.routineRows", { max: typeof values.max === "number" ? values.max : 1500 })] };
+      if (limit === "routineRows") return { type: "error", refs: [ref("busy.routine.skip.error.rows", { max: typeof values.max === "number" ? values.max : 1500 })] };
       return { type: "error", refs: [messageRefOf(res.error)] };
     }
     default:
