@@ -78,10 +78,10 @@ describe('B-3 — loadGroupCtx คืนแถวกลุ่มมาด้ว�
 });
 
 describe('B-2 — openGroupCalendar / openGroupAvailability', () => {
-  it('สมาชิก: group = {id, tz, myRole} · load(range) เท่ากับ getGroup* ทุกไบต์ (และเท่ากับ API)', async () => {
+  it('สมาชิก: group = {id, tz, icon, myRole} · load(range) เท่ากับ getGroup* ทุกไบต์ (และเท่ากับ API)', async () => {
     const c = ctx();
     const cal = await openGroupCalendar(actorOf(B), G, c);
-    expect(cal.group).toEqual({ id: G, tz: 'Asia/Bangkok', myRole: 'member' });
+    expect(cal.group).toEqual({ id: G, tz: 'Asia/Bangkok', icon: null, myRole: 'member' });
     const viaHandle = await cal.load(RANGE);
     expect(JSON.stringify(viaHandle)).toBe(JSON.stringify(await getGroupCalendar(actorOf(B), G, RANGE, c)));
     const api = await get(B.c, `/api/groups/${G}/calendar?from=${RANGE.from}&to=${RANGE.to}`);
@@ -90,7 +90,7 @@ describe('B-2 — openGroupCalendar / openGroupAvailability', () => {
     expect(viaHandle.busy.length).toBeGreaterThan(0);
 
     const av = await openGroupAvailability(actorOf(A), G, c);
-    expect(av.group).toEqual({ id: G, tz: 'Asia/Bangkok', myRole: 'admin' });
+    expect(av.group).toEqual({ id: G, tz: 'Asia/Bangkok', icon: null, myRole: 'admin' });
     const a1 = await av.load(RANGE);
     expect(JSON.stringify(a1)).toBe(JSON.stringify(await getGroupAvailability(actorOf(A), G, RANGE, c)));
     const apiA = await get(A.c, `/api/groups/${G}/availability?from=${RANGE.from}&to=${RANGE.to}`);
@@ -132,7 +132,7 @@ describe('B-4 — รายการนัด / RSVP / busy / หน้าหล
     const db = ctx().db;
     const missing = newId();
     const m = await groupNamesAndMemberCounts(db, [G, missing]);
-    expect([...m.entries()]).toEqual([[G, { name: 'กลุ่ม B', memberCount: 2 }]]);
+    expect([...m.entries()]).toEqual([[G, { name: 'กลุ่ม B', icon: null, memberCount: 2 }]]);
     expect((await groupNamesAndMemberCounts(db, [])).size).toBe(0);
   });
 

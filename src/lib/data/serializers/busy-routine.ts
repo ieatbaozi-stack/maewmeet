@@ -25,6 +25,11 @@ export type RoutineOwnView = {
   tz: string;
   /** วันของชุดนี้ที่ยังไม่สิ้นสุด (end_at > ตอนนี้) — ไม่นับวันที่ลบ/แยกไปแล้ว */
   remaining: number;
+  /**
+   * R15 (ADR 0012 §13): วันที่เว้นไว้ที่ยังไม่ผ่าน (≥ วันนี้ใน tz ของชุด) เรียงจากน้อย — เจ้าของเท่านั้น
+   * รวมวันที่ลบทีละวันและวันที่แยกแก้เป็น busy เดี่ยว (ตาราง skip ไม่เก็บเหตุผล — §13.3)
+   */
+  skippedDates: string[];
 };
 
 /** allowlist ของ RoutineOwnView (เทสต์ใช้ตรวจ) */
@@ -43,9 +48,11 @@ export const ROUTINE_OWN_FIELDS = [
   'endDate',
   'tz',
   'remaining',
+  'skippedDates',
 ] as const satisfies readonly (keyof RoutineOwnView)[];
 
-export function toRoutineOwnView(r: OwnRoutineRow | OwnRoutineListRow, remaining?: number): RoutineOwnView {
+/** skippedDates: ผู้เรียกกรอง ≥ วันนี้ (tz ของชุด) แล้ว — ที่นี่แค่คัดลอก + เรียง */
+export function toRoutineOwnView(r: OwnRoutineRow | OwnRoutineListRow, remaining: number | undefined, skippedDates: readonly string[]): RoutineOwnView {
   const timed = !r.allDay && r.startMin !== null && r.endMin !== null;
   return {
     id: r.id,
@@ -62,5 +69,6 @@ export function toRoutineOwnView(r: OwnRoutineRow | OwnRoutineListRow, remaining
     endDate: r.endDate,
     tz: r.tz,
     remaining: remaining ?? ('remaining' in r ? r.remaining : 0),
+    skippedDates: [...skippedDates].sort(),
   };
 }

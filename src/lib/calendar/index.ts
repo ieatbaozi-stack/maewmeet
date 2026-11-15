@@ -50,7 +50,9 @@ export {
   type TimedBusyInput,
 } from './busy';
 export {
+  checkRoutineSkipDate,
   expandRoutine,
+  expandRoutineDates,
   formatRoutineTime,
   isOvernight,
   maskToWeekdays,
@@ -58,6 +60,7 @@ export {
   planRoutine,
   routinePeriods,
   routinePeriodStart,
+  routineOccursOn,
   routineRange,
   weekdaysToMask,
   type ExpandRoutineOptions,
@@ -69,6 +72,8 @@ export {
   type RoutineRangeOptions,
   type RoutineResult,
   type RoutineRule,
+  type RoutineSkipDateError,
+  type RoutineSkipMode,
   type RoutineSpec,
 } from './routine';
 export { earliestAllowedDate, exceedsMaxSpan, isTooFarBack, spanDays } from './limits';

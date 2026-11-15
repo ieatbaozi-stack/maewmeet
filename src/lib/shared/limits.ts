@@ -84,6 +84,10 @@ export const BUSY_ROUTINE_LIST_MAX = 50;
  * 20 คำขอ/10 นาที/ผู้ใช้ → เขียนได้สูงสุด ~20 × 184 แถว · แก้/ลบวันเดียว (/api/me/busy/:id) ใช้ BUSY_WRITE_RATE_LIMITS เดิม
  */
 export const BUSY_ROUTINE_RATE_LIMIT = { prefix: 'busy:routine', limit: 20, windowMs: 10 * MINUTE_MS } as const;
+/** R15 §1.1 (ADR 0012 §13): เว้น/คืนวันของ routine ต่อคำขอ (add ∪ remove หลังตัดซ้ำ) · เกิน → LIMIT_REACHED { limit: 'skipDays', max } (status 400) */
+export const BUSY_ROUTINE_SKIP_MAX_DAYS = 31;
+/** ขนาดอาร์เรย์ add/remove ที่ zod รับก่อนตัดซ้ำ (กันคำขอใหญ่ — เกินนี้ = VALIDATION TOO_LARGE ที่ route) */
+export const BUSY_ROUTINE_SKIP_MAX_ITEMS = 64;
 
 /** ชนิดเพดานที่ใส่ใน params ของ LIMIT_REACHED (UX แปลตามนี้) */
 export type LimitKind =
@@ -100,7 +104,8 @@ export type LimitKind =
   | 'routines'
   | 'routineRows'
   | 'routineSpan'
-  | 'routineAhead';
+  | 'routineAhead'
+  | 'skipDays';
 
 // ───────── นัด / แจ้งเตือน / สถานที่ — R4B_CONTRACT §2 ─────────
 export const APPOINTMENT_TITLE_MAX = 80;

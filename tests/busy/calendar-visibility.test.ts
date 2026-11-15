@@ -28,7 +28,7 @@ let visibleId: string;
 let hiddenId: string;
 
 type Busy = Record<string, unknown> & { id: string; userId: string };
-type Cal = { group: { id: string; tz: string }; from: string; to: string; members: { userId: string; displayName: string; colorIndex: number; shapeIndex: number }[]; busy: Busy[]; truncated: boolean };
+type Cal = { group: { id: string; tz: string; icon: string | null }; from: string; to: string; members: { userId: string; displayName: string; colorIndex: number; shapeIndex: number }[]; busy: Busy[]; truncated: boolean };
 
 const RANGE = 'from=2026-10-01&to=2026-10-31';
 const calUrl = (g: string, q = RANGE) => `/api/groups/${g}/calendar?${q}`;
@@ -83,7 +83,7 @@ const hiddenViewSchema = z.object(base).strict();
 const sharedViewSchema = z.object({ ...base, title: z.string().min(1) }).strict();
 const calendarSchema = z
   .object({
-    group: z.object({ id: z.uuid(), tz: z.string() }).strict(),
+    group: z.object({ id: z.uuid(), tz: z.string(), icon: z.string().nullable() }).strict(), // R15: icon = คีย์ allowlist ของกลุ่ม (ไม่ใช่ข้อมูลคน)
     from: z.string(),
     to: z.string(),
     members: z.array(z.object({ userId: z.uuid(), displayName: z.string(), colorIndex: z.number().int().min(0).max(9), shapeIndex: z.number().int().min(0).max(9) }).strict()),
@@ -136,7 +136,7 @@ describe('ADR 0006 ข้อ 1 — สมาชิกเห็นผ่านก
     expect(r.data.members.find((m) => m.userId === owner.id)!.displayName).toBe(owner.displayName);
     expect(r.text).not.toContain(p2.id);
     expect(r.text).not.toContain(out.id);
-    expect(r.data.group).toEqual({ id: g1, tz: 'Asia/Bangkok' });
+    expect(r.data.group).toEqual({ id: g1, tz: 'Asia/Bangkok', icon: null });
   });
 });
 
@@ -440,7 +440,7 @@ describe('ADR 0006 test 8–9 — ระดับชนิดข้อมูล 
 
   it('ไม่มี endpoint รับ user id ของคนอื่นแล้วคืน busy: manifest ไม่มี path /users/:id/busy และ busy ออกได้เฉพาะ /me/busy กับ /groups/:gid/calendar', () => {
     const busyish = ROUTE_MANIFEST.filter((e) => /busy|calendar/.test(e.path) && e.path !== '/api/appointments/:id/calendar.ics').map((e) => e.path);
-    expect([...new Set(busyish)].sort()).toEqual(['/api/groups/:gid/calendar', '/api/me/busy', '/api/me/busy-routines', '/api/me/busy-routines/:id', '/api/me/busy/:id']); // R14: routine = owner-only (/api/me/*)
+    expect([...new Set(busyish)].sort()).toEqual(['/api/groups/:gid/calendar', '/api/me/busy', '/api/me/busy-routines', '/api/me/busy-routines/:id', '/api/me/busy-routines/:id/skips', '/api/me/busy/:id']); // R14: routine = owner-only (/api/me/*) · R15: skips
   });
 });
 
