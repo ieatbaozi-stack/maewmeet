@@ -225,7 +225,7 @@ for (const { loc, theme } of COMBOS) {
     await expect(a.getByTestId('cal-day-panel')).toHaveAttribute('data-date', d1);
     await expect(a.getByTestId('routine-tag')).toHaveCount(1);
     await expect(a.getByTestId('routine-tag')).toContainText(T('busy.routine.calendar.tag'));
-    await expect(a.getByTestId('routine-tag')).toHaveAttribute('aria-label', T('busy.routine.calendar.tagAria'));
+    await expect(a.getByTestId('routine-tag-sr')).toHaveText(T('busy.routine.calendar.tagAria'));
     await expect(a.getByTestId('routine-day-edit')).toBeVisible();
     await checkLayout(a, testInfo, 'r14b-day', loc, theme);
 
