@@ -43,6 +43,13 @@
       "when": 1794349069004,
       "tag": "0005_r14_busy_routine",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794716620609,
+      "tag": "0006_r15_group_icon_drop_place_cache",
+      "breakpoints": true
     }
   ]
 }

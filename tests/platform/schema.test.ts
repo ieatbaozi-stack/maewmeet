@@ -1,4 +1,4 @@
-// R0-4: migration จริงจาก drizzle/ บน DB ว่าง · 21 ตาราง · constraint สำคัญปฏิเสธจริง (ARCHITECTURE §3)
+// R0-4: migration จริงจาก drizzle/ บน DB ว่าง · 20 ตาราง (R15: ลบ place_search_cache) · constraint สำคัญปฏิเสธจริง (ARCHITECTURE §3)
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { is } from 'drizzle-orm';
 import { getTableConfig, SQLiteTable } from 'drizzle-orm/sqlite-core';
@@ -23,7 +23,6 @@ const EXPECTED_TABLES = [
   'notification_outbox',
   'pepper_fingerprint',
   'pin_reset_request',
-  'place_search_cache',
   'rate_limit_bucket',
   'session',
   'system_heartbeat',
@@ -55,16 +54,16 @@ afterAll(async () => {
 });
 
 describe('migration', () => {
-  it('apply บน DB ว่างได้ และได้ 21 ตารางตรงชื่อ ARCHITECTURE §3', async () => {
+  it('apply บน DB ว่างได้ และได้ 20 ตารางตรงชื่อ ARCHITECTURE §3', async () => {
     const rs = await exec(
       "select name from sqlite_master where type='table' and name not like 'sqlite_%' and name not like '__drizzle%' order by name",
     );
     const names = rs.rows.map((r) => String(r.name));
     expect(names).toEqual(EXPECTED_TABLES);
-    expect(names).toHaveLength(21);
+    expect(names).toHaveLength(20);
   });
 
-  it('schema.ts ประกาศ 21 ตารางชุดเดียวกับที่อยู่ใน DB', () => {
+  it('schema.ts ประกาศ 20 ตารางชุดเดียวกับที่อยู่ใน DB', () => {
     // is(v, SQLiteTable) = type guard ของ drizzle (ตรวจ entityKind) — ไม่ต้องเดาโครงสร้างภายในของตาราง
     const tables = Object.values(schema)
       .flatMap((v) => (is(v, SQLiteTable) ? [getTableConfig(v).name] : []))

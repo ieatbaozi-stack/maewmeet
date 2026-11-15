@@ -146,7 +146,7 @@ describe('GET /api/cron/daily', () => {
       );
     await inv('i-expired', 'h1', NOW - 1);
     await inv('i-live', 'h2', NOW + DAY_MS);
-    // §8.3 notification / place_search_cache
+    // §8.3 notification (R15: place_search_cache ถูกลบใน migration 0006)
     const notif = (id: string, created: number) =>
       exec("insert into notification(id, user_id, kind, params, created_at) values (?,?,'x','{}',?)", [id, 'u1', created]);
     await notif('n-old', NOW - 90 * DAY_MS - 1);
@@ -159,9 +159,6 @@ describe('GET /api/cron/daily', () => {
     await busy('bz-old', NOW - 90 * DAY_MS - 1);
     await busy('bz-edge', NOW - 90 * DAY_MS);
     await busy('bz-future', NOW + DAY_MS);
-    const cache = (q: string, fetched: number) => exec("insert into place_search_cache values (?, '[]', ?)", [q, fetched]);
-    await cache('q-old', NOW - 30 * DAY_MS - 1);
-    await cache('q-new', NOW - 30 * DAY_MS);
   }
 
   async function snapshot() {
@@ -173,7 +170,6 @@ describe('GET /api/cron/daily', () => {
       ['pin_reset_request', 'id'],
       ['group_invite', 'id'],
       ['notification', 'id'],
-      ['place_search_cache', 'query_normalized'],
       ['system_heartbeat', 'source'],
     ] as const) {
       out[table] = (await exec(`select * from ${table} order by ${key}`)).rows.map((r) => ({ ...r }));
@@ -198,7 +194,6 @@ describe('GET /api/cron/daily', () => {
       oldNotifications: 1,
       oldBusyBlocks: 1,
       oldBusyRoutines: 0, // R14
-      stalePlaceSearchCache: 1,
       oldLineOutbox: 0,
       staleLineLinkCodes: 0,
     });
@@ -211,7 +206,6 @@ describe('GET /api/cron/daily', () => {
     expect(await ids('login_throttle', 'key')).toEqual(['t-locked', 't-recent']);
     expect(await ids('notification', 'id')).toEqual(['n-new']);
     expect(await ids('busy_block', 'id')).toEqual(['bz-edge', 'bz-future']);
-    expect(await ids('place_search_cache', 'query_normalized')).toEqual(['q-new']);
     expect(await count('pin_reset_request', "status = 'expired'")).toBe(2);
     expect(await count('group_invite', "status = 'expired'")).toBe(1);
     expect(await count('group_invite', "id = 'i-live' and status = 'active'")).toBe(1);

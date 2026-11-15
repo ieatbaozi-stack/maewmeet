@@ -87,6 +87,9 @@ export const groups = sqliteTable('groups', {
   createdAt: ms('created_at').notNull(),
   updatedAt: ms('updated_at').notNull(),
   deletedAt: ms('deleted_at'),                                        // soft delete (U6)
+  // R15 (migration 0006): คีย์ไอคอนจาก allowlist src/lib/shared/group-icons.ts · NULL = ยังไม่ตั้ง (แสดงแมว)
+  // ไม่มี CHECK ใน SQL (เพิ่ม CHECK ต้อง rebuild ตาราง) — service ตรวจ allowlist · อ่านแล้วไม่อยู่ในรายการ = null
+  icon: text('icon'),
 }, (t) => [
   index('groups_created_by_idx').on(t.createdBy),                      // R2: นับกลุ่มที่สร้าง (เพดาน 10) — migration 0001
   check('groups_window_ck', sql`${t.freeWindowStartMin} >= 0 and ${t.freeWindowStartMin} < ${t.freeWindowEndMin}
@@ -325,10 +328,4 @@ export const systemHeartbeat = sqliteTable('system_heartbeat', {      // ADR 000
   lastAt: ms('last_at').notNull(),
 }, (t) => [check('heartbeat_source_ck', sql`${t.source} in ('vercel-cron','github-actions')`)]);
 
-// R13 (B3): ไม่ใช้แล้วตั้งแต่ R13 — ลบการค้นหาสถานที่ (proxy Nominatim) ออกแล้ว ไม่มีโค้ดอ่าน/เขียนแคช · คงตารางไว้รอลบด้วย migration ในรอบหลัง
-//   cron (repos/maintenance.ts) ยังลบแถวที่เก่ากว่า 30 วันตามเดิม ตารางจึงว่างเองภายใน 30 วันหลัง deploy
-export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy Nominatim (ADR 0001) — เลิกใช้ R13
-  queryNormalized: text('query_normalized').primaryKey(),             // lowercase + trim + collapse space + locale
-  results: text('results', { mode: 'json' }).notNull(),               // [{name, lat, lng, osmUrl}] สูงสุด 5
-  fetchedAt: ms('fetched_at').notNull(),                              // เก็บ 30 วัน
-});
+// R15 (ADR 0013): ตาราง place_search_cache (proxy Nominatim, เลิกใช้ R13) ถูกลบใน migration 0006 — ย้อนไม่ได้

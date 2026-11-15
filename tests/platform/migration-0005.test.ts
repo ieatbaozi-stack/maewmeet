@@ -112,7 +112,8 @@ describe('migration 0005 บนฐานที่มีข้อมูลรู�
     expect(tablesBefore).not.toContain('busy_routine');
     const after = (await exec("select name from pragma_table_info('busy_block') order by cid")).rows.map((r) => String(r.name));
     expect(after).toEqual([...colsBefore, 'routine_id']);
-    expect(await tableNames()).toEqual([...tablesBefore, 'busy_routine', 'busy_routine_skip'].sort());
+    // R15: 0006 (apply ต่อในชุดเดียวกัน) ลบ place_search_cache — ADR 0013
+    expect(await tableNames()).toEqual([...tablesBefore, 'busy_routine', 'busy_routine_skip'].filter((n) => n !== 'place_search_cache').sort());
     const rs = await exec('select count(*) as n from __drizzle_migrations');
     expect(Number(rs.rows[0]?.n)).toBe(journalOf().entries.length);
   });
@@ -122,6 +123,7 @@ describe('migration 0005 บนฐานที่มีข้อมูลรู�
       const rows = (await exec(`select * from ${table} order by ${key}`)).rows.map((r) => {
         const rest = { ...r } as Record<string, unknown>;
         delete rest.routine_id;
+        delete rest.icon; // R15: groups.icon มาจาก 0006 (apply ต่อในชุดเดียวกัน)
         return rest;
       });
       expect(rows, table).toEqual(snapshots[table]);
