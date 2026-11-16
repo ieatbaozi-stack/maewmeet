@@ -12,6 +12,11 @@
 #   R0-12 E2E มือถือ + ภาพหน้าจอ ... e2e (upload-artifact: รายงานเฉพาะเมื่อล้ม · ภาพหน้าจอครบชุดเมื่อสั่งรันมือ screenshots=true)
 #   R0-13 คอนทราสต์ ................ contrast
 #   R0-16 header จริง .............. e2e (เทสต์ของ TEST) · config → test (tests/ops/headers.test.ts)
+#
+# PR ที่แตะเอกสารล้วน (docs/** หรือ *.md) → job `changes` ตั้ง code=false → build + e2e ถูก "ข้าม" (skipped)
+#   lint · typecheck · test · contrast ยังรันเสมอ (เทสต์บางตัวอ่านไฟล์ docs เช่น tests/ops/operations-doc.test.ts)
+#   ใช้ if: ระดับ job ไม่ใช่ paths-ignore → check ที่ถูกข้ามนับว่าผ่านถ้าวันหนึ่งตั้ง required checks (paths-ignore จะค้าง Pending)
+#   push เข้า main / รันมือ / หา base ไม่เจอ → รันครบทุก job เสมอ (.github/scripts/changed-code.sh)
 
 name: ci
 
@@ -38,6 +43,23 @@ env:
   CI: 'true'
 
 jobs:
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # ต้องมี commit ของ base เพื่อ git diff
+          persist-credentials: false
+      - id: diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: bash .github/scripts/changed-code.sh
+
   lint:
     name: lint
     runs-on: ubuntu-latest
@@ -101,6 +123,8 @@ jobs:
 
   build:
     name: build
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -140,6 +164,8 @@ jobs:
   e2e:
     # แบ่ง 4 shard รันขนาน (repo private = runner 2 vCPU; ทั้งชุดรันเดี่ยว ๆ เกิน 30 นาทีแล้วถูกยกเลิก)
     name: e2e (Playwright)
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     strategy:

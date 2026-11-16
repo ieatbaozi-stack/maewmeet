@@ -16,6 +16,7 @@
 - ขั้น 3 ของแถบเริ่มต้นใช้งานไม่ค้าง "ถัดไป" หลังดูวันว่าง · แก้เล็กน้อยบนหน้าจอ 375px และปุ่มแผนที่ (R15a)
 - `/privacy` เพิ่มประโยคว่าสมาชิกในกลุ่มเห็นว่าคุณลงวันไม่ว่างแล้วหรือยัง (R15a)
 - ผลของ cron รายวัน (`/api/cron/daily`) ไม่มีชื่องาน `stalePlaceSearchCache` อีก (R15a)
+- CI: PR ที่แก้เอกสารล้วน (`docs/**`, `*.md`) ข้าม build และ e2e · lint/typecheck/test ยังรันเสมอ · ตัวอย่าง username ใน `docs/OPERATIONS.md` เปลี่ยนเป็น `<admin-username>` (R15b)
 
 ### Removed
 - ตาราง `place_search_cache` และงานล้างของมัน — ค้างจาก R13 ไม่มีใครเขียนแล้ว (ADR 0013) · **ย้อนไม่ได้** ดู Upgrade notes
