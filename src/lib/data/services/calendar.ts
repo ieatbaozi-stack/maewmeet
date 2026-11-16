@@ -6,6 +6,7 @@
 //  - super admin ที่ไม่ใช่สมาชิก → audit `group.calendar.view` (ตามกติกาอ่านของ R2: auditRead)
 import { z } from 'zod';
 import { addDays, compareDates, isValidDate, spanDays, startOfDay } from '@/lib/calendar';
+import { normalizeGroupIcon, type GroupIconKey } from '@/lib/shared/group-icons';
 import type { GroupRole, GroupRow } from '@/lib/data/repos/group';
 import { listMembers } from '@/lib/data/repos/group-member';
 import { loadMemberBusy } from './member-busy';
@@ -51,7 +52,8 @@ export type CalendarMemberDto = {
 };
 
 export type GroupCalendarDto = {
-  group: { id: string; tz: string };
+  /** icon (R15): คีย์ allowlist · null = ยังไม่ตั้ง/ไม่รู้จัก → UI แสดงแมว */
+  group: { id: string; tz: string; icon: GroupIconKey | null };
   from: string;
   to: string;
   /** ผู้ดู (ถ้าเป็นสมาชิก) ก่อน แล้วตามช่องสี */
@@ -72,7 +74,7 @@ export async function getGroupCalendar(actor: Actor, groupId: string, query: Cal
 }
 
 /** ข้อมูลกลุ่มที่หน้า /calendar ต้องใช้ก่อนรู้ช่วงวันที่ (tz → วันนี้/เดือน · role → ลิงก์ "ปรับช่วงเวลา") — R7 B-2 */
-export type CalendarGroupInfo = { id: string; tz: string; myRole: GroupRole | null };
+export type CalendarGroupInfo = { id: string; tz: string; icon: GroupIconKey | null; myRole: GroupRole | null };
 
 /** ด่านกลุ่มผ่านแล้ว 1 ครั้ง · `load(query)` = ผลเดียวกับ getGroupCalendar(…, query) ทุกไบต์ (ตรวจช่วงวันที่ + audit SA ทุกครั้งที่เรียก) */
 export type GroupCalendarHandle = { group: CalendarGroupInfo; load: (query: CalendarQuery) => Promise<GroupCalendarDto> };
@@ -87,7 +89,7 @@ export async function openGroupCalendar(actor: Actor, groupId: string, ctx: Data
   const allow = authorize(actor, 'group.calendar.view', { type: 'group', group });
   const me = asUser(actor);
   const row = groupRowOf(group);
-  return { group: { id: row.id, tz: row.tz, myRole: group.actorRole }, load: (query) => calendarFor(ctx, me, allow, row, query) };
+  return { group: { id: row.id, tz: row.tz, icon: normalizeGroupIcon(row.icon), myRole: group.actorRole }, load: (query) => calendarFor(ctx, me, allow, row, query) };
 }
 
 /**
@@ -115,5 +117,5 @@ async function calendarFor(ctx: DataCtx, me: UserActor, allow: Allow, row: Group
       a.colorIndex - b.colorIndex ||
       (a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0),
   );
-  return { group: { id: row.id, tz: row.tz }, from: range.from, to: range.to, members: dtos, busy: items.map((i) => i.view), truncated };
+  return { group: { id: row.id, tz: row.tz, icon: normalizeGroupIcon(row.icon) }, from: range.from, to: range.to, members: dtos, busy: items.map((i) => i.view), truncated };
 }

@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Cat } from "@/components/brand";
 import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
+import { useMinSkeleton } from "@/components/shell/useMinSkeleton";
 import { type CalendarLocale, type DateISO } from "@/lib/calendar";
 import { BUSY_ROUTINE_MAX_ACTIVE } from "@/lib/shared/limits";
+import { canSkip, skippedUpcoming } from "./skip-model";
 import { canExtend, dateSpanText, isEnded, nearRoutineLimit, splitRoutines, timeRangeText, weekdaysText, type RoutineView } from "./routine-model";
 
 /** สถานะโหลดของส่วน "แบบประจำของฉัน" — โหลด/ผิดพลาดเฉพาะส่วนนี้ ไม่ทำให้รายการ busy เดี่ยวหาย */
@@ -21,6 +24,11 @@ export interface RoutineListProps {
   onDelete: (r: RoutineView) => void;
   /** ต่ออายุ = เปิดฟอร์มแก้ "ทั้งหมดที่ยังไม่ถึง" โฟกัสช่อง "ถึง" */
   onExtend: (r: RoutineView) => void;
+  /** R15a: "เว้นบางวัน" = เปิดปฏิทินเล็กเลือกวันที่จะเว้น/เอากลับ */
+  onSkip: (r: RoutineView) => void;
+  /** หลังปิดแผ่นเว้นวันสำเร็จ รายการโหลดใหม่ → คืนโฟกัสให้ปุ่ม "เว้นบางวัน" ของชุดนี้ (R15_FEEDBACK §3.3) */
+  restoreFocusId?: string | null;
+  onFocusRestored?: () => void;
 }
 
 /**
@@ -28,9 +36,10 @@ export interface RoutineListProps {
  * ปุ่ม "ต่ออายุ" เมื่อเหลือ ≤ 14 วันหรือจบแล้ว · ถังขยะ = ลบ (ผ่าน sheet ขอบเขต) · ชุดที่จบแล้วแสดงต่อท้าย
  * ข้อมูลจาก GET /api/me/busy-routines (เจ้าของเท่านั้น)
  */
-export function RoutineList({ state, today, onAdd, onRetry, onEdit, onDelete, onExtend }: RoutineListProps) {
+export function RoutineList({ state, today, onAdd, onRetry, onEdit, onDelete, onExtend, onSkip, restoreFocusId = null, onFocusRestored }: RoutineListProps) {
   const t = useTranslations();
   const locale = useLocale() as CalendarLocale;
+  const skel = useMinSkeleton(state.status === "loading");
 
   return (
     <section className="rt-section" aria-labelledby="rt-mine-title" data-testid="routine-mine">
@@ -38,7 +47,7 @@ export function RoutineList({ state, today, onAdd, onRetry, onEdit, onDelete, on
         <h3 id="rt-mine-title">{t("busy.routine.mine.title")}</h3>
         <p className="small muted">{t("busy.routine.mine.lead")}</p>
       </div>
-      {state.status === "loading" ? (
+      {state.status === "loading" || skel ? (
         <div aria-busy="true" data-testid="routine-mine-loading">
           <div className="skeleton cal-skel" />
           <p className="loading-note" role="status">
@@ -70,14 +79,20 @@ export function RoutineList({ state, today, onAdd, onRetry, onEdit, onDelete, on
           </button>
         </div>
       ) : (
-        <RoutineRows routines={state.routines} truncated={state.truncated} today={today} locale={locale} onEdit={onEdit} onDelete={onDelete} onExtend={onExtend} />
+        <RoutineRows routines={state.routines} truncated={state.truncated} today={today} locale={locale} onEdit={onEdit} onDelete={onDelete} onExtend={onExtend} onSkip={onSkip} restoreFocusId={restoreFocusId} onFocusRestored={onFocusRestored} />
       )}
     </section>
   );
 }
 
-function RoutineRows({ routines, truncated, today, locale, onEdit, onDelete, onExtend }: { routines: RoutineView[]; truncated: boolean; today: DateISO; locale: CalendarLocale } & Pick<RoutineListProps, "onEdit" | "onDelete" | "onExtend">) {
+function RoutineRows({ routines, truncated, today, locale, onEdit, onDelete, onExtend, onSkip, restoreFocusId, onFocusRestored }: { routines: RoutineView[]; truncated: boolean; today: DateISO; locale: CalendarLocale } & Pick<RoutineListProps, "onEdit" | "onDelete" | "onExtend" | "onSkip" | "restoreFocusId" | "onFocusRestored">) {
   const t = useTranslations();
+  useEffect(() => {
+    if (!restoreFocusId) return;
+    const el = document.querySelector<HTMLElement>(`[data-testid="routine-skip-${restoreFocusId}"]`);
+    if (el) el.focus();
+    onFocusRestored?.();
+  }, [restoreFocusId, onFocusRestored]);
   const { active, ended } = splitRoutines(routines, today);
   const row = (r: RoutineView) => {
     const done = isEnded(r, today);
@@ -85,6 +100,7 @@ function RoutineRows({ routines, truncated, today, locale, onEdit, onDelete, onE
     const when = r.allDay ? t("busy.routine.mine.whenAllDay", { days }) : t("busy.routine.mine.when", { days, time: timeRangeText(r.startTime ?? "", r.endTime ?? "") });
     const span = dateSpanText(r.startDate, r.endDate, locale);
     const name = r.title && r.title !== "" ? r.title : null;
+    const skipped = skippedUpcoming(r, today);
     return (
       <li key={r.id} className="rt-item" data-testid={`routine-row-${r.id}`} data-ended={done || undefined}>
         <button type="button" className="row rt-open" aria-label={t("busy.routine.mine.openAria", { title: name ?? t("busy.mine.noTitle"), days: when, span })} data-testid={`routine-open-${r.id}`} onClick={() => onEdit(r)}>
@@ -103,6 +119,12 @@ function RoutineRows({ routines, truncated, today, locale, onEdit, onDelete, onE
                 {done ? t("busy.routine.mine.ended") : t("busy.routine.mine.remaining", { count: r.remaining })}
               </b>
             </span>
+            {skipped > 0 ? (
+              <span className="sk-chip" data-testid={`routine-skip-chip-${r.id}`}>
+                <Icon name="calendar-x" size="sm" />
+                <span>{t("busy.routine.skip.chip", { count: skipped })}</span>
+              </span>
+            ) : null}
             {r.hidden ? (
               <span className="tags">
                 <span className="tag tag-muted">
@@ -119,6 +141,12 @@ function RoutineRows({ routines, truncated, today, locale, onEdit, onDelete, onE
             <button type="button" className="btn btn-secondary rt-extend" data-testid={`routine-extend-${r.id}`} onClick={() => onExtend(r)}>
               <Icon name="refresh-cw" size="sm" />
               <span>{t("busy.routine.mine.extend")}</span>
+            </button>
+          ) : null}
+          {canSkip(r, today) ? (
+            <button type="button" className="btn btn-secondary rt-skip" aria-label={t("busy.routine.skip.buttonAria", { title: name ?? t("busy.mine.noTitle") })} data-testid={`routine-skip-${r.id}`} onClick={() => onSkip(r)}>
+              <Icon name="calendar-x" size="sm" />
+              <span>{t("busy.routine.skip.button")}</span>
             </button>
           ) : null}
           <button type="button" className="icon-btn" aria-label={t("busy.routine.mine.deleteAria", { title: name ?? t("busy.mine.noTitle") })} data-testid={`routine-delete-${r.id}`} onClick={() => onDelete(r)}>

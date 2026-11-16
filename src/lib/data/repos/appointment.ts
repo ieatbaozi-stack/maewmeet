@@ -77,6 +77,8 @@ export async function findAppointmentById(db: DbOrTx, id: string): Promise<Appoi
 export type AppointmentAccessRow = {
   appointment: AppointmentRow;
   groupName: string;
+  /** R15: groups.icon ดิบ (serializer normalize) */
+  groupIcon: string | null;
   groupDeleted: boolean;
   /** role ของผู้ดูในกลุ่ม · null = ไม่ใช่สมาชิก */
   role: GroupRole | null;
@@ -85,14 +87,14 @@ export type AppointmentAccessRow = {
 /** นัด + กลุ่ม + role ของ user ในกลุ่ม ใน query เดียว (policy-context) · ไม่มีนัด = null */
 export async function findAppointmentAccess(db: DbOrTx, id: string, userId: string): Promise<AppointmentAccessRow | null> {
   const rows = await db
-    .select({ a: appointment, groupName: groups.name, deletedAt: groups.deletedAt, role: groupMember.role })
+    .select({ a: appointment, groupName: groups.name, groupIcon: groups.icon, deletedAt: groups.deletedAt, role: groupMember.role })
     .from(appointment)
     .innerJoin(groups, eq(groups.id, appointment.groupId))
     .leftJoin(groupMember, and(eq(groupMember.groupId, appointment.groupId), eq(groupMember.userId, userId)))
     .where(eq(appointment.id, id))
     .limit(1);
   const r = rows[0];
-  return r ? { appointment: r.a, groupName: r.groupName, groupDeleted: r.deletedAt !== null, role: r.role } : null;
+  return r ? { appointment: r.a, groupName: r.groupName, groupIcon: r.groupIcon, groupDeleted: r.deletedAt !== null, role: r.role } : null;
 }
 
 /** ฟิลด์ที่แก้ได้ (ส่งเฉพาะที่เปลี่ยน) — เวลา 3 ตัวไปด้วยกันเสมอ */
@@ -234,7 +236,7 @@ export async function listMyUpcomingAppointmentRows(db: DbOrTx, userId: string, 
   return rows.map((r) => ({ row: r.a, viewerGoing: Number(r.going) === 1 }));
 }
 
-export type GroupNameCount = { name: string; memberCount: number };
+export type GroupNameCount = { name: string; icon: string | null; memberCount: number };
 
 /**
  * R7 B-4: ชื่อกลุ่ม + จำนวนสมาชิกปัจจุบัน ใน query เดียว (เดิม groupNames ∥ memberCountsByGroup) · กลุ่มที่ไม่มีอยู่ไม่อยู่ใน Map
@@ -243,10 +245,10 @@ export type GroupNameCount = { name: string; memberCount: number };
 export async function groupNamesAndMemberCounts(db: DbOrTx, groupIds: string[]): Promise<Map<string, GroupNameCount>> {
   if (groupIds.length === 0) return new Map();
   const rows = await db
-    .select({ id: groups.id, name: groups.name, n: sql<number>`(SELECT count(*) FROM group_member gm WHERE gm.group_id = groups.id)` })
+    .select({ id: groups.id, name: groups.name, icon: groups.icon, n: sql<number>`(SELECT count(*) FROM group_member gm WHERE gm.group_id = groups.id)` })
     .from(groups)
     .where(inArray(groups.id, groupIds));
-  return new Map(rows.map((r) => [r.id, { name: r.name, memberCount: Number(r.n) }]));
+  return new Map(rows.map((r) => [r.id, { name: r.name, icon: r.icon, memberCount: Number(r.n) }]));
 }
 
 export type MemberName = { groupId: string; userId: string; displayName: string; colorSlot: number | null; shapeSlot: number | null };

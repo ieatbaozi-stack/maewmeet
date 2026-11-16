@@ -107,9 +107,10 @@ export function MineList({ items, nowMs, onOpen, onAdd, onAddRoutine }: MineList
                             </span>
                           ) : null}
                           {it.seriesId ? (
-                            <span className="tag tag-muted" aria-label={t("busy.series.tagAria")} data-testid="busy-series-tag">
+                            <span className="tag tag-muted" data-testid="busy-series-tag">
                               <Icon name="calendar" size="sm" />
-                              <span>{t("busy.series.tag")}</span>
+                              <span aria-hidden="true">{t("busy.series.tag")}</span>
+                              <span className="sr-only" data-testid="busy-series-tag-sr">{t("busy.series.tagAria")}</span>
                             </span>
                           ) : null}
                           {it.note ? (

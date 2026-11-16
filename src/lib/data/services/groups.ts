@@ -24,6 +24,7 @@ import { authorize } from '@/lib/rbac/can';
 import type { Actor, GroupCtx } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
+import { DEFAULT_GROUP_ICON, GROUP_ICON_KEYS, type GroupIconKey } from '@/lib/shared/group-icons';
 import { GROUP_DEFAULT_MIN_FREE_MINUTES, GROUP_LIMITS, MEMBER_APPEARANCE_RATE_LIMIT, UPCOMING_BUSY_LOOKAHEAD_DAYS } from '@/lib/shared/limits';
 import { APPEARANCE_SLOT_MAX, APPEARANCE_SLOT_MIN } from '@/lib/shared/member-color';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
@@ -55,6 +56,13 @@ export const updateGroupInputSchema = z
   .strict()
   .refine((v) => Object.values(v).some((x) => x !== undefined), { path: ['_'], message: 'EMPTY' });
 export type UpdateGroupInput = z.output<typeof updateGroupInputSchema>;
+
+/**
+ * R15 (B1): ไอคอนกลุ่ม = คีย์ใน allowlist หรือ null (ล้าง) เท่านั้น · ไม่รับรูป/URL/emoji · คีย์ไม่รู้จัก → VALIDATION {icon: INVALID}
+ * ไม่ส่ง icon → VALIDATION {icon: INVALID} (zod enum) · คีย์เกิน → UNKNOWN_FIELD
+ */
+export const setGroupIconInputSchema = z.object({ icon: z.enum(GROUP_ICON_KEYS).nullable() }).strict();
+export type SetGroupIconInput = z.output<typeof setGroupIconInputSchema>;
 
 export const setRoleInputSchema = z.object({ role: z.enum(['moderator', 'member']) }).strict();
 export type SetRoleInput = z.output<typeof setRoleInputSchema>;
@@ -114,7 +122,7 @@ export async function createGroup(actor: Actor, input: CreateGroupInput, ctx: Da
     await insertAdminMember(tx, id, me.id, now); // กลุ่มละ 1 admin — group_one_admin_uq กันซ้ำระดับ DB
     await audit(tx, me, allow, { action: 'group.create', targetType: 'group', targetId: id, groupId: id }, now);
   });
-  return { id, name, role: 'admin', memberCount: 1, createdAt: now };
+  return { id, name, icon: null, role: 'admin', memberCount: 1, createdAt: now };
 }
 
 export async function listMyGroups(actor: Actor, ctx: DataCtx): Promise<{ groups: GroupSummaryDto[] }> {
@@ -163,6 +171,31 @@ export async function updateGroupSettings(actor: Actor, groupId: string, input: 
     await audit(tx, me, allow, { action: 'group.update', targetType: 'group', targetId: groupId, groupId, meta: { fields: Object.keys(patch) } }, now);
   });
   return getGroup(actor, groupId, ctx);
+}
+
+// ───────── R15 §1.2 · ไอคอนกลุ่ม ─────────
+export type GroupIconDto = { groupId: string; icon: GroupIconKey | null };
+
+/**
+ * ตั้ง/ล้างไอคอนกลุ่ม — authorize(group.icon.update): admin/moderator (+ SA ตามกติกาการแก้กลุ่มเดิม) · member → FORBIDDEN · คนนอก/กลุ่มลบ → NOT_FOUND
+ * "cat" (ค่าเริ่มต้น) เก็บเป็น NULL — "ยังไม่ตั้ง" กับ "เลือกแมว" เป็นค่าเดียว (R15_FEEDBACK §1.2) · ค่าเท่าเดิม → ไม่เขียน ไม่ audit
+ * audit แบบเดียวกับเปลี่ยนชื่อ: action `group.update` meta.fields = ['icon'] (ไม่เพิ่มชื่อ action ใหม่ในบันทึก — ป้ายใน /admin มีอยู่แล้ว)
+ * การเขียนมี ActorGuard (role ที่ตัดสินสิทธิ์ยังถืออยู่) ในคำสั่งเดียว — ถูกถอนบทบาทระหว่างทาง → CONFLICT · กลุ่มถูกลบระหว่างทาง → NOT_FOUND
+ */
+export async function setGroupIcon(actor: Actor, groupId: string, input: SetGroupIconInput, ctx: DataCtx): Promise<GroupIconDto> {
+  const group = await loadGroupCtx(ctx.db, actor, groupId);
+  const allow = authorize(actor, 'group.icon.update', groupRes(group));
+  const me = asUser(actor);
+  const current = groupRowOf(group);
+  const icon = input.icon === DEFAULT_GROUP_ICON ? null : input.icon;
+  if (current.icon === icon) return { groupId, icon }; // ค่าดิบเท่ากัน (ค่าเสีย/ไม่รู้จักในฐาน ≠ null → เขียนทับให้สะอาด)
+  const { now } = ctx;
+  await inTx(ctx.db, async (tx) => {
+    const updated = await updateGroup(tx, groupId, { icon }, now, { actorId: me.id, actorRole: group.actorRole });
+    if (!updated) throw await staleOrGone(tx, groupId);
+    await audit(tx, me, allow, { action: 'group.update', targetType: 'group', targetId: groupId, groupId, meta: { fields: ['icon'] } }, now);
+  });
+  return { groupId, icon };
 }
 
 export async function deleteGroup(actor: Actor, groupId: string, ctx: DataCtx): Promise<{ deleted: true }> {

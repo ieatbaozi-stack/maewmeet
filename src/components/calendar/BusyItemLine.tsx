@@ -78,9 +78,10 @@ export function BusyItemLine({ kind, whenText, title, memberName, href, subText,
       {subText ? <span className="sub">{subText}</span> : null}
       {routine ? (
         <span className="rt-day-tools">
-          <span className="rt-tag" aria-label={t("busy.routine.calendar.tagAria")} data-testid="routine-tag">
+          <span className="rt-tag" data-testid="routine-tag">
             <Icon name="repeat" size="sm" />
-            <span>{t("busy.routine.calendar.tag")}</span>
+            <span aria-hidden="true">{t("busy.routine.calendar.tag")}</span>
+            <span className="sr-only" data-testid="routine-tag-sr">{t("busy.routine.calendar.tagAria")}</span>
           </span>
           <button type="button" className="icon-btn" aria-label={routine.editAria} data-testid="routine-day-edit" onClick={routine.onEdit}>
             <Icon name="pencil" />

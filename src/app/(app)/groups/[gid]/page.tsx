@@ -8,7 +8,7 @@ import { Aurora, Cat } from "@/components/brand";
 import { FlashNotice } from "@/components/groups/Notice";
 import { MemberList } from "@/components/groups/MemberList";
 import { StepBar } from "@/components/groups/StepBar";
-import { STEP_TOTAL, computeSteps } from "@/components/groups/steps-model";
+import { computeSteps } from "@/components/groups/steps-model";
 import { viewerRole } from "@/components/groups/helpers";
 import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
@@ -43,7 +43,9 @@ export default async function GroupPage({ params }: { params: Promise<{ gid: str
   const upcomingCount = upcoming ? upcoming.appointments.filter((a) => a.status !== "cancelled").length : 0;
   // R8: ขั้น 2 = แถวของผู้ดูเองมี busy ใน 30 วัน (ไม่ใช่สมาชิก/ไม่มีค่า → false) · ขั้น 4 = มีนัดที่กำลังจะถึง (กลุ่มคนเดียวไม่โหลด → 0)
   const viewerHasBusy = group.members.find((m) => m.userId === user.id)?.hasUpcomingBusy === true;
-  const steps = computeSteps({ memberCount: group.memberCount, viewerHasBusy, upcomingCount });
+  const stepsInput = { memberCount: group.memberCount, viewerHasBusy, upcomingCount };
+  // allDone ไม่ขึ้นกับ freeSeen (ขั้น 3 เสร็จเมื่อดูแล้วหรือมีนัดแล้ว) → เซิร์ฟเวอร์ตัดสินปุ่มสร้างนัดได้ · StepBar เติม freeSeen ฝั่ง client เอง
+  const steps = computeSteps(stepsInput);
   const invitePath = `/groups/${group.id}/settings#invite`;
   const inviteButton = (tone: "btn-primary" | "btn-secondary") => (
     <Link className={`btn ${tone}`} href={invitePath}>
@@ -86,10 +88,8 @@ export default async function GroupPage({ params }: { params: Promise<{ gid: str
         {group.myRole !== null ? (
           <StepBar
             groupId={group.id}
-            steps={steps.steps}
-            doneCount={steps.doneCount}
-            total={STEP_TOTAL}
-            allDone={steps.allDone}
+            userId={user.id}
+            input={stepsInput}
             solo={solo}
             planAction={
               solo || steps.allDone ? undefined : (

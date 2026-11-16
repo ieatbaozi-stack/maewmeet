@@ -8,6 +8,7 @@ import { callApi } from "@/components/auth/api";
 import { PinPad } from "@/components/auth/PinPad";
 import { useCountdown } from "@/components/auth/useCountdown";
 import { Icon } from "@/components/icons/Icon";
+import { signalNavStart } from "@/components/shell/nav-start";
 import { lockedMessage, messageRefOf } from "@/i18n/auth-messages";
 
 export type ResetBanner = { status: "pending" } | { status: "approved"; expiresAt: number } | null;
@@ -42,7 +43,9 @@ export function LoginForm({ reset }: { reset: ResetBanner }) {
     setError(null);
     const res = await callApi<LoginResponse>("/api/auth/login", { body: { username: username.trim(), pin: fullPin } });
     if (res.ok) {
-      router.replace(res.data.user.mustChangePin ? "/set-pin" : "/");
+      const dest = res.data.user.mustChangePin ? "/set-pin" : "/";
+      signalNavStart(dest);
+      router.replace(dest);
       router.refresh();
       return; // ค้างสถานะ busy จนกว่าหน้าจะเปลี่ยน
     }

@@ -7,15 +7,20 @@
 import { z } from 'zod';
 import {
   addDays,
+  checkRoutineSkipDate,
   DEFAULT_TZ,
+  expandRoutineDates,
   isValidDate,
   planRoutine,
+  routineOccursOn,
   routinePeriodStart,
   todayIn,
   type BusyInputError,
   type RoutinePlan,
   type RoutineRangeInput,
   type RoutineRangeKind,
+  type RoutineRule,
+  type RoutineSkipDateError,
 } from '@/lib/calendar';
 import {
   countActiveRoutines,
@@ -23,13 +28,19 @@ import {
   countRoutineRemaining,
   deleteOwnRoutine,
   deleteRoutineRowsFrom,
+  deleteRoutineRowsOn,
   deleteRoutineSkipsFrom,
+  deleteRoutineSkipsOn,
   findOwnRoutine,
   insertRoutineIfUnderCap,
   insertRoutineRowsIfUnderCap,
+  insertRoutineSkips,
   listOwnRoutines,
   listRoutineSkips,
+  listUserRoutineSkipsFrom,
+  lockOwnRoutine,
   moveRoutineSkips,
+  routineRowDatesOn,
   setOwnRoutineEndGuarded,
   updateOwnRoutineGuarded,
   type OwnRoutineRow,
@@ -50,6 +61,8 @@ import {
   BUSY_ROUTINE_MAX_MONTHS,
   BUSY_ROUTINE_MAX_WEEKS,
   BUSY_ROUTINE_RATE_LIMIT,
+  BUSY_ROUTINE_SKIP_MAX_DAYS,
+  BUSY_ROUTINE_SKIP_MAX_ITEMS,
   BUSY_TITLE_MAX,
 } from '@/lib/shared/limits';
 import { takeUserSlot } from '../admin-input';
@@ -123,6 +136,13 @@ export const routineParamsSchema = z.object({ id: z.uuid() });
 export const listRoutinesQuerySchema = z.object({}).strict();
 /** DELETE /api/me/busy-routines/:id?from=YYYY-MM-DD — ไม่ส่ง = ลบทั้งหมด (รวมวันที่ผ่านแล้ว) · คีย์แปลก → VALIDATION (route parse เอง) */
 export const deleteRoutineQuerySchema = z.object({ from: dateField.optional() }).strict();
+/**
+ * POST /api/me/busy-routines/:id/skips (R15 §1.1 · ADR 0012 §13) — โครงสร้างเท่านั้น (strict) · ค่าวันที่/จำนวน/ซ้ำ ตรวจที่ service หลังนับ rate limit
+ * อาร์เรย์ละ ≤ 64 ก่อนตัดซ้ำ (กันคำขอใหญ่) · รวมหลังตัดซ้ำ ≤ 31 ตรวจที่ service (LIMIT_REACHED skipDays)
+ */
+const skipDates = z.array(z.string().max(32)).max(BUSY_ROUTINE_SKIP_MAX_ITEMS).optional();
+export const routineSkipsInputSchema = z.object({ add: skipDates, remove: skipDates }).strict();
+export type RoutineSkipsInput = z.output<typeof routineSkipsInputSchema>;
 
 // ───────── helpers ─────────
 const ownerRes = (actor: Actor) => ({ type: 'busy', ownerId: actor.kind === 'user' ? actor.id : '' }) as const;
@@ -273,20 +293,30 @@ export async function createRoutine(actor: Actor, input: CreateRoutineInput, ctx
     if (!ok) throw await whyRowsRejected(tx, me.id, now, futureCount(rows, now));
     return created;
   });
-  return { routine: toRoutineOwnView(routine, futureCount(rows, now)), count: rows.length };
+  return { routine: toRoutineOwnView(routine, futureCount(rows, now), []), count: rows.length };
 }
+
+/** วันที่เว้นที่ยังไม่ผ่าน (≥ วันนี้ใน tz ของชุด) */
+const upcomingSkips = (skips: Iterable<string>, tz: string, now: number) => {
+  const today = todayIn(tz, now);
+  return [...skips].filter((d) => d >= today);
+};
 
 export async function listMyRoutines(actor: Actor, ctx: DataCtx): Promise<{ routines: RoutineOwnView[]; truncated: boolean }> {
   authorize(actor, 'busy.routine.list.own', { type: 'none' });
   const me = asUser(actor);
   const today = todayIn(DEFAULT_TZ, ctx.now);
   // M1: ชุดที่ยังไม่จบคืนครบทุกชุดเสมอ (มีผลกับวันว่าง — ห้ามซ่อน) · truncated = ชุดที่จบแล้วเกิน BUSY_ROUTINE_LIST_MAX เท่านั้น
-  const [active, ended] = await Promise.all([
+  // R15: skip ที่ยังไม่ผ่านของทุกชุด (1 query ขนาน) · ขอบล่าง = วันนี้ (DEFAULT_TZ) − 1 ครอบ "วันนี้" ของทุก tz แล้วกรองต่อชุดด้วย tz ของชุด
+  const [active, ended, skips] = await Promise.all([
     listOwnRoutines(ctx.db, me.id, ctx.now, today, 'active'),
     listOwnRoutines(ctx.db, me.id, ctx.now, today, 'ended', BUSY_ROUTINE_LIST_MAX + 1),
+    listUserRoutineSkipsFrom(ctx.db, me.id, addDays(today, -1)),
   ]);
+  const byRoutine = new Map<string, string[]>();
+  for (const s of skips) byRoutine.set(s.routineId, [...(byRoutine.get(s.routineId) ?? []), s.localDate]);
   return {
-    routines: [...active, ...ended.slice(0, BUSY_ROUTINE_LIST_MAX)].map((r) => toRoutineOwnView(r)),
+    routines: [...active, ...ended.slice(0, BUSY_ROUTINE_LIST_MAX)].map((r) => toRoutineOwnView(r, undefined, upcomingSkips(byRoutine.get(r.id) ?? [], r.tz, ctx.now))),
     truncated: ended.length > BUSY_ROUTINE_LIST_MAX,
   };
 }
@@ -342,7 +372,7 @@ export async function updateRoutine(actor: Actor, id: string, input: UpdateRouti
       if (!(await insertRoutineRowsIfUnderCap(tx, { userId: me.id, routineId: id, cap: BUSY_ROUTINE_MAX_FUTURE_ROWS, shared, rows }, now))) {
         throw await whyRowsRejected(tx, me.id, now, futureCount(rows, now));
       }
-      return { routine: toRoutineOwnView(updated, futureCount(rows, now)), previous: null, count: rows.length };
+      return { routine: toRoutineOwnView(updated, futureCount(rows, now), upcomingSkips(skip, current.tz, now)), previous: null, count: rows.length };
     }
     const cutEnd = addDays(fromStart!, -1);
     const truncated = await setOwnRoutineEndGuarded(tx, { id, userId: me.id, expectedUpdatedAt: current.updatedAt, endDate: cutEnd }, now);
@@ -360,8 +390,8 @@ export async function updateRoutine(actor: Actor, id: string, input: UpdateRouti
       throw await whyRowsRejected(tx, me.id, now, futureCount(rows, now));
     }
     return {
-      routine: toRoutineOwnView(next, futureCount(rows, now)),
-      previous: toRoutineOwnView(truncated, await countRoutineRemaining(tx, id, me.id, now)),
+      routine: toRoutineOwnView(next, futureCount(rows, now), upcomingSkips(skip, current.tz, now)),
+      previous: toRoutineOwnView(truncated, await countRoutineRemaining(tx, id, me.id, now), upcomingSkips(await listRoutineSkips(tx, id, me.id), current.tz, now)),
       count: rows.length,
     };
   });
@@ -402,4 +432,97 @@ export async function deleteRoutine(actor: Actor, id: string, ctx: DataCtx, from
     return n;
   });
   return { deleted: true, scope: 'from', count };
+}
+
+// ───────── R15 §1.1 · เว้น/คืนหลายวัน (ADR 0012 §13) ─────────
+export type RoutineSkipsResult = {
+  /** กฎหลังคำสั่ง (remaining/skippedDates เป็นค่าหลังเปลี่ยน) */
+  routine: RoutineOwnView;
+  /** วันที่เพิ่มเป็น "เว้น" จริงในคำขอนี้ (เว้นซ้ำวันที่เว้นอยู่แล้วไม่นับ) */
+  skipped: number;
+  /** วันที่เอากลับจริง (มี skip ถูกลบ) — รวมวันที่กฎปัจจุบันไม่มีแล้ว (ลบ skip อย่างเดียว ไม่มีแถว) */
+  restored: number;
+};
+
+const ruleOf = (r: OwnRoutineRow): RoutineRule => ({
+  weekdays: r.weekdays,
+  allDay: r.allDay,
+  startMin: r.startMin,
+  endMin: r.endMin,
+  startDate: r.startDate,
+  endDate: r.endDate,
+  tz: r.tz,
+});
+
+/** ตัดซ้ำ + ตรวจรูปแบบวันที่ (ไม่สะท้อนค่าที่ผิด: ชี้แค่ช่อง add/remove) */
+function parseSkipDates(list: readonly string[] | undefined, field: 'add' | 'remove'): string[] {
+  const out = [...new Set(list ?? [])];
+  if (out.some((d) => !isValidDate(d))) throw new AppError('VALIDATION', { fields: { [field]: 'INVALID' } });
+  return out.sort();
+}
+
+/**
+ * POST /api/me/busy-routines/:id/skips — เว้น (add) และ/หรือ คืน (remove) หลายวันในคำขอเดียว · เจ้าของเท่านั้น (busy.routine.update) · ทั้งหมดหรือไม่มีเลย
+ * ลำดับ: authorize → rate limit `busy:routine` (นับก่อนตรวจค่า — 400/404 ก็นับ) → ตรวจรูปแบบ/ซ้ำ/จำนวน →
+ *   tx [lock กฎ (เขียนแรก) → ตรวจทุกวันกับกฎปัจจุบัน + วันนี้ใน tz ของกฎ → add: ลบแถว + skip → remove: ลบ skip → คืนแถวตามกฎปัจจุบัน (เพดาน 1,500 ในคำสั่ง)]
+ * ผิดพลาด: ไม่มีวัน → VALIDATION {dates: REQUIRED} · รูปแบบผิด → VALIDATION {add|remove: INVALID} · วันเดียวกันทั้งสองฝั่ง → VALIDATION {dates: {<d>: IN_BOTH}}
+ *   > 31 วัน → LIMIT_REACHED {limit: skipDays, max: 31} (400) · วันที่ใช้ไม่ได้ → VALIDATION {dates: {<d>: PAST|OUT_OF_RANGE|NOT_IN_RULE}}
+ *   ไม่ใช่ของฉัน/ไม่มี → NOT_FOUND · คืนแล้วเกิน 1,500 แถว → LIMIT_REACHED {limit: routineRows, max: 1500} (rollback ทั้งคำขอ)
+ * ไม่ลง audit ไม่แจ้งเตือน (เหมือนแก้ busy) · คนอื่นเห็นแค่ว่าวันนั้นมี/ไม่มี busy (ทางอ่านของกลุ่มไม่เปลี่ยน)
+ */
+export async function setRoutineSkips(actor: Actor, id: string, input: RoutineSkipsInput, ctx: DataCtx): Promise<RoutineSkipsResult> {
+  authorize(actor, 'busy.routine.update', ownerRes(actor));
+  const me = asUser(actor);
+  const { now } = ctx;
+  await takeUserSlot(ctx.db, BUSY_ROUTINE_RATE_LIMIT, me.id, now);
+
+  const add = parseSkipDates(input.add, 'add');
+  const remove = parseSkipDates(input.remove, 'remove');
+  if (add.length + remove.length === 0) throw new AppError('VALIDATION', { fields: { dates: 'REQUIRED' } });
+  const removeSet = new Set(remove);
+  const both = add.filter((d) => removeSet.has(d));
+  if (both.length > 0) {
+    throw new AppError('VALIDATION', { fields: { dates: Object.fromEntries(both.slice(0, BUSY_ROUTINE_SKIP_MAX_DAYS).map((d) => [d, 'IN_BOTH'])) } });
+  }
+  if (add.length + remove.length > BUSY_ROUTINE_SKIP_MAX_DAYS) {
+    throw new AppError('LIMIT_REACHED', { limit: 'skipDays', max: BUSY_ROUTINE_SKIP_MAX_DAYS }, { status: 400 });
+  }
+
+  return inTx(ctx.db, async (tx) => {
+    const current = await lockOwnRoutine(tx, id, me.id);
+    if (!current) throw new AppError('NOT_FOUND');
+    const today = todayIn(current.tz, now);
+    const bad: Record<string, RoutineSkipDateError> = {};
+    for (const d of add) {
+      const e = checkRoutineSkipDate(current, d, today, 'add');
+      if (e) bad[d] = e;
+    }
+    for (const d of remove) {
+      const e = checkRoutineSkipDate(current, d, today, 'remove');
+      if (e) bad[d] = e;
+    }
+    if (Object.keys(bad).length > 0) throw new AppError('VALIDATION', { fields: { dates: bad } });
+
+    // add ก่อน (ลดแถว) → remove
+    await deleteRoutineRowsOn(tx, { routineId: id, userId: me.id, dates: add });
+    const skipped = await insertRoutineSkips(tx, { routineId: id, userId: me.id, dates: add });
+    const restored = await deleteRoutineSkipsOn(tx, { routineId: id, userId: me.id, dates: remove });
+    // คืนแถวเฉพาะ: skip ถูกลบจริง ∧ กฎปัจจุบันยังมีวันนั้น ∧ ยังไม่มีแถวของ routine วันนั้น
+    const rule = ruleOf(current);
+    const occurring = restored.filter((d) => routineOccursOn(rule, d));
+    const existing = await routineRowDatesOn(tx, { routineId: id, userId: me.id, dates: occurring });
+    const expanded = expandRoutineDates(rule, occurring.filter((d) => !existing.has(d)));
+    if (!expanded.ok) throw routineInputError(expanded.error, current.rangeKind);
+    const rows = expanded.value.map((r) => ({ id: newId(), startAt: r.startAt, endAt: r.endAt, localStartDate: r.localStartDate, localEndDate: r.localEndDate }));
+    const shared = { title: current.title, note: current.note, hideDetail: current.hideDetail, allDay: current.allDay, tz: current.tz };
+    if (!(await insertRoutineRowsIfUnderCap(tx, { userId: me.id, routineId: id, cap: BUSY_ROUTINE_MAX_FUTURE_ROWS, shared, rows }, now))) {
+      throw await whyRowsRejected(tx, me.id, now, futureCount(rows, now));
+    }
+    const skips = upcomingSkips(await listRoutineSkips(tx, id, me.id), current.tz, now);
+    return {
+      routine: toRoutineOwnView(current, await countRoutineRemaining(tx, id, me.id, now), skips),
+      skipped: skipped.length,
+      restored: restored.length,
+    };
+  });
 }

@@ -3,12 +3,15 @@
 import type { GroupOfUser, GroupRow, GroupRole } from '@/lib/data/repos/group';
 import type { InviteListRow, PendingDirectInvite } from '@/lib/data/repos/group-invite';
 import type { MemberWithBusyFlag } from '@/lib/data/repos/group-member';
+import { normalizeGroupIcon, type GroupIconKey } from '@/lib/shared/group-icons';
 import { memberAppearance, type AppearanceSlots, type MemberAppearance } from '@/lib/shared/member-color';
 import { sanitizeDisplayText as clean } from '@/lib/shared/name-rules';
 
 export type GroupSummaryDto = {
   id: string;
   name: string;
+  /** R15: คีย์ไอคอนจาก allowlist · null = ยังไม่ตั้ง/ไม่รู้จัก → UI แสดงแมว */
+  icon: GroupIconKey | null;
   /** role ของฉันในกลุ่ม */
   role: GroupRole;
   memberCount: number;
@@ -18,6 +21,7 @@ export type GroupSummaryDto = {
 export const toGroupSummary = (r: GroupOfUser): GroupSummaryDto => ({
   id: r.group.id,
   name: clean(r.group.name),
+  icon: normalizeGroupIcon(r.group.icon),
   role: r.role,
   memberCount: r.memberCount,
   createdAt: r.group.createdAt,
@@ -39,6 +43,8 @@ export type MemberDto = {
 export type GroupDetailDto = {
   id: string;
   name: string;
+  /** R15: คีย์ไอคอนจาก allowlist · null = ยังไม่ตั้ง/ไม่รู้จัก → UI แสดงแมว */
+  icon: GroupIconKey | null;
   tz: string;
   freeWindowStartMin: number;
   freeWindowEndMin: number;
@@ -69,6 +75,7 @@ export const toGroupDetail = (g: GroupRow, myRole: GroupRole | null, members: Me
   return {
     id: g.id,
     name: clean(g.name),
+    icon: normalizeGroupIcon(g.icon),
     tz: g.tz,
     freeWindowStartMin: g.freeWindowStartMin,
     freeWindowEndMin: g.freeWindowEndMin,

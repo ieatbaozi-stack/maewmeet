@@ -10,7 +10,6 @@ import {
   notification,
   notificationOutbox,
   pinResetRequest,
-  placeSearchCache,
   rateLimitBucket,
   session,
 } from '@/db/schema';
@@ -23,7 +22,6 @@ export const RETENTION = {
   rateLimitBucketMs: 2 * DAY_MS, // §8.1
   loginThrottleIdleMs: 30 * DAY_MS, // §8.1
   notificationMs: 90 * DAY_MS, // §8.3
-  placeSearchCacheMs: 30 * DAY_MS, // §8.3
   lineOutboxMs: 90 * DAY_MS, // R10 §1.4: sent/dead เท่าอายุกระดิ่ง (ADR 0007) · pending ไม่แตะ
   lineLinkCodeMs: DAY_MS, // R10: โค้ดหมดอายุ/ใช้แล้ว
   busyEndedMs: BUSY_RETENTION_DAYS * DAY_MS, // R3 H1: busy ที่จบนานกว่านี้ (เกินหน้าต่างแก้ย้อนหลังมาก) ลบถาวร
@@ -76,9 +74,7 @@ export function maintenanceStatements(db: Db, now: number) {
     // busy_block.routine_id ไม่มี FK: ส่วนเผื่อทำให้แถวของกฎนั้น (วันสุดท้ายข้ามคืนจบได้ถึงเที่ยงคืน end_date + 2 ใน tz ใดก็ได้) จบเกิน 90 วันแล้วและถูกลบด้วยคำสั่งบน → ไม่เหลือแถวกำพร้า
     // skip ตาม FK cascade ของ busy_routine
     oldBusyRoutines: db.delete(busyRoutine).where(lt(busyRoutine.endDate, routineRetentionCutoff(now))),
-    stalePlaceSearchCache: db
-      .delete(placeSearchCache)
-      .where(lt(placeSearchCache.fetchedAt, now - RETENTION.placeSearchCacheMs)),
+    // R15 (ADR 0013): งาน stalePlaceSearchCache ถูกลบพร้อมตาราง place_search_cache (migration 0006)
   };
 }
 

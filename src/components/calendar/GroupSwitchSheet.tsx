@@ -3,12 +3,16 @@
 import { useTranslations } from "next-intl";
 import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
+import { GroupIcon } from "@/components/icons/GroupIcon";
 import { Sheet } from "@/components/shell/Sheet";
+import type { GroupIconKey } from "@/lib/shared/group-icons";
 
 export interface GroupOption {
   id: string;
   name: string;
   memberCount: number;
+  /** R15a: คีย์ไอคอน (null/ไม่รู้จัก → แมว) */
+  icon: GroupIconKey | null;
 }
 
 /** เลือกกลุ่มที่ดูปฏิทิน (radiogroup ใน bottom sheet) — ช่วงไม่ว่างของฉันเหมือนกันทุกกลุ่ม (D5) */
@@ -27,13 +31,14 @@ export function GroupSwitchSheet({ groups, currentId, onPick, onClose }: { group
             data-testid={`cal-group-option-${g.id}`}
             onClick={() => onPick(g.id)}
           >
-            <span className="radio" aria-hidden="true" />
+            <GroupIcon icon={g.icon} size="md" />
             <span className="row-main">
               <span className="pn">
                 <Name>{g.name}</Name>
               </span>
               <span className="small muted">{t("groups.memberCount", { count: g.memberCount })}</span>
             </span>
+            <span className="radio" aria-hidden="true" />
           </button>
         ))}
       </div>

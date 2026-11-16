@@ -19,6 +19,7 @@ import { callApiFull } from "./api";
 import { AddToCalendarSheet } from "./AddToCalendarSheet";
 import { AppointmentFormSheet } from "./AppointmentFormSheet";
 import { ANSWER_ICON, RsvpControl } from "./RsvpControl";
+import { signalNavStart } from "@/components/shell/nav-start";
 import { RsvpConfirm } from "./RsvpConfirm";
 import { actionFailureRef, appointmentWhen, applyRsvp, apptPhase, coordsText, rsvpClosedReason, rsvpConfirmKind, showAddToCalendar, showConflictBadge, type Rsvp } from "./model";
 
@@ -452,7 +453,13 @@ function Band({ a, phase, locale }: { a: AppointmentDetailDto; phase: ReturnType
 function BackButton({ label }: { label: string }) {
   const router = useRouter();
   return (
-    <button type="button" className="icon-btn" aria-label={label} data-testid="appt-back" onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}>
+    <button type="button" className="icon-btn" aria-label={label} data-testid="appt-back" onClick={() => {
+        if (window.history.length > 1) router.back();
+        else {
+          signalNavStart("/");
+          router.push("/");
+        }
+      }}>
       <Icon name="chevron-left" />
     </button>
   );

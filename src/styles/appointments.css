@@ -218,7 +218,10 @@
 
 /* ---------- iPad ---------- */
 @media (min-width: 48em) {
-  .map-app, .map-apps.is-find .map-app { flex: 0 1 auto; min-width: calc(var(--tap-lg) * 3); }
+  /* R15a §1.4 (ux §4.3): ปุ่ม Apple/Google Maps กว้างเท่ากันที่ 768 — กริด 2 คอลัมน์เท่ากัน (ปุ่มเดียวไม่ยืดเต็มจอ) */
+  .map-apps { display: grid; grid-template-columns: repeat(2, minmax(calc(var(--tap-lg) * 3), 14rem)); justify-content: start; }
+  .map-apps .map-app, .map-apps.is-find .map-app { width: 100%; min-width: 0; flex: none; }
+  .map-apps:has(> .map-app:only-child) { grid-template-columns: minmax(calc(var(--tap-lg) * 3), 14rem); }
   .map-open { width: auto; }
   .appt-main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
   .appt-main > .appt-card, .appt-main > .appt-banner, .appt-main > .appt-wide { grid-column: 1 / -1; }

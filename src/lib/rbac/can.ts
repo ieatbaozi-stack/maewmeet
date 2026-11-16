@@ -219,6 +219,7 @@ const RULES: Rules = {
 
   'member.remove': memberRemove,
   'group.update': adminOrModerator(),
+  'group.icon.update': adminOrModerator(),
   'member.setRole': memberSetRole,
   'group.transferAdmin': transferAdmin,
   'group.delete': adminOnly(),

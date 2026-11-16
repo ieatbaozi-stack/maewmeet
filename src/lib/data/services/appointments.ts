@@ -325,6 +325,7 @@ async function toListDtos(db: Reader, viewerId: string, now: number, listed: rea
         viewerId,
         now,
         groupName: info.get(r.groupId)?.name ?? '',
+        groupIcon: info.get(r.groupId)?.icon ?? null,
         members: byGroup.get(r.groupId) ?? new Map(),
         memberCount: info.get(r.groupId)?.memberCount ?? 0,
         rsvps,
@@ -353,6 +354,7 @@ async function toDetailDto(
   row: AppointmentRow,
   group: GroupCtx,
   groupName: string,
+  groupIcon: string | null,
   withConflicts = false,
 ): Promise<AppointmentDetailDto> {
   const [members, rsvps, conflicts] = await Promise.all([
@@ -364,7 +366,7 @@ async function toDetailDto(
   const open = row.status === 'active' && row.endAt > now;
   return toAppointmentDetailDto(
     row,
-    { viewerId: actor.id, now, groupName, members: new Map(members.map((m) => [m.userId, m])), memberCount: members.length, rsvps },
+    { viewerId: actor.id, now, groupName, groupIcon, members: new Map(members.map((m) => [m.userId, m])), memberCount: members.length, rsvps },
     {
       canEdit: open && can(actor, 'appointment.update', res).allow,
       canCancel: open && can(actor, 'appointment.cancel', res).allow,
@@ -497,7 +499,7 @@ export async function createAppointment(actor: Actor, groupId: string, input: Cr
     return created;
   });
 
-  return { appointment: await toDetailDto(db, me, now, row, group, groupRow.name), overlap: await overlapOrUnknown(db, row) };
+  return { appointment: await toDetailDto(db, me, now, row, group, groupRow.name, groupRow.icon), overlap: await overlapOrUnknown(db, row) };
 }
 
 async function whyCreateRejected(db: Reader, actor: UserActor, groupId: string, before: GroupCtx, now: number): Promise<AppError> {
@@ -553,7 +555,7 @@ export async function getAppointment(actor: Actor, id: string, ctx: DataCtx): Pr
   const row = c.appointment!;
   const { db, now } = ctx;
   await auditRead(db, me, allow, { action: 'appointment.view', targetType: 'appointment', targetId: id, groupId: row.groupId }, now);
-  return { appointment: await toDetailDto(db, me, now, row, c.group, c.groupName, true) };
+  return { appointment: await toDetailDto(db, me, now, row, c.group, c.groupName, c.groupIcon, true) };
 }
 
 /**
@@ -641,7 +643,7 @@ export async function updateAppointment(actor: Actor, id: string, input: UpdateA
     return updated;
   });
 
-  return { appointment: await toDetailDto(db, me, now, row, c.group, c.groupName), overlap: await overlapOrUnknown(db, row) };
+  return { appointment: await toDetailDto(db, me, now, row, c.group, c.groupName, c.groupIcon), overlap: await overlapOrUnknown(db, row) };
 }
 
 export async function cancelAppointment(actor: Actor, id: string, ctx: DataCtx): Promise<{ appointment: AppointmentDetailDto }> {
@@ -679,7 +681,7 @@ export async function cancelAppointment(actor: Actor, id: string, ctx: DataCtx):
     return { row: cancelled, lineQueued };
   });
   if (lineQueued) dispatchCancelledLineAfterResponse(db, row.id);
-  return { appointment: await toDetailDto(db, me, now, row, c.group, c.groupName) };
+  return { appointment: await toDetailDto(db, me, now, row, c.group, c.groupName, c.groupIcon) };
 }
 
 // ───────── RSVP ─────────
@@ -713,7 +715,7 @@ export async function setRsvp(actor: Actor, id: string, input: RsvpInput, ctx: D
   });
   // R7 B-4: ไม่อ่าน access ซ้ำหลัง commit — upsert สำเร็จ ⇒ ในคำสั่งเดียวกันนัดยัง active/ยังไม่จบ · กลุ่มยังอยู่ · ฉันยังเป็นสมาชิก
   // RSVP ไม่แตะแถวนัด จึงใช้แถว/บริบทที่อ่านไว้ก่อนเขียนได้ · คำตอบของทุกคน (รวมที่เพิ่งเข้ามา) + สมาชิก + myConflicts ยังอ่านใหม่ใน toDetailDto
-  return { appointment: await toDetailDto(db, me, now, current, c.group, c.groupName, true) };
+  return { appointment: await toDetailDto(db, me, now, current, c.group, c.groupName, c.groupIcon, true) };
 }
 
 async function whyRsvpRejected(db: Reader, actor: UserActor, id: string, now: number): Promise<AppError> {

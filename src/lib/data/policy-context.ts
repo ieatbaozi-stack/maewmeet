@@ -37,6 +37,8 @@ export type AppointmentCtx = {
   appointment: AppointmentRow | null;
   group: GroupCtx;
   groupName: string;
+  /** R15: groups.icon ดิบ (มากับ query เดียวกัน) */
+  groupIcon: string | null;
 };
 
 /**
@@ -44,7 +46,7 @@ export type AppointmentCtx = {
  * นัดไม่มีอยู่ = กลุ่มที่ถูกลบ = `{deleted: true, actorRole: null}` → can() ตอบ NOT_FOUND เหมือนคนนอกกลุ่มทุกไบต์ (กัน IDOR / oracle)
  */
 export async function loadAppointmentCtx(db: DbOrTx, actor: Actor, appointmentId: string): Promise<AppointmentCtx> {
-  const gone: AppointmentCtx = { appointment: null, group: goneGroupCtx(appointmentId), groupName: '' };
+  const gone: AppointmentCtx = { appointment: null, group: goneGroupCtx(appointmentId), groupName: '', groupIcon: null };
   if (actor.kind !== 'user') return gone;
   const row = await findAppointmentAccess(db, appointmentId, actor.id);
   if (!row) return gone;
@@ -52,5 +54,6 @@ export async function loadAppointmentCtx(db: DbOrTx, actor: Actor, appointmentId
     appointment: row.appointment,
     group: { id: row.appointment.groupId, deleted: row.groupDeleted, actorRole: row.role },
     groupName: row.groupName,
+    groupIcon: row.groupIcon,
   };
 }

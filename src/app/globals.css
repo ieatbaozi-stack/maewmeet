@@ -16,6 +16,8 @@
 @import "../styles/notifications.css";
 @import "../styles/admin.css";
 @import "../styles/routine.css";
+@import "../styles/group-icons.css";
+@import "../styles/skip-days.css";
 
 /* Tailwind: ล้างค่าดีฟอลต์ทั้งหมด แล้ว map เข้ากับ tokens เท่านั้น — utility ที่ไม่มี token ใช้ไม่ได้ */
 @theme inline {
@@ -126,7 +128,8 @@
     position: relative; z-index: var(--z-content);
     display: flex; align-items: center; gap: var(--space-2);
     min-height: var(--topbar-h);
-    padding: var(--space-2) var(--space-2) var(--space-2) var(--gutter);
+    /* R15a §1.3: โหมดแอปบนหน้าจอโฮม — หัวหน้าไม่อยู่ใต้รอยบาก/แถบสถานะ (ค่า 0 ในเบราว์เซอร์ปกติและตอน status bar แบบ default) */
+    padding: calc(var(--space-2) + env(safe-area-inset-top)) var(--space-2) var(--space-2) var(--gutter);
   }
   .topbar .title { flex: 1; min-width: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); line-height: var(--leading-heading); }
   .brand { display: flex; align-items: center; gap: var(--space-2); flex: 1; min-width: 0; }
@@ -425,7 +428,7 @@
 
   /* แถบ progress นำทางด้านบน */
   .nav-progress {
-    position: fixed; z-index: var(--z-nav); top: 0; left: 0; right: 0; height: var(--progress-h);
+    position: fixed; z-index: var(--z-nav); top: env(safe-area-inset-top); left: 0; right: 0; height: var(--progress-h);
     pointer-events: none; background: transparent; opacity: 1; transition: opacity var(--dur-fast) var(--ease-out);
   }
   .nav-progress[data-phase="active"], .nav-progress[data-phase="done"] { background: var(--progress-track); }

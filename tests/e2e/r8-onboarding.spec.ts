@@ -147,7 +147,7 @@ for (const locale of LOCALES) {
         await expect(toggle).toHaveText(msg(locale, 'group.steps.allDone.hide'));
         await expect(list).toBeVisible();
         await expect(list.getByRole('listitem')).toHaveCount(4);
-        await expectStates(a.page, { invite: 'done', busy: 'done', free: 'todo', plan: 'done' });
+        await expectStates(a.page, { invite: 'done', busy: 'done', free: 'done', plan: 'done' });
         await expect(a.page.locator('[data-testid="group-steps"] [aria-current="step"]')).toHaveCount(0);
         await noOverflow(a.page, 'ครบ-ขยาย');
         await checkLayout(a.page, testInfo, 'r8-steps-alldone-open', locale, theme);

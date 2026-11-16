@@ -114,8 +114,28 @@ Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL
 >
 >   ถ้าข้อ 1–3 ไม่ครบ = migration ยังไม่ลง → หยุด อย่า merge แล้วแจ้ง main
 > - **Rollback**: (1) ย้อนแอปอย่างเดียว (Vercel Instant Rollback) **พอ** — รุ่นเดิมไม่รู้จักตาราง/คอลัมน์ใหม่ จึงทำงานได้ · ข้อควรรู้: ถ้ามีคนสร้างแบบประจำไปแล้ว แถว `busy_block` ที่ materialize จากแบบประจำ (`routine_id` ไม่ว่าง) จะถูกนับรวมในเพดาน 300 รายการเดี่ยวของรุ่นเก่า และแบบประจำเองจะแก้/ลบจากรุ่นเก่าไม่ได้ (ลบทีละวันได้เหมือน busy ปกติ) (2) ถอดของใหม่จริง **ไม่แนะนำ ทำเมื่อ boss สั่งเท่านั้น** ตามลำดับ: `DROP INDEX IF EXISTS busy_user_routine_idx;` → `ALTER TABLE busy_block DROP COLUMN routine_id;` → `DROP TABLE busy_routine_skip;` → `DROP INDEX IF EXISTS busy_routine_user_idx;` → `DROP TABLE busy_routine;` (ลบ index ก่อน DROP COLUMN ไม่งั้นล้ม · ต้อง SQLite >= 3.35 ยังไม่ได้ยืนยันกับฐานจริง · แถวใน `__drizzle_migrations` ยังไม่ได้ตรวจกับฐานจริง แจ้ง main ก่อนแตะ) · ผล: เสียแบบประจำทั้งหมด แต่ `busy_block` แถวที่สร้างไปแล้วยังอยู่เป็น busy ปกติ
-> - **Rate limit**: ถัง `busy:routine` 20 คำขอ / 10 นาที ต่อผู้ใช้ สำหรับ `POST /api/me/busy-routines` และ `PATCH/DELETE /api/me/busy-routines/:id` · เกินแล้วได้ 429 · ไม่ต้องตั้ง env
+> - **Rate limit**: ถัง `busy:routine` 20 คำขอ / 10 นาที ต่อผู้ใช้ สำหรับ `POST /api/me/busy-routines` และ `PATCH/DELETE /api/me/busy-routines/:id` และ `POST /api/me/busy-routines/:id/skips` (ข้าม/กู้คืนวัน, R15a) · เกินแล้วได้ 429 · ไม่ต้องตั้ง env
 > - **Cron รายวัน** (`/api/cron/daily`) ลบแบบประจำที่ `end_date` เก่ากว่าวันนี้ 93 วันด้วย (รายการ skip ลบตามผ่าน cascade)
+> **หมายเหตุ R15a (migration `0006`, ADR 0013)**: รอบนี้มีไฟล์ใหม่ `drizzle/0006_r15_group_icon_drop_place_cache.sql` — boss รันตามลำดับเดียวกับ `0003`/`0005`: **preview ก่อนเปิด PR → prod ก่อน merge** ด้วยคำสั่ง B6/B7 (บล็อก `$env:TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` / `npx drizzle-kit migrate` ข้างบน เปลี่ยน URL/token ตามฐาน) · ควรเห็น `[✓] migrations applied successfully!` แล้วล้างค่า `Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL`
+> - **migration นี้ลบตาราง (ย้อนไม่ได้)**: `DROP TABLE place_search_cache;` (cache ผลค้นหาสถานที่ที่ R13 เลิกใช้ ไม่ผูกผู้ใช้ ไม่มี FK) และ `ALTER TABLE groups ADD icon text` (nullable ไม่ backfill = ไอคอนเริ่มต้น) · ไม่มีการเขียนข้อมูลเดิม · ไม่ต้อง backup ตารางนี้ (สร้างใหม่ไม่ได้แล้วและไม่มีคุณค่าต่อผู้ใช้) · ถ้าอยากดูจำนวนแถวก่อนลบ: `SELECT count(*) FROM place_search_cache;`
+> - **ลำดับกับ deploy (สำคัญ)**: คอลัมน์ `icon` รุ่นเดิมไม่อ่าน และโค้ดใหม่ (R15a) ไม่แตะ `place_search_cache` แต่ v0.12.0 ที่ยัง deploy อยู่จะลบจากตารางนี้ใน cron รายวัน (02:00 เวลาไทย) → **รัน migrate กับ prod และกด merge ในรอบเดียวกัน ทำต่อเนื่องกันทันที (migrate แล้ว merge ทันที) และให้เสร็จก่อน 02:00** · ถ้าพลาด (prod migrate แล้วแต่โค้ดใหม่ยังไม่ deploy ก่อน cron รอบถัดไป): batch เก็บกวาดของวันนั้นล้มทั้งชุดและถูก roll back = **ข้ามการล้างไป 1 วัน** (session/rate limit/notification/busy เก่าค้าง) · วันถัดไปปกติหลัง deploy · session หมดอายุยังถูกปฏิเสธตอนอ่านเสมอ จึงไม่มีผลต่อความปลอดภัย · ห้ามรัน migrate **หลัง** deploy รุ่นใหม่ (เลือกไอคอนกลุ่มจะล้มเพราะไม่มีคอลัมน์)
+> - **ตรวจหลังรัน** (ต่อฐานละครั้ง ด้วย `turso db shell maewmeet-prod "..."` / `maewmeet-preview`):
+>   1. `SELECT name FROM pragma_table_info('groups') WHERE name = 'icon';` → ต้องได้ 1 แถว
+>   2. `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'place_search_cache';` → ต้องได้ **0 แถว**
+>   3. `SELECT count(*) FROM groups WHERE icon IS NOT NULL;` → ต้องเป็น `0` ทันทีหลังรัน
+>
+>   ถ้าข้อ 1 ไม่ขึ้น หรือข้อ 2 ยังเจอตาราง = migration ยังไม่ลง → หยุด อย่า merge แล้วแจ้ง main
+> - **Rollback**: ย้อนแอปอย่างเดียว (Vercel Instant Rollback) ได้ แต่ **ตารางที่ลบแล้วไม่กลับมา** และ **v0.12.0 ยังมีงานล้าง cache ใน cron รายวัน** — อ่านจาก `git show v0.12.0:src/lib/data/repos/maintenance.ts` และ `services/maintenance.ts`: งาน `stalePlaceSearchCache` (`DELETE FROM place_search_cache WHERE fetched_at < …`) อยู่ใน `db.batch([...])` ชุดเดียวกับงานเก็บกวาดอื่นทั้งหมด (batch ของ libSQL เป็นธุรกรรมเดียว) → บนฐานที่ไม่มีตาราง คำสั่งนี้ error = **batch ทั้งชุดล้มและถูก roll back** ไม่ใช่แค่งานนี้งานเดียว (session/rate limit/notification/busy/routine เก่าค้างไว้ไม่ถูกล้างในวันนั้น) · heartbeat เขียนแยกก่อน batch จึงยังขึ้นปกติ · ข้อสรุปมาจากการอ่านโค้ด **ยังไม่ได้รันจริงกับฐานจริง** · ถ้าต้องอยู่รุ่นเก่านานเกิน 1 วัน ให้สร้างตารางเปล่ากลับ (ไม่ต้องมีข้อมูล ไม่ต้องแก้ `__drizzle_migrations`; นิยามจาก `drizzle/0000_init.sql`):
+>   ```sql
+>   CREATE TABLE IF NOT EXISTS `place_search_cache` (
+>   	`query_normalized` text PRIMARY KEY NOT NULL,
+>   	`results` text NOT NULL,
+>   	`fetched_at` integer NOT NULL
+>   );
+>   ```
+>   รันด้วย `turso db shell maewmeet-prod "..."` แล้วกลับมารุ่นใหม่ภายหลัง: ตารางนี้จะค้างโดยไม่มีใครใช้ (ลบทิ้งด้วย `DROP TABLE place_search_cache;` ได้เมื่อ boss สั่ง) · คอลัมน์ `groups.icon` ไม่กระทบรุ่นเดิม · cron รายวันรุ่นใหม่ไม่มีชื่องาน `stalePlaceSearchCache` ใน response/log แล้ว (ไม่มีระบบภายนอกอ่านชื่อนี้)
+> - **ไม่ต้องตั้ง env/header เพิ่ม** สำหรับ manifest และ apple-touch-icon ของ "เปิดเหมือนแอปบน iPhone": CSP มี `manifest-src 'self'` อยู่แล้ว และ `img-src 'self' data: blob:` ครอบไอคอนที่เสิร์ฟจากโดเมนเดียวกัน (ตรวจใน `next.config.ts`) · ไม่มีตัวแปรใหม่ใน `.env.example`
+> - ไม่มีข้อมูล/ขั้นตอนมือเกี่ยวกับ `place_search_cache` เหลือในส่วน SQL มือหรือ retention (ค้นหาแล้ว ไม่พบ — ตรวจด้วย grep)
 
 ---
 

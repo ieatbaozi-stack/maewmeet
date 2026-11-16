@@ -8,6 +8,7 @@ import { Icon } from "@/components/icons/Icon";
 import { isForbiddenPin, isValidUsername, normalizeUsername, DISPLAY_NAME_MAX } from "@/lib/auth/pin-rules";
 import { callApi } from "./api";
 import { failureText } from "./errors";
+import { signalNavStart } from "@/components/shell/nav-start";
 import { PinPad } from "./PinPad";
 
 type Step = 1 | 2 | 3;
@@ -64,6 +65,7 @@ export function SignupForm() {
       body: { username: username.trim(), displayName: displayName.trim(), pin, pinConfirm: c },
     });
     if (res.ok) {
+      signalNavStart("/");
       router.replace("/");
       router.refresh();
       return;

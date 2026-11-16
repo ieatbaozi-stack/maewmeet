@@ -1,6 +1,6 @@
 # ADR 0012 — busy แบบ routine (ชุดทางลัดทำซ้ำรายสัปดาห์ เลือกช่วงสัปดาห์/เดือน)
 
-- **Status**: **Accepted (2026-11-11)** · contract [R14_CONTRACT](../contracts/R14_CONTRACT.md) (boss เห็นชอบ 2026-11-11 · B1–B8 ใช้ค่าแนะนำทั้งหมด · B9 แบ่งสอง PR: R14a เซิร์ฟเวอร์ → R14b หน้าจอ) · เลือก **ทางเลือก C** · ค่าที่ตัดสินแล้วดู §11 (รวม B11–B12 หลังวัด perf, contract §9) · ข้อเปลี่ยนตอน implement: `busy_block.routine_id` ไม่มี FK (§5) · เสนอ Proposed 2026-11-11 (Architect)
+- **Status**: **Accepted (2026-11-11)** · **ภาคผนวก R15 (2026-11-15)**: เว้น/คืนหลายวันในคำขอเดียว — ดู §13 ([R15_CONTRACT](../contracts/R15_CONTRACT.md) §1.1, boss เห็นชอบ 2026-11-15) · contract [R14_CONTRACT](../contracts/R14_CONTRACT.md) (boss เห็นชอบ 2026-11-11 · B1–B8 ใช้ค่าแนะนำทั้งหมด · B9 แบ่งสอง PR: R14a เซิร์ฟเวอร์ → R14b หน้าจอ) · เลือก **ทางเลือก C** · ค่าที่ตัดสินแล้วดู §11 (รวม B11–B12 หลังวัด perf, contract §9) · ข้อเปลี่ยนตอน implement: `busy_block.routine_id` ไม่มี FK (§5) · เสนอ Proposed 2026-11-11 (Architect)
 - **ที่มา**: PRD "รายการรอทำ" — busy แบบ routine (boss + ทีม 2026-11-11) · D5 · U7 · §3 แถว 2–3
 - **ต่อยอดจาก (ไม่แทนที่)**: [ADR 0004](0004-time-and-timezone.md) §2, §5 · [ADR 0005](0005-common-free-time-algorithm.md) · [ADR 0006](0006-busy-visibility.md) §1–§3 · [ADR 0009](0009-going-counts-as-busy.md) · [ADR 0010](0010-daily-busy-series.md) (ชุดรายวัน `series_id`) · [ADR 0003](0003-rbac.md)
 - **เจ้าของการ implement** (ตาม R14_CONTRACT §3): Platform (`src/lib/calendar/**`, `src/lib/data/**`, `src/db/schema.ts`, `drizzle/0005_*`, route `src/app/api/me/busy-routines/**`) · Auth (`src/lib/rbac/**`, manifest) · UX (design note) · Frontend · Test · Ops · ตรวจโดย QA + Security
@@ -267,6 +267,45 @@ CHECK เพิ่ม: `(all_day = 1 and start_min is null and end_min is null) 
 - ~~ประสิทธิภาพ/การถูกตัดในกลุ่มใหญ่~~ → platform วัดแล้ว (เครื่อง local ไม่ใช่ Turso prod) และ boss ตัดสิน B11 (§8) · ยังไม่ได้วัดบน Turso prod
 - รุ่น SQLite ของ Turso prod (เกี่ยวกับ rollback DROP COLUMN เท่านั้น — เหมือน ADR 0010 §11)
 - ~~ตัวเลขเพดานใน §4, §6 เป็นข้อเสนอ~~ → **ยืนยันแล้ว 2026-11-11** เป็นข้อตัดสินใน R14_CONTRACT §1.2 (§11) · เพดานแถวกลุ่มใหญ่ตัดสินใน B11 (ข้อบน)
+
+## 13. ภาคผนวก R15 — เว้น/คืนหลายวันในคำขอเดียว (2026-11-15)
+ที่มา: R15_CONTRACT §1.1 + §8 (feedback boss) · ต่อยอด §5 (`busy_routine_skip`, `DELETE /api/me/busy/:id` บนแถว routine) · **ไม่มี schema ใหม่** (ใช้ `busy_routine_skip` เดิม ไม่อยู่ใน migration 0006)
+
+### 13.1 สัญญา endpoint (platform ตั้งชื่อจริง — ข้อเสนอ)
+- ข้อเสนอ: `POST /api/me/busy-routines/:id/skips` body `{ add?: DateISO[], remove?: DateISO[] }` zod `.strict()` · action **`busy.routine.update`** เดิม (ownerOnly, R15 §8) · rate limit bucket **`busy:routine`** เดิม (20/10 นาที) นับ 1 ครั้งต่อคำขอ **ก่อน** validation (คำขอที่ได้ 400/404 ก็นับ — สอดคล้อง R15 §4)
+- รวม `add ∪ remove` หลังตัดซ้ำ **1–31 วัน** · วันเดียวกันอยู่ทั้ง `add` และ `remove` → `VALIDATION` · ว่างทั้งคู่ → `VALIDATION`
+- **ทั้งหมดหรือไม่มีเลย**: ใน `inTx` เดียว คำสั่งแรกเป็นการเขียน [S5] · วันใดไม่ผ่าน → `VALIDATION {fields:{dates:{<date>:CODE}}}` และไม่เปลี่ยนอะไรเลย
+- id ของคนอื่น / ไม่มี / บัญชีไม่ active → `NOT_FOUND` (ทุกคำสั่ง SQL ผูก `user_id = ผู้กระทำ` + ตรวจ active ในคำสั่งเขียน เหมือน §6) · SA ทำแทนไม่ได้
+- คำตอบ (ข้อเสนอ): DTO ของ routine แบบเดียวกับ GET + `skippedDates` · GET ต้องเพิ่ม **`skippedDates: DateISO[]`** (เฉพาะ ≥ วันนี้, เจ้าของเท่านั้น) ให้ปฏิทินเล็กแสดงวันที่เว้นอยู่และกดคืนได้ · ทางอ่านของกลุ่ม **ไม่เปลี่ยน** (§7 — คนอื่นเห็นแค่ว่าวันนั้นมี/ไม่มี busy)
+- ไม่สร้างการแจ้งเตือน ไม่ลง audit (เหมือนการแก้ busy เดิม)
+
+### 13.2 ความหมาย (platform implement ตามนี้)
+"วันนี้" = วันท้องถิ่นใน **tz ที่เก็บไว้ของ routine** (เหมือน §5 "แก้ตั้งแต่ from") · ใช้ `src/lib/calendar` เท่านั้น (กฎ 9)
+
+| คำสั่ง | เงื่อนไขของวัน `d` | ผล |
+|---|---|---|
+| **add (เว้น)** | `d ≥ วันนี้` และ `start_date ≤ d ≤ end_date` และ `dayOfWeek(d)` อยู่ใน `weekdays` · ไม่ผ่าน → `VALIDATION` (`PAST` / `OUT_OF_RANGE` / `NOT_IN_RULE`) | ลบแถว `busy_block` ที่ `user_id = ผู้กระทำ AND routine_id = R AND local_start_date = d` · `INSERT … ON CONFLICT DO NOTHING` ลง `busy_routine_skip (R, d)` · เว้นซ้ำวันที่เว้นอยู่แล้ว = ไม่เปลี่ยนอะไร (idempotent) |
+| **remove (คืน)** | `d ≥ วันนี้` (อดีต → `VALIDATION PAST`) · `d > end_date` หรือ `d < start_date` → `VALIDATION OUT_OF_RANGE` | ลบ `busy_routine_skip (R, d)` · **ขยายแถวกลับเฉพาะเมื่อ** (ก) มีแถว skip ถูกลบจริงในคำสั่งนี้ (ใช้ `RETURNING` — ไม่มี skip = ไม่ทำอะไร กันแถวซ้ำ) และ (ข) กฎ **ปัจจุบัน** ยังมีวันนั้น (`weekdays` มี `dayOfWeek(d)`) และ (ค) ยังไม่มีแถว `routine_id = R AND local_start_date = d` อยู่ (กันซ้ำอีกชั้น) · ใช้ `expandRoutine(rule, {fromDate: d, skip})` ตัดเหลือวัน `d` วันเดียว → ได้ **เวลา/ชื่อ/ซ่อนรายละเอียดตามกฎปัจจุบัน** ไม่ใช่ค่าเดิมก่อนเว้น · ถ้ากฎไม่มีวันนั้นแล้ว (แก้ทั้งชุดเอาวันในสัปดาห์นั้นออก) → ลบ skip อย่างเดียว ไม่มีแถวใหม่ (ไม่ใช่ error) |
+
+ลำดับใน tx: ตรวจ routine (เจ้าของ + active) → ทำ **add ทั้งหมดก่อน** (ลดแถว) → ลบ skip ของ remove → นับ **เพดาน 1,500** (`routineRows`: แถว routine ของผู้ใช้ที่ `local_start_date ≥ วันนี้` ทุก routine) + จำนวนแถวที่จะคืน → เกิน → `LIMIT_REACHED {limit:'routineRows', max:1500}` และ rollback ทั้งคำขอ (skip ที่ลบไปกลับคืน) → insert แถวที่คืน
+- เพดานอื่นไม่เกี่ยว: busy เดี่ยว 300 (แถว routine ไม่นับ) · 10/20 ชุด (ไม่ได้สร้างชุด) · เว้นจนเหลือ 0 วันในอนาคต **อนุญาต** (ต่างจาก `NO_OCCURRENCE` ของการแก้กฎ เพราะเป็นการเลือกของผู้ใช้และคืนได้) — GET แสดงจำนวนวันที่เหลือ 0 ผู้ใช้ลบชุดเองได้
+- routine ที่จบแล้ว (`end_date < วันนี้`) → ทุกวันเป็น `PAST`/`OUT_OF_RANGE` → `VALIDATION`
+
+### 13.3 วันที่เคยถูกแยกแก้ (detached) หรือถูกแก้ทั้งชุดภายหลัง
+- **วันที่แยกเป็น busy เดี่ยวแล้ว** (`PATCH /api/me/busy/:id` บนแถว routine → แถวนั้น `routine_id = NULL` + skip, §5): ตาราง skip **ไม่เก็บเหตุผล** (ลบ vs แยกแก้) และแถวเดี่ยวไม่มีลิงก์กลับ → ระบบแยกไม่ออก
+  - **add** บนวันนั้น = skip มีอยู่แล้ว → ไม่เปลี่ยนอะไร · แถวเดี่ยว **ไม่ถูกลบ** (add ลบเฉพาะแถว `routine_id = R`)
+  - **remove** บนวันนั้น = ลบ skip + คืน occurrence ตามกฎปัจจุบัน · แถวเดี่ยวที่แก้ไว้ **คงอยู่** → วันนั้นมีสองแถว (ยูเนียนในวันว่างร่วม ถูกต้อง · ปฏิทินเห็นสองรายการ) — สอดคล้องกติกา §8 "ลบ/แก้วันเดียวแล้วแก้ทั้ง routine" (ซ้อนได้ ยอมรับ) · **ข้อเสนอ UX**: ปฏิทินเล็กแสดงวันที่ skip ทุกวันเป็น "เว้นแล้ว" แบบเดียวกัน + บอกสั้น ๆ ว่า "วันที่แก้แยกไว้จะยังอยู่ ลบเองได้จากรายการ" · ถ้า boss อยากให้แยกได้ ต้องเพิ่มคอลัมน์เหตุผลใน skip = migration (รอบหลัง ไม่ทำใน R15)
+- **วันที่ถูกลบทีละวัน** (`DELETE /api/me/busy/:id`) = skip ธรรมดา → remove คืนได้ตามปกติ
+- **แก้ทั้งชุดในที่** (`PATCH` ที่ `from ≤ วันนี้`): skip คงอยู่ (§5) → วันที่เว้นยังว่างหลังแก้ (R15-2 "ไม่ฟื้นเมื่อแก้ทั้งชุด") · คืนทีหลังได้แถวตามกฎใหม่ · ถ้ากฎใหม่ไม่มีวันในสัปดาห์นั้น คืนแล้วไม่มีแถว (13.2)
+- **แยกชุดตอนแก้ "ตั้งแต่…ไป"** (`from > วันนี้`): skip ที่ `≥ from` ย้ายไป R2 (§5) · วันนั้นต้องสั่งผ่าน id ของ R2 · สั่งผ่าน R เดิมจะได้ `OUT_OF_RANGE` (เพราะ `end_date` ของ R = from − 1) — UI ใช้ `skippedDates` ของแต่ละชุดจาก GET จึงไม่สับสน
+- **หยุดชุดตั้งแต่ from** (`DELETE ?from=`): skip ที่ ≥ from อยู่นอกช่วงแล้ว คืนไม่ได้ (`OUT_OF_RANGE`) · cron ลบตาม cascade ของ routine (§8)
+
+### 13.4 เทสต์ที่ต้องมี (platform + test)
+เว้น 2 วัน (T1: 18, 27) แล้ววันนั้นหายจากปฏิทินกลุ่มและวันว่าง · เว้นซ้ำ idempotent · คืนแล้วได้แถวตามกฎปัจจุบัน · คืนวันที่ไม่ได้เว้น = ไม่มีแถวซ้ำ · คืนหลังกฎเอาวันในสัปดาห์ออก = ไม่มีแถว · แก้ทั้งชุดหลังเว้น = วันที่เว้นไม่ฟื้น · วันที่แยกแก้: add ไม่ลบแถวเดี่ยว, remove ได้สองแถว · 32 วัน / วันซ้ำทั้ง add และ remove / อดีต / นอกช่วง / ไม่ตรงวันในสัปดาห์ → `VALIDATION` ไม่เปลี่ยนอะไร · คืนจนเกิน 1,500 → `LIMIT_REACHED routineRows` และ rollback ทั้งคำขอ · id ของคนอื่น / SA → `NOT_FOUND`/403 ตาม manifest · rate limit นับคำขอที่ล้มด้วย · ข้ามเที่ยงคืน: เว้นวันเริ่ม = แถวที่ล้ำไปเช้าวันถัดไปหายด้วย (§8)
+
+### 13.5 ยืนยันแล้ว / ยังไม่ยืนยัน
+- ยืนยันแล้ว (อ่านเอกสาร/โค้ดบน `feat/r15a-feedback` 2026-11-15): skip table, `DELETE`/`PATCH` บนแถว routine, เพดาน 1,500, bucket `busy:routine` ตาม §5–§6, §11 และ `src/app/api/_lib/manifest.ts` (route `busy-routines` 4 ตัว) · ไม่ได้รันเทสต์ (รอบนี้เป็นเอกสาร)
+- ยังไม่ยืนยัน: ชื่อ path/รูปคำตอบจริง (platform ตั้ง) · ข้อเสนอ UX ข้อ 13.3 (ux/main ตัดสิน)
 
 ## แหล่งอ้างอิง (เข้าถึง 2026-11-11)
 - [S1] SQLite — ALTER TABLE, ADD COLUMN restrictions ("If foreign key constraints are enabled and a column with a REFERENCES clause is added, the column must have a default value of NULL") — https://www.sqlite.org/lang_altertable.html

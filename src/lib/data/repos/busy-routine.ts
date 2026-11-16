@@ -267,3 +267,71 @@ export async function listRoutineRows(db: DbOrTx, routineId: string, userId: str
     .where(and(eq(busyBlock.userId, userId), eq(busyBlock.routineId, routineId)))
     .orderBy(asc(busyBlock.startAt), asc(busyBlock.id));
 }
+
+// ───────── R15 §1.1 · เว้น/คืนหลายวัน (ADR 0012 §13) — ทุกคำสั่งผูก user_id ของผู้กระทำ ─────────
+
+/**
+ * คำสั่งเขียนแรกของ tx เว้น/คืน: แตะแถวกฎ (SET updated_at = updated_at — ไม่เปลี่ยนค่า ไม่ทำให้ PATCH ที่ค้างอยู่ได้ CONFLICT) เพื่อถือ write lock
+ * ก่อนอ่านอะไร (ADR 0010 §3 [S5]) · คืนกฎ *ปัจจุบัน* ภายใต้ lock (ตรวจวันกับค่านี้ — ไม่มี check-then-act) · ของคนอื่น/ไม่มี/บัญชีไม่ active → null
+ */
+export async function lockOwnRoutine(tx: Tx, id: string, userId: string): Promise<OwnRoutineRow | null> {
+  const rows = await tx.all<Record<string, unknown>>(sql`
+    UPDATE busy_routine SET updated_at = updated_at
+     WHERE id = ${id} AND user_id = ${userId} AND ${userActive(userId)}
+    RETURNING ${ROUTINE_COLS}`);
+  return one(rows);
+}
+
+const dateList = (dates: readonly string[]) => sql.join(dates.map((d) => sql`${d}`), sql`, `);
+
+/** ลบแถวของ routine ที่วันเริ่มอยู่ใน dates (แถวที่ข้ามเที่ยงคืนไปเช้าวันถัดไปหายด้วย — ผูกวันเริ่ม) · แถวที่แยกเป็น busy เดี่ยวแล้วไม่ถูกแตะ · คืนจำนวน */
+export async function deleteRoutineRowsOn(tx: Tx, input: { routineId: string; userId: string; dates: readonly string[] }): Promise<number> {
+  if (input.dates.length === 0) return 0;
+  const rows = await tx.all<{ id: string }>(sql`
+    DELETE FROM busy_block WHERE user_id = ${input.userId} AND routine_id = ${input.routineId} AND local_start_date IN (${dateList(input.dates)})
+    RETURNING id`);
+  return rows.length;
+}
+
+/** เพิ่ม skip (เว้นซ้ำ = ไม่เปลี่ยน) · กฎต้องเป็นของผู้ใช้ · คืนวันที่เพิ่มจริง */
+export async function insertRoutineSkips(tx: Tx, input: { routineId: string; userId: string; dates: readonly string[] }): Promise<string[]> {
+  if (input.dates.length === 0) return [];
+  const values = sql.join(input.dates.map((d) => sql`(${d})`), sql`, `);
+  const rows = await tx.all<{ d: string }>(sql`
+    WITH v(local_date) AS (VALUES ${values})
+    INSERT INTO busy_routine_skip (routine_id, local_date)
+    SELECT ${input.routineId}, v.local_date FROM v
+     WHERE EXISTS (SELECT 1 FROM busy_routine WHERE id = ${input.routineId} AND user_id = ${input.userId})
+    ON CONFLICT DO NOTHING
+    RETURNING local_date AS d`);
+  return rows.map((r) => String(r.d)).sort();
+}
+
+/** ลบ skip ของวันที่ระบุ · คืนวันที่ลบจริง (ไม่มี skip = ไม่อยู่ในผล — ผู้เรียกไม่คืนแถวให้วันนั้น) */
+export async function deleteRoutineSkipsOn(tx: Tx, input: { routineId: string; userId: string; dates: readonly string[] }): Promise<string[]> {
+  if (input.dates.length === 0) return [];
+  const rows = await tx.all<{ d: string }>(sql`
+    DELETE FROM busy_routine_skip
+     WHERE routine_id = ${input.routineId} AND local_date IN (${dateList(input.dates)})
+       AND EXISTS (SELECT 1 FROM busy_routine WHERE id = ${input.routineId} AND user_id = ${input.userId})
+    RETURNING local_date AS d`);
+  return rows.map((r) => String(r.d)).sort();
+}
+
+/** วันเริ่มที่ยังมีแถวของ routine อยู่ (กันคืนซ้ำอีกชั้น) */
+export async function routineRowDatesOn(tx: Tx, input: { routineId: string; userId: string; dates: readonly string[] }): Promise<Set<string>> {
+  if (input.dates.length === 0) return new Set();
+  const rows = await tx.all<{ d: string }>(sql`
+    SELECT DISTINCT local_start_date AS d FROM busy_block
+     WHERE user_id = ${input.userId} AND routine_id = ${input.routineId} AND local_start_date IN (${dateList(input.dates)})`);
+  return new Set(rows.map((r) => String(r.d)));
+}
+
+/** skip ของทุก routine ของผู้ใช้ที่ local_date ≥ fromDate (GET — ผู้เรียกกรอง "วันนี้" ต่อ tz ของแต่ละชุดอีกชั้น) · เรียง routine, วัน */
+export async function listUserRoutineSkipsFrom(db: DbOrTx, userId: string, fromDate: string): Promise<{ routineId: string; localDate: string }[]> {
+  const rows = await db.all<{ r: string; d: string }>(sql`
+    SELECT s.routine_id AS r, s.local_date AS d FROM busy_routine_skip s JOIN busy_routine b ON b.id = s.routine_id
+     WHERE b.user_id = ${userId} AND s.local_date >= ${fromDate}
+     ORDER BY s.routine_id, s.local_date`);
+  return rows.map((x) => ({ routineId: String(x.r), localDate: String(x.d) }));
+}

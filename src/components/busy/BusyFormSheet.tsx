@@ -364,7 +364,7 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, ro
               <span className="label" id={`${uid}-scope`}>
                 {t("busy.form.scope.label")}
               </span>
-              <div className="segmented busy-types" role="group" aria-labelledby={`${uid}-scope`}>
+              <div className="segmented cols-2 busy-types" role="group" aria-labelledby={`${uid}-scope`}>
                 {SCOPES.map((k) => (
                   <button type="button" key={k} aria-pressed={s.scope === k} data-testid={`busy-scope-${k}`} onClick={() => patch({ scope: k })}>
                     {t(`busy.form.scope.${k}`)}

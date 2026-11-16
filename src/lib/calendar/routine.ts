@@ -9,7 +9,7 @@
 //  - แถวถูกสร้างตั้งแต่วันนี้ (ใน tz ของ routine) เท่านั้น แม้ช่วงเริ่มในอดีต
 import { Temporal } from 'temporal-polyfill';
 import { CalendarError, failIf, isCalendarError } from './errors';
-import { addDays, dayOfWeek, daysBetween, eachDate, startOfWeek, toPlainDate } from './date';
+import { addDays, dayOfWeek, daysBetween, eachDate, isValidDate as isValidDateValue, startOfWeek, toPlainDate } from './date';
 import { assertTimeZone, parseLocalDateTime, parseTimeOfDay, startOfDay, toLocal, todayIn } from './zone';
 import { toResult, type BusyInputError, type BusyRow } from './busy';
 import { DEFAULT_TZ, MAX_YEAR, MIN_YEAR, MINUTES_PER_DAY, STEP_MINUTES, type DateISO, type EpochMs } from './constants';
@@ -238,6 +238,53 @@ function wallToEpoch(date: DateISO, minute: number, tz: string, field: string): 
     if (isCalendarError(e)) throw new CalendarError(e.code, field, e.message);
     throw e;
   }
+}
+
+// ───────── เว้น/คืนบางวัน (R15 §1.1 · ADR 0012 §13) ─────────
+
+/** กฎมีวัน d ไหม (ในช่วง [startDate, endDate] และวันในสัปดาห์ตรง mask) — ไม่ดูวันนี้/skip */
+export function routineOccursOn(rule: Pick<RoutineRule, 'weekdays' | 'startDate' | 'endDate'>, date: DateISO): boolean {
+  if (date < rule.startDate || date > rule.endDate) return false;
+  return (rule.weekdays & (1 << (dayOfWeek(date) - 1))) !== 0;
+}
+
+export type RoutineSkipMode = 'add' | 'remove';
+/** เหตุที่วันนั้นสั่งเว้น/คืนไม่ได้ (ADR 0012 §13.2) — ตรวจตามลำดับ: รูปแบบ → อดีต → นอกช่วง → ไม่ตรงวันในสัปดาห์ (add เท่านั้น) */
+export type RoutineSkipDateError = 'INVALID' | 'PAST' | 'OUT_OF_RANGE' | 'NOT_IN_RULE';
+
+/**
+ * ตรวจวันที่ของคำสั่งเว้น/คืน · today = วันนี้ใน tz ของ routine (ผู้เรียกคำนวณด้วย todayIn — วันนี้นับว่ายังไม่ผ่าน)
+ *  - add: d ≥ today · startDate ≤ d ≤ endDate · weekday ตรงกฎ
+ *  - remove: d ≥ today · startDate ≤ d ≤ endDate (weekday ไม่บังคับ: กฎอาจถูกแก้ทีหลัง → ลบ skip อย่างเดียว ไม่มีแถว)
+ * คืน null = ใช้ได้
+ */
+export function checkRoutineSkipDate(
+  rule: Pick<RoutineRule, 'weekdays' | 'startDate' | 'endDate'>,
+  date: unknown,
+  today: DateISO,
+  mode: RoutineSkipMode,
+): RoutineSkipDateError | null {
+  if (!isValidDateValue(date)) return 'INVALID';
+  if (date < today) return 'PAST';
+  if (date < rule.startDate || date > rule.endDate) return 'OUT_OF_RANGE';
+  if (mode === 'add' && !routineOccursOn(rule, date)) return 'NOT_IN_RULE';
+  return null;
+}
+
+/**
+ * แถวของกฎ *ปัจจุบัน* เฉพาะวันที่ระบุ (คืนวันที่เคยเว้น) — วันที่กฎไม่มีแล้วถูกข้าม (ไม่ error) · เรียงตามวัน · ไม่ดู skip/วันนี้ (ผู้เรียกกรองแล้ว)
+ * ใช้ expand ตัวเดียวกับ POST/PATCH → เวลา/ข้ามเที่ยงคืน/DST ตรงกันทุกไบต์
+ */
+export function expandRoutineDates(rule: RoutineRule, dates: Iterable<DateISO>): RoutineResult<BusyRow[]> {
+  return toResult(() => {
+    validateRule(rule);
+    const out: BusyRow[] = [];
+    for (const d of [...new Set(dates)].sort()) {
+      if (!routineOccursOn(rule, d)) continue;
+      out.push(...expand({ ...rule, startDate: d, endDate: d }, {}));
+    }
+    return out;
+  });
 }
 
 // ───────── ทั้งคำขอ (POST/PATCH และสรุปฝั่ง client) ─────────

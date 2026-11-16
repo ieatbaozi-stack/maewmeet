@@ -1,7 +1,7 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-11 (เวลาไทย) · **R14a merge แล้ว (PR #32, `b121958`) · migration `0005` boss รันบน preview และ prod แล้ว (ตามที่ main แจ้ง; เลขาไม่ได้ตรวจฐาน Turso เอง)** · **R14b (หน้าจอ) รอ qa/security → PR → boss ทดสอบ T1–T4** · **R13 merge แล้ว (PR #31, `98186ef`) boss ทดสอบ T1–T4 ผ่าน** · **R12.1 merge แล้ว (PR #30, `bc0eef8`) ทดสอบ iPhone บางส่วน (ดูหัวข้อ R12.1)** · **R11 merge แล้ว (PR #28, `348bd86`) ยังไม่ออกรุ่น** · **R12 merge แล้ว (PR #29, `bef0b73`) ยังไม่ออกรุ่น** · **R12.1 (เก็บงานหลังทดสอบ iPhone) ส่งงานครบ ผ่านตรวจอิสระ merge แล้ว** · **R10 (F6) merge แล้ว (PR #26) และออก v0.11.0 แล้ว** · ตรวจด้วย `git log origin/main`, `git ls-remote --tags origin` (รอบ R12: ไม่มี v0.12.x), `git tag`, `git rev-list -n1 v0.11.0` (= `a77fc50`) และ `CHANGELOG.md` หัวข้อ `[0.11.0] - 2026-11-10` · ผลการทดสอบ LINE และ `/api/health` = ที่ boss รายงาน (เลขาไม่ได้ตรวจเอง) · รายงานวัน: `docs/reports/2026-11-10.md` · ก่อนหน้า: `docs/contracts/R10_CONTRACT.md`, `docs/reports/qa-r10.md`, `security-r10.md`, `docs/reports/2026-11-09.md`
+> อัปเดตล่าสุด: 2026-11-15 (เวลาไทย) · **v0.12.0 ออกแล้ว** (tag `v0.12.0` → `4c5681b`, ตรวจด้วย `git ls-remote --tags origin`) · **R15 contract เห็นชอบแล้ว** (B1–B9 ค่าแนะนำ) · **R15a กำลังทำบน `feat/r15a-feedback` (ยังไม่มี PR)** · R15b ถัดไป · สถานะรายข้อตรวจกับ `docs/contracts/R15_CONTRACT.md` §0/§2 · ผลทดสอบ/CI/เครื่องจริงที่ boss หรือ main รายงาน = ไม่ใช่สิ่งที่เลขาตรวจเอง
 
 ## เสร็จแล้ว
 - R0–R5: foundation, บัญชี PIN, กลุ่ม, ปฏิทิน + busy, วันว่างร่วม + สร้างนัด, หน้า super admin + audit log (ดู CHANGELOG)
@@ -20,7 +20,19 @@
 - **ออก v0.10.0 แล้ว** (2026-11-09, tag `v0.10.0` → commit `d670fcc` `chore(release): v0.10.0`) รวม R8 · **repo เปลี่ยนเป็น public** (2026-11-08) · รายละเอียดหัวข้อ "v0.10.0 + repo public" ด้านล่าง
 - **ออก v0.11.0 แล้ว** (2026-11-10, tag `v0.11.0` → commit `a77fc50` `chore(release): v0.11.0`) รวม **R10** (F6 เตือนก่อนนัดทาง LINE OA + กระดิ่ง, เชื่อม LINE, ปุ่มขั้น 2) · migration `0004` (รันหลัง merge — ดูหัวข้อ R10) · รายละเอียดด้านล่าง
 
-## R14 — busy แบบ routine (ชุดทางลัด) — R14a merge แล้ว (PR #32) · R14b หน้าจอ รอ qa/security 🔄
+## สถานะปัจจุบัน — 2026-11-15
+- **ออก v0.12.0 แล้ว** (2026-11-15): tag `v0.12.0` → commit `4c5681b` `chore(release): v0.12.0` (`git ls-remote --tags origin` เห็น `refs/tags/v0.12.0`) · หัวข้อ `[0.12.0] - 2026-11-15` ใน CHANGELOG · รวม R11, R12, R12.1, R13, R14a, R14b · boss รัน release และ push tag เอง · `/api/health` production ตอบ 0.12.0 (boss รายงาน ยังไม่ได้ตรวจเอง)
+- **R14b หน้าจอแบบประจำ merge แล้ว** (PR #33, merge `d928a9d`) · **R14 ทดสอบเครื่องจริง T1–T4 ผ่าน** (ตาม R14 §5) · T4 ผ่านเรื่องลบทีละวันจากมุมมองวัน แต่ boss ขอ "เว้นบางวัน" หลายวันในครั้งเดียว → เข้า R15
+- **LINE เตือน 1 วัน** boss ยืนยันแล้ว (รายงานตามที่ main แจ้ง 2026-11-15) · ปิดรายการค้างจาก R10
+- **env ของ Vercel:** boss ลบ env เก่าออกแล้ว (เฉพาะตัวที่มีอยู่จริง) · เลขาไม่ได้ตรวจ Vercel เอง
+- **repo ยังเป็น public** (boss คงไว้ ตามที่ main แจ้ง)
+- **R15 contract เห็นชอบ 2026-11-15** ("ใช้คำแนะนำ เริ่มเลย") · B1–B9 ใช้ค่าแนะนำทั้งหมด · branch R15a แตกจาก `main` ที่ `4c5681b`
+- **R15a — สิ่งที่ผู้ใช้เห็น (มี migration `0006`) กำลังทำบน `feat/r15a-feedback`** · ยังไม่มี PR · ยังไม่มีรายงาน qa-r15a / security-r15a
+  - commit ตาม `git log origin/main..HEAD` (9 commit): ux `2aa2568` ชุดไอคอนกลุ่ม 24 แบบ, ไอคอนแอป PNG, ข้อความ TH/EN, ตัวอย่างดีไซน์ · architect `6d914db` ADR 0012 §13 (เว้นหลายวัน), ADR 0013 (ลบ `place_search_cache`), ARCHITECTURE · auth `d84d8e1` action `group.icon.update` · platform `01629c6` migration `0006` (`groups.icon`, ลบ `place_search_cache`), `af9981f` allowlist + `PUT /api/groups/:gid/icon`, `0349ada` เว้น/คืนหลายวันในคำขอเดียว, `4c94298` ตัวอย่างคำขอของ must_change_pin sweep · test `dee5b55` map `/skips` เป็น `busy.routine.update` และเทสต์ action ไอคอน · frontend `08daae5` ไอคอนกลุ่ม, แผ่นเว้นบางวัน, manifest/metadata iOS, สัญญาณขั้น 3, แก้เล็ก · secretary: README, quickstart (ตั้งไอคอนกลุ่ม · เว้นบางวัน · เพิ่มไปยังหน้าจอโฮม) และ PROGRESS
+  - ยังไม่ยืนยัน: รันเทสต์/lint/build/e2e ของ branch นี้ (เลขาไม่ได้รันเอง) · CI และ Vercel preview
+- **R15b — ถัดไป (ไม่มี migration):** §3 ความเร็วเฉพาะที่ไม่เสี่ยง · §4 hardening เล็ก (รายละเอียดใน `docs/contracts/R15_CONTRACT.md`)
+
+## R14 — busy แบบ routine (ชุดทางลัด) — R14a merge แล้ว (PR #32) · R14b merge แล้ว (PR #33) · ออกรุ่นใน v0.12.0 ✅
 - contract `docs/contracts/R14_CONTRACT.md` (main) · **boss เห็นชอบ 2026-11-11** ("เห็นชอบ เริ่มเลย") · B1–B8 ใช้ค่าแนะนำทั้งหมด · B9 แบ่งสอง PR (R14a เซิร์ฟเวอร์ · R14b หน้าจอ) · B11/B12 ตัดสินหลังผลวัด perf (§9) · ADR `docs/adr/0012-busy-routines.md` (Accepted)
 - branch `feat/r14-busy-routine` แตกจาก `main` ที่ `98186ef` · **PR #32 merge แล้ว** (merge commit `b121958`, 2026-11-11 04:55 UTC · ตรวจด้วย `gh pr view 32`) · HEAD ของ branch ก่อน merge `c408572`
 - **migration `0005`** (`drizzle/0005_r14_busy_routine.sql`) เพิ่มอย่างเดียว: ตาราง `busy_routine`, `busy_routine_skip`, คอลัมน์ `busy_block.routine_id` (ไม่ rebuild ตาราง, ไม่ backfill) · ลำดับตาม `docs/OPERATIONS.md` (บรรทัด ~107): preview → prod ก่อน merge · rollback: ย้ายแอปอย่างเดียวพอ (OPERATIONS บรรทัด ~116)
@@ -74,7 +86,7 @@
 - **boss ทดสอบ T1–T4 ผ่าน** (บันทึกใน `docs/contracts/R13_CONTRACT.md` §5 บรรทัด ~105–106: T1–T3 iPhone ผ่าน · ภาพหน้าจอ T3 Location แสดง Google Maps พร้อมปุ่ม Open · T4 Android ผ่านจากเพื่อนของ boss "โอเค เหมือนเดิม") · main แจ้งว่าทดสอบบน production
 - **ยังไม่ยืนยัน:** ผลเทสต์ของ R13 ที่เลขาไม่ได้รันเอง (ใช้ตัวเลขจาก main/qa ตามที่ระบุ) · CI และ Vercel ของ `98186ef` (เลขาไม่ได้ตรวจเอง)
 
-## R11 — แจ้งเตือนเหตุการณ์นัดและสมาชิก + LINE ยกเลิกนัด — merge แล้ว (PR #28) · ยังไม่ออกรุ่น ⏳
+## R11 — แจ้งเตือนเหตุการณ์นัดและสมาชิก + LINE ยกเลิกนัด — merge แล้ว (PR #28) · ออกใน v0.12.0 (2026-11-15) ✅
 - contract `docs/contracts/R11_CONTRACT.md` (main) · boss เห็นชอบขอบเขต 2026-11-10 · **ไม่มี migration**
 - เนื้อหา: กระดิ่งเพิ่มเหตุการณ์นัด (ยกเลิก, เปลี่ยนเวลา/สถานที่, คำตอบนัดถึงผู้สร้าง), คำเชิญ (รับ/ปฏิเสธ), สมาชิกเข้า/ออก, ถูกนำออก, เปลี่ยนสิทธิ์, ผลรีเซ็ต PIN · LINE ส่งการยกเลิกนัดเฉพาะคนที่ตอบ "ไป" · การเลื่อนนัดไม่ส่ง LINE
 - เอกสาร README และ quickstart อัปเดตแล้ว (commit `ee35fb8` บน branch เดียวกัน)
@@ -85,7 +97,7 @@
 - backlog จาก security (ไม่บล็อก): Low 2 ชื่อ super admin ที่ไม่ได้เป็นสมาชิกปรากฏในกระดิ่งของกลุ่ม · Low 3 ไม่มีเพดานรวมของ LINE OA · Low 4 ชื่อนัด/ชื่อกลุ่มเป็นข้อความอิสระที่ออกทาง OA · Info 7 ไม่มี limiter การเข้า/ออกกลุ่มซ้ำ (เพดานจำกัดแถวกระดิ่ง ไม่ได้จำกัดการกระทำ)
 - ต่อจากนี้ดูหัวข้อ R12 ด้านล่าง
 
-## R12 — เพิ่มนัดลงปฏิทินในเครื่อง (.ics + Google Calendar) — merge แล้ว (PR #29, `bef0b73`, 2026-11-10 11:00 เวลาไทย) · ยังไม่ออกรุ่น ✅
+## R12 — เพิ่มนัดลงปฏิทินในเครื่อง (.ics + Google Calendar) — merge แล้ว (PR #29, `bef0b73`, 2026-11-10 11:00 เวลาไทย) · ออกใน v0.12.0 (2026-11-15) ✅
 - contract `docs/contracts/R12_CONTRACT.md` (main) · **boss เห็นชอบ 2026-11-10** ("เห็นชอบ เริ่มเลย") · **ไม่มี migration**
 - ที่มา: boss ถามว่าคนที่ตอบ "ไป" เอานัดลงปฏิทิน iOS/Android ได้ไหม · ได้นัดเป็นการคัดลอกครั้งเดียว ไม่ซิงก์ ถ้านัดเปลี่ยนต้องแก้เอง
 - การตัดสินของ boss (contract §11): **B1** ไม่ส่งรายละเอียดนัดไป Google (ตามแนะนำ) · **B2** คนที่ boss ให้ช่วยทดสอบ Android จริงตาม §9 (ถ้า Android ไม่ผ่าน = ไม่ merge) · **B3** เห็นชอบ contract
@@ -113,7 +125,7 @@
 - เลขเวอร์ชันเสนอ **v0.13.0** ถ้า boss ออก v0.12.0 (R11) ก่อน R12 merge · ถ้ายังไม่ออก R11 จะรวมในรุ่นเดียวกับ R12 (boss เลือกตอนออกรุ่น)
 - ผลทดสอบเครื่องจริงรอบ R12 ไม่ได้ปิดเกณฑ์ R12-18 ของ Android ให้ชัด (ดูรายการด้านบน)
 
-## R12.1 — เก็บงานหลังทดสอบ iPhone (ชื่อปุ่ม + ลิงก์แผนที่ + เวลา TZID) — merge แล้ว (PR #30, `bc0eef8`) · ทดสอบ iPhone บางส่วน · ยังไม่ออกรุ่น ⏳
+## R12.1 — เก็บงานหลังทดสอบ iPhone (ชื่อปุ่ม + ลิงก์แผนที่ + เวลา TZID) — merge แล้ว (PR #30, `bc0eef8`) · ทดสอบ iPhone บางส่วน · ออกใน v0.12.0 (2026-11-15) ✅
 - contract `docs/contracts/R12_1_CONTRACT.md` (main) · **boss เห็นชอบ 2026-11-10** ("เห็นชอบ เริ่มเลย") · **ไม่มี migration** · แตกจาก `bef0b73` · branch `feat/r12-1-calendar-polish`
 - boss ตัดสิน B1 (§6): แก้บรรทัด GMT บน iPhone (ใช้ TZID) · ถ้าเทสแล้วไม่หายก็ไม่ต้องสนใจ · ถ้าเวลาผิดให้กลับไปใช้ UTC
 - ส่งงานแล้ว (ตรวจด้วย `git log` ของ branch):
@@ -135,7 +147,7 @@
   - T3 ผ่าน: เวลา 18:00–21:00 ตรงกับนัด ไม่เห็นบรรทัด `(GMT)` แล้ว
   - feedback: ลิงก์สองอันใน Details ไม่มีป้ายกำกับ · ช่อง Location แสดงลิงก์แอป (`URL`) แทนลิงก์แผนที่ → ส่งต่อเป็น R13 (§1.4)
 - **ยังไม่ยืนยัน:** CI และ Vercel ของ `bc0eef8` (เลขาไม่ได้ตรวจเอง) · ผลบน Android ไม่มีรายละเอียด (ดูหัวข้อ R12)ว่าผ่าน
-- เลขเวอร์ชันให้ boss เลือกตอนออกรุ่น (R11, R12 ยังไม่ออกรุ่น)
+- เลขเวอร์ชันให้ boss เลือกตอนออกรุ่น (R11, R12 ออกแล้วใน v0.12.0 วันที่ 2026-11-15)
 
 ## R10 — F6 เตือนก่อนนัด (LINE OA + กระดิ่ง) + ปุ่มขั้น 2 — merge แล้ว (PR #26) · ออก v0.11.0 แล้ว (2026-11-10) ✅
 - **merge แล้ว:** PR #26 (`feat/r10-line-reminders`) merge เป็น `dd6ff8e` เมื่อ 2026-11-09 23:39 เวลาไทย (รายงานโดย boss/main)
@@ -271,64 +283,18 @@
 2. ~~ออก v0.10.0~~ — ออกแล้ว (`d670fcc`, 2026-11-09 · ดูหัวข้อ "v0.10.0 ออกแล้ว + repo เป็น public")
 
 ## รอ boss
-- **R11 แจ้งเตือนเหตุการณ์นัดและสมาชิก** — merge แล้ว (PR #28) · รอ boss ออกรุ่น (เสนอ v0.12.0) · CI ของ `348bd86` ยังไม่ยืนยัน (ดูหัวข้อ R11)
-- **R12 เพิ่มนัดลงปฏิทิน** — merge แล้ว (PR #29) · ยังไม่ออกรุ่น · Android ยังไม่มีรายละเอียดผลทดสอบ (ดูหัวข้อ R12)
-- **R12.1 เก็บงานหลังทดสอบ iPhone** — merge แล้ว (PR #30) · ทดสอบ iPhone บางส่วน (ดูหัวข้อ R12.1) · ยังไม่ออกรุ่น
-- **R14a migration `0005`** — boss รันบน preview และ prod แล้ว (ตามที่ main แจ้ง) · R14a merge แล้ว (PR #32) · เลขาไม่ได้ตรวจฐาน Turso เอง
-- **R14b ทดสอบเครื่องจริง T1–T4** (R14 §6) — รอ PR R14b
-- **R14 ค่าที่ main ตั้งเอง (ไม่ใช่ boss ตัดสิน):** เพดานสำรอง 20 routine ที่ยังไม่จบ (§10 M1) — main รายงานว่า boss ทราบแล้ว · ถ้า boss ต้องการค่าอื่นให้บอก main
-- **R13 สถานที่แบบวางลิงก์ + ลิงก์ปฏิทิน** — merge แล้ว (PR #31) · boss ทดสอบ T1–T4 ผ่าน (ดูหัวข้อ R13)
-- **R7 RSVP 10→9** — ยอมรับตามที่ main เสนอ รอ boss ยืนยัน (ดูหัวข้อ R7 ด้านบน) · merge PR #19 และออก v0.9.1 เสร็จแล้ว
-- **F6 แจ้งเตือนก่อนนัด** — boss เลือกแล้ว (LINE OA + กระดิ่ง, 2026-11-09) · R10 merge และออก v0.11.0 แล้ว (2026-11-10) · ค้างแค่ทดสอบเตือน 1 วันและ `rsvp_nudge` บน LINE จริง · ดูหัวข้อ R10
-- R7 เฟส A เดิม (เปิด preview อ่าน Server-Timing ด้วย DevTools เพื่อวัดเวลาจริงกับ Turso ญี่ปุ่น) — ยังไม่ได้ทำ เลื่อนเป็น backlog ถ้าไม่ต้องการตัวเลขจริงก่อนงานถัดไป
+- **migration `0006` (R15a):** ตามลำดับ R15 §1.5 + OPERATIONS: รันบน preview → prod ก่อน merge · ยังไม่มี PR ให้รัน · ไฟล์ `docs/OPERATIONS.md` มีการแก้ค้างจาก ops ที่ยังไม่ commit ตอนเลขาเขียนบันทึกนี้
+- **ทดสอบเครื่องจริง R15 §6 (T1–T3)** หลัง R15a พร้อมบน preview: T1 เว้นบางวัน · T2 ไอคอนกลุ่มทั้งบัญชีตัวเองและเพื่อน · T3 เพิ่มไปยังหน้าจอโฮม iPhone
+- **Node 24 บนเครื่อง** (ทางเลือกของ boss ตาม R15 §8) — เครื่องเป็น v26 ทำให้เทสต์ health ล้ม
+- **เลขเวอร์ชันรอบถัดไป:** ยังไม่มีข้อเสนอจาก main ในรีโป (เลขาไม่เสนอเอง)
 
-## เหลือ
-- **busy แบบ routine (ชุดทางลัด)** — contract และ R14a merge แล้ว (ดูหัวข้อ R14) · **R14b หน้าจอ** รอ qa/security → PR → ทดสอบเครื่องจริง (ดูหัวข้อ "R14b — สถานะ") · ยังไม่ได้ทดสอบเครื่องจริง (R14 §6)
-- **backlog ที่ไม่บล็อก (รวมจากรอบก่อน):**
-  - ลบตาราง `place_search_cache` — R14 §2 ระบุว่า "ไม่ทำ" รอบนี้ · ค้างเป็นรายการถัดไป
-  - `/api/prefs` ไม่บันทึก `user.locale` ตอนสลับภาษา (ของเดิม)
-  - จำกัดโฮสต์ลิงก์แผนที่ (security R13 Info 1) — ถ้า boss ต้องการ
-  - ปุ่ม Apple/Google ที่ 768 กรณีชื่อซ้อนแนวตั้งกว้างไม่เท่ากัน (ความสวยงาม)
-  - ไฟล์ตัวอย่างดีไซน์เก่า (`docs/design/samples/appt-detail.html`, `appt-form.html`, `docs/design/tools/templates/appt-form.html`) — ตามที่ main แจ้ง · เลขายังไม่ได้เปิดตรวจเนื้อหา
-  - ~~ขนาด response ของ availability~~ — **ปิดใน R14a §10 M2** (`busy[]` ไม่เกิน 5,000 + `detailTruncated`) · ยืนยันเชิงโค้ด + วัดในเครื่อง ยังไม่ยืนยันบน Vercel จริง
-- **ลบตาราง `place_search_cache`** — R13 คงไว้ตาม B3 (ยังไม่ลบรอบนี้) · ให้ลบใน migration ครั้งถัดไป
-- **env ที่ลบได้ใน Vercel หลัง merge R13** (ค้างไว้ไม่ทำให้แอปล้ม ตาม `docs/OPERATIONS.md`): `PLACE_SEARCH_ENABLED`, `NOMINATIM_BASE_URL`, `NOMINATIM_CONTACT`, `NEXT_PUBLIC_MAP_TILE_URL`, `NEXT_PUBLIC_MAP_ATTRIBUTION`
-- **ไฟล์ตัวอย่างดีไซน์ยังเป็นแบบเก่า (ux)** — `docs/design/samples/appt-detail.html`, `appt-form.html`, `docs/design/tools/templates/appt-form.html` (ตามที่ main แจ้ง · เลขายังไม่ได้เปิดตรวจเนื้อหา)
-- **งานหลักที่ค้าง** (ตาม `docs/NEXT_PHASE.md`):
-  - **F1 onboarding** — R8 merge แล้ว (`e41f9d2`) · **ออกแล้ว v0.10.0** (`d670fcc`, 2026-11-09)
-- **งานค้างหลังเปิด public (เพิ่ม 2026-11-09, ไม่บล็อก):**
-  - ทบทวนว่าจะกลับเป็น private ไหม — ถ้ากลับ ต้องแก้โควตา CI ก่อน (ผูกบัตร หรือลดการใช้ CI) · boss ตัดสิน
-  - ลดการใช้นาที CI — ยังไม่ได้ทำ
-  - L2 (security-public-scan): username ตัวอย่าง `boss` ใน `docs/OPERATIONS.md` — ยังไม่แก้ (ดู `docs/reports/security-public-scan.md`)
-  - backlog R8 (step-2 CTA ไปปฏิทิน, step 3 ค้าง "ถัดไป", ประโยคเสริมใน `/privacy`) — ดูหัวข้อ "backlog R8" ด้านบน
-  - **README สำหรับคนนอก (R9)** — merge แล้ว (PR #23, `8b60634`)
-  - **F2 ความช้า** — R7 เสร็จ รอ boss ตัดสิน RSVP 10→9
-  - **F6 แจ้งเตือนก่อนนัด** — R10 merge + ออก v0.11.0 แล้ว · ค้าง: ทดสอบเตือน 1 วันและ `rsvp_nudge` บน LINE จริง · CI ของ `a77fc50` ยังไม่ยืนยันผล
-  - **Backlog R10:** security L1, L3 (ดูหัวข้อ R10)
-- **backlog R7 และ R8 (ไม่บล็อก):** ดูหัวข้อ "backlog ใหม่จาก R7" และ "backlog R8" ด้านบน · qa/security L/Info ที่เหลือจาก R7: ดู `docs/reports/qa-r7.md`, `docs/reports/security-r7.md`
-- **ทำ config/helper ถาวรให้ Vitest ข้าม EPERM บน Windows** (ข้อเสนอเดิม)
-- **R6 hardening (ดู `docs/NEXT_PHASE.md` หัวข้อ backlog R6 hardening):** rate limit แบบ global/อ่าน · retention กลุ่ม/คำเชิญที่ลบ · e2e retries ซ่อน flake · guard stream HTTP 200 · CSP unsafe-inline · DST day strip · แจ้งเตือน appointment.cancelled · กู้กลุ่ม/บัญชีที่ลบ
-- **backlog R6F (ไม่บล็อก):**
-  - qa-r6f L1: ป้ายชุดใน `MineList.tsx:99` เป็น `<span aria-label>` ไม่มี role — screen reader อาจไม่อ่าน aria-label (ข้อความที่มองเห็นยังอ่านได้) · ตัดสินใจโดย ux/frontend
-  - qa-r6f L2: "Certain hours" ในปุ่ม segmented ขึ้น 2 บรรทัดที่ 375 EN (ไม่ล้น ปุ่มสูงกว่า 44px) — เชิงรูปลักษณ์
-  - qa-r6f L3: `editNote` อยู่ท้ายฟอร์มแก้ไข ต้องเลื่อนถึง (เปิดเผยไว้แล้ว)
-  - security-r6f Info 1: `?scope=` ซ้ำใช้ค่าสุดท้าย (`route.ts:21`) — ข้อมูลของผู้กระทำเอง · ทางเลือก: ปฏิเสธเมื่อซ้ำ
-  - security-r6f Info 2: ขยายวัน 62 วันก่อนชน rate limit (ต้นทุนราว 2.5 ms/ครั้งที่วัดเอง)
-  - security-r6f Info 3: กิจวัตร "17:00–20:00 ทุกวัน" เดาได้จากรูปแบบเวลา (ไม่ได้รั่วเพิ่มจากการเป็นชุด)
-  - security-r6f Info 4: PATCH busy ไม่มี rate limit (contract กำหนดเฉพาะ create/delete)
-  - security-r6f Info 5: การแข่งกันข้าม connection ทดสอบบน SQLite ไฟล์เดียวเท่านั้น ยังไม่ทดสอบบน Turso จริง
-  - ข้อเสนอ (qa/security): ทำ config/helper ถาวรให้ Vitest ข้าม EPERM ตอนลบ temp DB บน Windows (ตอนนี้ทุก agent ทำ config ชั่วคราวเอง)
-  - รอบหน้า (ตาม R6F Errata): "ลบตั้งแต่วันนี้เป็นต้นไป" และ "แก้ทั้งชุด"
-- **backlog ที่ R6E ไม่รับ (ไม่บล็อก):**
-  - qa-r6e L1: skeleton ไม่มี delay 150 ms / min-duration 250 ms ตาม R6E_POLISH §3.3 (`LoadingState.tsx`, `loading.tsx`)
-  - qa-r6e L2: `NavProgress` ฟังแค่คลิกลิงก์ — `router.push` จากโค้ด (เช่นหลังบันทึก) ไม่ขึ้นแถบ (ปุ่มมีวงหมุนของตัวเองแล้ว)
-  - qa-r6e L3: เทสต์ "นำทางเร็วไม่กระพริบ" ใช้ `--loading-delay` 5000 ms จำลอง ไม่ได้วัดเวลาจริง 150 ms
-  - qa-r6e L4: ยังไม่วัด CLS (layout shift) — ปุ่มคงขนาดได้ ≤ 1px และ skeleton กำหนดขนาดด้วย CSS (อ่านโค้ด)
-  - security-r6e Info 1: assertion `appt-story.spec.ts:133-134` ลบรูป `myConflicts` จากทุก response ของ B — ถ้า endpoint อื่นใช้รูปเดียวกันในอนาคตจะไม่จับ (ข้อจำกัดของเทสต์ ไม่ใช่ช่องโหว่)
-  - security-r6e Info 2: E11 ไม่ดู `truncated` และช่วงยาวใช้รายการที่ยังไม่จบ → อาจเตือนไม่ครบ (UX ไม่ใช่ความปลอดภัย)
-  - security-r6e Info 3: E11 เพิ่ม `GET /api/me/busy` 1 ครั้งต่อการบันทึก (อ่านของตัวเอง)
-  - security-r6e Info 4: CSP ยังมี `'unsafe-inline'` ใน script-src/style-src (`next.config.ts`) — ของเดิม, nonce อยู่ใน hardening
-  - security-r6d Info 5: การ์ดรายการ `myConflict` มีเพดาน 500 ไม่มีธง truncated (ผลแค่ UI)
+## เหลือ (ตรวจกับ R15_CONTRACT §0 และ §2 เมื่อ 2026-11-15)
+- **เสร็จแล้วทั้งหมด (R15 §0):** B1 จำนวน "ไม่ไป" · F1 onboarding (R8) · F3 ไอคอน/สีสมาชิก + แท็บว่างตรงกัน + ปุ่มลอยสร้างนัด · F4 นับถอยหลัง · F5 ข้อความ /privacy · F6 แจ้งเตือน (R10) · แจ้งเตือนยกเลิกนัด (R11) · ขั้น 2 เปิดฟอร์ม busy (R10)
+- **R15a — ยังเปิด (กำลังทำ):** ไอคอนกลุ่ม · เว้นบางวันของแบบประจำ · ไอคอนแอป/manifest iPhone (R15 §1.1–1.3) · ข้อ §1.4 ปรับหน้าจอ: ฟอร์มแบบประจำ (แถบล่างที่ 375), ขั้น 3 ของแถบขั้นตอน, ปุ่ม Apple/Google Maps กว้างเท่ากันที่ 768, "Certain hours" EN ที่ 375, ป้ายชุดสำหรับ screen reader, `/privacy` ประโยค B4, ตัวอย่างดีไซน์เก่า (`docs/design/samples/appt-*.html`, `tools/templates/appt-form.html`) · migration `0006` ลบ `place_search_cache` (B8)
+- **R15b — ยังเปิด (ถัดไป):**
+  - §3 ความเร็ว (เฉพาะแบบไม่เสี่ยง): รวม `listMembers` + `listCurrentRsvps` ใน `toDetailDto` (RSVP ปัจจุบัน 10 query ตาม R15 §3) · ทางแจ้งเตือนใช้ชื่อจาก session และรวมเช็กผู้สร้างเข้า query สิทธิ์ · `/groups/[gid]` ผ่านด่านกลุ่มครั้งเดียว · ไม่ทำ: ย้ายอ่านคำตอบออกนอก transaction, ย้าย rate limit เข้า transaction, ย่อ DTO
+  - §4 hardening: rate limit PATCH busy และ PATCH แบบประจำที่ได้ 404 · ออก/เข้ากลุ่มซ้ำ · `?scope=` ซ้ำ → 400 · LINE: ข้อความชื่อนัด/ชื่อกลุ่มทำให้ลิงก์กดไม่ได้ · เพดานรวม LINE OA 300 ข้อความ/เดือน (B6) · ชื่อ super admin ที่ไม่ใช่สมาชิกในกระดิ่ง → "ผู้ดูแลระบบ" (B7) · `/api/prefs` บันทึก `user.locale` ตอนสลับภาษา · ลิงก์แผนที่รับทุก https (B5, ไม่จำกัด) · config Vitest ข้าม EPERM · CI paths-ignore เมื่อแก้เอกสาร · เปลี่ยนตัวอย่าง username `boss` ใน OPERATIONS · NEXT_PHASE + PROGRESS ตรงของจริง
+- **ไม่ทำรอบนี้ (R15 §2, B9 รอบหลังต้องตัดสินนโยบายก่อน):** CSP แบบ nonce (เลิก `unsafe-inline`) · retention ลบถาวรกลุ่ม/คำเชิญ + กู้กลุ่ม/บัญชีที่ลบ · rate limit ฝั่งอ่านแบบ global · หน้า auth ตอบ 200 ระหว่าง stream · ลด e2e retries เป็น 0 · Server-Timing บนหน้า RSC · DST day strip
 
 ## ข้อสังเกต
 - **ลำดับ migration `0003` (ปิดแล้ว):** commit `ca104a0` (ops) แก้ `docs/OPERATIONS.md` ให้ตรงกับลำดับที่ main สั่ง (preview ก่อน PR, prod ก่อน merge) — ปิดตาม commit message

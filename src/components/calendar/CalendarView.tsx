@@ -6,12 +6,15 @@ import { startTransition, useEffect, useMemo, useRef, useState, useSyncExternalS
 import { useLocale, useTranslations } from "next-intl";
 import { callApi } from "@/components/auth/api";
 import { rememberGroup } from "./RememberGroup";
+import { useMinSkeleton } from "@/components/shell/useMinSkeleton";
+import { markFreeSeen } from "@/components/groups/free-seen";
 import { GoingList } from "./GoingList";
 import { callApiFull } from "@/components/appointments/api";
 import { BusyFormSheet, type BusyDone } from "@/components/busy/BusyFormSheet";
 import { RoutineFormSheet, type RoutineFormMode } from "@/components/busy/RoutineFormSheet";
 import { RoutineList, type RoutineListState } from "@/components/busy/RoutineList";
 import { RoutineScopeSheet } from "@/components/busy/RoutineScopeSheet";
+import { RoutineSkipSheet } from "@/components/busy/RoutineSkipSheet";
 import { doneRef, type RoutineDone, type RoutineView, type ScopeAction, type ScopeChoice, type ScopeTarget } from "@/components/busy/routine-model";
 import { CreateAppointmentButton } from "@/components/appointments/CreateAppointmentButton";
 import { FreeView } from "@/components/availability/FreeView";
@@ -19,6 +22,7 @@ import { Cat } from "@/components/brand";
 import { Notice } from "@/components/groups/Notice";
 import { isGone } from "@/components/groups/errors";
 import { Bell } from "@/components/shell/Bell";
+import { GroupIcon } from "@/components/icons/GroupIcon";
 import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
 import { EmptyState } from "@/components/shell/EmptyState";
@@ -73,7 +77,7 @@ type AvState = { key: string; nowMs: EpochMs; status: "ready"; data: GroupAvaila
 type MineState = { key: string; nowMs: EpochMs; status: "ready"; items: OwnBusy[]; truncated: boolean; going: AppointmentDto[] | null } | { key: string; nowMs: EpochMs; status: "error" };
 type FormState = { edit: OwnBusy | null; today: DateISO; defaultDate: DateISO; routineDayNote?: boolean } | null;
 /** R14: sheet ขอบเขต / ฟอร์ม routine ที่เปิดอยู่ (own = วันของ routine ที่แตะ — ใช้เปิดฟอร์ม busy เดิมเมื่อเลือก "เฉพาะวันนี้") */
-type RoutineUi = { type: "scope"; action: ScopeAction; target: ScopeTarget; own: OwnBusy | null } | { type: "form"; mode: RoutineFormMode } | null;
+type RoutineUi = { type: "scope"; action: ScopeAction; target: ScopeTarget; own: OwnBusy | null } | { type: "form"; mode: RoutineFormMode } | { type: "skip"; routine: RoutineView } | null;
 
 const WIDE = "(min-width: 48em)";
 function subscribeWide(cb: () => void): () => void {
@@ -130,6 +134,8 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   const [switching, setSwitching] = useState(false);
   const [routineUi, setRoutineUi] = useState<RoutineUi>(null);
   const [routineToast, setRoutineToast] = useState<RoutineDone | null>(null);
+  // R15a: หลังเว้น/เอากลับสำเร็จ รายการโหลดใหม่ → คืนโฟกัสให้ปุ่ม "เว้นบางวัน" ของชุดนั้น
+  const [skipFocusId, setSkipFocusId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ result: BusyDone; count?: number } | null>(null);
   const [missingShown, setMissingShown] = useState(groupMissing);
   // มุมมองว่างตรงกัน: วันที่ผู้ใช้เลือก (null = ใช้วันตั้งต้น) · sheet รายละเอียดวัน (มือถือ)
@@ -263,11 +269,20 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
 
   // ───────── ค่าที่คำนวณจากข้อมูล ─────────
   const loading = cal.key !== calKey;
+  // R15a §1.4: skeleton ที่ขึ้นแล้วค้างอย่างน้อย 250 ms (มุมมองเดือน/วัน/ของฉัน)
+  const calSkel = useMinSkeleton(loading && (view === "month" || view === "day"));
+  const mineSkel = useMinSkeleton(view === "mine" && (!mine || mine.key !== mineKey));
+  const calLoading = loading || calSkel;
   const ready = !loading && cal.status === "ready" ? cal.data : null;
   const avLoading = av === null || av.key !== avKey;
   const avReadyRaw = !avLoading && av?.status === "ready" ? av.data : null;
   // R6D: busy[] มี kind — แปลงเป็นรูปเดิมให้ FreeView (ลำดับคงเดิม → itemIdx ยังชี้ถูก)
   const avReady = useMemo(() => (avReadyRaw ? { ...avReadyRaw, busy: avReadyRaw.busy.map((b) => toSharedBusy(b, avReadyRaw.group.tz)) } : null), [avReadyRaw]);
+  // R15a §1.4: ขั้น 3 ของแถบขั้นตอน "เสร็จ" เมื่อเปิดแท็บว่างตรงกันของกลุ่มนี้และเนื้อหาแสดงสำเร็จ (ไม่นับกลุ่มคนเดียว/ยังโหลด/พัง) — เก็บบนเครื่องนี้เท่านั้น
+  const freeShown = view === "free" && avReady !== null && avReady.members.length > 1;
+  useEffect(() => {
+    if (freeShown) markFreeSeen(userId, gid);
+  }, [freeShown, userId, gid]);
   const groupTz = ready?.group.tz ?? tz;
   const members = ready?.members ?? [];
   const spans = useMemo(() => (ready ? ready.busy.map((b) => spanOf(toSharedBusy(b, groupTz), groupTz)) : []), [ready, groupTz]);
@@ -370,6 +385,17 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     setToast(null);
     setRoutineToast(null);
     setRoutineUi({ type: "form", mode: { type: "create" } });
+  }
+
+  function openSkip(r: RoutineView) {
+    setToast(null);
+    setRoutineToast(null);
+    setRoutineUi({ type: "skip", routine: r });
+  }
+
+  function onSkipDone(routineId: string, done: RoutineDone) {
+    if (done.type !== "gone") setSkipFocusId(routineId);
+    onRoutineDone(done);
   }
 
   function openScope(action: ScopeAction, target: ScopeTarget, own: OwnBusy | null = null) {
@@ -487,7 +513,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   // R6C L1: ปุ่มแถบบนจอกว้าง ซ่อนเฉพาะ gone/error/loading (ไม่ผูกกับ showFab)
   let showTopActions = true;
   if (view === "mine") {
-    if (!mine || mine.key !== mineKey) {
+    if (mineSkel || !mine || mine.key !== mineKey) {
       showFab = false;
       showTopActions = false;
       body = (
@@ -519,6 +545,9 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
               onEdit={(r) => openScope("edit", { routine: r, day: null })}
               onDelete={(r) => openScope("delete", { routine: r, day: null })}
               onExtend={extendRoutine}
+              onSkip={openSkip}
+              restoreFocusId={skipFocusId}
+              onFocusRestored={() => setSkipFocusId(null)}
             />
           ) : null}
           <GoingList items={mine.going} onRetry={retryCal} />
@@ -588,7 +617,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     showTopActions = false;
     body = errorBlock(t("calendar.error.title"), t("calendar.error.body"), retryCal, "cal-error");
   } else if (view === "day") {
-    if (loading) {
+    if (calLoading) {
       showFab = false;
       showTopActions = false;
       body = (
@@ -604,8 +633,8 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       body = dayPanel;
     }
   } else {
-    showFab = !loading;
-    showTopActions = !loading;
+    showFab = !calLoading;
+    showTopActions = !calLoading;
     body = (
       <>
         {ready?.truncated === true ? <TruncatedNote messageKey="calendar.truncated" /> : null}
@@ -624,8 +653,8 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
         <div className={wide ? "cal-split" : undefined}>
           <section aria-label={t("calendar.view.month")}>
             {nav}
-            <MonthGrid model={month} monthTitle={monthTitle} members={members} busyByDate={busyByDate} selected={wide ? selected : null} loading={loading} onSelect={onCell} />
-            {loading ? (
+            <MonthGrid model={month} monthTitle={monthTitle} members={members} busyByDate={busyByDate} selected={wide ? selected : null} loading={calLoading} onSelect={onCell} />
+            {calLoading ? (
               <p className="loading-note cal-load-note" role="status" data-testid="cal-loading">
                 {t("calendar.loading")}
               </p>
@@ -657,6 +686,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     <>
       <header className="topbar">
         <button type="button" className="group-switch" aria-haspopup="dialog" aria-label={t("calendar.groupSwitch.label", { group: groupName })} data-testid="cal-group-switch" onClick={() => setSwitching(true)}>
+          <GroupIcon icon={group?.icon ?? null} size="sm" />
           <span className="name">
             <Name>{groupName}</Name>
           </span>
@@ -738,6 +768,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
           onStale={refreshAll}
         />
       ) : null}
+      {routineUi?.type === "skip" ? <RoutineSkipSheet routine={routineUi.routine} onClose={() => setRoutineUi(null)} onDone={(d) => onSkipDone(routineUi.routine.id, d)} /> : null}
       {routineUi?.type === "form" ? <RoutineFormSheet mode={routineUi.mode} groupCount={groups.length} onClose={() => setRoutineUi(null)} onDone={onRoutineDone} onStale={refreshAll} /> : null}
     </>
   );

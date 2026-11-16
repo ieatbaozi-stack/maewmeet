@@ -314,7 +314,8 @@
     "save": "Save",
     "close": "Close",
     "loading": "Loading…",
-    "navLoading": "Opening the page…"
+    "navLoading": "Opening the page…",
+    "systemAdmin": "System admin"
   },
   "signup": {
     "title": "Create an account",
@@ -580,7 +581,8 @@
       "free": {
         "title": "See when everyone’s free",
         "body": "Once everyone’s added theirs, the calendar shows the days you all line up.",
-        "cta": "Find a free day"
+        "cta": "Find a free day",
+        "ctaDone": "Take another look"
       },
       "plan": {
         "title": "Make a plan",
@@ -755,6 +757,31 @@
         "typeHint": "Type “{group}” exactly as it appears",
         "confirm": "Delete this group"
       }
+    },
+    "icon": {
+      "title": "Group icon",
+      "body": "Pick a little picture for your group. Everyone in it sees it on the calendar, the Groups page and Home.",
+      "current": "Using: {name}",
+      "currentDefault": "Nothing picked yet, so it shows the cat.",
+      "change": "Change icon",
+      "changeAria": "Change group icon, currently {name}",
+      "viewOnly": "Only the admin and moderators can change the icon.",
+      "picker": {
+        "title": "Pick a group icon",
+        "hint": "To go back to the original, pick the cat.",
+        "listAria": "Icons to choose from",
+        "selected": "Selected",
+        "save": "Use this icon",
+        "saving": "Saving…",
+        "unchanged": "The icon hasn’t changed"
+      },
+      "toast": {
+        "saved": "Group icon updated"
+      },
+      "error": {
+        "generic": "Couldn’t save, and the icon is still the old one. Try again.",
+        "forbidden": "You can’t change this group’s icon any more. Your role may have just changed."
+      }
     }
   },
   "notifications": {
@@ -841,7 +868,7 @@
     "INVITE_INVALID": "This code doesn’t work. Ask someone in the group for a new one.",
     "ALREADY_MEMBER": "That person’s already in this group.",
     "USER_NOT_FOUND": "No one has that username. Check the spelling, or send them an invite code instead.",
-    "LIMIT_REACHED": "{limit, select, groups {You can create up to {max} groups. Delete one you no longer use to make a new one.} members {This group is full ({max} members at most). An admin can remove members who aren’t active.} codes {This group already has {max} active invite codes. Revoke one you don’t need to make a new one.} busyCount {You already have {max} upcoming busy entries, the most we allow. Delete ones you don’t need, then add this one.} busySpan {One entry can cover {max} days at most. Try splitting it into a few.} busyBackdate {You can add busy time up to {max} days back. Pick a more recent date.} appointments {This group already has {max} upcoming plans, the most we allow. Cancel one you don’t need to make a new one.} appointmentSpan {One plan can run {max} days at most. Try splitting it into a few.} appointmentsPerDay {You’ve already created {max} plans today, the most we allow. Try again tomorrow, or edit one you already have.} routines {You already have {max} routines running, the most we allow. Stop one you don’t need to add a new one.} routineRows {That would take your routine days past {max}. Try a shorter stretch or stop a routine you don’t need.} routineSpan {That stretch is longer than one routine can cover. Try splitting it into a few.} routineAhead {You can plan up to {max} months ahead. Pick an end that’s closer.} other {You’ve hit a limit. Free something up and try again.}}",
+    "LIMIT_REACHED": "{limit, select, groups {You can create up to {max} groups. Delete one you no longer use to make a new one.} members {This group is full ({max} members at most). An admin can remove members who aren’t active.} codes {This group already has {max} active invite codes. Revoke one you don’t need to make a new one.} busyCount {You already have {max} upcoming busy entries, the most we allow. Delete ones you don’t need, then add this one.} busySpan {One entry can cover {max} days at most. Try splitting it into a few.} busyBackdate {You can add busy time up to {max} days back. Pick a more recent date.} appointments {This group already has {max} upcoming plans, the most we allow. Cancel one you don’t need to make a new one.} appointmentSpan {One plan can run {max} days at most. Try splitting it into a few.} appointmentsPerDay {You’ve already created {max} plans today, the most we allow. Try again tomorrow, or edit one you already have.} routines {You already have {max} routines running, the most we allow. Stop one you don’t need to add a new one.} routineRows {That would take your routine days past {max}. Try a shorter stretch or stop a routine you don’t need.} routineSpan {That stretch is longer than one routine can cover. Try splitting it into a few.} routineAhead {You can plan up to {max} months ahead. Pick an end that’s closer.} skipDays {You can skip up to {max} days at a time. Try doing it in a few rounds.} other {You’ve hit a limit. Free something up and try again.}}",
     "INVALID_RANGE": "{kind, select, dates {The last day can’t come before the first day.} other {The end has to be after the start.}}",
     "INVALID_DATE": "That date doesn’t exist (like 30 February). Pick one from the calendar.",
     "INVALID_LOCAL_TIME": "That time doesn’t exist here because the clocks skip ahead. Pick another time.",
@@ -980,7 +1007,7 @@
       "scope": {
         "label": "Time each day",
         "allDay": "All day",
-        "daily": "Certain hours",
+        "daily": "Set hours",
         "help": {
           "allDay": "Busy the whole day, every day in this range, like a trip abroad",
           "daily": "The same hours every day in this range, like an evening class. The rest of each day stays free."
@@ -1013,7 +1040,7 @@
     "series": {
       "tag": "In a series",
       "tagCount": "Series · {count, plural, one {# day} other {# days}}",
-      "tagAria": "This entry is part of a daily busy series",
+      "tagAria": "In a series: this day is one of a daily busy series",
       "detail": "One of {count, plural, one {# day} other {# days}} in this series ({start}–{end} every day)",
       "detailPlain": "One day in a daily busy series",
       "deleteTitle": "Delete just this day, or the whole series?",
@@ -1195,7 +1222,7 @@
       },
       "calendar": {
         "tag": "Routine",
-        "tagAria": "This entry comes from a routine",
+        "tagAria": "Routine: this day comes from a routine",
         "detail": "One day of a routine ({days} · {time})",
         "detailAllDay": "One day of a routine ({days} · All day)",
         "detailPlain": "One day of a routine"
@@ -1217,6 +1244,54 @@
         "dst": "Some days in this stretch don’t have that time because the clocks skip ahead, so none were added. Nudge the time a little.",
         "end": "The end time can’t be the same as the start time.",
         "generic": "Couldn’t add them, and none of these days were added. What you typed is still here, so try again."
+      },
+      "skip": {
+        "button": "Skip some days",
+        "buttonAria": "Skip some days of {title}",
+        "chip": "{count, plural, one {# day skipped} other {# days skipped}}",
+        "title": "Skip some days",
+        "lead": "Tap the days you want to skip. Pick as many as you like, then confirm once.",
+        "note": "Skipped days disappear from every friend’s calendar right away, and they stay gone even if you edit the whole routine. Changed your mind? You can bring a day back until that day arrives.",
+        "mode": {
+          "label": "What to do",
+          "skip": "Skip days",
+          "restore": "Skipped ({count})"
+        },
+        "calendar": {
+          "aria": "Pick days to skip, {month}",
+          "prev": "Previous month",
+          "next": "Next month"
+        },
+        "restoreCalendarAria": "Pick days to bring back, {month}",
+        "day": {
+          "aria": "{date}{state, select, on {, picked} skipped {, already skipped} other {}}"
+        },
+        "legend": {
+          "available": "Routine day",
+          "selected": "Picked",
+          "skipped": "Skipped"
+        },
+        "count": "{count, plural, =0 {No days picked yet} one {# day picked} other {# days picked}}",
+        "limit": "You can pick up to {max} days at a time.",
+        "clear": "Clear",
+        "confirm": "Skip {count, plural, one {# day} other {# days}}",
+        "confirmRestore": "Bring back {count, plural, one {# day} other {# days}}",
+        "saving": "Saving…",
+        "empty": {
+          "title": "No days left to skip",
+          "body": "Every day left in this routine is already skipped, or the routine has ended."
+        },
+        "toast": {
+          "skipped": "Skipped {count, plural, one {# day} other {# days}}",
+          "restored": "Brought back {count, plural, one {# day} other {# days}}"
+        },
+        "error": {
+          "generic": "Couldn’t save, and nothing changed. Your picks are still here, so try again.",
+          "stale": "Some of the days you picked have passed or are no longer in this routine, so nothing changed. Close this and reopen it to see the latest days.",
+          "rate": "That’s a lot at once. Wait a moment and try again. Nothing changed.",
+          "rows": "That would take your routine days past {max}, so nothing was brought back and nothing changed. Delete or stop a routine you don’t need, then try again."
+        },
+        "restoreNote": "A day you edited on its own stays as its own entry. Bringing the routine day back may leave you with two for that date. If you don’t need the separate one, delete it from the list."
       }
     }
   },
@@ -1753,7 +1828,7 @@
     "eyebrow": "maewmeet",
     "title": "Privacy",
     "draft": "This page explains, based on how the app actually works, what we keep and how we use it. It isn’t a legal document.",
-    "updated": "Last updated 11 Nov 2026",
+    "updated": "Last updated 15 Nov 2026",
     "back": "Back",
     "intro": "maewmeet is an app for making plans with friends. It keeps only what it needs to work, shows no ads, and never sells or shares your data for marketing.",
     "collect": {
@@ -1771,7 +1846,8 @@
       "note": "Private notes are never sent to anyone but you.",
       "outsiders": "People who aren’t in a group with you can’t see your busy time at all.",
       "groups": "Group members see your display name, your role, the group’s plans and replies to them.",
-      "superAdmin": "System admins see usernames, display names, group memberships and counts so they can run the app, suspend or unlock accounts and approve PIN resets. A system admin can also open any group the way a member can (calendar, free days, plans with their title, time and place, invites) and manage it (edit or cancel plans, remove members, hand over group admin, delete the group). Every one of these is recorded in the audit log. System admins never see private notes, or what you’re doing for entries set to “Details hidden”."
+      "superAdmin": "System admins see usernames, display names, group memberships and counts so they can run the app, suspend or unlock accounts and approve PIN resets. A system admin can also open any group the way a member can (calendar, free days, plans with their title, time and place, invites) and manage it (edit or cancel plans, remove members, hand over group admin, delete the group). Every one of these is recorded in the audit log. System admins never see private notes, or what you’re doing for entries set to “Details hidden”.",
+      "busyStatus": "People in a group with you can see whether you’ve added busy time for the next 30 days. If you haven’t, a “No busy days yet” tag shows next to your name. What each entry shows follows the rules above."
     },
     "places": {
       "title": "Places and maps",
@@ -1830,6 +1906,35 @@
       "success": "LINE is now linked to maewmeet. We’ll remind you here about plans you’re going to, and let you know if one is cancelled.",
       "invalid": "That code doesn’t work. It may have expired or already been used. Get a new one from the Me tab in maewmeet.",
       "alreadyLinked": "This LINE account is already linked to maewmeet. To change it, disconnect first from the Me tab."
+    }
+  },
+  "groupIcon": {
+    "aria": "Group icon: {name}",
+    "names": {
+      "cat": "Cat",
+      "food": "Food",
+      "hotpot": "Hot pot",
+      "dessert": "Dessert",
+      "coffee": "Coffee",
+      "drinks": "Drinks",
+      "badminton": "Badminton",
+      "soccer": "Football",
+      "volleyball": "Volleyball",
+      "fitness": "Workout",
+      "bike": "Cycling",
+      "game": "Games",
+      "music": "Music",
+      "karaoke": "Karaoke",
+      "movie": "Movies",
+      "travel": "Travel",
+      "camping": "Camping",
+      "work": "Work",
+      "study": "Study",
+      "home": "Home",
+      "shopping": "Shopping",
+      "heart": "Heart",
+      "party": "Party",
+      "star": "Star"
     }
   }
 }

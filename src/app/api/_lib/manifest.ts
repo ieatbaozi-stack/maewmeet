@@ -49,6 +49,7 @@ export const ROUTE_MANIFEST = [
   { method: 'GET', path: '/api/groups/:gid', action: 'group.view', auth: 'actor', owner: 'platform' },
   { method: 'PATCH', path: '/api/groups/:gid', action: 'group.update', auth: 'actor', owner: 'platform' },
   { method: 'DELETE', path: '/api/groups/:gid', action: 'group.delete', auth: 'actor', owner: 'platform' },
+  { method: 'PUT', path: '/api/groups/:gid/icon', action: 'group.icon.update', auth: 'actor', owner: 'platform' }, // R15 §1.2
   { method: 'DELETE', path: '/api/groups/:gid/members/:uid', action: 'member.remove', auth: 'actor', owner: 'platform' },
   { method: 'PATCH', path: '/api/groups/:gid/members/:uid', action: 'member.setRole', auth: 'actor', owner: 'platform' },
   { method: 'PATCH', path: '/api/groups/:gid/members/me/appearance', action: 'member.setOwnAppearance', auth: 'actor', owner: 'platform' },
@@ -72,6 +73,7 @@ export const ROUTE_MANIFEST = [
   { method: 'POST', path: '/api/me/busy-routines', action: 'busy.routine.create', auth: 'actor', owner: 'platform' },
   { method: 'PATCH', path: '/api/me/busy-routines/:id', action: 'busy.routine.update', auth: 'actor', owner: 'platform' },
   { method: 'DELETE', path: '/api/me/busy-routines/:id', action: 'busy.routine.delete', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/me/busy-routines/:id/skips', action: 'busy.routine.update', auth: 'actor', owner: 'platform' }, // R15 §1.1 (ADR 0012 §13)
   { method: 'GET', path: '/api/groups/:gid/calendar', action: 'group.calendar.view', auth: 'actor', owner: 'platform' },
   { method: 'GET', path: '/api/groups/:gid/availability', action: 'group.availability.view', auth: 'actor', owner: 'platform' },
   // ── U10–U11, D11, ADR 0007 (R4B · Platform) ──

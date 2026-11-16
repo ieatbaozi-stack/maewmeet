@@ -28,16 +28,16 @@ describe("computeSteps (R8 แถบขั้นตอน)", () => {
     expect(r.allDone).toBe(false);
   });
 
-  it("ขั้น 1, 2, 4 เสร็จ = ครบ: ไม่มีขั้นถัดไป, ขั้น 3 ไม่เสร็จและไม่ถูกนับ", () => {
+  it("ขั้น 1, 2, 4 เสร็จ = ครบ: ไม่มีขั้นถัดไป · ขั้น 3 เสร็จตามกฎ R15a (มีนัดแล้วย่อมหาวันได้แล้ว) และถูกนับ", () => {
     const r = computeSteps({ memberCount: 2, viewerHasBusy: true, upcomingCount: 1 });
-    expect(states(r)).toEqual(["done", "done", "todo", "done"]);
+    expect(states(r)).toEqual(["done", "done", "done", "done"]);
     expect(r.allDone).toBe(true);
-    expect(r.doneCount).toBe(3);
+    expect(r.doneCount).toBe(4);
   });
 
   it("มีนัดแต่ยังไม่ลง busy: ไม่ครบ, ถัดไปคือขั้น 2", () => {
     const r = computeSteps({ memberCount: 2, viewerHasBusy: false, upcomingCount: 2 });
-    expect(states(r)).toEqual(["done", "next", "todo", "done"]);
+    expect(states(r)).toEqual(["done", "next", "done", "done"]);
     expect(r.allDone).toBe(false);
   });
 
@@ -48,8 +48,9 @@ describe("computeSteps (R8 แถบขั้นตอน)", () => {
     }
   });
 
-  it("ขั้น 3 ไม่เคยเป็น done", () => {
-    expect(computeSteps({ memberCount: 9, viewerHasBusy: true, upcomingCount: 9 }).steps[2]!.state).not.toBe("done");
+  it("ขั้น 3 เป็น done ได้เมื่อเคยดูวันว่าง (freeSeen) แม้ยังไม่มีนัด · ไม่เคยดู + ไม่มีนัด = ยังไม่ done", () => {
+    expect(computeSteps({ memberCount: 9, viewerHasBusy: true, upcomingCount: 0, freeSeen: true }).steps[2]!.state).toBe("done");
+    expect(computeSteps({ memberCount: 9, viewerHasBusy: true, upcomingCount: 0 }).steps[2]!.state).toBe("next");
   });
 });
 

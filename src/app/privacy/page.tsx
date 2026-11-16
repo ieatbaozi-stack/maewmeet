@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 /** หัวข้อและรายการของแต่ละส่วน (คีย์ใน messages: privacy.<section>.<item>) — ลำดับตามที่แสดง */
 const SECTIONS = [
   { key: "collect", items: ["account", "busy", "groups", "security", "cookies"] },
-  { key: "see", items: ["owner", "members", "note", "outsiders", "groups", "superAdmin"] },
+  { key: "see", items: ["owner", "members", "busyStatus", "note", "outsiders", "groups", "superAdmin"] },
   { key: "places", items: ["links", "noTracking"] },
   { key: "line", items: ["body"] },
   { key: "calendar", items: ["body"] },

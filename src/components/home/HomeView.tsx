@@ -5,10 +5,12 @@ import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { IntroCard } from "./IntroCard";
+import { GroupIcon } from "@/components/icons/GroupIcon";
 import { Icon, type IconName } from "@/components/icons/Icon";
 import { format, type CalendarLocale } from "@/lib/calendar";
 import { callApiFull } from "@/components/appointments/api";
 import { Spinner } from "@/components/shell/Spinner";
+import { useMinSkeleton } from "@/components/shell/useMinSkeleton";
 import { RsvpConfirm } from "@/components/appointments/RsvpConfirm";
 import { rsvpConfirmKind, type MyConflict } from "@/components/appointments/model";
 import type { AppointmentDetailDto } from "@/lib/data/serializers/appointments";
@@ -64,6 +66,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
   const locale = useLocale() as CalendarLocale;
 
   const [status, setStatus] = useState<Status>(initial.kind === "error" ? "error" : "ready");
+  const homeSkel = useMinSkeleton(status === "loading");
   const [items, setItems] = useState<HomeAppointment[]>(initial.kind === "ready" ? initial.appointments : []);
   const [noGroup, setNoGroup] = useState(initial.kind === "no-group");
   const [nowMs, setNowMs] = useState(initialNowMs);
@@ -193,7 +196,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
     if (ok) void load(true);
   }
 
-  if (status === "loading") return <LoadingMain />;
+  if (status === "loading" || homeSkel) return <LoadingMain />;
   if (status === "error") {
     return (
       <main className="main home-main" id="main">
@@ -412,7 +415,7 @@ function NextCard({
             </li>
           ) : null}
           <li className="appt-fact">
-            <Icon name="users" />
+            <GroupIcon icon={a.groupIcon} variant="glyph" />
             <span>
               <bdi>{a.groupName}</bdi>
             </span>
@@ -510,6 +513,7 @@ function Row({ a, rsvp, nowMs, locale }: { a: HomeAppointment; rsvp: RsvpState; 
         </span>
         <span className="appt-row-pills">
           <span className="appt-row-meta">
+            <GroupIcon icon={a.groupIcon} variant="glyph" className="sm" />
             <bdi>{a.groupName}</bdi>
           </span>
           <span className="rsvp-pill" data-answer={state}>

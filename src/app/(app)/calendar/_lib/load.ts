@@ -16,6 +16,7 @@ import { readCookie } from "@/lib/auth/request";
 import { CURRENT_GROUP_COOKIE, chooseCalendarGroup } from "@/lib/shared/current-group-cookie";
 import { fetchRange, type OwnBusy } from "@/components/calendar/model";
 import type { AppointmentDto } from "@/lib/data/serializers/appointments";
+import type { GroupIconKey } from "@/lib/shared/group-icons";
 import { clock } from "@/lib/shared/clock";
 import { AppError } from "@/lib/shared/errors";
 
@@ -29,7 +30,7 @@ export type CalendarPageData =
   | { kind: "no-group" }
   | {
       kind: "ready";
-      groups: { id: string; name: string; memberCount: number }[];
+      groups: { id: string; name: string; memberCount: number; icon: GroupIconKey | null }[];
       gid: string;
       tz: string;
       today: DateISO;
@@ -69,7 +70,7 @@ export async function loadCalendarPage(search: CalendarSearch): Promise<Calendar
   );
   const chosen = groups.find((g) => g.id === pick.gid) ?? first;
   const { groupMissing, rememberGid } = pick;
-  const options = groups.map((g) => ({ id: g.id, name: g.name, memberCount: g.memberCount }));
+  const options = groups.map((g) => ({ id: g.id, name: g.name, memberCount: g.memberCount, icon: g.icon }));
   const view = VIEWS.find((v) => v === search.v) ?? "month";
 
   // R7 B-2: ด่านสิทธิ์ครั้งเดียวคืน tz/myRole แล้ว load(range) อ่านสมาชิก ∥ busy (ไม่เรียก getGroup ซ้ำ)

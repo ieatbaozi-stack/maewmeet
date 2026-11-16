@@ -27,6 +27,7 @@ import { groupRowOf, loadGroupCtx } from '../policy-context';
 import type { AvailabilityBusyView, BlockerRef } from '../serializers/busy';
 import { loadMemberBusy, type MemberBusyItem } from './member-busy';
 import { asUser, auditRead } from './group-common';
+import { normalizeGroupIcon } from '@/lib/shared/group-icons';
 import { parseDateRange, type CalendarGroupInfo } from './calendar';
 
 export const availabilityParamsSchema = z.object({ gid: z.uuid() });
@@ -109,7 +110,7 @@ export async function openGroupAvailability(actor: Actor, groupId: string, ctx: 
   const allow = authorize(actor, 'group.availability.view', { type: 'group', group });
   const me = asUser(actor);
   const row = groupRowOf(group);
-  return { group: { id: row.id, tz: row.tz, myRole: group.actorRole }, load: (query) => availabilityFor(ctx, me, allow, row, query) };
+  return { group: { id: row.id, tz: row.tz, icon: normalizeGroupIcon(row.icon), myRole: group.actorRole }, load: (query) => availabilityFor(ctx, me, allow, row, query) };
 }
 
 /**
