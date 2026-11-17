@@ -1,5 +1,5 @@
 // repo: user — ADR 0002 §2–§5, §7 · query ล้วน ไม่รู้จัก actor · เวลา = now (epoch ms) ที่ผู้เรียก inject
-import { and, count, eq, isNotNull } from 'drizzle-orm';
+import { and, count, eq, isNotNull, sql } from 'drizzle-orm';
 import { user } from '@/db/schema';
 import type { DbOrTx } from '@/db/client';
 
@@ -26,6 +26,18 @@ export function isUniqueViolation(e: unknown): boolean {
     cur = o.cause;
   }
   return false;
+}
+
+/**
+ * R15b §4: บันทึกภาษาของบัญชี (POST /api/prefs ตอนล็อกอินอยู่) — คำสั่งเดียว เฉพาะบัญชี active และค่าเปลี่ยนจริง · คืน true = เขียนแล้ว
+ */
+export async function updateUserLocaleIfActive(db: DbOrTx, userId: string, locale: UserRow['locale'], now: number): Promise<boolean> {
+  const rows = await db
+    .update(user)
+    .set({ locale, updatedAt: now })
+    .where(and(eq(user.id, userId), eq(user.status, 'active'), sql`${user.locale} <> ${locale}`))
+    .returning({ id: user.id });
+  return rows.length === 1;
 }
 
 export async function findUserById(db: DbOrTx, id: string): Promise<UserRow | null> {

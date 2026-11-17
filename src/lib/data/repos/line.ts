@@ -8,6 +8,16 @@ import type { RsvpResponse } from './appointment';
 
 export const LINE_MONTHLY_LIMIT_ERROR = 'LINE_MONTHLY_LIMIT';
 export const LINE_CAP_ERROR = 'LINE_CAP';
+/** R15b B6: เพดานรวมของ OA ต่อเดือนเต็ม */
+export const LINE_OA_CAP_ERROR = 'LINE_OA_CAP';
+
+/**
+ * R15b B6: นับ push ของทั้ง OA ในเดือนปฏิทิน (monthStart = ต้นเดือน Asia/Bangkok): ส่งแล้วตั้งแต่ต้นเดือน + แถวที่จองแล้วยังไม่จบ (attempts > 0)
+ * แถวที่ส่งแล้วอยู่ในตาราง 90 วัน (RETENTION.lineOutboxMs) จึงนับครบทั้งเดือน · แถวตัวเองไม่นับ
+ */
+const oaMonthCount = (selfId: string, monthStart: number) =>
+  sql`(SELECT count(*) FROM notification_outbox o WHERE o.channel = 'line' AND o.id <> ${selfId}
+        AND ((o.status = 'sent' AND o.sent_at >= ${monthStart}) OR (o.status = 'pending' AND o.attempts > 0)))`;
 
 // ───────── โค้ดเชื่อม ─────────
 /** โค้ดใหม่แทนของเดิมทั้งหมดของผู้ใช้ (ผู้ใช้หนึ่งคนมีได้ทีละโค้ด) */
@@ -122,6 +132,7 @@ export async function listDueLineOutbox(db: DbOrTx, now: number, limit: number, 
 /**
  * จองรอบส่ง: เพิ่ม attempts + ตั้งเวลาลองใหม่ไว้ล่วงหน้า — คำสั่งเดียว รันพร้อมกันได้ผู้ชนะคนเดียว · ล้มกลางทาง = ลองรอบถัดไป (retry key เดิม LINE ไม่ส่งซ้ำ)
  * เพดาน LINE_SEND_CAPS อยู่ในคำสั่งเดียวกัน (กัน race ข้าม instance): นับแถวอื่นที่ส่งแล้วใน 24 ชม. + แถวที่จองแล้วแต่ยังไม่จบ (attempts > 0) · แถวตัวเองไม่นับ
+ * R15b B6: + เพดานรวม OA ต่อเดือน (oaPerMonth) ในคำสั่งเดียวกัน — ไม่มี check-then-act
  * คืน false = แพ้การจอง หรือเกินเพดาน (แยกด้วย capOutboxRow)
  */
 export async function claimOutboxRow(
@@ -130,6 +141,7 @@ export async function claimOutboxRow(
   target: { kind: string; appointmentId: string },
   nextAttemptAt: number,
   now: number,
+  monthStart: number,
 ): Promise<boolean> {
   const counted = sql`((o.status = 'sent' AND o.sent_at > ${now - LINE_SEND_CAPS.windowMs}) OR (o.status = 'pending' AND o.attempts > 0))`;
   const rows = await db
@@ -144,20 +156,27 @@ export async function claimOutboxRow(
         sql`(SELECT count(*) FROM notification_outbox o WHERE o.user_id = ${row.userId} AND o.id <> ${row.id} AND ${counted}) < ${LINE_SEND_CAPS.perUser}`,
         sql`(SELECT count(*) FROM notification_outbox o WHERE o.user_id = ${row.userId} AND o.id <> ${row.id} AND ${counted}
               AND json_extract(o.payload, '$.kind') = ${target.kind} AND json_extract(o.payload, '$.params.appointmentId') = ${target.appointmentId}) < ${LINE_SEND_CAPS.perAppointmentKindUser}`,
+        sql`${oaMonthCount(row.id, monthStart)} < ${LINE_SEND_CAPS.oaPerMonth}`,
       ),
     )
     .returning({ id: notificationOutbox.id });
   return rows.length === 1;
 }
 
-/** จองไม่ได้และแถวยังไม่ถูกใครแตะ = เกินเพดาน → dead · false = แพ้การจองให้รอบอื่น */
-export async function capOutboxRow(db: DbOrTx, row: Pick<OutboxRow, 'id' | 'attempts'>, now: number): Promise<boolean> {
+/**
+ * จองไม่ได้และแถวยังไม่ถูกใครแตะ = เกินเพดาน → dead · null = แพ้การจองให้รอบอื่น
+ * รหัส: เพดานรวม OA ของเดือนเต็ม → LINE_OA_CAP · อื่น (ต่อผู้รับ/ต่อนัด) → LINE_CAP — ตัดสินในคำสั่งเดียวกัน (ใช้แค่ทำสถิติ ไม่มีผลต่อการส่ง)
+ */
+export async function capOutboxRow(db: DbOrTx, row: Pick<OutboxRow, 'id' | 'attempts'>, now: number, monthStart: number): Promise<typeof LINE_CAP_ERROR | typeof LINE_OA_CAP_ERROR | null> {
+  const code = sql<string>`CASE WHEN ${oaMonthCount(row.id, monthStart)} >= ${LINE_SEND_CAPS.oaPerMonth} THEN ${LINE_OA_CAP_ERROR} ELSE ${LINE_CAP_ERROR} END`;
   const rows = await db
     .update(notificationOutbox)
-    .set({ status: 'dead', lastError: LINE_CAP_ERROR })
+    .set({ status: 'dead', lastError: code })
     .where(and(eq(notificationOutbox.id, row.id), eq(notificationOutbox.status, 'pending'), eq(notificationOutbox.attempts, row.attempts), lte(notificationOutbox.nextAttemptAt, now)))
-    .returning({ id: notificationOutbox.id });
-  return rows.length === 1;
+    .returning({ lastError: notificationOutbox.lastError });
+  const r = rows[0];
+  if (!r) return null;
+  return r.lastError === LINE_OA_CAP_ERROR ? LINE_OA_CAP_ERROR : LINE_CAP_ERROR;
 }
 
 /** lastError = รหัสล้วน ไม่มีเนื้อหา (ADR 0011 §5) */
