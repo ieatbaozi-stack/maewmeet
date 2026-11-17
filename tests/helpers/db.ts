@@ -4,10 +4,11 @@
 //   await t.cleanup();
 // หรือสำหรับเทสต์ route handler (getDb()/getEnv() ของแอปชี้มาที่ DB นี้):
 //   const t = await installTestDb();         // ตั้ง process.env ชุดทดสอบ + reset cache env/db
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
+import { removeTempDir } from './fs';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { createDb, resetDbClient, type Db } from '@/db/client';
 import { resetEnvCache } from '@/lib/shared/env';
@@ -26,7 +27,7 @@ export async function createTestDb(options: { migrate?: boolean } = {}): Promise
     url,
     cleanup: async () => {
       db.$client.close();
-      rmSync(dir, { recursive: true, force: true });
+      removeTempDir(dir);
     },
   };
 }

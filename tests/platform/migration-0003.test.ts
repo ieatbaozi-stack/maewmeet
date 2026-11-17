@@ -1,10 +1,11 @@
 // R6F-6: migration 0003 (busy_block.series_id + partial index busy_user_series_idx) ขึ้นได้บนฐานที่มีข้อมูลเดิม · ไม่ backfill
 // วิธี (แบบ migration-0002): apply เฉพาะ migration ก่อน 0003 (สำเนา journal ที่ตัดท้าย) → ใส่ busy เดิม → apply ทั้งโฟลเดอร์จริง
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { migrate } from 'drizzle-orm/libsql/migrator';
+import { removeTempDir } from '../helpers/fs';
 import { createTestDb, MIGRATIONS_FOLDER, type TestDb } from '../helpers/db';
 
 type Journal = { entries: { idx: number; tag: string }[] } & Record<string, unknown>;
@@ -46,7 +47,7 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   await t?.cleanup();
-  if (partialDir) rmSync(partialDir, { recursive: true, force: true });
+  if (partialDir) removeTempDir(partialDir);
 });
 
 describe('migration 0003 บนฐานที่มี busy เดิม', () => {

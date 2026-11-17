@@ -1,10 +1,11 @@
 // R6C-4: migration 0002 (group_member.color_slot / shape_slot) ขึ้นได้บนฐานที่มีข้อมูลเดิม · ไม่ backfill · CHECK กันค่านอก 1–10/ไม่ใช่จำนวนเต็ม
 // วิธี: apply เฉพาะ migration ก่อน 0002 (สำเนา journal ที่ตัดท้าย) → ใส่ข้อมูล → apply ทั้งโฟลเดอร์จริง
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { migrate } from 'drizzle-orm/libsql/migrator';
+import { removeTempDir } from '../helpers/fs';
 import { createTestDb, MIGRATIONS_FOLDER, type TestDb } from '../helpers/db';
 
 type Journal = { entries: { idx: number; tag: string }[] } & Record<string, unknown>;
@@ -38,7 +39,7 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   await t?.cleanup();
-  if (partialDir) rmSync(partialDir, { recursive: true, force: true });
+  if (partialDir) removeTempDir(partialDir);
 });
 
 describe('migration 0002 บนฐานที่มีข้อมูลเดิม', () => {
