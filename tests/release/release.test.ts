@@ -1,6 +1,7 @@
 // เทสต์ของ scripts/release.ts — Release engineer (#15) · R0-17
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { removeTempDir } from "../helpers/fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -275,7 +276,7 @@ describe("unifiedDiff / parseArgs", () => {
 
 const tmpDirs: string[] = [];
 afterEach(() => {
-  for (const d of tmpDirs.splice(0)) rmSync(d, { recursive: true, force: true });
+  for (const d of tmpDirs.splice(0)) removeTempDir(d);
 });
 
 function g(cwd: string, ...args: string[]): string {

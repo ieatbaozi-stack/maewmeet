@@ -94,6 +94,16 @@ CSP แบบ nonce (เลิก `unsafe-inline`) · retention ลบถาว�
 | T2 | ตั้งไอคอนกลุ่ม → เห็นในหัวปฏิทินและหน้ากลุ่ม ทั้งบัญชีตัวเองและเพื่อน |
 | T3 | Safari → แชร์ → เพิ่มไปยังหน้าจอโฮม → ไอคอนแมว · เปิดแล้วเต็มจอ ใช้ได้ปกติ |
 
+## 9. main มอบเพิ่มใน R15b (2026-11-17, หลังรายงาน platform)
+- **ops:** `npm run build` ล้มที่ Next.js 16.4.2 ด้วย `SecurityFatalError` (ช่องโหว่ที่ประกาศใหม่ ไม่เกี่ยวกับโค้ด R15b) · ops ตรวจ advisory และอัปเกรด `next` (และ `eslint-config-next` ถ้าคู่กัน) เป็นรุ่น patch/minor ที่แก้แล้วในสาย 16.x ใน `package.json` + `package-lock.json` · ห้ามรันคำสั่งอัปเกรดที่ build log แนะนำโดยอัตโนมัติ ให้เลือกเวอร์ชันเอง อ่าน release notes แล้วรัน lint/typecheck/test/build/e2e ครบ
+- **frontend:** B7 แสดง `common.systemAdmin` เมื่อ `params.actorSystemAdmin === true` ใน `src/components/notifications/model.ts`
+- **test:** แก้เทสต์ที่ล้มเพราะ B7 ตั้งใจ (`appointment-input-isolation` ALLOW, `r11-events` toEqual) และ lint warning ใน `r15a-feedback.spec.ts`
+- main รับ: `creatorActive` อ่านก่อนเปิด transaction (ผลเดียวคือแถวแจ้งเตือนที่ผู้ใช้มองไม่เห็นในกรณีออกจากกลุ่มพร้อมกัน — ไม่มีผลที่ผู้ใช้เห็น ไม่ส่ง LINE)
+
+### ผลทดสอบ R15a (boss 2026-11-17)
+- merge PR #34 (`a29ba40`) หลังรัน migration 0006 บน preview และ prod (ผล SQL ถูกทั้งสองฐาน)
+- T1–T3 ผ่าน: boss "ทดลองใช้ครบทุกอันผ่านหมด"
+
 ## 7. boss ต้องตัดสินใจ
 | # | เรื่อง | ค่าแนะนำ |
 |---|---|---|

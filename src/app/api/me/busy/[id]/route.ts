@@ -1,5 +1,6 @@
 // PATCH|DELETE /api/me/busy/:id — แก้/ลบ busy ของตัวเอง · ของคนอื่น/ไม่มี id นั้น → 404 เหมือนกัน (IDOR) — U7 · เจ้าของ: Platform
 // R6F (ADR 0010 §5 · main ตัดสิน): DELETE ?scope=one|series parse ที่ handler นี้ (route() อ่าน query เฉพาะ GET) · ผิด → VALIDATION ไม่สะท้อนค่าที่ส่งมา
+// R15b §4: ?scope= ซ้ำ (เช่น scope=one&scope=series) → VALIDATION เดียวกัน (เดิม Object.fromEntries เก็บค่าสุดท้ายเงียบ ๆ)
 import { dataCtx } from '@/lib/data/context';
 import { busyParamsSchema, deleteBusy, deleteBusyQuerySchema, updateBusy, updateBusyInputSchema } from '@/lib/data/services/busy';
 import { AppError } from '@/lib/shared/errors';
@@ -18,8 +19,9 @@ export const DELETE = route({
   path: '/api/me/busy/:id',
   params: busyParamsSchema,
   handler: ({ actor, params, req, now }) => {
-    const q = deleteBusyQuerySchema.safeParse(Object.fromEntries(new URL(req.url).searchParams));
-    if (!q.success) throw new AppError('VALIDATION', { fields: { scope: 'INVALID' } });
+    const search = new URL(req.url).searchParams;
+    const q = deleteBusyQuerySchema.safeParse(Object.fromEntries(search));
+    if (!q.success || search.getAll('scope').length > 1) throw new AppError('VALIDATION', { fields: { scope: 'INVALID' } });
     return deleteBusy(actor, params.id, dataCtx(req, now), q.data.scope ?? 'one');
   },
 });

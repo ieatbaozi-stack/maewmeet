@@ -8,7 +8,7 @@
 import { and, asc, desc, eq, gt, inArray, lte, sql, type SQL } from 'drizzle-orm';
 import { appointment, appointmentRsvp, groupMember, groups, user } from '@/db/schema';
 import type { DbOrTx } from '@/db/client';
-import { actorGuardClause, type ActorGuard } from './group-member';
+import { actorGuardClause, type ActorGuard, type MemberWithUser } from './group-member';
 import type { GroupRole } from './group';
 import { DAY_MS } from '@/lib/shared/clock';
 
@@ -82,19 +82,28 @@ export type AppointmentAccessRow = {
   groupDeleted: boolean;
   /** role ของผู้ดูในกลุ่ม · null = ไม่ใช่สมาชิก */
   role: GroupRole | null;
+  /**
+   * R15b §3: ผู้สร้างนัดยังเป็นสมาชิกของกลุ่มนี้และบัญชี active (กติกาเดียวกับ listActiveMemberIds) — ใช้เลือกผู้รับแจ้ง rsvp_changed เท่านั้น
+   * อ่านพร้อมด่านสิทธิ์ (ก่อน transaction ของ RSVP) · ผู้สร้างออกจากกลุ่มระหว่างนั้น → แถวแจ้งเตือนที่เขียนไปถูกซ่อนตอนอ่านอยู่แล้ว (visibleToOwner)
+   */
+  creatorActive: boolean;
 };
 
-/** นัด + กลุ่ม + role ของ user ในกลุ่ม ใน query เดียว (policy-context) · ไม่มีนัด = null */
+/** นัด + กลุ่ม + role ของ user ในกลุ่ม + ผู้สร้างยัง active (R15b) ใน query เดียว (policy-context) · ไม่มีนัด = null */
 export async function findAppointmentAccess(db: DbOrTx, id: string, userId: string): Promise<AppointmentAccessRow | null> {
+  const creatorActive = sql<number>`EXISTS (SELECT 1 FROM group_member cm JOIN user cu ON cu.id = cm.user_id
+    WHERE cm.group_id = ${appointment.groupId} AND cm.user_id = ${appointment.createdBy} AND cu.status = 'active')`;
   const rows = await db
-    .select({ a: appointment, groupName: groups.name, groupIcon: groups.icon, deletedAt: groups.deletedAt, role: groupMember.role })
+    .select({ a: appointment, groupName: groups.name, groupIcon: groups.icon, deletedAt: groups.deletedAt, role: groupMember.role, creatorActive })
     .from(appointment)
     .innerJoin(groups, eq(groups.id, appointment.groupId))
     .leftJoin(groupMember, and(eq(groupMember.groupId, appointment.groupId), eq(groupMember.userId, userId)))
     .where(eq(appointment.id, id))
     .limit(1);
   const r = rows[0];
-  return r ? { appointment: r.a, groupName: r.groupName, groupIcon: r.groupIcon, groupDeleted: r.deletedAt !== null, role: r.role } : null;
+  return r
+    ? { appointment: r.a, groupName: r.groupName, groupIcon: r.groupIcon, groupDeleted: r.deletedAt !== null, role: r.role, creatorActive: Number(r.creatorActive) === 1 }
+    : null;
 }
 
 /** ฟิลด์ที่แก้ได้ (ส่งเฉพาะที่เปลี่ยน) — เวลา 3 ตัวไปด้วยกันเสมอ */
@@ -289,6 +298,37 @@ export async function listCurrentRsvps(db: DbOrTx, appointmentIds: string[]): Pr
     .innerJoin(user, eq(user.id, appointmentRsvp.userId))
     .where(inArray(appointmentRsvp.appointmentId, appointmentIds))
     .orderBy(asc(appointmentRsvp.updatedAt), asc(appointmentRsvp.userId));
+}
+
+/**
+ * R15b §3: สมาชิกทั้งกลุ่ม (รูปและลำดับเดียวกับ listMembers) + คำตอบของสมาชิกปัจจุบันต่อนัดหนึ่ง (กติกาเดียวกับ listCurrentRsvps) — **query เดียว**
+ * LEFT JOIN คำตอบเข้าแถวสมาชิก: listCurrentRsvps นับเฉพาะคำตอบที่มีแถว group_member ของกลุ่มนัด (updated_at >= joined_at) + user
+ * จึงมีคำตอบได้ไม่เกินหนึ่งต่อสมาชิกหนึ่งคน (PK appointment_id+user_id) → ได้ชุดเดียวกันทุกแถว · groupId ต้องเป็นกลุ่มของนัด (ผู้เรียกส่ง row.groupId)
+ * rsvps เรียง (updated_at, user_id) ใน JS — user_id เป็น uuid ASCII: `<` ของ JS = BINARY collation ของ SQLite
+ */
+export async function listMembersWithRsvps(db: DbOrTx, groupId: string, appointmentId: string): Promise<{ members: MemberWithUser[]; rsvps: RsvpRow[] }> {
+  const rank = sql`CASE ${groupMember.role} WHEN 'admin' THEN 0 WHEN 'moderator' THEN 1 ELSE 2 END`;
+  const rows = await db
+    .select({ m: groupMember, displayName: user.displayName, response: appointmentRsvp.response, answeredAt: appointmentRsvp.updatedAt })
+    .from(groupMember)
+    .innerJoin(user, eq(user.id, groupMember.userId))
+    .leftJoin(
+      appointmentRsvp,
+      and(eq(appointmentRsvp.appointmentId, appointmentId), eq(appointmentRsvp.userId, groupMember.userId), sql`${appointmentRsvp.updatedAt} >= ${groupMember.joinedAt}`),
+    )
+    .where(eq(groupMember.groupId, groupId))
+    .orderBy(asc(rank), asc(groupMember.joinedAt), asc(groupMember.userId));
+  const members: MemberWithUser[] = rows.map((r) => ({ ...r.m, displayName: r.displayName }));
+  const answered: { at: number; row: RsvpRow }[] = [];
+  for (const r of rows) {
+    if (r.response === null || r.answeredAt === null) continue;
+    answered.push({
+      at: r.answeredAt,
+      row: { appointmentId, userId: r.m.userId, response: r.response, displayName: r.displayName, colorSlot: r.m.colorSlot, shapeSlot: r.m.shapeSlot },
+    });
+  }
+  answered.sort((x, y) => x.at - y.at || (x.row.userId < y.row.userId ? -1 : x.row.userId > y.row.userId ? 1 : 0));
+  return { members, rsvps: answered.map((a) => a.row) };
 }
 
 /**

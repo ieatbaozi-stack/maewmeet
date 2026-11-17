@@ -131,7 +131,7 @@ describe('ความลับไม่อยู่ใน repo (working tree �
 });
 
 describe('GitHub workflows', () => {
-  const wf = (name: string) => readFileSync(path.join(ROOT, '.github/workflows', name), 'utf8');
+  const wf = (name: string) => readFileSync(path.join(ROOT, '.github/workflows', name), 'utf8').replace(/\r\n/g, '\n');
   const files = ['ci.yml', 'keepalive.yml'];
 
   it.each(files)('%s: permissions ระดับ workflow = contents: read เท่านั้น · ไม่มี pull_request_target / write-all', (f) => {
@@ -145,7 +145,7 @@ describe('GitHub workflows', () => {
     const checkouts = y.match(/uses: actions\/checkout@/g)?.length ?? 0;
     expect((y.match(/persist-credentials: false/g)?.length ?? 0)).toBe(checkouts);
     // ${{ }} ที่อยู่ในบล็อก run: เท่านั้นที่อันตราย — ci.yml ใช้ github.event ใน concurrency.group (ไม่รันเป็น shell)
-    const runBlocks = y.split(/\n\s*- /).filter((b) => /\brun:/.test(b)).map((b) => b.slice(b.indexOf('run:')));
+    const runBlocks = y.replace(/\r\n/g, '\n').split(/\n(?= {6}- )/).filter((b) => /\brun:/.test(b)).map((b) => b.slice(b.indexOf('run:')).split('\n\n')[0]); // ตัดที่บรรทัดว่าง = จบ step/job (กัน if: ของ job ถัดไปติดมา)
     for (const b of runBlocks) expect(b, b).not.toMatch(/\$\{\{/);
   });
 

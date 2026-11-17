@@ -3,7 +3,8 @@
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { dataCtx } from "@/lib/data/context";
-import { getGroup, groupParamsSchema, listMyGroups } from "@/lib/data/services/groups";
+import { getGroup, getGroupPage, groupParamsSchema, listMyGroups } from "@/lib/data/services/groups";
+import type { AppointmentListDto } from "@/lib/data/services/appointments";
 import { listInvites, listMyInvites } from "@/lib/data/services/invites";
 import type { GroupDetailDto, GroupSummaryDto, InviteDto, PendingInviteDto } from "@/lib/data/serializers/groups";
 import { getRequestSession } from "@/lib/auth/page-session";
@@ -43,6 +44,16 @@ export const loadGroup = cache(async (gid: string): Promise<GroupDetailDto> => {
   const id = validGid(gid);
   const { actor, ctx } = await scope();
   return (await orNotFound(() => getGroup(actor, id, ctx))).group;
+});
+
+/**
+ * R15b §3: หน้า /groups/[gid] (page + generateMetadata · cache ต่อ request) — ด่านกลุ่มครั้งเดียวได้ทั้งกลุ่มและนัดที่กำลังจะถึง 50 รายการ
+ * upcoming = null เมื่อกลุ่มมีคนเดียว หรือโหลดรายการนัดไม่ได้ (หน้าไม่ล้ม — เหมือน loadGroupAppointments().catch(() => null) เดิม)
+ */
+export const loadGroupPage = cache(async (gid: string): Promise<{ group: GroupDetailDto; upcoming: AppointmentListDto | null }> => {
+  const id = validGid(gid);
+  const { actor, ctx } = await scope();
+  return orNotFound(() => getGroupPage(actor, id, { scope: "upcoming", limit: "50" }, ctx));
 });
 
 export async function loadGroupSettings(gid: string): Promise<{ group: GroupDetailDto; invites: InviteDto[] }> {

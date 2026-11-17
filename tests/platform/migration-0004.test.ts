@@ -1,10 +1,11 @@
 // R10-10: migration 0004 ขึ้นได้บน DB ว่างและ DB ที่มีข้อมูล · backfill scheduled_at = created_at · เข้ากันได้ย้อนหลัง (INSERT แบบโค้ดเก่าไม่พัง)
 // วิธีแบบ migration-0003: apply เฉพาะ migration ก่อน 0004 → ใส่ข้อมูล → apply ทั้งโฟลเดอร์จริง
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { migrate } from 'drizzle-orm/libsql/migrator';
+import { removeTempDir } from '../helpers/fs';
 import { createTestDb, MIGRATIONS_FOLDER, type TestDb } from '../helpers/db';
 
 type Journal = { entries: { idx: number; tag: string }[] } & Record<string, unknown>;
@@ -38,7 +39,7 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   await t?.cleanup();
-  if (partialDir) rmSync(partialDir, { recursive: true, force: true });
+  if (partialDir) removeTempDir(partialDir);
 });
 
 describe('migration 0004', () => {

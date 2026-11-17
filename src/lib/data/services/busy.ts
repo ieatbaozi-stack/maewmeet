@@ -4,7 +4,7 @@
 //  - เวลาทั้งหมดผ่าน normalizeBusyInput ของ lib เวลา (ไม่คำนวณวันเอง) · ขีดจำกัดจาก src/lib/shared/limits.ts
 //  - เพดาน 300 = คำสั่งเดียวมีเงื่อนไขในตัว (repo) — ที่นี่แค่วินิจฉัยสาเหตุหลังถูกปฏิเสธ
 //  - R6F (ADR 0010): kind 'daily' ขยายด้วย expandDailyBusyInput → insert N แถวคำสั่งเดียว (ทั้งหมดหรือไม่มีเลย) · ลบ scope=series · PATCH = หลุดจากชุด
-//  - rate limit เขียน (BUSY_WRITE_RATE_LIMITS): create 30/10 นาที, delete 60/10 นาที ต่อผู้ใช้ → RATE_LIMITED + Retry-After
+//  - rate limit เขียน (BUSY_WRITE_RATE_LIMITS): create 30/10 นาที, update 60/10 นาที (R15b), delete 60/10 นาที ต่อผู้ใช้ → RATE_LIMITED + Retry-After
 //  - R14 (ADR 0012 §5): PATCH/DELETE บนแถวของ routine = "เฉพาะวันนี้" (หลุดเป็น busy เดี่ยว / ลบ) + skip วันนั้น ใน tx เดียว ·
 //    GET ไม่มี from/to = เฉพาะ routine_id IS NULL (วันของ routine อยู่ใน GET /api/me/busy-routines) · GET from/to = ทุกแถวพร้อม routineId
 import { z } from 'zod';
@@ -293,6 +293,8 @@ export async function updateBusy(actor: Actor, id: string, input: UpdateBusyInpu
   authorize(actor, 'busy.update', ownerRes(actor.kind === 'user' ? actor.id : ''));
   const me = asUser(actor);
   const { now } = ctx;
+  // R15b §4: นับก่อนหาแถว — 404 (ของคนอื่น/ไม่มี) ก็กินโควตา เดา id ไม่ได้ไม่จำกัด (เหมือน DELETE)
+  await takeUserSlot(ctx.db, BUSY_WRITE_RATE_LIMITS.update, me.id, now);
   const current = await findOwnBusy(ctx.db, id, me.id);
   if (!current) throw new AppError('NOT_FOUND');
 

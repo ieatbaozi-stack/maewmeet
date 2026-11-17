@@ -337,9 +337,9 @@ cron รายวันของ Vercel ไม่ทำงาน (Turso ยั�
 หลักการ: **ไม่มีสคริปต์และไม่มีหน้าเว็บใดสร้าง super admin ได้** (ตั้งใจ — กันคนอื่นยกตัวเองเป็นแอดมิน) วิธีเดียวคือ boss แก้ฐานข้อมูลเองด้วยคำสั่ง SQL 1 บรรทัดหลังสมัครบัญชีธรรมดาก่อน
 
 ☐ **H1.1** เปิดเว็บ production (โดเมนจาก D6) → **สมัครบัญชีของ boss ตามปกติ** (username + ชื่อที่แสดง + PIN 6 หลัก) แล้วจด username ให้ตรงตัวอักษร (ตัวพิมพ์เล็กใหญ่ตามที่พิมพ์ตอนสมัคร)
-☐ **H1.2** ตั้งสิทธิ์ — **วิธีที่ 1 (แนะนำ ใช้คำสั่ง)** ใน WSL (แทน `boss` ด้วย username จริง):
+☐ **H1.2** ตั้งสิทธิ์ — **วิธีที่ 1 (แนะนำ ใช้คำสั่ง)** ใน WSL (แทน `<admin-username>` ด้วย username จริง):
 ```bash
-turso db shell maewmeet-prod "UPDATE user SET is_admin = 1 WHERE username = 'boss';"
+turso db shell maewmeet-prod "UPDATE user SET is_admin = 1 WHERE username = '<admin-username>';"
 ```
 รูปแบบทั่วไปของคำสั่ง SQL: `UPDATE user SET is_admin = 1 WHERE username = '<name>';` (แทน `<name>` ด้วย username จริง) · ถ้า username มีเครื่องหมาย `'` ให้ใช้วิธีที่ 2 · ผลที่ควรเห็น: คำสั่งจบเงียบ ๆ ไม่มี error (ถ้าเห็น `no such table` = ชี้ผิดฐาน/ยังไม่ migrate → B6)
 
@@ -385,10 +385,10 @@ Set-Clipboard -Value ' '
 ```powershell
 $env:TURSO_DATABASE_URL = "libsql://maewmeet-prod-xxxx.turso.io"     # URL จาก B3
 $env:TURSO_AUTH_TOKEN = [System.Net.NetworkCredential]::new('', (Read-Host -AsSecureString 'วาง TURSO_AUTH_TOKEN ของ prod')).Password
-npx tsx scripts/admin-reset-pin.ts --username boss --confirm-username boss --confirm-pepper-lost
+npx tsx scripts/admin-reset-pin.ts --username <admin-username> --confirm-username <admin-username> --confirm-pepper-lost
 Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL
 ```
-(แทน `boss` ทั้งสองที่ด้วย username ของ super admin · ต้องพิมพ์ซ้ำสองที่ให้ตรงกัน และต้องมี `--confirm-pepper-lost` มิฉะนั้นสคริปต์**ไม่ทำอะไร**)
+(แทน `<admin-username>` ทั้งสองที่ด้วย username ของ super admin · ต้องพิมพ์ซ้ำสองที่ให้ตรงกัน และต้องมี `--confirm-pepper-lost` มิฉะนั้นสคริปต์**ไม่ทำอะไร**)
 ผลที่ควรเห็น: บรรทัด `เปิดคำขอ reset แบบอนุมัติแล้วสำหรับบัญชี: ...`, เวลาหมดอายุ (24 ชม.), `ชื่อ cookie : __Host-mm_reset`, `ค่า cookie  : <ตัวอักษร a-z 2-7 ยาว ~52 ตัว>`
   - `ไม่ทำงาน: ... ไม่พบบัญชี super admin ...` = username ผิด หรือบัญชีนั้นยังไม่ได้ตั้ง `is_admin` (H1)
   - `ไม่ทำงาน: pepper ใน env ของเครื่องนี้ยังตรง ...` = ในหน้าต่าง PowerShell นี้มี `PIN_PEPPER_*` ค้างอยู่และยังตรงกับฐาน = pepper ไม่ได้หาย → กลับ G7 ข้อ 1

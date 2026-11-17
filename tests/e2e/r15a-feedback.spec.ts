@@ -135,7 +135,6 @@ for (const { loc, theme } of COMBOS) {
 // ═════════════════════════════════════════════════════════════
 // 2) เว้นบางวัน
 // ═════════════════════════════════════════════════════════════
-type SkipRes = { skipped?: number; restored?: number };
 const skipDay = (p: Page, d: string) => p.getByTestId(`skip-day-${d}`);
 
 /** ชุดทุกวัน 6 สัปดาห์เริ่มจันทร์ถัดไป — ทั้งวัน (allDay) */

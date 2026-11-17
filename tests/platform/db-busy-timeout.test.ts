@@ -9,7 +9,8 @@
 //       และ client ที่ไม่มี timeout ได้ BUSY (ควบคุม)
 //   (3) การเขียนหลาย process ชนกันจริงยังมี แต่ writer ใช้ timeout ที่ระบุชัดต่อเทสต์ (ยาวกว่าค่าเริ่มต้นมาก) และงานน้อยลง — พิสูจน์เฉพาะ "ไม่มีเขียนหาย/ไม่ล็อกค้าง"
 import { execFile, spawn, type ChildProcess } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { removeTempDir } from '../helpers/fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -88,7 +89,7 @@ beforeAll(async () => {
   await setup.execute('create table w(writer text, seq integer)');
   setup.close();
 });
-afterAll(() => rmSync(dir, { recursive: true, force: true }));
+afterAll(() => removeTempDir(dir));
 
 describe('createDb busy timeout (file:)', () => {
   it('ค่าเริ่มต้นเป็นมิลลิวินาทีที่สมเหตุสมผล', () => {

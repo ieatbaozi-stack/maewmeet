@@ -2,10 +2,12 @@
 //  - จองแถวก่อนส่ง (claimOutboxRow) → รันซ้ำ/พร้อมกันไม่ส่งซ้ำ · retry key = id แถว
 //  - ตรวจซ้ำก่อนส่ง: startAt ตรงกับตอนเข้าคิว · กลุ่มยังอยู่ · ผู้รับ active + ยังเชื่อม + ยังตอบ going · reminder: นัด active + เหลือเวลา ≥ minLead · appointment.cancelled (R11 §2): นัด cancelled + startAt > now — ไม่ผ่าน = dead รหัส STALE
 //  - เพดาน LINE_SEND_CAPS ตรวจตอนจองแถว (claimOutboxRow) เกิน = dead รหัส LINE_CAP ไม่ push · กระดิ่งเขียนไปแล้วไม่กระทบ
+//  - R15b B6: เพดานรวม OA 300 push/เดือนปฏิทิน (Asia/Bangkok) อยู่ในคำสั่งจองเดียวกัน · เกิน = dead รหัส LINE_OA_CAP · log จำนวนอย่างเดียว (oaCapped)
 //  - retry ≤ 5 ครั้ง backoff 2^attempts นาที · 429 monthly limit → dead ทั้งคิวและไม่ลองอีกจนสิ้นเดือน · log เฉพาะจำนวน
 import type { Db } from '@/db/client';
 import { DEFAULT_TZ, reminderStillSendable, startOfMonthAt } from '@/lib/calendar';
 import {
+  LINE_OA_CAP_ERROR,
   capOutboxRow,
   claimOutboxRow,
   deadAllPendingLine,
@@ -21,7 +23,9 @@ import {
 import { serialized } from '@/lib/data/tx';
 import { MINUTE_MS } from '@/lib/shared/clock';
 import { getEnv } from '@/lib/shared/env';
-import { LINE_DISPATCH } from '@/lib/shared/limits';
+import { LINE_DISPATCH, LINE_SEND_CAPS } from '@/lib/shared/limits';
+
+const LINE_SEND_CAPS_OA = LINE_SEND_CAPS.oaPerMonth;
 import { pushText } from './client';
 import { lineConfig, type LineConfig } from './config';
 import { renderLineCancelled, renderLineReminder, type LineReminderKind } from './messages';
@@ -33,6 +37,8 @@ export type LineDispatchResult = {
   dead: number;
   stale: number;
   capped: number;
+  /** R15b B6: ในจำนวน capped — ที่ตัดเพราะเพดานรวม OA ของเดือนเต็ม */
+  oaCapped: number;
   monthlyLimit: boolean;
   more: boolean;
 };
@@ -54,7 +60,7 @@ function parsePayload(raw: unknown): OutboxPayload | null {
   return { kind, appointmentId: p.appointmentId, startAt: p.startAt, tz: p.tz, title: p.title, groupName: p.groupName };
 }
 
-type RowResult = 'sent' | 'retried' | 'dead' | 'stale' | 'capped' | 'monthly_limit' | 'skipped';
+type RowResult = 'sent' | 'retried' | 'dead' | 'stale' | 'capped' | 'oa_capped' | 'monthly_limit' | 'skipped';
 
 /** เงื่อนไขเฉพาะชนิด: reminder คงเดิมทุกข้อ (นัด active + เหลือเวลา ≥ minLead) · ยกเลิกนัด (นัด cancelled + ยังไม่ถึงเวลาเริ่ม) */
 function stillSendable(payload: OutboxPayload, apptStatus: string | null, now: number): boolean {
@@ -62,7 +68,7 @@ function stillSendable(payload: OutboxPayload, apptStatus: string | null, now: n
   return apptStatus === 'active' && reminderStillSendable(payload.kind, payload.startAt, now);
 }
 
-async function processRow(db: Db, config: LineConfig, row: OutboxRow, now: number): Promise<RowResult> {
+async function processRow(db: Db, config: LineConfig, row: OutboxRow, now: number, monthStart: number): Promise<RowResult> {
   if (row.attempts >= LINE_DISPATCH.maxAttempts) {
     await serialized(db, () => finishOutboxRow(db, row.id, 'dead', row.lastError ?? 'LINE_MAX_ATTEMPTS', now));
     return 'dead';
@@ -74,8 +80,11 @@ async function processRow(db: Db, config: LineConfig, row: OutboxRow, now: numbe
   }
   const attempt = row.attempts + 1;
   const target = { kind: payload.kind, appointmentId: payload.appointmentId };
-  const claimed = await serialized(db, () => claimOutboxRow(db, row, target, now + 2 ** attempt * MINUTE_MS, now));
-  if (!claimed) return (await serialized(db, () => capOutboxRow(db, row, now))) ? 'capped' : 'skipped';
+  const claimed = await serialized(db, () => claimOutboxRow(db, row, target, now + 2 ** attempt * MINUTE_MS, now, monthStart));
+  if (!claimed) {
+    const capped = await serialized(db, () => capOutboxRow(db, row, now, monthStart));
+    return capped === null ? 'skipped' : capped === LINE_OA_CAP_ERROR ? 'oa_capped' : 'capped';
+  }
 
   const ctx = await loadOutboxSendContext(db, { userId: row.userId, appointmentId: payload.appointmentId });
   if (
@@ -117,12 +126,13 @@ function logMonthlyLimit(dropped: number): void {
 }
 
 export async function dispatchLineOutbox(db: Db, now: number, opts: { shouldStop?: () => boolean; scope?: OutboxScope } = {}): Promise<LineDispatchResult> {
-  const result: LineDispatchResult = { enabled: false, sent: 0, retried: 0, dead: 0, stale: 0, capped: 0, monthlyLimit: false, more: false };
+  const result: LineDispatchResult = { enabled: false, sent: 0, retried: 0, dead: 0, stale: 0, capped: 0, oaCapped: 0, monthlyLimit: false, more: false };
   const config = lineConfig(getEnv());
   if (!config) return result;
   result.enabled = true;
 
-  if (await lineMonthlyLimitHit(db, startOfMonthAt(now, DEFAULT_TZ))) {
+  const monthStart = startOfMonthAt(now, DEFAULT_TZ);
+  if (await lineMonthlyLimitHit(db, monthStart)) {
     result.monthlyLimit = true;
     const dropped = await serialized(db, () => deadAllPendingLine(db, now));
     if (dropped > 0) logMonthlyLimit(dropped);
@@ -139,7 +149,7 @@ export async function dispatchLineOutbox(db: Db, now: number, opts: { shouldStop
     }
     let outcome: RowResult;
     try {
-      outcome = await processRow(db, config, row, now);
+      outcome = await processRow(db, config, row, now, monthStart);
     } catch (e) {
       console.error(`[line] dispatch failed ${e instanceof Error ? e.name : typeof e}`);
       continue;
@@ -149,6 +159,10 @@ export async function dispatchLineOutbox(db: Db, now: number, opts: { shouldStop
     else if (outcome === 'dead') result.dead += 1;
     else if (outcome === 'stale') result.stale += 1;
     else if (outcome === 'capped') result.capped += 1;
+    else if (outcome === 'oa_capped') {
+      result.capped += 1;
+      result.oaCapped += 1;
+    }
     else if (outcome === 'monthly_limit') {
       result.monthlyLimit = true;
       const dropped = await serialized(db, () => deadAllPendingLine(db, now));
@@ -158,5 +172,7 @@ export async function dispatchLineOutbox(db: Db, now: number, opts: { shouldStop
       break;
     }
   }
+  // R15b B6: ตัวนับอย่างเดียว (ไม่มี id/ชื่อ/LINE user) ให้ดูใน log ว่าเดือนนี้ถึงเพดานรวมแล้ว
+  if (result.oaCapped > 0) console.warn(`[line] OA monthly cap ${LINE_SEND_CAPS_OA} reached; capped=${result.oaCapped}`);
   return result;
 }

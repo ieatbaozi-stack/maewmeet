@@ -42,7 +42,7 @@ describe('OPERATIONS.md ส่วน H (super admin คนแรก + ซ้อ�
 
   it('H2/H4: คำสั่งในเอกสารตรงกับแฟลก/ไฟล์ของสคริปต์จริง และไม่ส่ง pepper/PIN เป็น argument', () => {
     expect(h).toContain('Get-Clipboard | npx tsx scripts/pepper-fingerprint.ts');
-    expect(h).toContain('npx tsx scripts/admin-reset-pin.ts --username boss --confirm-username boss --confirm-pepper-lost');
+    expect(h).toContain('npx tsx scripts/admin-reset-pin.ts --username <admin-username> --confirm-username <admin-username> --confirm-pepper-lost');
     for (const f of ['scripts/pepper-fingerprint.ts', 'scripts/admin-reset-pin.ts']) {
       expect(readFileSync(path.join(process.cwd(), f), 'utf8').length).toBeGreaterThan(500);
     }

@@ -34,7 +34,7 @@ import type { Actor, GroupCtx } from '@/lib/rbac/types';
 import { DAY_MS, HOUR_MS, MINUTE_MS } from '@/lib/shared/clock';
 import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
-import { GROUP_LIMITS } from '@/lib/shared/limits';
+import { GROUP_LIMITS, GROUP_MEMBERSHIP_RATE_LIMIT } from '@/lib/shared/limits';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { DataCtx } from '../context';
 import { formatInviteCode, generateInviteCode, hashInviteCode, inviteCodeHint, normalizeInviteCode } from '../invite-code';
@@ -234,6 +234,17 @@ export async function redeemInviteCode(actor: Actor, input: RedeemInput, ctx: Da
   if (!normalized) throw new AppError('INVITE_INVALID');
   const codeHash = hashInviteCode(normalized, ctx.appSecret);
 
+  // R15b §4 (security R11 Info 7): ถังเข้า/ออกกลุ่ม (ร่วมกับ leaveGroup) — จองก่อนเข้า (UPSERT อะตอมมิก) · เต็ม → คืนช่อง redeem (ไม่ใช่การเดาโค้ด) แล้ว RATE_LIMITED
+  // นับเฉพาะครั้งที่เข้ากลุ่มได้จริง: เป็นสมาชิกอยู่แล้ว/โค้ดผิด/กลุ่มเต็ม/ล้มอื่น ๆ → คืนช่องนี้
+  const memberSpec = GROUP_MEMBERSHIP_RATE_LIMIT;
+  const memberKey = rateKey(memberSpec, me.id);
+  const membership = await serialized(db, () => reserveBucket(db, memberKey, memberSpec.windowMs, memberSpec.limit, now));
+  if (!membership.admitted) {
+    await refund();
+    throw limited(membership.windowEnd, now);
+  }
+  const refundMembership = () => serialized(db, () => refundBucket(db, memberKey, memberSpec.windowMs, now));
+
   // 3) เข้ากลุ่มด้วยคำสั่งเดียว (โค้ดใช้ได้ + กลุ่มยังอยู่ + ยังไม่เป็นสมาชิก + สมาชิก < 50) — วินิจฉัยเมื่อไม่ได้แถว
   const result = await inTx(db, async (tx): Promise<RedeemResult & { joined: boolean }> => {
     const joinedGroupId = await joinGroupWithCode(tx, { codeHash, userId: me.id, cap: GROUP_LIMITS.membersPerGroup }, now);
@@ -262,10 +273,12 @@ export async function redeemInviteCode(actor: Actor, input: RedeemInput, ctx: Da
     }
     throw new AppError('LIMIT_REACHED', { limit: 'members', max: GROUP_LIMITS.membersPerGroup });
   }).catch(async (e: unknown) => {
+    await refundMembership(); // ไม่ได้เข้ากลุ่ม
     // โค้ดถูกต้องแต่กลุ่มเต็ม = ไม่ใช่การเดา → คืนช่อง · INVITE_INVALID / ข้อผิดพลาดอื่น คงช่องที่จองไว้
     if (e instanceof AppError && e.code === 'LIMIT_REACHED') await refund();
     throw e;
   });
+  if (!result.joined) await refundMembership(); // เป็นสมาชิกอยู่แล้ว = ไม่ได้เข้าใหม่
   await refund(); // สำเร็จ/เป็นสมาชิกอยู่แล้ว: นับเฉพาะครั้งที่ผิด
   return { groupId: result.groupId, groupName: result.groupName, alreadyMember: result.alreadyMember };
 }

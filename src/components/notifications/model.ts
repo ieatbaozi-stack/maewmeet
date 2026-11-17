@@ -114,7 +114,7 @@ const UNKNOWN: NotificationView = { known: false, messageKey: "notifications.unk
  * ชื่อคนว่าง (บัญชีที่ถูกลบ) → deletedName (ป้าย "บัญชีที่ถูกลบ" ที่แปลแล้ว)
  * ปลายทาง: appointment.* → /appointments/<id> · invite.received → /groups · accepted|declined → /groups/<gid> · pin_reset.* → /me
  */
-export function notificationView(kind: string, params: Record<string, unknown>, locale: CalendarLocale, deletedName = ""): NotificationView {
+export function notificationView(kind: string, params: Record<string, unknown>, locale: CalendarLocale, deletedName = "", systemAdminName = ""): NotificationView {
   switch (kind) {
     case "appointment.created": {
       const groupName = str(params.groupName);
@@ -202,7 +202,8 @@ export function notificationView(kind: string, params: Record<string, unknown>, 
           href,
         };
       }
-      const actor = personName(params.actorName, deletedName);
+      // R15b B7: super admin ที่ไม่ใช่สมาชิก (actorName ว่าง + actorSystemAdmin) → ป้ายกลาง "ผู้ดูแลระบบ" · แถวเก่าไม่มี key = false
+      const actor = params.actorSystemAdmin === true && systemAdminName !== "" ? systemAdminName : personName(params.actorName, deletedName);
       if (!actor) return UNKNOWN;
       if (kind === "appointment.cancelled") {
         return { known: true, messageKey: "notifications.appointment.cancelled", values: { ...base, actorName: isolate(actor) }, icon: "calendar-x", tone: "plain", href };

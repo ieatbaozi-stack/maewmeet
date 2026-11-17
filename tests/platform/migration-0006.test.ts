@@ -1,11 +1,12 @@
 // R15-1: migration 0006 (groups.icon + DROP place_search_cache — ADR 0013) ขึ้นได้บนฐานที่มีข้อมูลรูป R14 · ข้อมูลเดิมไม่เปลี่ยน
 // (ยกเว้นตาราง cache ที่ลบ) · ไม่ backfill icon
 // วิธี (แบบ migration-0005): apply เฉพาะ migration ก่อน 0006 (สำเนา journal ที่ตัดท้าย) → ใส่ข้อมูลเดิม → apply ทั้งโฟลเดอร์จริง
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { migrate } from 'drizzle-orm/libsql/migrator';
+import { removeTempDir } from '../helpers/fs';
 import { createTestDb, MIGRATIONS_FOLDER, type TestDb } from '../helpers/db';
 
 type Journal = { entries: { idx: number; tag: string }[] } & Record<string, unknown>;
@@ -89,7 +90,7 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   await t?.cleanup();
-  if (partialDir) rmSync(partialDir, { recursive: true, force: true });
+  if (partialDir) removeTempDir(partialDir);
 });
 
 describe('migration 0006 บนฐานที่มีข้อมูลรูป R14', () => {

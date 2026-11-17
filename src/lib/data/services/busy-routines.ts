@@ -341,6 +341,8 @@ export async function updateRoutine(actor: Actor, id: string, input: UpdateRouti
   const me = asUser(actor);
   const { now } = ctx;
   const from = parseFrom(input.from);
+  // R15b §4 (security R14a Info 1): นับก่อนหาแถว — 404 ก็กินโควตา busy:routine (เดิมนับหลังตรวจทั้งหมด)
+  await takeUserSlot(ctx.db, BUSY_ROUTINE_RATE_LIMIT, me.id, now);
   const current = await findOwnRoutine(ctx.db, id, me.id);
   if (!current) throw new AppError('NOT_FOUND');
   const tz = input.tz ?? current.tz;
@@ -356,7 +358,6 @@ export async function updateRoutine(actor: Actor, id: string, input: UpdateRouti
   if (!split && !plan.rows.some((r) => r.localStartDate >= today)) throw noOccurrence();
   const write = writeOf(plan, input);
   const shared = { title: write.title, note: write.note, hideDetail: write.hideDetail, allDay: write.allDay, tz: write.tz };
-  await takeUserSlot(ctx.db, BUSY_ROUTINE_RATE_LIMIT, me.id, now);
 
   return inTx(ctx.db, async (tx) => {
     if (!split) {

@@ -1,5 +1,5 @@
 // เพดานของกลุ่ม/คำเชิญ — R2_CONTRACT §3 ข้อ 2–3, 5 · ปรับได้ที่นี่ที่เดียว (ทุกด่านอ่านจากค่าเหล่านี้)
-import { DAY_MS, MINUTE_MS } from './clock';
+import { DAY_MS, HOUR_MS, MINUTE_MS } from './clock';
 
 export const GROUP_LIMITS = {
   /** กลุ่มที่ผู้ใช้หนึ่งคน "สร้าง" ได้ (นับเฉพาะที่ยังไม่ถูกลบ) */
@@ -56,9 +56,11 @@ export const BUSY_NOTE_MAX = 500;
 /**
  * R6F (ADR 0010 §8 · main ตัดสิน 2026-11-02): limiter เขียน busy ต่อผู้ใช้ — fixed window ผ่าน rate_limit_bucket · เกิน → RATE_LIMITED + Retry-After
  * create นับต่อคำขอ (ทุก kind — ชุดรายวัน 62 แถวก็นับ 1) · delete นับต่อคำขอ (ทั้ง scope=one และ series)
+ * R15b §4: update (PATCH /api/me/busy/:id) นับต่อคำขอหลังด่านบัญชี ก่อนหาแถว — 404 (ของคนอื่น/ไม่มี) ก็นับ เหมือน delete
  */
 export const BUSY_WRITE_RATE_LIMITS = {
   create: { prefix: 'busy:create', limit: 30, windowMs: 10 * MINUTE_MS },
+  update: { prefix: 'busy:update', limit: 60, windowMs: 10 * MINUTE_MS },
   delete: { prefix: 'busy:delete', limit: 60, windowMs: 10 * MINUTE_MS },
 } as const;
 
@@ -153,6 +155,15 @@ export const ACCOUNT_RATE_LIMITS = {
 /** PATCH /api/groups/:gid/members/me/appearance — 60 ครั้ง/10 นาที/ผู้ใช้ (ทุกกลุ่มรวมกัน) · เกิน → RATE_LIMITED + Retry-After */
 export const MEMBER_APPEARANCE_RATE_LIMIT = { prefix: 'member:appearance', limit: 60, windowMs: 10 * MINUTE_MS } as const;
 
+// ───────── R15b §4 — limiter กลุ่มที่ขาด (security R11 Info 7 · R15a Info 3) ─────────
+/**
+ * เข้า/ออกกลุ่ม (ถังเดียวกัน ทุกกลุ่มรวมกัน) — 30 ครั้ง/ชม./ผู้ใช้ · เกิน → RATE_LIMITED + Retry-After
+ * ออก: นับทุกคำขอหลังด่านสิทธิ์ (คนนอกกลุ่มไม่กินโควตา) · ใช้โค้ด: นับเฉพาะครั้งที่ "เข้ากลุ่มได้จริง" (เป็นสมาชิกอยู่แล้ว/โค้ดผิด/กลุ่มเต็ม คืนช่อง — โค้ดผิดนับในถัง redeem เดิม)
+ */
+export const GROUP_MEMBERSHIP_RATE_LIMIT = { prefix: 'group:membership', limit: 30, windowMs: HOUR_MS } as const;
+/** PUT /api/groups/:gid/icon — 30 ครั้ง/10 นาที/ผู้ใช้ (ทุกกลุ่มรวมกัน) · นับเฉพาะครั้งที่ค่าเปลี่ยน (ค่าเท่าเดิมไม่เขียนอะไร) */
+export const GROUP_ICON_RATE_LIMIT = { prefix: 'group:icon', limit: 30, windowMs: 10 * MINUTE_MS } as const;
+
 // ───────── กลุ่มปัจจุบัน (คุกกี้ mm_group) — R6D G1 · ADR 0009 §5 ─────────
 /** PUT /api/me/current-group — 120 ครั้ง/10 นาที/ผู้ใช้ (เรียกเมื่อเปิดหน้ากลุ่ม/เปลี่ยนกลุ่ม) · เกิน → RATE_LIMITED + Retry-After */
 export const CURRENT_GROUP_RATE_LIMIT = { prefix: 'me:current-group', limit: 120, windowMs: 10 * MINUTE_MS } as const;
@@ -198,6 +209,11 @@ export const LINE_SEND_CAPS = {
   /** ผู้รับหนึ่งคน */
   perUser: 6,
   windowMs: DAY_MS,
+  /**
+   * R15b B6: เพดานรวมทั้ง OA ต่อเดือนปฏิทิน (Asia/Bangkok) = โควตาฟรีของ LINE OA · นับในคำสั่งจองแถวเดียวกัน (ไม่มี check-then-act)
+   * เกิน = แถวนั้น dead รหัส LINE_OA_CAP ไม่ push · กระดิ่งเขียนไปแล้วไม่กระทบ
+   */
+  oaPerMonth: 300,
 } as const;
 
 export const LINE_LINK_CODE_TTL_MS = 10 * MINUTE_MS;
