@@ -237,12 +237,68 @@ describe('B7: super admin นอกกลุ่มในกระดิ่ง', 
 });
 
 describe('LINE: ชื่อนัด/ชื่อกลุ่มไม่เป็นลิงก์ (R10 L1 / R11 L4)', () => {
-  it('neutralizeLinks: scheme + จุดของโดเมนถูกแทน · ข้อความไทย/ทศนิยมไม่ถูกแตะ', () => {
-    expect(neutralizeLinks('ดู https://evil.com/x ด่วน')).toBe('ดู https:∕∕evil․com/x ด่วน');
-    expect(neutralizeLinks('www.Example.co.th')).toBe('www․Example․co․th');
-    expect(neutralizeLinks('mail a@b.io')).toBe('mail a@b․io');
-    expect(neutralizeLinks('LINE.ME/R/abc')).toBe('LINE․ME/R/abc');
-    for (const same of ['ม.6 พ.ศ. 2569 ป.ตรี', 'v1.2 ราคา 3.5 บาท', 'Dinner 7.30pm', 'กินข้าว 🍜', '']) expect(neutralizeLinks(same)).toBe(same);
+  const D = '․'; // ․ ONE DOT LEADER
+  const S = ':∕∕'; // :∕∕
+  /** ผลที่ได้ต้องไม่มีจุดแบบใด ๆ ที่มีตัวอักษรตามหลัง และไม่มี IPv4 ที่ใช้จุดจริง */
+  const noLinkable = (out: string) => {
+    expect(out).not.toMatch(/[.。．｡](?=\p{L})/u);
+    expect(out).not.toMatch(/\p{Nd}{1,3}(?:[.。．｡]\p{Nd}{1,3}){3}/u);
+    expect(out).not.toMatch(/[:：][/／]{2}/u);
+  };
+
+  it('neutralizeLinks: ASCII (เดิม) · scheme ตัวใหญ่', () => {
+    expect(neutralizeLinks('ดู https://evil.com/x ด่วน')).toBe(`ดู https${S}evil${D}com/x ด่วน`);
+    expect(neutralizeLinks('HTTPS://EVIL.COM')).toBe(`HTTPS${S}EVIL${D}COM`);
+    expect(neutralizeLinks('www.Example.co.th')).toBe(`www${D}Example${D}co${D}th`);
+    expect(neutralizeLinks('mail a@b.io')).toBe(`mail a@b${D}io`);
+    expect(neutralizeLinks('LINE.ME/R/abc')).toBe(`LINE${D}ME/R/abc`);
+    expect(neutralizeLinks('123.com')).toBe(`123${D}com`);
+  });
+
+  it('neutralizeLinks: security R15b Low 1 — IDN ไทย/ละติน, IPv4, จุดแบบอื่น, ตัวเต็มความกว้าง', () => {
+    const cases: [string, string][] = [
+      ['ทดสอบ.com', `ทดสอบ${D}com`],
+      ['ตัวอย่าง.ไทย', `ตัวอย่าง${D}ไทย`],
+      ['examplé.com', `examplé${D}com`],
+      ['192.168.1.10/login', `192${D}168${D}1${D}10/login`],
+      ['1.1.1.1', `1${D}1${D}1${D}1`],
+      ['ไป http://192.168.1.10 นะ', `ไป http${S}192${D}168${D}1${D}10 นะ`],
+      ['example。com', `example${D}com`],
+      ['example．com', `example${D}com`],
+      ['example｡com', `example${D}com`],
+      ['１９２．１６８．１．１', `１９２${D}１６８${D}１${D}１`],
+      ['ｅｘａｍｐｌｅ.com', `ｅｘａｍｐｌｅ${D}com`],
+      ['ｅｘａｍｐｌｅ．ｃｏｍ', `ｅｘａｍｐｌｅ${D}ｃｏｍ`],
+      ['ｈｔｔｐｓ：／／x', `ｈｔｔｐｓ${S}x`],
+      ['ร้าน.ดีจัง.com/เมนู', `ร้าน${D}ดีจัง${D}com/เมนู`],
+    ];
+    for (const [input, out] of cases) {
+      expect(neutralizeLinks(input), input).toBe(out);
+      noLinkable(neutralizeLinks(input));
+    }
+  });
+
+  it('neutralizeLinks: ข้อความปกติไม่เปลี่ยน — ทศนิยม/เวลา/เวอร์ชัน/จุดท้ายคำ/เลขไม่ครบ 4 ชุด', () => {
+    for (const same of [
+      '3.5 ชม.',
+      'ม.6 ห้อง 2',
+      'ราคา 3.5 บาท',
+      'v1.2 ปล่อย 1.2.3',
+      'Dinner 7.30pm',
+      'นัด 18.30 น.',
+      'ประชุม 2026.11.18',
+      'จบ. แล้วไปต่อ',
+      'Meet at 7. Then eat.',
+      'กินข้าว 🍜',
+      'ราคา 1,234.50 บาท',
+      '',
+    ]) expect(neutralizeLinks(same), same).toBe(same);
+  });
+
+  it('neutralizeLinks: คำย่อที่มีตัวอักษรหลังจุด → ․ (หน้าตาเหมือนเดิม) · ช่องว่างหลังจุดไม่แตะ', () => {
+    expect(neutralizeLinks('พ.ศ. 2569')).toBe(`พ${D}ศ. 2569`);
+    expect(neutralizeLinks('ป.ตรี')).toBe(`ป${D}ตรี`);
+    expect(neutralizeLinks('e.g. done')).toBe(`e${D}g. done`);
   });
 
   it('ข้อความ LINE: ไม่มี URL/โดเมนจากชื่อ · ลิงก์นัดของเรายังอยู่ครบ (TH/EN · เตือน + ยกเลิก)', () => {

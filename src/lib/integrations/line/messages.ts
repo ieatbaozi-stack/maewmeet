@@ -17,12 +17,25 @@ function translator(locale: LineLocale): Translate {
 
 /**
  * R15b §4 (security R10 L1 / R11 L4): ชื่อนัด/ชื่อกลุ่มเป็นข้อความอิสระ — ไม่ให้ LINE ทำเป็นลิงก์กดได้ (ลิงก์เดียวที่กดได้คือลิงก์นัดของเรา)
- *  - "scheme://" → ":" + U+2215 ∕∕ (ทับคล้ายกันแต่ไม่ใช่ "/" → ไม่เป็น URL)
- *  - จุดระหว่างตัวอักษร/ตัวเลข ASCII กับตัวอักษร ASCII (example.com, www.x.co, a@b.io) → U+2024 ․ (ONE DOT LEADER หน้าตาเหมือนจุด)
- *  ข้อความไทยและตัวเลขทศนิยม (3.5 · v1.2) ไม่ถูกแตะ · ใช้หลัง sanitizeDisplayText (ซึ่งตัดอักขระควบคุม/zero-width ของผู้ใช้ออกแล้ว)
+ *  ใช้หลัง sanitizeDisplayText (ตัดอักขระควบคุม/zero-width ของผู้ใช้ออกแล้ว) · แทนด้วยอักขระหน้าตาเหมือนเดิม ข้อความยังอ่านได้ทั้ง TH/EN
+ *  1. "scheme://" (รวม ：／ แบบเต็มความกว้าง · ตัวอักษรทุกภาษา) → ":" + U+2215 ∕∕
+ *  2. IPv4 (ตัวเลข 1–3 หลัก 4 ชุด คั่นด้วยจุดแบบใดก็ได้: 1.1.1.1 · 192.168.1.10/login) → ทุกจุดเป็น U+2024 ․
+ *  3. จุดโดเมน: จุดแบบใดก็ได้ (. 。 ． ｡) ที่ "ก่อนเป็นตัวอักษร/ตัวเลข/เครื่องหมายกำกับ/ขีด และหลังเป็นตัวอักษร" (ทุกภาษา รวมตัวเต็มความกว้าง)
+ *     → U+2024 ․ (ONE DOT LEADER) · ครอบ example.com · ทดสอบ.com · ตัวอย่าง.ไทย · examplé.com · ｅｘａｍｐｌｅ.com · example。com
+ *  กติกาที่ตั้งใจไม่แตะ (ไม่ใช่โดเมน): ตัวเลขทศนิยม/เวลา/เวอร์ชัน (หลังจุดเป็นตัวเลข: 3.5 · 7.30 · v1.2) และจุดท้ายคำ (หลังจุดเป็นช่องว่าง/ท้ายข้อความ: "ชม.")
+ *  ผลข้างเคียงที่ยอมรับ: คำย่อที่มีตัวอักษรตามหลังจุด (พ.ศ. · e.g.) ได้ ․ แทน . — หน้าตาเกือบเหมือนเดิม
  */
+const DOTS = '.。．｡';
+const SCHEME = /(\p{L}[\p{L}\p{N}+.-]*)[:：][/／]{2}/gu;
+const IPV4 = new RegExp(`(?<![\\p{Nd}${DOTS}])\\p{Nd}{1,3}(?:[${DOTS}]\\p{Nd}{1,3}){3}(?![\\p{Nd}])`, 'gu');
+const DOMAIN_DOT = new RegExp(`([\\p{L}\\p{N}\\p{M}-])[${DOTS}](?=\\p{L})`, 'gu');
+const ONE_DOT = '․';
+
 export function neutralizeLinks(text: string): string {
-  return text.replace(/([A-Za-z][A-Za-z0-9+.-]*):\/\//g, '$1:∕∕').replace(/([A-Za-z0-9-])\.(?=[A-Za-z])/g, '$1․');
+  return text
+    .replace(SCHEME, '$1:∕∕')
+    .replace(IPV4, (ip) => ip.replace(new RegExp(`[${DOTS}]`, 'gu'), ONE_DOT))
+    .replace(DOMAIN_DOT, `$1${ONE_DOT}`);
 }
 
 const userText = (s: string): string => neutralizeLinks(sanitizeDisplayText(s));
