@@ -38,9 +38,10 @@ export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 type AppointmentReminderParams = { groupId: string; groupName: string; appointmentId: string; title: string; startAt: number; tz: string };
 /**
  * R11 §1: ชนิดที่อ้างชื่อผู้กระทำ · actorId เก็บไว้ล้างชื่อตอนลบบัญชีเท่านั้น (ไม่ออกทาง API — ดู INTERNAL_PARAM_KEYS)
- * R15b B7: ผู้กระทำเป็น super admin ที่ไม่ใช่สมาชิกกลุ่ม → actorName '' + actorSystemAdmin: true (UI แสดง common.systemAdmin แทนชื่อ — ไม่เก็บชื่อคนนอกกลุ่ม)
+ * R15b B7: actorSystemAdmin = ผู้กระทำเป็น super admin ที่ไม่ใช่สมาชิกกลุ่ม → actorName '' (ไม่เก็บชื่อคนนอกกลุ่ม · UI แสดง common.systemAdmin)
+ * แถวเก่าก่อน R15b ไม่มีคีย์นี้ = false
  */
-type AppointmentActorParams = AppointmentReminderParams & { actorName: string; actorId: string; actorSystemAdmin?: true };
+type AppointmentActorParams = AppointmentReminderParams & { actorName: string; actorId: string; actorSystemAdmin: boolean };
 type GroupMemberEventParams = { groupId: string; groupName: string; memberName: string; memberId: string };
 
 /** params ต่อชนิด — ตรงกับ ADR 0007 §1 + R11 §1 (ชื่อ ณ เวลาเกิดเหตุ · instant = epoch ms) */

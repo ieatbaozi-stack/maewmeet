@@ -212,7 +212,7 @@ describe('B7: super admin นอกกลุ่มในกระดิ่ง', 
   const bell = async (p: Person, kind: string) =>
     (await get<{ notifications: N[] }>(p.c, '/api/me/notifications?limit=50')).data.notifications.filter((n) => n.kind === kind).map((n) => n.params);
 
-  it('ยกเลิก/แก้โดย SA นอกกลุ่ม → actorName ว่าง + actorSystemAdmin true · สมาชิกทำ → ชื่อจริง ไม่มีธง · ไม่มี actorId ออกทาง API', async () => {
+  it('ยกเลิก/แก้โดย SA นอกกลุ่ม → actorName ว่าง + actorSystemAdmin true · สมาชิกทำ → ชื่อจริง ธง false · ไม่มี actorId ออกทาง API', async () => {
     const ap = await mustCreate(w.b, w.gid);
     expect((await call(w.a.c, 'PUT' as 'POST', `/api/appointments/${ap.id}/rsvp`, { response: 'going' })).status).toBe(200);
     const upd = await patch(w.boss.c, `/api/appointments/${ap.id}`, { placeName: 'ร้านใหม่' });
@@ -232,7 +232,7 @@ describe('B7: super admin นอกกลุ่มในกระดิ่ง', 
     expect((await post(w.m.c, `/api/appointments/${ap2.id}/cancel`, {})).status).toBe(200);
     const byMod = (await bell(w.a, 'appointment.cancelled')).find((p) => p.appointmentId === ap2.id)!;
     expect(byMod.actorName).toBe(w.m.displayName);
-    expect(byMod).not.toHaveProperty('actorSystemAdmin');
+    expect(byMod.actorSystemAdmin).toBe(false);
   });
 });
 

@@ -472,12 +472,12 @@ async function sessionActorName(tx: Parameters<typeof audit>[0], req: Request, u
 }
 
 /**
- * R15b B7 (security R11 Low 2): ป้ายผู้กระทำใน params ของ appointment.updated / cancelled
- * super admin ที่ไม่ใช่สมาชิก (actorRole null หลังด่านสิทธิ์) → ไม่เก็บชื่อ · ธง actorSystemAdmin ให้ UI แสดง "ผู้ดูแลระบบ" (สอดคล้อง cancelledBy = null ใน API)
+ * R15b B7 (security R11 Low 2): ชื่อผู้กระทำใน params ของ appointment.updated / cancelled
+ * super admin ที่ไม่ใช่สมาชิก (actorRole null หลังด่านสิทธิ์ — ดู asSystemAdmin) → '' ไม่อ่านชื่อ · ธง actorSystemAdmin ให้ UI แสดง "ผู้ดูแลระบบ" (สอดคล้อง cancelledBy = null ใน API)
  */
-async function actorLabel(tx: Parameters<typeof audit>[0], me: UserActor, group: GroupCtx): Promise<{ actorName: string; actorId: string; actorSystemAdmin?: true }> {
-  if (group.actorRole === null) return { actorName: '', actorId: me.id, actorSystemAdmin: true };
-  return { actorName: await actorDisplayName(tx, me.id), actorId: me.id };
+const asSystemAdmin = (group: GroupCtx): boolean => group.actorRole === null;
+async function actorNameFor(tx: Parameters<typeof audit>[0], me: UserActor, group: GroupCtx): Promise<string> {
+  return asSystemAdmin(group) ? '' : actorDisplayName(tx, me.id);
 }
 
 /** R11 §1: สิ่งที่เปลี่ยนจริงเมื่อเทียบกับแถวก่อนแก้ — แก้แค่ชื่อ/รายละเอียด = null (ไม่แจ้ง) */
@@ -553,7 +553,9 @@ export async function checkAppointmentOverlap(actor: Actor, groupId: string, inp
 export type AppointmentListDto = { appointments: AppointmentDto[]; nextCursor: string | null };
 
 export async function listGroupAppointments(actor: Actor, groupId: string, query: ListAppointmentsQuery, ctx: DataCtx): Promise<AppointmentListDto> {
-  return listGroupAppointmentsIn(actor, await loadGroupCtx(ctx.db, actor, groupId), query, ctx);
+  const group = await loadGroupCtx(ctx.db, actor, groupId);
+  const allow = authorize(actor, 'appointment.view', groupRes(group));
+  return groupAppointmentsAfterAuth(actor, allow, group.id, query, ctx);
 }
 
 /**
@@ -561,8 +563,12 @@ export async function listGroupAppointments(actor: Actor, groupId: string, query
  * group ต้องโหลดด้วย loadGroupCtx ของ actor คนเดียวกันใน request นี้ (ห้ามส่งด่านของคนอื่น/ที่เก็บข้าม request)
  */
 export async function listGroupAppointmentsIn(actor: Actor, group: LoadedGroupCtx, query: ListAppointmentsQuery, ctx: DataCtx): Promise<AppointmentListDto> {
-  const groupId = group.id;
   const allow = authorize(actor, 'appointment.view', groupRes(group));
+  return groupAppointmentsAfterAuth(actor, allow, group.id, query, ctx);
+}
+
+/** ตัวรายการนัดของกลุ่ม — เรียกหลัง authorize('appointment.view') ของผู้เรียกเท่านั้น */
+async function groupAppointmentsAfterAuth(actor: Actor, allow: Allow, groupId: string, query: ListAppointmentsQuery, ctx: DataCtx): Promise<AppointmentListDto> {
   const me = asUser(actor);
   const { db, now } = ctx;
   const scope = query.scope ?? 'upcoming';
@@ -664,7 +670,7 @@ export async function updateAppointment(actor: Actor, id: string, input: UpdateA
         {
           userIds: recipients,
           kind: 'appointment.updated',
-          params: { groupId: updated.groupId, groupName: sanitizeDisplayText(c.groupName), appointmentId: updated.id, title: sanitizeDisplayText(updated.title), startAt: updated.startAt, tz: updated.tz, ...(await actorLabel(tx, me, c.group)), changes },
+          params: { groupId: updated.groupId, groupName: sanitizeDisplayText(c.groupName), appointmentId: updated.id, title: sanitizeDisplayText(updated.title), startAt: updated.startAt, tz: updated.tz, actorName: await actorNameFor(tx, me, c.group), actorId: me.id, actorSystemAdmin: asSystemAdmin(c.group), changes },
         },
         now,
       );
@@ -701,7 +707,7 @@ export async function cancelAppointment(actor: Actor, id: string, ctx: DataCtx):
           userIds: bell,
           lineUserIds,
           kind: 'appointment.cancelled',
-          params: { groupId: cancelled.groupId, groupName: sanitizeDisplayText(c.groupName), appointmentId: cancelled.id, title: sanitizeDisplayText(cancelled.title), startAt: cancelled.startAt, tz: cancelled.tz, ...(await actorLabel(tx, me, c.group)) },
+          params: { groupId: cancelled.groupId, groupName: sanitizeDisplayText(c.groupName), appointmentId: cancelled.id, title: sanitizeDisplayText(cancelled.title), startAt: cancelled.startAt, tz: cancelled.tz, actorName: await actorNameFor(tx, me, c.group), actorId: me.id, actorSystemAdmin: asSystemAdmin(c.group) },
         },
         now,
       );

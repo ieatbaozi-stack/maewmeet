@@ -21,7 +21,7 @@ import { findUserById } from '@/lib/data/repos/user';
 import { constraintKind } from '@/lib/data/repos/errors';
 import { addDaysAt } from '@/lib/calendar';
 import { authorize } from '@/lib/rbac/can';
-import type { Actor, GroupCtx } from '@/lib/rbac/types';
+import type { Actor, Allow, GroupCtx } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
 import { DEFAULT_GROUP_ICON, GROUP_ICON_KEYS, type GroupIconKey } from '@/lib/shared/group-icons';
@@ -140,7 +140,9 @@ export async function listMyGroups(actor: Actor, ctx: DataCtx): Promise<{ groups
 }
 
 export async function getGroup(actor: Actor, groupId: string, ctx: DataCtx): Promise<{ group: GroupDetailDto }> {
-  return { group: await groupDetailOf(actor, await loadGroupCtx(ctx.db, actor, groupId), ctx) };
+  const group = await loadGroupCtx(ctx.db, actor, groupId);
+  const allow = authorize(actor, 'group.view', groupRes(group));
+  return { group: await groupDetailAfterAuth(actor, allow, group, ctx) };
 }
 
 /**
@@ -150,15 +152,16 @@ export async function getGroup(actor: Actor, groupId: string, ctx: DataCtx): Pro
  */
 export async function getGroupPage(actor: Actor, groupId: string, query: ListAppointmentsQuery, ctx: DataCtx): Promise<{ group: GroupDetailDto; upcoming: AppointmentListDto | null }> {
   const loaded = await loadGroupCtx(ctx.db, actor, groupId);
-  const group = await groupDetailOf(actor, loaded, ctx);
+  const allow = authorize(actor, 'group.view', groupRes(loaded));
+  const group = await groupDetailAfterAuth(actor, allow, loaded, ctx);
   if (group.memberCount <= 1) return { group, upcoming: null };
   const upcoming = await listGroupAppointmentsIn(actor, loaded, query, ctx).catch(() => null);
   return { group, upcoming };
 }
 
-async function groupDetailOf(actor: Actor, group: LoadedGroupCtx, ctx: DataCtx): Promise<GroupDetailDto> {
+/** รายละเอียดกลุ่ม — เรียกหลัง authorize('group.view') ของผู้เรียกเท่านั้น */
+async function groupDetailAfterAuth(actor: Actor, allow: Allow, group: LoadedGroupCtx, ctx: DataCtx): Promise<GroupDetailDto> {
   const groupId = group.id;
-  const allow = authorize(actor, 'group.view', groupRes(group));
   const me = asUser(actor);
   const row = groupRowOf(group); // R7 B-3: แถวกลุ่มมากับด่านกลุ่มแล้ว
   // R8 F1 §2.2: ธง "ลง busy แล้ว" มากับ query สมาชิกเดิม (EXISTS) — ไม่เพิ่ม query · ช่วง 30 วันปฏิทินตาม tz ของกลุ่ม (lib กลาง)

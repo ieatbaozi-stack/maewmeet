@@ -41,6 +41,7 @@ export function setPrefs(actor: Actor, input: PrefsInput): { applied: PrefsInput
  * ค่าเท่าเดิม (จากแถวที่ session อ่านมาแล้วใน request นี้) → ไม่เขียน · ค่า locale ผ่าน zod enum มาแล้ว (th|en เท่านั้น)
  */
 export async function saveAccountLocale(actor: Actor, input: PrefsInput, ctx: DataCtx): Promise<void> {
+  authorize(actor, 'prefs.cookie.set', { type: 'none' });
   if (actor.kind !== 'user' || actor.status !== 'active' || input.locale === undefined) return;
   const cached = takeResolvedSessionUser(ctx.req);
   if (cached && cached.id === actor.id && cached.locale === input.locale) return;
