@@ -118,3 +118,34 @@ describe('R11 notificationView', () => {
     for (const [k, p] of kinds) expect(Object.keys(ICONS)).toContain(notificationView(k, p, 'en').icon);
   });
 });
+
+describe('R15b B7 ป้าย "ผู้ดูแลระบบ" ของ actor', () => {
+  const sys = (kind: string, extra: Record<string, unknown> = {}) => notificationView(kind, { ...appt, actorName: '', actorSystemAdmin: true, ...extra }, 'th', 'บัญชีที่ถูกลบ', 'ผู้ดูแลระบบ');
+  it('cancelled/updated: actorSystemAdmin = true ใช้ป้ายกลางแทนชื่อ (แทนป้ายบัญชีที่ถูกลบ)', () => {
+    const c = sys('appointment.cancelled');
+    expect(c.known).toBe(true);
+    expect(strip(String((c as { values: Record<string, string> }).values.actorName))).toBe('ผู้ดูแลระบบ');
+    const u = sys('appointment.updated', { changes: 'time' });
+    expect(strip(String((u as { values: Record<string, string> }).values.actorName))).toBe('ผู้ดูแลระบบ');
+    expect(strip(render('th', (u as { messageKey: string }).messageKey, (u as { values: Record<string, string> }).values))).toContain('ผู้ดูแลระบบ');
+  });
+  it('ภาษาอังกฤษ: ใช้ข้อความที่ผู้เรียกส่งมา', () => {
+    const v = notificationView('appointment.cancelled', { ...appt, actorName: '', actorSystemAdmin: true }, 'en', 'Deleted account', 'System admin');
+    expect(strip(String((v as { values: Record<string, string> }).values.actorName))).toBe('System admin');
+  });
+  it('แถวที่ไม่มี key หรือ false = พฤติกรรมเดิม (ชื่อจริง / ป้ายบัญชีที่ถูกลบ)', () => {
+    const named = notificationView('appointment.cancelled', { ...appt, actorName: 'นุ่น' }, 'th', 'บัญชีที่ถูกลบ', 'ผู้ดูแลระบบ');
+    expect(strip(String((named as { values: Record<string, string> }).values.actorName))).toBe('นุ่น');
+    const gone = notificationView('appointment.cancelled', { ...appt, actorName: '', actorSystemAdmin: false }, 'th', 'บัญชีที่ถูกลบ', 'ผู้ดูแลระบบ');
+    expect(strip(String((gone as { values: Record<string, string> }).values.actorName))).toBe('บัญชีที่ถูกลบ');
+  });
+  it('ค่าที่ไม่ใช่ true จริง (เช่น "true") ไม่นับ · ไม่ส่งป้ายมา = ไม่เปลี่ยนพฤติกรรม', () => {
+    const s = notificationView('appointment.cancelled', { ...appt, actorName: 'a', actorSystemAdmin: 'true' }, 'th', 'x', 'ผู้ดูแลระบบ');
+    expect(strip(String((s as { values: Record<string, string> }).values.actorName))).toBe('a');
+    expect(notificationView('appointment.cancelled', { ...appt, actorName: '', actorSystemAdmin: true }, 'th').known).toBe(false);
+  });
+  it('คีย์ common.systemAdmin มีทั้ง TH/EN', () => {
+    expect(messages('th').common.systemAdmin).toBeTruthy();
+    expect(messages('en').common.systemAdmin).toBeTruthy();
+  });
+});
