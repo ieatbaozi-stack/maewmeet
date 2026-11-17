@@ -17,7 +17,7 @@ vi.mock('@/lib/shared/id', async (importOriginal) => {
   return { ...actual, newId: () => `00000000-0000-4000-8000-${String(++n).padStart(12, '0')}` };
 });
 import { dataCtx } from '@/lib/data/context';
-import { getGroup } from '@/lib/data/services/groups';
+import * as groupsSvc from '@/lib/data/services/groups';
 import { listGroupAppointments } from '@/lib/data/services/appointments';
 import { AppError } from '@/lib/shared/errors';
 import type { UserActor } from '@/lib/rbac/types';
@@ -59,17 +59,33 @@ async function detail(who: string, appt: string, note = ''): Promise<void> {
   record(`GET appointment ${appt} as ${who}${note}`, `${r.status} ${r.text}`);
 }
 
-/** ข้อมูลหน้า /groups/[gid] ตามที่ page ใช้: group + (กลุ่มมีมากกว่า 1 คน → นัดกำลังจะถึง 50 รายการ · ล้ม → null) · NOT_FOUND → "404" */
-async function oldGroupPage(p: Person, g: string, sa = false): Promise<string> {
-  const actor = actorOf(p, sa);
+async function orNotFound(run: () => Promise<unknown>): Promise<string> {
   try {
-    const { group } = await getGroup(actor, g, ctx());
-    const upcoming = group.memberCount <= 1 ? null : await listGroupAppointments(actor, g, { scope: 'upcoming', limit: '50' }, ctx()).catch(() => null);
-    return JSON.stringify({ group, upcoming });
+    return JSON.stringify(await run());
   } catch (e) {
     if (e instanceof AppError && e.code === 'NOT_FOUND') return '404';
     throw e;
   }
+}
+
+/** ข้อมูลหน้า /groups/[gid] ทางเดิม: getGroup แล้ว (กลุ่มมีมากกว่า 1 คน) listGroupAppointments upcoming 50 · ล้ม → null · NOT_FOUND → "404" */
+const oldGroupPage = (p: Person, g: string, sa = false) =>
+  orNotFound(async () => {
+    const actor = actorOf(p, sa);
+    const { group } = await groupsSvc.getGroup(actor, g, ctx());
+    const upcoming = group.memberCount <= 1 ? null : await listGroupAppointments(actor, g, { scope: 'upcoming', limit: '50' }, ctx()).catch(() => null);
+    return { group, upcoming };
+  });
+
+/** R15b: ทางใหม่ getGroupPage (ด่านกลุ่มครั้งเดียว) ต้องได้สตริงเดียวกับทางเดิมทุกไบต์ · ตอนบันทึกจากโค้ดเดิม (ยังไม่มีฟังก์ชันนี้) → ข้าม */
+async function groupPage(key: string, p: Person, g: string, sa = false): Promise<void> {
+  const before = await oldGroupPage(p, g, sa);
+  const getGroupPage = (groupsSvc as Record<string, unknown>).getGroupPage as typeof groupsSvc.getGroupPage | undefined;
+  if (getGroupPage) {
+    const after = await orNotFound(() => getGroupPage(actorOf(p, sa), g, { scope: 'upcoming', limit: '50' }, ctx()));
+    expect(norm(after), `${key}: getGroupPage = getGroup + listGroupAppointments`).toBe(norm(before));
+  } else expect(RECORD, 'ไม่มี getGroupPage นอกโหมดบันทึก').toBe(true);
+  record(key, before);
 }
 
 async function notificationsOf(who: string): Promise<void> {
@@ -105,6 +121,7 @@ beforeAll(async () => {
     expect(r.status, r.text).toBe(201);
     appts[key] = r.data.appointment.id;
     names.set(r.data.appointment.id, `<appt:${key}>`);
+    record(`POST create ${key}`, `${r.status} ${r.text}`); // toDetailDto ตัวเดียวกับ RSVP/GET
     tick();
   };
   await mk('X', P.alice!, { title: 'กินหมูกระทะ 🐷', description: 'บรรทัด 1\nบรรทัด 2', placeName: 'ร้าน "ลุง" & ป้า', lat: 13.7563, lng: 100.5018, mapUrl: 'https://maps.app.goo.gl/abc', startDate: '2026-11-07', startTime: '18:00', endDate: '2026-11-07', endTime: '21:00' });
@@ -153,14 +170,18 @@ describe('R15b golden — JSON เท่าเดิมทุกไบต์', (
 
     for (const who of ['alice', 'mod', 'bob']) await notificationsOf(who);
 
-    for (const who of ['alice', 'bob', 'eve']) record(`PAGE /groups/[gid] as ${who}`, await oldGroupPage(P[who]!, gid));
-    record('PAGE /groups/[gid] as boss (SA นอกกลุ่ม)', await oldGroupPage(P.boss!, gid, true));
-    record('PAGE /groups/[gid] as oscar (คนนอก)', await oldGroupPage(P.oscar!, gid));
-    record('PAGE /groups/[solo] as oscar (คนเดียว)', await oldGroupPage(P.oscar!, solo));
-    // ลบนัดไม่ได้ผ่าน API (มีแค่ยกเลิก) — ยกเลิก Y แล้วดูหน้ากลุ่มอีกครั้ง (นัดที่ยกเลิกยังอยู่ในรายการ upcoming)
-    expect((await post(P.mod!.c, `/api/appointments/${appts.Y}/cancel`, {})).status).toBe(200);
+    for (const who of ['alice', 'bob', 'eve']) await groupPage(`PAGE /groups/[gid] as ${who}`, P[who]!, gid);
+    await groupPage('PAGE /groups/[gid] as boss (SA นอกกลุ่ม)', P.boss!, gid, true);
+    await groupPage('PAGE /groups/[gid] as oscar (คนนอก)', P.oscar!, gid);
+    await groupPage('PAGE /groups/[solo] as oscar (คนเดียว)', P.oscar!, solo);
+    // แก้เวลา X (แจ้งสมาชิก) + ยกเลิก Y — คำตอบของทั้งสองใช้ toDetailDto เดียวกัน · นัดที่ยกเลิกยังอยู่ในรายการ upcoming ของหน้ากลุ่ม
+    const upd = await call(P.alice!.c, 'PATCH', `/api/appointments/${appts.X}`, { startDate: '2026-11-07', startTime: '18:30', endDate: '2026-11-07', endTime: '21:30' });
+    record('PATCH X (แก้เวลา)', `${upd.status} ${upd.text}`);
     tick();
-    record('PAGE /groups/[gid] as bob (หลังยกเลิก Y)', await oldGroupPage(P.bob!, gid));
+    const cancel = await post(P.mod!.c, `/api/appointments/${appts.Y}/cancel`, {});
+    record('POST cancel Y', `${cancel.status} ${cancel.text}`);
+    tick();
+    await groupPage('PAGE /groups/[gid] as bob (หลังยกเลิก Y)', P.bob!, gid);
     await detail('bob', 'Y', ' (หลังยกเลิก)');
 
     if (RECORD) {

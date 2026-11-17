@@ -111,8 +111,8 @@ import { getPageUser, requireUser } from '@/app/_lib/session';
 import { loadUnreadCount } from '@/app/(app)/_lib/unread';
 import { loadHome } from '@/app/(app)/_lib/home';
 import { loadCalendarPage } from '@/app/(app)/calendar/_lib/load';
-import { loadGroup, loadGroupsTab } from '@/app/(app)/groups/_lib/load';
-import { loadAppointment, loadGroupAppointments } from '@/app/(app)/appointments/_lib/load';
+import { loadGroupPage, loadGroupsTab } from '@/app/(app)/groups/_lib/load';
+import { loadAppointment } from '@/app/(app)/appointments/_lib/load';
 import { del, get, join, makeGroup, person, post, setupHarness, type Harness, type Person } from '../groups/harness';
 import { put } from '../appointments/util';
 
@@ -239,8 +239,8 @@ const CEILINGS: Record<string, number> = {
   'PAGE /calendar?v=day': 8,
   'PAGE /calendar?v=mine': 11,
   'PAGE /groups': 5,
-  'PAGE /groups/[gid]': 11, // R8-4: hasUpcomingBusy มากับ query สมาชิกเดิม (EXISTS) → +0 (วัดจริง 11 ก่อน/หลัง)
-  'PAGE /appointments/[id]': 7,
+  'PAGE /groups/[gid]': 10, // R8-4: hasUpcomingBusy +0 (11) · R15b §3: ด่านกลุ่มครั้งเดียว (getGroupPage) 11 → 10
+  'PAGE /appointments/[id]': 6, // R15b §3: สมาชิก + คำตอบ query เดียว (listMembersWithRsvps) 7 → 6
   'PAGE /me': 3,
   'GET /api/groups/:gid/calendar (เดือน)': 5,
   'GET /api/groups/:gid/availability (เดือน)': 5,
@@ -252,10 +252,12 @@ const CEILINGS: Record<string, number> = {
   'GET /api/groups/:gid': 3, // R8-4: +0 (listMembers → listMembersWithUpcomingBusy · 3 ก่อน/หลัง)
   'GET /api/groups/:gid/appointments': 7,
   'GET /api/me/invites': 2,
-  'GET /api/appointments/:id': 5,
+  'GET /api/appointments/:id': 4, // R15b §3: 5 → 4 (listMembersWithRsvps)
   'PUT /api/me/current-group': 3,
   'POST /api/groups/:gid/appointments/check': 5,
-  'PUT /api/appointments/:id/rsvp': 10, // R11: +1 อ่านคำตอบเดิมก่อนเขียน — แจ้งผู้สร้างเฉพาะเมื่อคำตอบเปลี่ยนจริง
+  'PUT /api/appointments/:id/rsvp': 9, // R11: +1 อ่านคำตอบเดิมก่อนเขียน (10) · R15b §3: listMembersWithRsvps 10 → 9 · การอ่านคำตอบเดิมยังอยู่ใน tx (ไม่ย้าย)
+  // R15b §3: ผู้ตอบไม่ใช่ผู้สร้าง + คำตอบเปลี่ยน — ชื่อผู้ตอบจาก session + "ผู้สร้างยัง active" มากับ query สิทธิ์ (−2) + listMembersWithRsvps (−1) · วัดก่อนแก้ 14
+  'PUT /api/appointments/:id/rsvp (แจ้งผู้สร้าง)': 11,
   'POST /api/me/busy (timed)': 5,
   'DELETE /api/me/busy/:id': 6, // R14 (ADR 0012): +1 insert busy_routine_skip ใน tx เดียวกัน (จำเป็นตาม ADR)
   // R7 B-2: service ที่ loader ของ /calendar ใช้ (วัดแยก ไม่รวม session/layout · actor สร้างตรง)
@@ -346,12 +348,11 @@ describe('R7 baseline — จำนวน query + เวลา ต่อเส�
           layout(),
           (async () => {
             await getPageUser();
-            await loadGroup(G);
+            await loadGroupPage(G);
           })(), // generateMetadata
           (async () => {
             await requireUser();
-            const g = await loadGroup(G);
-            if (g.memberCount > 1) await loadGroupAppointments(G);
+            await loadGroupPage(G); // R15b §3: กลุ่ม + นัดที่กำลังจะถึงผ่านด่านกลุ่มครั้งเดียว (เดิม loadGroup แล้ว loadGroupAppointments)
           })(),
         ]),
       ),
@@ -400,6 +401,11 @@ describe('R7 baseline — จำนวน query + เวลา ต่อเส�
     // ── เขียน: RSVP สลับ going/maybe · เพิ่ม busy แล้วลบคืน (ลบนับแยก) ──
     let flip = false;
     await measure('PUT /api/appointments/:id/rsvp', 'api', () => sampleApi(() => put(A.c, `/api/appointments/${appts[1]}/rsvp`, { response: (flip = !flip) ? 'going' : 'maybe' })));
+    // R15b §3: ผู้ตอบไม่ใช่ผู้สร้าง + คำตอบเปลี่ยนทุกรอบ → ทางแจ้งผู้สร้าง (ชื่อผู้ตอบ + ผู้สร้างยัง active) ทุกรอบ
+    let flipB = false;
+    await measure('PUT /api/appointments/:id/rsvp (แจ้งผู้สร้าง)', 'api', () =>
+      sampleApi(() => put(ppl[1]!.c, `/api/appointments/${appts[1]}/rsvp`, { response: (flipB = !flipB) ? 'not_going' : 'maybe' })),
+    );
     const created: string[] = [];
     const cleanup = async () => {
       for (const id of created.splice(0)) expect((await del(A.c, `/api/me/busy/${id}`)).status).toBe(200);

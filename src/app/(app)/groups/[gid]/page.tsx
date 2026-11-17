@@ -14,8 +14,7 @@ import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
 import { RememberGroup } from "@/components/calendar/RememberGroup";
 import { CreateAppointmentButton } from "@/components/appointments/CreateAppointmentButton";
-import { loadGroup } from "../_lib/load";
-import { loadGroupAppointments } from "../../appointments/_lib/load";
+import { loadGroupPage } from "../_lib/load";
 
 export async function generateMetadata({ params }: { params: Promise<{ gid: string }> }): Promise<Metadata> {
   // ชื่อกลุ่มเป็นข้อมูลของสมาชิก: ไม่ล็อกอิน/ถูกระงับ/ต้องเปลี่ยน PIN → ใช้ title เริ่มต้น (หน้าเองจะ redirect) ไม่เรียก service ที่จะโยน PolicyError แล้วไป log stack
@@ -23,7 +22,7 @@ export async function generateMetadata({ params }: { params: Promise<{ gid: stri
   if (!user || user.mustChangePin) return {};
   const { gid } = await params;
   try {
-    return { title: (await loadGroup(gid)).name };
+    return { title: (await loadGroupPage(gid)).group.name };
   } catch {
     return {}; // 404/ผิดพลาดอื่น: ให้ตัวหน้าตัดสินเอง (notFound / error boundary) — metadata ไม่ทำให้ request ล้ม
   }
@@ -33,13 +32,13 @@ export async function generateMetadata({ params }: { params: Promise<{ gid: stri
 export default async function GroupPage({ params }: { params: Promise<{ gid: string }> }) {
   const user = await requireUser();
   const { gid } = await params;
-  const group = await loadGroup(gid);
+  // R15b §3: กลุ่ม + นัดที่กำลังจะถึงผ่านด่านกลุ่มครั้งเดียว (กลุ่มคนเดียว/โหลดนัดไม่ได้ → upcoming = null การ์ดแสดงข้อความ 0)
+  const { group, upcoming } = await loadGroupPage(gid);
   const t = await getTranslations();
   // คุกกี้ mm_group เป็น HttpOnly → อ่านได้เฉพาะฝั่งเซิร์ฟเวอร์ · ยิง PUT เฉพาะเมื่อค่าต่างจากกลุ่มนี้ (security R6D L2 · ADR 0009 §5)
   const remembered = parseCurrentGroupCookie((await cookies()).get(CURRENT_GROUP_COOKIE)?.value);
   const solo = group.memberCount <= 1;
-  // จำนวนนัดที่กำลังจะถึง (ไม่นับที่ยกเลิก) สำหรับการ์ดนัดของกลุ่ม · โหลดไม่ได้ → ไม่ทำให้หน้ากลุ่มล้ม (การ์ดแสดงข้อความ 0)
-  const upcoming = solo ? null : await loadGroupAppointments(gid).catch(() => null);
+  // จำนวนนัดที่กำลังจะถึง (ไม่นับที่ยกเลิก) สำหรับการ์ดนัดของกลุ่ม
   const upcomingCount = upcoming ? upcoming.appointments.filter((a) => a.status !== "cancelled").length : 0;
   // R8: ขั้น 2 = แถวของผู้ดูเองมี busy ใน 30 วัน (ไม่ใช่สมาชิก/ไม่มีค่า → false) · ขั้น 4 = มีนัดที่กำลังจะถึง (กลุ่มคนเดียวไม่โหลด → 0)
   const viewerHasBusy = group.members.find((m) => m.userId === user.id)?.hasUpcomingBusy === true;

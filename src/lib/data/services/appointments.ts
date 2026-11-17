@@ -22,6 +22,7 @@ import {
   insertAppointmentIfUnderCap,
   listCurrentRsvps,
   listGroupAppointmentRows,
+  listMembersWithRsvps,
   listMyUpcomingAppointmentRows,
   myCommitmentsOverlapping,
   updateAppointmentGuarded,
@@ -37,6 +38,7 @@ import { rateKey, type RateSpec } from '@/lib/auth/throttle';
 import { refundBucket, reserveBucket } from '@/lib/data/repos/rate-limit-bucket';
 import { listReminderAudience } from '@/lib/data/repos/reminder';
 import { findUserById } from '@/lib/data/repos/user';
+import { takeResolvedSessionUser } from '@/lib/auth/session';
 import { dispatchCancelledLineAfterResponse } from '@/lib/integrations/line/dispatch-after';
 import { authorize, can } from '@/lib/rbac/can';
 import type { Actor, Allow, GroupCtx, UserActor } from '@/lib/rbac/types';
@@ -63,7 +65,7 @@ import { checkVisibleName, hasForbiddenChars, sanitizeDisplayText } from '@/lib/
 import type { DataCtx } from '../context';
 import { calendarLinkLabels, localeFromCookie, resolveCalendarLocale } from '../calendar-labels';
 import { notify } from '../notifications/notify';
-import { groupRowOf, loadAppointmentCtx, loadGroupCtx, type AppointmentCtx } from '../policy-context';
+import { groupRowOf, loadAppointmentCtx, loadGroupCtx, type AppointmentCtx, type LoadedGroupCtx } from '../policy-context';
 import {
   toAppointmentDetailDto,
   toAppointmentDto,
@@ -346,7 +348,10 @@ async function myConflictsFor(db: Reader, me: UserActor, now: number, row: Appoi
   return { myConflicts: hits.slice(0, APPOINTMENT_MY_CONFLICTS_MAX).map(toMyConflictDto), myConflictsTruncated: hits.length > APPOINTMENT_MY_CONFLICTS_MAX };
 }
 
-/** DTO รายละเอียด — รายชื่อ RSVP + สิทธิ์ของผู้ดู · withConflicts = คำนวณ myConflicts (เฉพาะ getAppointment / setRsvp — ADR 0009 §3) */
+/**
+ * DTO รายละเอียด — รายชื่อ RSVP + สิทธิ์ของผู้ดู · withConflicts = คำนวณ myConflicts (เฉพาะ getAppointment / setRsvp — ADR 0009 §3)
+ * R15b §3: สมาชิก + คำตอบมาจาก query เดียว (listMembersWithRsvps — ผลเท่า listMembers + listCurrentRsvps ทุกไบต์ ดู tests/platform/r15b-golden)
+ */
 async function toDetailDto(
   db: Reader,
   actor: UserActor,
@@ -357,9 +362,8 @@ async function toDetailDto(
   groupIcon: string | null,
   withConflicts = false,
 ): Promise<AppointmentDetailDto> {
-  const [members, rsvps, conflicts] = await Promise.all([
-    listMembers(db, row.groupId),
-    listCurrentRsvps(db, [row.id]),
+  const [{ members, rsvps }, conflicts] = await Promise.all([
+    listMembersWithRsvps(db, row.groupId, row.id),
     withConflicts ? myConflictsFor(db, actor, now, row, group) : Promise.resolve(NO_CONFLICTS),
   ]);
   const res = { type: 'appointment', group, createdBy: row.createdBy } as const;
@@ -458,6 +462,24 @@ async function actorDisplayName(tx: Parameters<typeof audit>[0], userId: string)
   return sanitizeDisplayText(row?.displayName ?? '');
 }
 
+/**
+ * R15b §3: ชื่อผู้กระทำจากแถวผู้ใช้ที่ session ของ request นี้อ่านมาแล้ว (JOIN เดียวกับการหา actor — ข้อมูลสด ณ ต้น request) → ไม่ต้องอ่านซ้ำ
+ * ไม่มี (service ถูกเรียกนอก route) หรือไม่ใช่คนเดียวกัน → อ่านจาก DB เหมือนเดิม
+ */
+async function sessionActorName(tx: Parameters<typeof audit>[0], req: Request, userId: string): Promise<string> {
+  const cached = takeResolvedSessionUser(req);
+  return cached && cached.id === userId ? sanitizeDisplayText(cached.displayName) : actorDisplayName(tx, userId);
+}
+
+/**
+ * R15b B7 (security R11 Low 2): ป้ายผู้กระทำใน params ของ appointment.updated / cancelled
+ * super admin ที่ไม่ใช่สมาชิก (actorRole null หลังด่านสิทธิ์) → ไม่เก็บชื่อ · ธง actorSystemAdmin ให้ UI แสดง "ผู้ดูแลระบบ" (สอดคล้อง cancelledBy = null ใน API)
+ */
+async function actorLabel(tx: Parameters<typeof audit>[0], me: UserActor, group: GroupCtx): Promise<{ actorName: string; actorId: string; actorSystemAdmin?: true }> {
+  if (group.actorRole === null) return { actorName: '', actorId: me.id, actorSystemAdmin: true };
+  return { actorName: await actorDisplayName(tx, me.id), actorId: me.id };
+}
+
 /** R11 §1: สิ่งที่เปลี่ยนจริงเมื่อเทียบกับแถวก่อนแก้ — แก้แค่ชื่อ/รายละเอียด = null (ไม่แจ้ง) */
 export function appointmentChanges(before: AppointmentRow, after: AppointmentRow): 'time' | 'place' | 'both' | null {
   const time = before.startAt !== after.startAt || before.endAt !== after.endAt;
@@ -531,7 +553,15 @@ export async function checkAppointmentOverlap(actor: Actor, groupId: string, inp
 export type AppointmentListDto = { appointments: AppointmentDto[]; nextCursor: string | null };
 
 export async function listGroupAppointments(actor: Actor, groupId: string, query: ListAppointmentsQuery, ctx: DataCtx): Promise<AppointmentListDto> {
-  const group = await loadGroupCtx(ctx.db, actor, groupId);
+  return listGroupAppointmentsIn(actor, await loadGroupCtx(ctx.db, actor, groupId), query, ctx);
+}
+
+/**
+ * R15b §3: รายการนัดของกลุ่มบนด่านกลุ่มที่โหลดแล้วใน request เดียวกัน (getGroupPage) — authorize appointment.view ยังทำที่นี่เสมอ
+ * group ต้องโหลดด้วย loadGroupCtx ของ actor คนเดียวกันใน request นี้ (ห้ามส่งด่านของคนอื่น/ที่เก็บข้าม request)
+ */
+export async function listGroupAppointmentsIn(actor: Actor, group: LoadedGroupCtx, query: ListAppointmentsQuery, ctx: DataCtx): Promise<AppointmentListDto> {
+  const groupId = group.id;
   const allow = authorize(actor, 'appointment.view', groupRes(group));
   const me = asUser(actor);
   const { db, now } = ctx;
@@ -634,7 +664,7 @@ export async function updateAppointment(actor: Actor, id: string, input: UpdateA
         {
           userIds: recipients,
           kind: 'appointment.updated',
-          params: { groupId: updated.groupId, groupName: sanitizeDisplayText(c.groupName), appointmentId: updated.id, title: sanitizeDisplayText(updated.title), startAt: updated.startAt, tz: updated.tz, actorName: await actorDisplayName(tx, me.id), actorId: me.id, changes },
+          params: { groupId: updated.groupId, groupName: sanitizeDisplayText(c.groupName), appointmentId: updated.id, title: sanitizeDisplayText(updated.title), startAt: updated.startAt, tz: updated.tz, ...(await actorLabel(tx, me, c.group)), changes },
         },
         now,
       );
@@ -671,7 +701,7 @@ export async function cancelAppointment(actor: Actor, id: string, ctx: DataCtx):
           userIds: bell,
           lineUserIds,
           kind: 'appointment.cancelled',
-          params: { groupId: cancelled.groupId, groupName: sanitizeDisplayText(c.groupName), appointmentId: cancelled.id, title: sanitizeDisplayText(cancelled.title), startAt: cancelled.startAt, tz: cancelled.tz, actorName: await actorDisplayName(tx, me.id), actorId: me.id },
+          params: { groupId: cancelled.groupId, groupName: sanitizeDisplayText(c.groupName), appointmentId: cancelled.id, title: sanitizeDisplayText(cancelled.title), startAt: cancelled.startAt, tz: cancelled.tz, ...(await actorLabel(tx, me, c.group)) },
         },
         now,
       );
@@ -700,14 +730,14 @@ export async function setRsvp(actor: Actor, id: string, input: RsvpInput, ctx: D
     const ok = await upsertRsvpIfOpen(tx, { appointmentId: id, userId: me.id, response: input.response }, now);
     if (!ok) throw await whyRsvpRejected(tx, me, id, now);
     // R11 §1: แจ้งผู้สร้างเมื่อคำตอบเปลี่ยนจริง (รวมตอบครั้งแรก) · ผู้สร้างตอบเองไม่แจ้ง · ผู้สร้างต้องยังเป็นสมาชิก active
-    if (previous !== input.response && current.createdBy !== me.id) {
-      const creator = await listActiveMemberIds(tx, current.groupId, { userIds: [current.createdBy] });
+    // R15b §3: "ผู้สร้างยัง active" มากับ query สิทธิ์ (c.creatorActive) · ชื่อผู้ตอบจาก session ที่อ่านแล้ว — ไม่อ่านเพิ่มใน transaction
+    if (previous !== input.response && current.createdBy !== me.id && c.creatorActive) {
       await notify(
         tx,
         {
-          userIds: creator,
+          userIds: [current.createdBy],
           kind: 'appointment.rsvp_changed',
-          params: { groupId: current.groupId, groupName: sanitizeDisplayText(c.groupName), appointmentId: id, title: sanitizeDisplayText(current.title), startAt: current.startAt, tz: current.tz, responderName: await actorDisplayName(tx, me.id), responderId: me.id, response: input.response },
+          params: { groupId: current.groupId, groupName: sanitizeDisplayText(c.groupName), appointmentId: id, title: sanitizeDisplayText(current.title), startAt: current.startAt, tz: current.tz, responderName: await sessionActorName(tx, ctx.req, me.id), responderId: me.id, response: input.response },
         },
         now,
       );

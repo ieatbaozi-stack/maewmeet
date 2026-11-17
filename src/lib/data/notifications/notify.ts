@@ -36,8 +36,11 @@ export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
 /** R10 §1.3: ค่าดิบของการเตือนก่อนนัด */
 type AppointmentReminderParams = { groupId: string; groupName: string; appointmentId: string; title: string; startAt: number; tz: string };
-/** R11 §1: ชนิดที่อ้างชื่อผู้กระทำ · actorId เก็บไว้ล้างชื่อตอนลบบัญชีเท่านั้น (ไม่ออกทาง API — ดู INTERNAL_PARAM_KEYS) */
-type AppointmentActorParams = AppointmentReminderParams & { actorName: string; actorId: string };
+/**
+ * R11 §1: ชนิดที่อ้างชื่อผู้กระทำ · actorId เก็บไว้ล้างชื่อตอนลบบัญชีเท่านั้น (ไม่ออกทาง API — ดู INTERNAL_PARAM_KEYS)
+ * R15b B7: ผู้กระทำเป็น super admin ที่ไม่ใช่สมาชิกกลุ่ม → actorName '' + actorSystemAdmin: true (UI แสดง common.systemAdmin แทนชื่อ — ไม่เก็บชื่อคนนอกกลุ่ม)
+ */
+type AppointmentActorParams = AppointmentReminderParams & { actorName: string; actorId: string; actorSystemAdmin?: true };
 type GroupMemberEventParams = { groupId: string; groupName: string; memberName: string; memberId: string };
 
 /** params ต่อชนิด — ตรงกับ ADR 0007 §1 + R11 §1 (ชื่อ ณ เวลาเกิดเหตุ · instant = epoch ms) */
@@ -82,7 +85,7 @@ export function publicParams(params: Record<string, unknown>): Record<string, un
 const LINE_KINDS: ReadonlySet<NotificationKind> = new Set<NotificationKind>(['appointment.reminder_1d', 'appointment.reminder_1h', 'appointment.cancelled']);
 
 /** ค่าที่ไม่ต้องอยู่ใน payload ของ outbox: ข้อความ LINE ไม่มีชื่อคนกดยกเลิก (R11 §2) · ลดข้อมูลคนที่ค้างในคิว */
-const LINE_PAYLOAD_OMIT: ReadonlySet<string> = new Set(['actorName', 'actorId']);
+const LINE_PAYLOAD_OMIT: ReadonlySet<string> = new Set(['actorName', 'actorId', 'actorSystemAdmin']);
 
 /** คีย์ที่ห้ามอยู่ใน params เด็ดขาด (ชั้นสุดท้าย — allowlist จริงอยู่ที่ชนิดด้านบน) */
 const FORBIDDEN_PARAM_KEY = /pin|token|hash|secret|pepper|code|password/i;

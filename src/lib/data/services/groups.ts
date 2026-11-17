@@ -25,7 +25,14 @@ import type { Actor, GroupCtx } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
 import { DEFAULT_GROUP_ICON, GROUP_ICON_KEYS, type GroupIconKey } from '@/lib/shared/group-icons';
-import { GROUP_DEFAULT_MIN_FREE_MINUTES, GROUP_LIMITS, MEMBER_APPEARANCE_RATE_LIMIT, UPCOMING_BUSY_LOOKAHEAD_DAYS } from '@/lib/shared/limits';
+import {
+  GROUP_DEFAULT_MIN_FREE_MINUTES,
+  GROUP_ICON_RATE_LIMIT,
+  GROUP_LIMITS,
+  GROUP_MEMBERSHIP_RATE_LIMIT,
+  MEMBER_APPEARANCE_RATE_LIMIT,
+  UPCOMING_BUSY_LOOKAHEAD_DAYS,
+} from '@/lib/shared/limits';
 import { APPEARANCE_SLOT_MAX, APPEARANCE_SLOT_MIN } from '@/lib/shared/member-color';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import { takeUserSlot } from '../admin-input';
@@ -33,10 +40,11 @@ import type { DbOrTx } from '@/db/client';
 import type { DataCtx } from '../context';
 import { parseGroupName } from '../group-name';
 import { notify } from '../notifications/notify';
-import { groupRowOf, loadGroupCtx } from '../policy-context';
+import { groupRowOf, loadGroupCtx, type LoadedGroupCtx } from '../policy-context';
 import { toGroupDetail, toGroupSummary, toMyAppearance, type GroupDetailDto, type GroupSummaryDto, type MyAppearanceDto } from '../serializers/groups';
 import { inTx } from '../tx';
 import { asUser, audit, auditRead } from './group-common';
+import { listGroupAppointmentsIn, type AppointmentListDto, type ListAppointmentsQuery } from './appointments';
 
 // ───────── input schemas (zod ที่ route · กติกาละเอียดอยู่ที่ service) ─────────
 const gidField = z.uuid();
@@ -132,14 +140,31 @@ export async function listMyGroups(actor: Actor, ctx: DataCtx): Promise<{ groups
 }
 
 export async function getGroup(actor: Actor, groupId: string, ctx: DataCtx): Promise<{ group: GroupDetailDto }> {
-  const group = await loadGroupCtx(ctx.db, actor, groupId);
+  return { group: await groupDetailOf(actor, await loadGroupCtx(ctx.db, actor, groupId), ctx) };
+}
+
+/**
+ * R15b §3: ข้อมูลหน้า /groups/[gid] — ด่านกลุ่มครั้งเดียว (เดิม getGroup + listGroupAppointments โหลดด่านคนละครั้ง)
+ * group = getGroup · upcoming = listGroupAppointments(query) บนด่านเดียวกัน (authorize appointment.view ของตัวเองยังทำงาน) เฉพาะกลุ่มที่มีมากกว่า 1 คน
+ * upcoming ล้มด้วยเหตุใดก็ตาม → null (เท่ากับหน้าเดิมที่ .catch(() => null)) · ผลเท่าทางเดิมทุกไบต์ (tests/platform/r15b-golden)
+ */
+export async function getGroupPage(actor: Actor, groupId: string, query: ListAppointmentsQuery, ctx: DataCtx): Promise<{ group: GroupDetailDto; upcoming: AppointmentListDto | null }> {
+  const loaded = await loadGroupCtx(ctx.db, actor, groupId);
+  const group = await groupDetailOf(actor, loaded, ctx);
+  if (group.memberCount <= 1) return { group, upcoming: null };
+  const upcoming = await listGroupAppointmentsIn(actor, loaded, query, ctx).catch(() => null);
+  return { group, upcoming };
+}
+
+async function groupDetailOf(actor: Actor, group: LoadedGroupCtx, ctx: DataCtx): Promise<GroupDetailDto> {
+  const groupId = group.id;
   const allow = authorize(actor, 'group.view', groupRes(group));
   const me = asUser(actor);
   const row = groupRowOf(group); // R7 B-3: แถวกลุ่มมากับด่านกลุ่มแล้ว
   // R8 F1 §2.2: ธง "ลง busy แล้ว" มากับ query สมาชิกเดิม (EXISTS) — ไม่เพิ่ม query · ช่วง 30 วันปฏิทินตาม tz ของกลุ่ม (lib กลาง)
   const members = await listMembersWithUpcomingBusy(ctx.db, groupId, { from: ctx.now, to: addDaysAt(ctx.now, UPCOMING_BUSY_LOOKAHEAD_DAYS, row.tz) });
   await auditRead(ctx.db, me, allow, { action: 'group.view', targetType: 'group', targetId: groupId, groupId }, ctx.now);
-  return { group: toGroupDetail(row, group.actorRole, members, me.id) };
+  return toGroupDetail(row, group.actorRole, members, me.id);
 }
 
 // ───────── U6 · D9 ─────────
@@ -190,6 +215,8 @@ export async function setGroupIcon(actor: Actor, groupId: string, input: SetGrou
   const icon = input.icon === DEFAULT_GROUP_ICON ? null : input.icon;
   if (current.icon === icon) return { groupId, icon }; // ค่าดิบเท่ากัน (ค่าเสีย/ไม่รู้จักในฐาน ≠ null → เขียนทับให้สะอาด)
   const { now } = ctx;
+  // R15b §4 (security R15a Info 3): นับเฉพาะครั้งที่จะเขียนจริง (1 แถว audit ต่อครั้ง) · หลังด่านสิทธิ์ — คนนอก/ไม่มีสิทธิ์ไม่กินโควตา
+  await takeUserSlot(ctx.db, GROUP_ICON_RATE_LIMIT, me.id, now);
   await inTx(ctx.db, async (tx) => {
     const updated = await updateGroup(tx, groupId, { icon }, now, { actorId: me.id, actorRole: group.actorRole });
     if (!updated) throw await staleOrGone(tx, groupId);
@@ -323,6 +350,8 @@ export async function leaveGroup(actor: Actor, groupId: string, ctx: DataCtx): P
   const allow = authorize(actor, 'group.leave', groupRes(group));
   const me = asUser(actor);
   const { now } = ctx;
+  // R15b §4 (security R11 Info 7): ออก/เข้าซ้ำวนได้ไม่จำกัด (audit + แจ้ง admin ทุกครั้ง) → ถังเดียวกับการใช้โค้ดเข้ากลุ่ม · นับหลังด่านสิทธิ์
+  await takeUserSlot(ctx.db, GROUP_MEMBERSHIP_RATE_LIMIT, me.id, now);
   await inTx(ctx.db, async (tx) => {
     if (!(await deleteSelfMember(tx, groupId, me.id))) {
       const still = await findMember(tx, groupId, me.id);
