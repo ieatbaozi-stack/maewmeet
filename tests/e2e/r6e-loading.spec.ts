@@ -41,21 +41,46 @@ test.describe('R6E-10 โหลดลื่น', () => {
     await expect(a.getByTestId('nav-progress')).toHaveAttribute('role', 'status');
     const nav = a.getByRole('navigation', { name: T('nav.label') });
 
-    // เร็ว: เซิร์ฟเวอร์จริงอาจใช้เกิน 150 ms จึงยกค่าหน่วง (--loading-delay) เป็น 5 วินาทีชั่วคราว — นำทางที่จบก่อนถึงเวลาหน่วงต้องไม่แสดงแถบเลย
-    await a.addStyleTag({ content: ':root { --loading-delay: 5000ms; }' });
-    await a.route((u) => u.pathname === '/groups', async (route) => {
-      await sleep(40);
-      await route.continue();
+    // เร็ว: ใช้หน่วงจริง (--loading-delay = 150 ms, ไม่ยกค่า) · ความเร็วของนำทางจริงขึ้นกับเครื่อง/เซิร์ฟเวอร์ (หน้า /groups ที่เครื่องช้า
+    // ใช้เกิน 150 ms เองได้) จึงคุมจังหวะด้วยตัวเอง: คลิกลิงก์ภายในจริง (ให้ NavProgress เริ่มนับ) แล้ว "จบนำทาง" ด้วย history.pushState หลังเวลาที่กำหนด
+    // (Next ซิงก์ usePathname ให้ · ไม่มี loading boundary) — ตัวนับเวลาจริงของ NavProgress ทำงานเต็มรูป ไม่มี mock
+    const delayMs = await a.evaluate(() => {
+      const raw = getComputedStyle(document.documentElement).getPropertyValue('--loading-delay').trim(); // CSS ย่อแล้วอาจเป็น .15s
+      return raw.endsWith('ms') ? parseFloat(raw) : parseFloat(raw) * 1000;
     });
-    await recordPhases(a);
-    await nav.getByRole('link', { name: T('nav.groups'), exact: true }).click();
-    await expect(a).toHaveURL(/\/groups$/);
-    await a.waitForTimeout(500);
-    expect(await phases(a), 'นำทางเร็วไม่แสดงแถบ').not.toContain('active');
-    await a.unroute((u) => u.pathname === '/groups');
-    await a.evaluate(() => {
-      for (const el of document.querySelectorAll('style')) if (el.textContent?.includes('--loading-delay: 5000ms')) el.remove();
-    });
+    expect(delayMs, '--loading-delay จริง ไม่ถูกยก').toBe(150);
+    const synthNav = (finishAfterMs: number, path: string) =>
+      a.evaluate(
+        ([ms, to]) =>
+          new Promise<{ activeAt: number | null }>((resolve) => {
+            const el = document.querySelector('[data-testid="nav-progress"]') as HTMLElement;
+            let activeAt: number | null = null;
+            let t0 = 0;
+            const mo = new MutationObserver(() => {
+              if (el.dataset.phase === 'active' && activeAt === null) activeAt = performance.now() - t0;
+            });
+            mo.observe(el, { attributes: true, attributeFilter: ['data-phase'] });
+            const link = document.createElement('a');
+            link.href = to;
+            link.textContent = 'synthetic';
+            link.addEventListener('click', (e) => e.preventDefault());
+            document.body.appendChild(link);
+            t0 = performance.now();
+            link.click();
+            setTimeout(() => {
+              window.history.pushState(null, '', to);
+              setTimeout(() => {
+                mo.disconnect();
+                link.remove();
+                resolve({ activeAt });
+              }, 700);
+            }, ms);
+          }),
+        [finishAfterMs, path] as const,
+      );
+    const fast = await synthNav(60, '/groups');
+    expect(fast.activeAt, 'นำทางที่จบใน 60 ms (< 150 ms) ไม่แสดงแถบ').toBeNull();
+    await expect(a.getByTestId('nav-progress')).toHaveAttribute('data-phase', 'idle');
 
     // ช้า (หน่วง 1500 ms) → active ภายใน ~150 ms (+เผื่อ) แล้วจบเป็น idle
     await a.route((u) => u.pathname === '/calendar', async (route) => {
@@ -63,11 +88,25 @@ test.describe('R6E-10 โหลดลื่น', () => {
       await route.continue();
     });
     await recordPhases(a);
+    // วัดในหน้าจริง: เวลาตั้งแต่คลิกถึงครั้งแรกที่ data-phase=active ต้อง ≥ 150 ms (หน่วงจริง ไม่ขึ้นก่อนเวลา)
+    await a.evaluate(() => {
+      const w = window as unknown as { __click: number; __active: number };
+      w.__click = 0;
+      w.__active = 0;
+      document.addEventListener('click', () => { w.__click = performance.now(); }, { capture: true, once: true });
+      const el = document.querySelector('[data-testid="nav-progress"]') as HTMLElement;
+      new MutationObserver(() => { if (el.dataset.phase === 'active' && !w.__active) w.__active = performance.now(); }).observe(el, { attributes: true, attributeFilter: ['data-phase'] });
+    });
     const t0 = Date.now();
     await nav.getByRole('link', { name: T('nav.calendar'), exact: true }).click();
     await expect(a.getByTestId('nav-progress')).toHaveAttribute('data-phase', 'active', { timeout: 900 });
     expect(Date.now() - t0, 'แถบขึ้นเร็วพอ (ไม่ช้าเกิน ~0.9 วินาที)').toBeLessThan(900);
     await expect(a.getByTestId('nav-progress')).toContainText(T('common.navLoading'));
+    const lag = await a.evaluate(() => {
+      const w = window as unknown as { __click: number; __active: number };
+      return w.__active - w.__click;
+    });
+    expect(lag, 'แถบขึ้นหลังหน่วงจริง ≥ 150 ms (ไม่ขึ้นก่อน)').toBeGreaterThanOrEqual(149);
     const during = await a.getByTestId('nav-progress').locator('.nav-progress-bar').evaluate((el) => {
       const r = el.getBoundingClientRect();
       const cs = getComputedStyle(el);
@@ -83,6 +122,38 @@ test.describe('R6E-10 โหลดลื่น', () => {
     await a.unroute((u) => u.pathname === '/calendar');
 
     expect(problems.filter((x) => !isHydration(x)), 'console').toEqual([]);
+  });
+
+  test('R15a: skeleton ที่ขึ้นแล้วค้างอย่างน้อย 250 ms หลังเริ่มเห็น (150 + 250 = 400 ms จากเริ่มโหลด)', async ({ newDevice, baseURL }) => {
+    test.setTimeout(120_000);
+    const scene = await makeScene(newDevice, baseURL!, { locale, labels: ['Ann'] });
+    const a = scene.members[0]!.page;
+    await openCalendar(a, { gid: scene.gid, view: 'month', date: daysAhead(14) });
+    await expect(a.getByTestId('cal-loading')).toHaveCount(0);
+    // หน่วงคำตอบปฏิทิน 200 ms (> 150 ms ที่ skeleton เริ่มเห็น) → เสร็จตอน ~200 ms แต่ skeleton ต้องค้างถึง ~400 ms
+    await a.route((u) => /^\/api\/groups\/[^/]+\/calendar$/.test(u.pathname), async (route) => {
+      const res = await route.fetch();
+      await sleep(200);
+      await route.fulfill({ response: res });
+    });
+    await a.evaluate(() => {
+      const w = window as unknown as { __skel: { on: number; off: number } };
+      w.__skel = { on: 0, off: 0 };
+      const probe = () => {
+        const n = performance.now();
+        const present = !!document.querySelector('[data-testid="cal-loading"]');
+        if (present && !w.__skel.on) w.__skel.on = n;
+        if (!present && w.__skel.on && !w.__skel.off) w.__skel.off = n;
+      };
+      new MutationObserver(probe).observe(document.body, { childList: true, subtree: true });
+    });
+    await a.getByTestId('cal-next').click();
+    await expect(a.getByTestId('cal-loading')).toHaveCount(0, { timeout: 8000 });
+    const { on, off } = await a.evaluate(() => (window as unknown as { __skel: { on: number; off: number } }).__skel);
+    expect(on, 'เห็น skeleton').toBeGreaterThan(0);
+    // จาก "ใน DOM" ถึง "หาย" ≥ ~390 ms (400 ms นับจากเริ่มโหลด · เผื่อ 10 ms ที่ DOM ขึ้นช้ากว่าจุดเริ่ม) — ขอบล่างเท่านั้น ไม่ขึ้นกับความช้าของเครื่อง
+    expect(off - on, 'skeleton ค้างครบ 250 ms หลังเริ่มเห็น').toBeGreaterThanOrEqual(385);
+    await a.unroute((u) => /^\/api\/groups\/[^/]+\/calendar$/.test(u.pathname));
   });
 
   test('R6E-10: ปุ่มส่งมีวงหมุน + aria-busy · กดซ้ำไม่ส่งซ้ำ · ความกว้างคงที่', async ({ newDevice, baseURL }) => {
