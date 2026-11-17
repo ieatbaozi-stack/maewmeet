@@ -21,6 +21,9 @@
 ### Removed
 - ตาราง `place_search_cache` และงานล้างของมัน — ค้างจาก R13 ไม่มีใครเขียนแล้ว (ADR 0013) · **ย้อนไม่ได้** ดู Upgrade notes
 
+### Security
+- อัปเดต Next.js 16.4.2 → 16.4.5 (และ eslint-config-next) แก้ช่องโหว่ GHSA-mfr8-8qww-v76h (ข้อมูลรั่วข้าม root params เมื่อเรียก `use cache` ผ่าน `unstable_cache()`) และชุดแก้ความปลอดภัยของ 16.4.5 · `npm run build` ของ 16.4.2 ล้มด้วย SecurityFatalError (R15b)
+
 ### Upgrade notes
 รุ่นนี้มี **migration `0006`** (`drizzle/0006_r15_group_icon_drop_place_cache.sql`): เพิ่มคอลัมน์ `groups.icon` และ **ลบตาราง `place_search_cache` (ย้อนไม่ได้)** — ขั้นตอนเต็มและคำสั่งตรวจอยู่ที่ `docs/OPERATIONS.md` (หมายเหตุ R15a):
 1. boss รัน migration กับ preview ก่อนเปิด PR แล้วกับ prod **ในรอบเดียวกับการกด merge ทันทีก่อน merge และก่อน 02:00 เวลาไทย** (`npx drizzle-kit migrate`) — ถ้า cron v0.12.0 รันก่อนโค้ดใหม่ deploy การล้างของวันนั้นถูกข้าม 1 วัน (วันถัดไปปกติ) · ถ้ารันหลัง deploy การเลือกไอคอนกลุ่มจะล้มเพราะไม่มีคอลัมน์
