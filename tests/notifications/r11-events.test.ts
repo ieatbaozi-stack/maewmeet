@@ -47,7 +47,7 @@ describe('R11-1 ผู้รับตรงตาราง §1', () => {
     expect(await recipients('appointment.cancelled')).toEqual(sorted(w.m.id, w.b.id));
     const items = (await inbox(w.m)).filter((n) => n.kind === 'appointment.cancelled');
     expect(items).toHaveLength(1);
-    expect(items[0]!.params).toEqual({ groupId: w.gid, groupName: 'ก๊วนแมว', appointmentId: ap.id, title: 'หมูกระทะ', startAt: ap.startAt, tz: 'Asia/Bangkok', actorName: w.a.displayName });
+    expect(items[0]!.params).toEqual({ groupId: w.gid, groupName: 'ก๊วนแมว', appointmentId: ap.id, title: 'หมูกระทะ', startAt: ap.startAt, tz: 'Asia/Bangkok', actorName: w.a.displayName, actorSystemAdmin: false });
     expect((await paramsFor(w.m.id, 'appointment.cancelled'))[0]).toMatchObject({ actorId: w.a.id });
     expect(await inbox(w.o)).toEqual([]);
     expect(await inbox(w.boss)).toEqual([]);
@@ -59,7 +59,7 @@ describe('R11-1 ผู้รับตรงตาราง §1', () => {
     expect(r.status, r.text).toBe(200);
     expect(await recipients('appointment.updated')).toEqual(sorted(w.a.id, w.m.id, w.c.id));
     const first = (await inbox(w.a)).find((n) => n.kind === 'appointment.updated')!;
-    expect(first.params).toEqual({ groupId: w.gid, groupName: 'ก๊วนแมว', appointmentId: ap.id, title: ap.title, startAt: r.data.appointment.startAt, tz: 'Asia/Bangkok', actorName: w.b.displayName, changes: 'time' });
+    expect(first.params).toEqual({ groupId: w.gid, groupName: 'ก๊วนแมว', appointmentId: ap.id, title: ap.title, startAt: r.data.appointment.startAt, tz: 'Asia/Bangkok', actorName: w.b.displayName, actorSystemAdmin: false, changes: 'time' });
     expect(first.params.startAt).not.toBe(ap.startAt);
     await markAllRead(w.a);
     expect((await patch(w.b.c, `/api/appointments/${ap.id}`, { placeName: 'เซ็นทรัล' })).status).toBe(200);
