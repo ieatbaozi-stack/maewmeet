@@ -148,9 +148,22 @@ export async function createDirectInvite(actor: Actor, groupId: string, input: D
       const again = await findGroupById(tx, groupId);
       throw new AppError(again && again.deletedAt === null ? 'CONFLICT' : 'NOT_FOUND');
     }
+    // R16 H4 (security R15b Info 3): super admin ที่ไม่ใช่สมาชิก (actorRole null หลังด่านสิทธิ์) → ไม่เก็บชื่อ · ธง actorSystemAdmin ให้ UI แสดง common.systemAdmin (แบบ R15b B7)
+    const inviterSystemAdmin = group.actorRole === null;
     await insertNotification(
       tx,
-      { id: newId(), userId: invitee.id, kind: NOTIFY_KIND.inviteReceived, params: { groupId, groupName: sanitizeDisplayText(groupRow.name), inviterName: sanitizeDisplayText(inviter.displayName), inviteId: id } },
+      {
+        id: newId(),
+        userId: invitee.id,
+        kind: NOTIFY_KIND.inviteReceived,
+        params: {
+          groupId,
+          groupName: sanitizeDisplayText(groupRow.name),
+          inviterName: inviterSystemAdmin ? '' : sanitizeDisplayText(inviter.displayName),
+          inviteId: id,
+          actorSystemAdmin: inviterSystemAdmin,
+        },
+      },
       now,
     );
     await audit(tx, me, allow, { action: 'invite.direct.create', targetType: 'invite', targetId: id, groupId, meta: { inviteId: id, inviteeUserId: invitee.id } }, now);

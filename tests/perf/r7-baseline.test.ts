@@ -242,17 +242,17 @@ const CEILINGS: Record<string, number> = {
   'PAGE /groups/[gid]': 10, // R8-4: hasUpcomingBusy +0 (11) · R15b §3: ด่านกลุ่มครั้งเดียว (getGroupPage) 11 → 10
   'PAGE /appointments/[id]': 6, // R15b §3: สมาชิก + คำตอบ query เดียว (listMembersWithRsvps) 7 → 6
   'PAGE /me': 3,
-  'GET /api/groups/:gid/calendar (เดือน)': 5,
-  'GET /api/groups/:gid/availability (เดือน)': 5,
-  'GET /api/me/busy': 2,
-  'GET /api/me/appointments?rsvp=going': 6,
-  'GET /api/me/appointments?limit=5 (home refresh)': 6,
-  'GET /api/me/notifications?limit=1 (bell)': 3,
-  'GET /api/groups': 2,
-  'GET /api/groups/:gid': 3, // R8-4: +0 (listMembers → listMembersWithUpcomingBusy · 3 ก่อน/หลัง)
-  'GET /api/groups/:gid/appointments': 7,
-  'GET /api/me/invites': 2,
-  'GET /api/appointments/:id': 4, // R15b §3: 5 → 4 (listMembersWithRsvps)
+  'GET /api/groups/:gid/calendar (เดือน)': 6, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
+  'GET /api/groups/:gid/availability (เดือน)': 6, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
+  'GET /api/me/busy': 3, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
+  'GET /api/me/appointments?rsvp=going': 7, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
+  'GET /api/me/appointments?limit=5 (home refresh)': 7, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
+  'GET /api/me/notifications?limit=1 (bell)': 4, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
+  'GET /api/groups': 3, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
+  'GET /api/groups/:gid': 4, // R8-4: +0 (listMembers → listMembersWithUpcomingBusy · 3 ก่อน/หลัง) · R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
+  'GET /api/groups/:gid/appointments': 8, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
+  'GET /api/me/invites': 3, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
+  'GET /api/appointments/:id': 5, // R15b §3: 5 → 4 (listMembersWithRsvps) · R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
   'PUT /api/me/current-group': 3,
   'POST /api/groups/:gid/appointments/check': 5,
   'PUT /api/appointments/:id/rsvp': 9, // R11: +1 อ่านคำตอบเดิมก่อนเขียน (10) · R15b §3: listMembersWithRsvps 10 → 9 · การอ่านคำตอบเดิมยังอยู่ใน tx (ไม่ย้าย)

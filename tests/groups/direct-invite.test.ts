@@ -37,7 +37,7 @@ describe('สร้างคำเชิญตรง', () => {
     expect(n).toHaveLength(1);
     expect(n[0]!.user_id).toBe(b.id);
     expect(n[0]!.kind).toBe('group.invite.received');
-    expect(JSON.parse(n[0]!.params)).toEqual({ groupId: gid, groupName: 'ก๊วนแมว', inviterName: a.displayName, inviteId: r.data.invite.id });
+    expect(JSON.parse(n[0]!.params)).toEqual({ groupId: gid, groupName: 'ก๊วนแมว', inviterName: a.displayName, inviteId: r.data.invite.id, actorSystemAdmin: false }); // R16 H4: ธงผู้ดูแลระบบ
     expect(await h.count("audit_log WHERE action = 'invite.direct.create' AND group_id = ?", [gid])).toBe(1);
     expect((await mine(a)).data.invites).toEqual([]); // ผู้ชวนไม่เห็นเป็นคำเชิญของตัวเอง
   });

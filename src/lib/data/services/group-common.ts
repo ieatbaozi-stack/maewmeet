@@ -13,7 +13,7 @@ export function asUser(actor: Actor): UserActor {
 
 /** ชนิด notification ของ R2 (params = ค่าดิบ ไม่ใช่ข้อความแปล · ห้ามมีโค้ดเชิญ — ADR 0007) */
 export const NOTIFY_KIND = {
-  inviteReceived: 'group.invite.received', // → ผู้ถูกเชิญ · { groupId, groupName, inviterName, inviteId }
+  inviteReceived: 'group.invite.received', // → ผู้ถูกเชิญ · { groupId, groupName, inviterName, inviteId, actorSystemAdmin (R16 H4) }
   inviteAccepted: 'group.invite.accepted', // → ผู้เชิญ   · { groupId, groupName, inviteeName, inviteId }
   inviteDeclined: 'group.invite.declined', // → ผู้เชิญ   · { groupId, groupName, inviteeName, inviteId }
 } as const;

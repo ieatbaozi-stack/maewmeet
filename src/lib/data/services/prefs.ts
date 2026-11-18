@@ -1,9 +1,12 @@
 // service: ตั้งค่าภาษา/ธีมเป็น cookie (ก่อนล็อกอิน / ระหว่าง must_change_pin) — R0_CONTRACT §3 · ADR 0008 · action `prefs.cookie.set`
 // R15b §4: ล็อกอินอยู่ + ส่ง locale → บันทึก user.locale ด้วย (ป้ายในปฏิทิน/LINE ใช้ภาษาถูก) — saveAccountLocale · theme ยังเป็นคุกกี้อย่างเดียว
+// R16 H2: ล็อกอินอยู่ → นับถัง prefs:update (60/10 นาที) ก่อนตั้งคุกกี้/เขียน DB — takePrefsSlot · ไม่ได้ล็อกอินไม่นับ
 import { z } from 'zod';
 import { takeResolvedSessionUser } from '@/lib/auth/session';
 import { updateUserLocaleIfActive } from '@/lib/data/repos/user';
 import { authorize } from '@/lib/rbac/can';
+import { PREFS_RATE_LIMIT } from '@/lib/shared/limits';
+import { takeUserSlot } from '../admin-input';
 import type { DataCtx } from '../context';
 import type { Actor } from '@/lib/rbac/types';
 
@@ -46,4 +49,15 @@ export async function saveAccountLocale(actor: Actor, input: PrefsInput, ctx: Da
   const cached = takeResolvedSessionUser(ctx.req);
   if (cached && cached.id === actor.id && cached.locale === input.locale) return;
   await updateUserLocaleIfActive(ctx.db, actor.id, input.locale, ctx.now);
+}
+
+/**
+ * R16 H2 (security R15b Info 5): ผู้ใช้ที่ล็อกอินอยู่ — นับ 1 ครั้งต่อคำขอ (UPSERT อะตอมมิก) · เกิน → RATE_LIMITED + Retry-After (ยังไม่ตั้งคุกกี้/ไม่เขียน DB)
+ * ไม่ได้ล็อกอิน (หน้า login/signup/forgot) ไม่นับ — ไม่มีตัวตนให้ผูกถัง และคำขอนั้นตั้งแค่คุกกี้ ไม่แตะ DB
+ * เรียกหลัง setPrefs (ด่าน prefs.cookie.set ผ่านแล้ว) — คุกกี้ภาษา/ธีมเดิมของผู้ใช้ไม่ถูกแตะเมื่อโดน 429 (หน้ายังแสดงตามค่าเดิม)
+ */
+export async function takePrefsSlot(actor: Actor, ctx: DataCtx): Promise<void> {
+  authorize(actor, 'prefs.cookie.set', { type: 'none' });
+  if (actor.kind !== 'user') return;
+  await takeUserSlot(ctx.db, PREFS_RATE_LIMIT, actor.id, ctx.now);
 }

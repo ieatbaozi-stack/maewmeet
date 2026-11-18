@@ -21,6 +21,7 @@ import { findUserById } from '@/lib/data/repos/user';
 import { constraintKind } from '@/lib/data/repos/errors';
 import { addDaysAt } from '@/lib/calendar';
 import { authorize } from '@/lib/rbac/can';
+import { isPolicyError } from '@/lib/rbac/errors';
 import type { Actor, Allow, GroupCtx } from '@/lib/rbac/types';
 import { AppError } from '@/lib/shared/errors';
 import { newId } from '@/lib/shared/id';
@@ -28,6 +29,7 @@ import { DEFAULT_GROUP_ICON, GROUP_ICON_KEYS, type GroupIconKey } from '@/lib/sh
 import {
   GROUP_DEFAULT_MIN_FREE_MINUTES,
   GROUP_ICON_RATE_LIMIT,
+  GROUP_SETTINGS_RATE_LIMIT,
   GROUP_LIMITS,
   GROUP_MEMBERSHIP_RATE_LIMIT,
   MEMBER_APPEARANCE_RATE_LIMIT,
@@ -171,10 +173,22 @@ async function groupDetailAfterAuth(actor: Actor, allow: Allow, group: LoadedGro
 }
 
 // ───────── U6 · D9 ─────────
+/** ผลปฏิเสธของด่านกลุ่ม/กติกา action (ไม่ใช่ด่านบัญชี) — ผู้เรียกผ่านด่านบัญชีแล้ว จึงเป็นผู้ใช้จริงที่ผูกถังได้ */
+const GROUP_GATE_DENIALS: ReadonlySet<string> = new Set(['NOT_FOUND', 'FORBIDDEN']);
+
 export async function updateGroupSettings(actor: Actor, groupId: string, input: UpdateGroupInput, ctx: DataCtx): Promise<{ group: GroupDetailDto }> {
   const group = await loadGroupCtx(ctx.db, actor, groupId);
-  const allow = authorize(actor, 'group.update', groupRes(group));
+  // R16 H1: นับต่อคำขอหลังด่านบัญชี ก่อนตอบผลของด่านกลุ่ม — 404 (คนนอก/ไม่มี/ลบแล้ว) และ 403 ก็กินโควตา (แบบ PATCH busy ของ R15b)
+  // ด่านบัญชี (anonymous/suspended/must_change_pin) ไม่นับ: ตัดสินจากรหัสที่ policy กลางตอบเท่านั้น ไม่เทียบ role เอง · ถังเต็ม → 429 แทน 404/403
+  let allow: Allow;
+  try {
+    allow = authorize(actor, 'group.update', groupRes(group));
+  } catch (e) {
+    if (isPolicyError(e) && GROUP_GATE_DENIALS.has(e.code)) await takeUserSlot(ctx.db, GROUP_SETTINGS_RATE_LIMIT, asUser(actor).id, ctx.now);
+    throw e;
+  }
   const me = asUser(actor);
+  await takeUserSlot(ctx.db, GROUP_SETTINGS_RATE_LIMIT, me.id, ctx.now);
   const current = groupRowOf(group); // R7 B-3 · การเขียนยังมี ActorGuard + เงื่อนไขในคำสั่ง UPDATE เอง
 
   const patch: GroupPatch = {};
