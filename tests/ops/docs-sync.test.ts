@@ -53,18 +53,16 @@ describe('DOCS_SYNC §4 — เลขรุ่นตรงกันทุกไ�
 describe('DOCS_SYNC §4 — ARCHITECTURE.md ตรงกับโค้ด', () => {
   const arch = read('docs/design/ARCHITECTURE.md');
 
-  it('ทุก path ใน ROUTE_MANIFEST มีใน docs/design/ARCHITECTURE.md', () => {
-    // ชื่อพารามิเตอร์ในเอกสารต่างได้ (:aid / :id) · เอกสารย่อเส้นทางลูกได้เป็น "· `/decline`" ถ้ามีเส้นทางแม่ครบ
+  it('ทุก method + path ใน ROUTE_MANIFEST มีแถวในตารางข้อ 5 ของ docs/design/ARCHITECTURE.md', () => {
+    // ตรวจเฉพาะส่วน "## 5." (ตาราง endpoint) และต้องเป็นรูป `METHOD /path` — กันเคสพูดถึง path ที่อื่นในไฟล์แล้วผ่านทั้งที่ไม่มีแถว
+    // ชื่อพารามิเตอร์ในเอกสารต่างได้ (:aid / :id)
+    const start = arch.indexOf('## 5. API');
+    const end = arch.indexOf('## 6.', start);
+    if (start < 0 || end < 0) fail('docs/design/ARCHITECTURE.md: ไม่พบหัวข้อ "## 5. API" หรือ "## 6." (ตาราง endpoint)');
     const norm = (t: string): string => t.replace(/:[A-Za-z]+/g, ':p');
-    const doc = norm(arch);
-    const has = (p: string): boolean => doc.includes(p);
-    const paths = [...new Set(ROUTE_MANIFEST.map((r) => norm(r.path)))];
-    const missing = paths.filter((p) => {
-      if (has(p)) return false;
-      const i = p.lastIndexOf('/');
-      return !(has(p.slice(0, i)) && doc.includes(p.slice(i)));
-    });
-    expect(missing, `docs/design/ARCHITECTURE.md ขาด route (ดู ROUTE_MANIFEST; :param ชื่ออะไรก็ได้): ${missing.join(', ')}`).toEqual([]);
+    const doc = norm(arch.slice(start, end));
+    const missing = ROUTE_MANIFEST.filter((r) => !doc.includes(`\`${r.method} ${norm(r.path)}\``)).map((r) => `${r.method} ${r.path}`);
+    expect(missing, `docs/design/ARCHITECTURE.md ข้อ 5 ขาดแถว route (ดู ROUTE_MANIFEST; :param ชื่ออะไรก็ได้): ${missing.join(', ')}`).toEqual([]);
   });
 
   it('ทุกตารางที่ drizzle/*.sql สร้างและยังไม่ถูก DROP มีใน docs/design/ARCHITECTURE.md', () => {
