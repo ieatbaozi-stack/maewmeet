@@ -10,12 +10,19 @@ const ci = readFileSync(path.join(ROOT, '.github/workflows/ci.yml'), 'utf8').rep
 const jobBlock = (name: string) => ci.split(/\n(?=  [a-z0-9-]+:\n)/).find((b) => b.includes(`  ${name}:\n`)) ?? '';
 
 describe('ci.yml: ข้าม build/e2e เมื่อเอกสารล้วน', () => {
-  it('build และ e2e ต้องรอ changes และมี if: code == true', () => {
-    for (const j of ['build', 'e2e']) {
-      const b = jobBlock(j);
-      expect(b, j).toMatch(/needs: changes/);
-      expect(b, j).toMatch(/if: \$\{\{ needs\.changes\.outputs\.code == 'true' \}\}/);
-    }
+  it('build รอ changes และมี if ระดับ job (ไม่ใช่ matrix ชื่อคงเดิม)', () => {
+    const b = jobBlock('build');
+    expect(b).toMatch(/needs: changes/);
+    expect(b).toMatch(/\n    if: \$\{\{ needs\.changes\.outputs\.code == 'true' \}\}/);
+  });
+  it('e2e (matrix) ห้ามมี if ระดับ job (ชื่อ e2e (Playwright) (1..4) ต้องไม่ยุบ) · ทุก step ต้องมี if code == true', () => {
+    const b = jobBlock('e2e');
+    expect(b).toMatch(/needs: changes/);
+    expect(b).not.toMatch(/\n    if:/);
+    const steps = b.split(/\n(?=      - )/).slice(1);
+    expect(steps.length).toBeGreaterThanOrEqual(8);
+    for (const s of steps) expect(s, s.split('\n')[0]).toMatch(/if: \$\{\{ .*needs\.changes\.outputs\.code == 'true'.*\}\}/);
+    expect(b).toMatch(/name: e2e \(Playwright\)\n/);
   });
   it('lint/typecheck/test/contrast ไม่ถูกข้าม · ไม่ใช้ paths-ignore', () => {
     for (const j of ['lint', 'typecheck', 'test', 'contrast']) expect(jobBlock(j), j).not.toMatch(/needs\.changes/);

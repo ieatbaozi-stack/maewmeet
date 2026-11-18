@@ -13,9 +13,9 @@
 #   R0-13 คอนทราสต์ ................ contrast
 #   R0-16 header จริง .............. e2e (เทสต์ของ TEST) · config → test (tests/ops/headers.test.ts)
 #
-# PR ที่แตะเอกสารล้วน (docs/** หรือ *.md) → job `changes` ตั้ง code=false → build + e2e ถูก "ข้าม" (skipped)
+# PR ที่แตะเอกสารล้วน (docs/** หรือ *.md) → job `changes` ตั้ง code=false → e2e ข้ามทุก step (job ยังรัน ชื่อ `e2e (Playwright) (1..4)` ครบ) + build ถูก "ข้าม"
 #   lint · typecheck · test · contrast ยังรันเสมอ (เทสต์บางตัวอ่านไฟล์ docs เช่น tests/ops/operations-doc.test.ts)
-#   ใช้ if: ระดับ job ไม่ใช่ paths-ignore → check ที่ถูกข้ามนับว่าผ่านถ้าวันหนึ่งตั้ง required checks (paths-ignore จะค้าง Pending)
+#   ไม่ใช้ paths-ignore (check จะค้าง Pending) · build ใช้ if ระดับ job (ไม่ใช่ matrix ชื่อคงเดิม) · e2e ใช้ if ระดับ step เพราะเป็น matrix
 #   push เข้า main / รันมือ / หา base ไม่เจอ → รันครบทุก job เสมอ (.github/scripts/changed-code.sh)
 
 name: ci
@@ -162,10 +162,11 @@ jobs:
         run: npm run contrast
 
   e2e:
+    # ไม่ใช้ if ระดับ job: matrix ที่ถูกข้ามระดับ job ยุบชื่อเหลือ `e2e (Playwright)` แต่ ruleset บังคับ `e2e (Playwright) (1..4)`
+    # → job รันเสมอ (ชื่อขยายครบ) แล้วข้ามทุก step เมื่อเอกสารล้วน = check สำเร็จทันที
     # แบ่ง 4 shard รันขนาน (repo private = runner 2 vCPU; ทั้งชุดรันเดี่ยว ๆ เกิน 30 นาทีแล้วถูกยกเลิก)
     name: e2e (Playwright)
     needs: changes
-    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     strategy:
@@ -173,24 +174,32 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v7
+      - if: ${{ needs.changes.outputs.code == 'true' }}
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7
+      - if: ${{ needs.changes.outputs.code == 'true' }}
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
+      - if: ${{ needs.changes.outputs.code == 'true' }}
+        run: npm ci
       - name: env ทดสอบแบบสุ่ม
+        if: ${{ needs.changes.outputs.code == 'true' }}
         run: bash .github/scripts/ci-env.sh
       - name: migration บน DB ว่างของ job นี้ (ให้ /api/health ตอบ 200 ระหว่าง e2e)
+        if: ${{ needs.changes.outputs.code == 'true' }}
         run: npx drizzle-kit migrate
       - name: ติดตั้ง Chromium ของ Playwright
+        if: ${{ needs.changes.outputs.code == 'true' }}
         # CI ใช้ browser ของตัวเอง (ไม่ตั้ง PW_CHROMIUM_PATH)
         run: npx playwright install --with-deps chromium
       - name: npm run build
+        if: ${{ needs.changes.outputs.code == 'true' }}
         run: npm run build
       - name: npm run test:e2e
+        if: ${{ needs.changes.outputs.code == 'true' }}
         env:
           SHARD: ${{ matrix.shard }}
         run: npm run test:e2e -- --shard="$SHARD/4"
@@ -198,7 +207,7 @@ jobs:
       # → run ที่เขียวไม่อัปโหลดอะไร · เทสต์ล้ม = อัปโหลดเฉพาะ playwright-report/ (ภาพ + trace ของเทสต์ที่ล้มแนบอยู่ในนั้นแล้ว
       #   ตาม screenshot: only-on-failure / trace: retain-on-failure ใน playwright.config.ts)
       - name: เก็บรายงาน Playwright (เฉพาะเมื่อเทสต์ล้ม)
-        if: ${{ failure() }}
+        if: ${{ failure() && needs.changes.outputs.code == 'true' }}
         continue-on-error: true   # โควตา artifact เต็มไม่ควรทำให้ job แดง (ผลเทสต์จริงอยู่ที่ขั้น test:e2e)
         uses: actions/upload-artifact@v7
         with:
@@ -207,7 +216,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 2
       - name: เก็บภาพหน้าจอครบชุด (เฉพาะรันมือ screenshots=true)
-        if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.screenshots }}
+        if: ${{ !cancelled() && needs.changes.outputs.code == 'true' && github.event_name == 'workflow_dispatch' && inputs.screenshots }}
         continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
