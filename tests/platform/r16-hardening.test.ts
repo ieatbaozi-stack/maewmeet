@@ -247,3 +247,40 @@ describe('H4 คำเชิญตรงจาก super admin นอกกลุ
     expect(p3).toMatchObject({ inviterName: boss.displayName, actorSystemAdmin: false });
   });
 });
+
+// ───────────────────────────── H4b ─────────────────────────────
+describe('H4b GET /api/me/invites — ผู้เชิญเป็น super admin นอกกลุ่ม (ณ ตอนอ่าน) → ไม่มีชื่อ + actorSystemAdmin', () => {
+  type Inv = { id: string; groupId: string; groupName: string; inviterName: string; createdAt: number; expiresAt: number; actorSystemAdmin: boolean };
+  const mine = async (p: Person) => {
+    const r = await get<{ invites: Inv[] }>(p.c, '/api/me/invites');
+    expect(r.status).toBe(200);
+    return r;
+  };
+
+  it('SA นอกกลุ่ม → inviterName ว่าง + true · สมาชิกเชิญ → ชื่อจริง + false · SA เข้ากลุ่มทีหลัง → ชื่อจริง (ตัดสินตอนอ่าน) · ไม่มีคีย์ภายในออกทาง API', async () => {
+    h = await setupHarness({ startAt: NOW });
+    const a = await person(h, 'alice');
+    const boss = await person(h, 'boss', { admin: true });
+    const c = await person(h, 'carol');
+    const g1 = await makeGroup(a, 'ก๊วนแมว');
+    const g2 = await makeGroup(a, 'ก๊วนหมา');
+
+    const bySa = await post<{ invite: { id: string } }>(boss.c, `/api/groups/${g1}/invites/direct`, { username: 'carol' });
+    expect(bySa.status, bySa.text).toBe(201);
+    expect((await post(a.c, `/api/groups/${g2}/invites/direct`, { username: 'carol' })).status).toBe(201);
+
+    const r = await mine(c);
+    const sa = r.data.invites.find((i) => i.groupId === g1)!;
+    const mem = r.data.invites.find((i) => i.groupId === g2)!;
+    expect(sa).toEqual({ id: bySa.data.invite.id, groupId: g1, groupName: 'ก๊วนแมว', inviterName: '', createdAt: NOW, expiresAt: sa.expiresAt, actorSystemAdmin: true });
+    expect(mem).toMatchObject({ inviterName: a.displayName, actorSystemAdmin: false });
+    expect(r.text).not.toContain(boss.displayName);
+    expect(r.text).not.toContain('inviterIsSuperAdmin');
+    expect(r.text).not.toContain('inviterIsMember');
+
+    // SA เข้ากลุ่ม g1 ทีหลัง → ไม่ใช่ "นอกกลุ่ม" แล้ว (ตัดสินตอนอ่าน ไม่ใช่ตอนสร้าง)
+    await join(a, boss, g1);
+    const after = (await mine(c)).data.invites.find((i) => i.groupId === g1)!;
+    expect(after).toMatchObject({ inviterName: boss.displayName, actorSystemAdmin: false });
+  });
+});

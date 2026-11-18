@@ -32,7 +32,7 @@ describe('สร้างคำเชิญตรง', () => {
     expect(r.data.invite).toMatchObject({ kind: 'direct', inviteeName: b.displayName });
     expect(r.data.invite.expiresAt - r.data.invite.createdAt).toBe(7 * DAY);
     const list = await mine(b);
-    expect(list.data.invites).toEqual([{ id: r.data.invite.id, groupId: gid, groupName: 'ก๊วนแมว', inviterName: a.displayName, createdAt: h.clock.now(), expiresAt: h.clock.now() + 7 * DAY }]);
+    expect(list.data.invites).toEqual([{ id: r.data.invite.id, groupId: gid, groupName: 'ก๊วนแมว', inviterName: a.displayName, createdAt: h.clock.now(), expiresAt: h.clock.now() + 7 * DAY, actorSystemAdmin: false }]); // R16 H4b
     const n = await h.rows<{ user_id: string; kind: string; params: string }>('SELECT user_id, kind, params FROM notification');
     expect(n).toHaveLength(1);
     expect(n[0]!.user_id).toBe(b.id);

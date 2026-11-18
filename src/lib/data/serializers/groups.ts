@@ -130,10 +130,30 @@ export type CreatedCodeInviteDto = {
   expiresAt: number;
 };
 
-export type PendingInviteDto = PendingDirectInvite;
+/**
+ * คำเชิญค้างของฉัน (GET /api/me/invites) · R16 H4b: ผู้สร้างเป็น super admin ที่ไม่ใช่สมาชิกกลุ่มนั้น ณ ตอนอ่าน →
+ * inviterName '' + actorSystemAdmin true (UI แสดง common.systemAdmin · ชื่อเดียวกับธงในกระดิ่ง H4) · อื่นๆ ชื่อจริง + false
+ * เลือกฟิลด์ทีละตัว — inviterIsSuperAdmin / inviterIsMember ไม่ออกทาง API
+ */
+export type PendingInviteDto = {
+  id: string;
+  groupId: string;
+  groupName: string;
+  inviterName: string;
+  createdAt: number;
+  expiresAt: number;
+  actorSystemAdmin: boolean;
+};
 
-export const toPendingInviteDto = (r: PendingDirectInvite): PendingInviteDto => ({
-  ...r,
-  groupName: clean(r.groupName),
-  inviterName: clean(r.inviterName),
-});
+export const toPendingInviteDto = (r: PendingDirectInvite): PendingInviteDto => {
+  const systemAdmin = r.inviterIsSuperAdmin && !r.inviterIsMember;
+  return {
+    id: r.id,
+    groupId: r.groupId,
+    groupName: clean(r.groupName),
+    inviterName: systemAdmin ? '' : clean(r.inviterName),
+    createdAt: r.createdAt,
+    expiresAt: r.expiresAt,
+    actorSystemAdmin: systemAdmin,
+  };
+};

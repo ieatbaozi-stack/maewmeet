@@ -160,6 +160,10 @@ export type PendingDirectInvite = {
   inviterName: string;
   createdAt: number;
   expiresAt: number;
+  /** R16 H4b: ผู้สร้างเป็น super admin (ณ ตอนอ่าน) — ใช้ร่วมกับ inviterIsMember ที่ serializer เท่านั้น ไม่ส่งออก */
+  inviterIsSuperAdmin: boolean;
+  /** R16 H4b: ผู้สร้างยังเป็นสมาชิกของกลุ่มนี้ (ณ ตอนอ่าน — EXISTS ใน query เดียวกัน) */
+  inviterIsMember: boolean;
 };
 
 /** จำนวนคำเชิญตรงที่ค้างของผู้รับ (นิยามเดียวกับรายการ/เพดาน) */
@@ -180,6 +184,8 @@ export async function listPendingDirectInvitesFor(db: DbOrTx, userId: string, no
       inviterName: user.displayName,
       createdAt: groupInvite.createdAt,
       expiresAt: groupInvite.expiresAt,
+      inviterIsSuperAdmin: user.isAdmin,
+      inviterIsMember: sql<boolean>`EXISTS (SELECT 1 FROM group_member gm WHERE gm.group_id = ${groupInvite.groupId} AND gm.user_id = ${groupInvite.createdBy})`.mapWith(Boolean),
     })
     .from(groupInvite)
     .innerJoin(groups, eq(groups.id, groupInvite.groupId))
