@@ -284,13 +284,14 @@
 
 ## เหลือ (รายการเดียวที่ใช้ต่อ · ตรวจกับ git log, โค้ด, CHANGELOG, `docs/reports/` เมื่อ 2026-11-18)
 
-### 0. รอบ `docs/sync-r15` — เคลียร์เอกสารให้ตรงของจริง (DOCS_SYNC_CONTRACT §5–§6) · กำลังทำ ยังไม่ merge
-- **secretary (branch นี้):** PROGRESS · NEXT_PHASE · quickstart ท้ายหน้า v0.13.0 · README (LINE: ลิงก์กดไม่ได้, เพดาน 300/เดือน) · SECRETARY.md · PROCESS.md · TEAM.md (หมายเหตุบรรทัดเดียว) · `docs/reports/2026-11-18.md`
-- **ops (commit แล้วบน branch, ยังไม่ผ่าน CI ที่เลขายืนยัน):** `de54f16` CHANGELOG [0.13.0] รายการ R15b · OPERATIONS · `next.config.ts` · `tests/ops/docs-sync.test.ts` (DOCS_SYNC §4, เลขาไม่ได้รันเอง) · `a3d18ed` override esbuild 0.25.12 และ minimatch 11.0.1 (Dependabot) · **picomatch ยังไม่มีรุ่นแก้** (§6) · ที่เหลือจาก §5 (`ci-artifacts` ให้ตรง ci.yml, "R0–R7" → "R*" ใน VERSIONING, ตรวจ Leaflet comment) ยังไม่ยืนยันว่าครบ
-- **architect (ยังไม่ยืนยัน):** ARCHITECTURE (สถานะ, schema R10–R15, routes, env, cron, repo public) · ADR 0001–0009 สถานะ → Accepted · `docs/design/ARCHITECTURE.md` มีการแก้ค้างใน working tree (ยังไม่ commit ณ 2026-11-18)
-- **ux (commit แล้ว):** `8560707` sync design docs และ samples กับ v0.13.0 · เลขาตรวจเมื่อ 2026-11-18 ไม่พบคำว่า "ค้นหาสถานที่" ใน `docs/design/samples/create.html` และ `docs/design/tools/templates/create.html` · `docs/design/R14_BUSY_ROUTINE.md` แก้ใน commit เดียวกัน
-- **qa:** ตรวจ §2–§3 เทียบของจริง และเทสต์ docs-sync → `docs/reports/qa-docs-sync.md` (ยังไม่มีไฟล์ในรีโป)
-- **security:** ตรวจ dependency ตาม §6 (picomatch / minimatch / esbuild) → ยังไม่มีรายงาน
+### 0. รอบ `docs/sync-r15` — เคลียร์เอกสารให้ตรงของจริง (DOCS_SYNC_CONTRACT §5–§6) · **เสร็จใน PR `docs/sync-r15` รอ boss merge** (ห้ามออกรุ่นเอง: เอกสารล้วน)
+- **secretary:** `403ca6f` PROGRESS, NEXT_PHASE, quickstart v0.13.0 (+ แถวข้อจำกัด LINE / ค้นหาในแอป), README (LINE: ลิงก์กดไม่ได้, เพดาน 300/เดือน), SECRETARY, PROCESS, TEAM (หมายเหตุบรรทัดเดียว), `docs/reports/2026-11-18.md`
+- **ops:** `de54f16` CHANGELOG [0.13.0] รายการ R15b · OPERATIONS sync · `tests/ops/docs-sync.test.ts` (DOCS_SYNC §4) · `2bc7808` keepalive comment (repo public) · `a3d18ed` override esbuild 0.25.12 และ minimatch 11.0.1 (Dependabot) · **picomatch ยังไม่มีรุ่นแก้** (ดูหัวข้อ 2 และ Low 1 ใน security-docs-sync)
+- **architect:** `0b67738` ARCHITECTURE ตรง v0.13.0 (schema, 72 routes, env, cron) · ADR 0001–0009 → Accepted · ADR ทั้ง 13 (0001–0013) Accepted แล้ว
+- **ux:** `8560707` sync design docs และ samples กับ v0.13.0
+- **qa:** `7c5e597` ตัวตรวจ route เข้มขึ้น (ต้องมีแถว METHOD+path ใน ARCHITECTURE §5) · `f94b7aa` รายงาน `docs/reports/qa-docs-sync.md` **ผ่านแบบมีข้อสังเกต** (Medium แก้แล้ว · Low ข้อ 2 แก้ด้วยงานนี้)
+- **security:** `8ea2f41` รายงาน `docs/reports/security-docs-sync.md` **ผ่านแบบมีข้อสังเกต** — npm audit: moderate 0 · high 18 ทั้งหมดมาจาก picomatch ตัวเดียว ไม่มีรุ่นแก้ · Low 1 ยอมรับความเสี่ยงและติดตาม (ไม่มีทางที่ input ผู้ใช้เข้า glob บน production ตามการตรวจ trace)
+- **ยังไม่ยืนยัน:** CI ของ commit ล่าสุด และ Vercel prod (เลขาไม่ได้รันเอง) · ผลเทสต์ `docs-sync` ของเลขา (เลขาไม่ได้รัน)
 
 ### 1. ต้องให้ boss ตัดสินนโยบายก่อน
 - **retention ลบถาวร + กู้คืนกลุ่ม/บัญชีที่ลบ** (PDPA) — R15 §2, B9 · ต้องมีนโยบายก่อนลงมือ
@@ -307,7 +308,8 @@
 - **เพดาน LINE OA ไม่แบ่งต่อกลุ่ม** — เป็นผลของ B6 ที่ตัดสินแล้ว · ทางแก้ต้องให้ boss เปลี่ยนนโยบาย (security R15b Info 2)
 - **แถวแจ้งเตือนเก่าก่อน R15b ยังแสดงชื่อ SA** — ไม่มี backfill (ไม่มี migration) · ยอมรับได้ หรือเขียนข้อมูลใหม่ถ้าต้องการ (security R15b Info 1)
 - **config-hygiene: `runBlocks` ตัดที่ `\n\n` แรก** — ถ้า step `run: |` มีบรรทัดว่างกลาง `${{ }}` หลังบรรทัดว่างจะไม่ถูกตรวจ (qa R15b Low 1 · `tests/security/config-hygiene.test.ts`)
-- **npm audit 23 รายการ** (10 moderate, 13 high) ส่วนใหญ่เป็น dev toolchain · `picomatch 4.0.7` ใต้ `next-intl → @parcel/watcher` (GHSA-fc5q-39xc-vjpf) ใช้ตอน dev/build เท่านั้น (security R15b ข้อ 6) · ดูข้อ 0 (ops §6)
+- **npm audit (ปัจจุบัน): high 18 / moderate 0** — ทั้งหมดมาจาก picomatch GHSA-fc5q-39xc-vjpf ตัวเดียว (`first_patched_version: null`) · ยอมรับความเสี่ยงตาม `docs/reports/security-docs-sync.md` Low 1 · **backlog (ops):** ติดตาม picomatch เมื่อมีรุ่นแก้ แล้วเพิ่ม override ทันที
+- **ติดตาม picomatch GHSA-fc5q-39xc-vjpf** — เมื่อมีรุ่นแก้ ให้ ops เพิ่ม override/อัปเดต lockfile และรัน build/test (security-docs-sync Low 1 เงื่อนไข ก–ข)
 - **วันที่เคยแยกแก้ + เอาวันของชุดกลับ = มีสองรายการ** — qa R15a ข้อ 6 ระบุว่าเป็นพฤติกรรมที่ออกแบบและแจ้งผู้ใช้แล้ว (`restoreNote`) ไม่ใช่บั๊ก · ถ้าจะเปลี่ยนต้องตัดสินก่อนและอาจต้อง migration
 - **"Take another look" ที่ 375 ขึ้นบรรทัดใหม่ไม่เยื้องตามชื่อขั้น** (qa R15a ข้อ 2 · ต่ำ) — ยังไม่ยืนยันว่า `f612b0b` แก้ข้อนี้ครบ
 - **legend แท็บ "เอากลับ"**: ช่อง "วันของชุดนี้" เป็นสี่เหลี่ยมขาว แต่วันที่ล็อกเป็นสีเทา (qa R15a ข้อ 3 · ต่ำ)
