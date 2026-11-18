@@ -1,9 +1,9 @@
-# NEXT_PHASE — เอกสารส่งต่อให้ Claude Code (อัปเดต 2026-10-31)
+# NEXT_PHASE — เอกสารส่งต่อให้ Claude Code (อัปเดต 2026-11-18)
 
-> **หมายเหตุ (2026-11-15):** B1, F1, F3, F4, F5 และ F6 เสร็จแล้วตาม `docs/contracts/R15_CONTRACT.md` §0 · **F2 ความเร็วยังเปิดบางส่วน** (R15b §3) · แผนที่ใช้งานจริงตอนนี้คือ **[docs/contracts/R15_CONTRACT.md](contracts/R15_CONTRACT.md)** (R15a กำลังทำ, R15b ถัดไป) · เนื้อหาด้านล่างเป็นประวัติการตัดสินใจ ไม่ใช่แผนปัจจุบัน
+> **หมายเหตุ (2026-11-18):** R15 **ปิดรอบและออกรุ่นแล้ว v0.13.0** (2026-11-18, tag `v0.13.0` → `964a6f5`) · R11–R14 ออกใน **v0.12.0** (2026-11-15) · งานค้างและสถานะจริงอยู่ที่ [docs/team/PROGRESS.md](team/PROGRESS.md) หัวข้อ **เหลือ** · ตามหมายเหตุเดิม B1, F1, F3, F4, F5 และ F6 เสร็จตาม [R15_CONTRACT.md](contracts/R15_CONTRACT.md) §0 และ **F2 ความเร็วยังเปิดบางส่วน** (R15b §3) · เนื้อหาด้านล่างเป็นประวัติการตัดสินใจ ไม่ใช่แผนปัจจุบัน
 
 อ่านไฟล์นี้ก่อนเริ่มงาน แล้วอ่าน `CLAUDE.md`, `PROCESS.md`, `TEAM.md`, `docs/OPERATIONS.md`, `docs/VERSIONING.md` ตามต้องการ
-เจ้าของ: boss (Jimmy) · สื่อสารภาษาไทย · แอปอยู่ที่ v0.7.0 ใช้งานจริง ~10 คน
+เจ้าของ: boss (Jimmy) · สื่อสารภาษาไทย · แอปอยู่ที่ v0.13.0 (2026-11-18) ใช้งานจริง (ตัวเลขผู้ใช้ที่เคยบันทึกไว้ตอน v0.7.0 ยังไม่ยืนยันปัจจุบัน)
 
 ## สถานะระบบ
 - Stack: Next.js 16.4 App Router, TS, Tailwind 4, Drizzle + Turso (libSQL), next-intl (th/en), Vitest, Playwright, Node 24
@@ -23,7 +23,7 @@
 - ✅ ตรวจแล้ว (2026-11-01): tag v0.7.0 อยู่บน GitHub ; preview build ของ Vercel ผ่าน (PR #9 Ready, ci 11 checks เขียว) → ตัวแปร Preview ใช้ได้
 - 🔄 PR #10 (2026-11-01) — **CI-1**: run เขียวไม่อัปโหลด artifact · ล้ม = `playwright-report/` 2 วัน · ภาพครบชุดเฉพาะรันมือ `screenshots=true` 1 วัน · เกต R0-12 แก้ตาม (boss เห็นชอบ) · หลัง merge boss ตรวจ Billing → Actions · ต้นเรื่องเดิม: Actions storage ฟรี 0.5 GB เต็ม เพราะ artifact Playwright 4 shard ต่อ run รวม ~600 MB (80.8/135/164/232 MB) boss ลบ run เก่าแล้วแต่ PR #9 สร้างใหม่อีก → แก้ `ci.yml`: อัปโหลดเฉพาะตอนเทสต์ล้ม (`if: failure()`), `retention-days: 1–3`, ลดขนาดรายงาน (ไม่เก็บ trace/video ทุกเทสต์), ตรวจโควตา compute ด้วย (ใช้ $7.76/$12 ของเดือน ต.ค. ; e2e 4 shard ต่อ run ใช้นาทีมาก) ; ตรวจผลที่หน้า GitHub Settings → Billing → Actions
 
-## รายการงาน (ยังไม่มี contract — ทำ contract/สรุปขอบเขตให้ boss เห็นชอบก่อนลงมือ ตามกฎข้อ 1)
+## รายการงาน (ประวัติ — ส่วนใหญ่เสร็จแล้ว ดูสถานะจริงที่ PROGRESS หัวข้อ "เหลือ")
 
 ### Bug
 - **B1 (home)**: สรุป RSVP ไม่แสดงจำนวน "ไม่ไป" — `src/components/home/HomeView.tsx` แสดงแค่ going/maybe/noResponse ทั้งที่ `counts.not_going` มีแล้ว → เพิ่มแสดง + i18n `appointments.rsvp.summary.not_going` (TH/EN) + เทสต์ ; ตรวจหน้ารายละเอียดนัดให้สอดคล้อง

@@ -1,6 +1,6 @@
 # ADR 0006 — การมองเห็น busy และ `hide_detail`
 
-- **Status**: Proposed (Architect, 2026-10-15) · ขยายโดย [ADR 0009](0009-going-counts-as-busy.md) (R6D): นัดที่ตอบ "ไป" ไหลออกทาง endpoint ใน §3 เดียวกัน เป็นชนิด `appointment`/`other_group_appointment`
+- **Status**: Accepted (2026-11-18 · บันทึกย้อนหลังในรอบ DOCS_SYNC — implement แล้วและใช้งานจริงถึง v0.13.0) · เสนอ Proposed 2026-10-15 (Architect) · ขยายโดย [ADR 0009](0009-going-counts-as-busy.md) (R6D): นัดที่ตอบ "ไป" ไหลออกทาง endpoint ใน §3 เดียวกัน เป็นชนิด `appointment`/`other_group_appointment`
 - **เกี่ยวข้อง**: [PRD D5, U7, U8, U9.1, U10.1, U6, §3, §10](../prd/PRD.md) · [PROCESS ข้อ 9](../team/PROCESS.md) · [RESEARCH §6](../research/RESEARCH_REPORT.md) · [ADR 0003](0003-rbac.md) · [ADR 0005](0005-common-free-time-algorithm.md)
 - **เจ้าของการ implement**: Platform (`src/lib/data/**` serializer) + Auth & Access (policy) · ตรวจโดย Security & Privacy
 

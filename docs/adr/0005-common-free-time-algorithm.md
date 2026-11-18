@@ -1,6 +1,6 @@
 # ADR 0005 — อัลกอริทึมหาวันว่างร่วม
 
-- **Status**: Proposed (Architect, 2026-10-15) · แก้รอบ 2 (2026-10-16): ช่วงหน้าจอเดือนเริ่มวันจันทร์ (§3)
+- **Status**: Accepted (2026-11-18 · บันทึกย้อนหลังในรอบ DOCS_SYNC — implement แล้วและใช้งานจริงถึง v0.13.0) · เสนอ Proposed 2026-10-15 (Architect) · แก้รอบ 2 (2026-10-16): ช่วงหน้าจอเดือนเริ่มวันจันทร์ (§3)
 - **เกี่ยวข้อง**: [PRD D5, D9, U9, U9.1, U10.1, §3 กติกาเสริม](../prd/PRD.md) · [RESEARCH §5](../research/RESEARCH_REPORT.md) · [ADR 0004](0004-time-and-timezone.md) · [ADR 0006](0006-busy-visibility.md)
 - **เจ้าของการ implement**: Calendar & Time (`src/lib/calendar/free-time.ts`, `tests/calendar/**`)
 - **ไฟล์ประกอบ**: [0005-fixtures/](0005-fixtures/) — `cases.json` (input ทุกเคส), `expected.json` (ผลที่คาดหวัง), `oracle.py` และ `oracle.mjs` (2 implementation อิสระที่ใช้ยืนยันค่าคาดหวัง — รัน `python3 oracle.py cases.json` ได้เลย; `node oracle.mjs cases.json` ต้องรันในโฟลเดอร์ที่ติดตั้ง `temporal-polyfill@1.0.6`) · ไฟล์เหล่านี้เป็นเอกสารอ้างอิง ไม่ใช่โค้ดแอป

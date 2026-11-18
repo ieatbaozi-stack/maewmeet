@@ -8,7 +8,7 @@
 #   → ไฟล์นี้ต้องถูก push จากบัญชี GitHub ของ boss และ boss เปิดแจ้งเตือน Actions ทางอีเมล (Only notify for failed workflows)
 #   https://docs.github.com/en/actions/concepts/workflows-and-actions/notifications-for-workflow-runs
 # - schedule รันจาก default branch (main) เท่านั้น และอาจหน่วงช่วงโหลดสูง (นาที 17 เลี่ยงต้นชั่วโมงตามคำแนะนำ GitHub)
-# - repo ต้องเป็น private: repo สาธารณะที่ไม่เคลื่อนไหว 60 วันจะถูกปิด scheduled workflow อัตโนมัติ
+# - repo นี้เป็น public: GitHub ปิด scheduled workflow อัตโนมัติถ้า repo ไม่มี activity 60 วัน → ต้องเปิดใหม่ด้วยมือ (OPERATIONS ส่วน E)
 # - ยังไม่ตั้ง secret APP_ORIGIN / CRON_SECRET → ขั้นตอนจะ "ข้าม" พร้อม ::warning:: (ไม่ล้ม และไม่ส่งอีเมล)
 # - ตรรกะทั้งหมดอยู่ใน .github/scripts/keepalive.sh (ทดสอบกับ server จำลองได้บนเครื่อง)
 

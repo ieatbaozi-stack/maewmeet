@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="../../../src/styles/tokens.css">
 <link rel="stylesheet" href="../../../src/components/brand/aurora.css">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="../../../src/styles/appointments.css">
 <script src="sample.js"></script>
 <script>
 window.MESSAGES_EN = {
@@ -85,16 +86,13 @@ window.MESSAGES_EN = {
  "startAria": "Starts 17:30",
  "endAria": "Ends 21:00",
  "fitHint": "Everyone’s free then (17:30–22:00)",
- "fPlace": "Place",
  "optional": "(optional)",
- "search": "Search",
- "results": "Place search results",
- "pasteLink": "Or paste a map link or coordinates",
  "fNote": "Notes",
  "notifyNote": "All 6 members will see this on their home screen",
  "createBtn": "Create plan"
 };
 </script>
+<!--MESSAGES_EN-->
 </head>
 <body>
 <div class="aurora" data-intensity="soft" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
@@ -199,23 +197,17 @@ window.MESSAGES_EN = {
         </div>
         <p class="hint"><i data-icon="circle-check" class="sm"></i><span data-t="fitHint">อยู่ในช่วงที่ทุกคนว่าง (17:30–22:00)</span></p>
       </div>
-      <div class="field">
-        <label for="f-place"><span data-t="fPlace">สถานที่</span> <span class="opt" data-t="optional">(ไม่ใส่ก็ได้)</span></label>
-        <div class="search-row">
-          <span class="input"><i data-icon="search"></i><input id="f-place" class="input-bare" value="ตลาดน้ำ" aria-describedby="place-hint"></span>
-          <button type="button" class="btn btn-secondary" style="min-height: var(--tap-lg)" data-t="search">ค้นหา</button>
+      <div class="field place-field" id="place">
+        <div class="field-label-row"><label for="pl-n"><span data-m="places.label"></span> <span class="opt">(<span data-m="appointments.form.optional"></span>)</span></label></div>
+        <div class="input"><i data-icon="map-pin"></i><input id="pl-n" class="input-bare" value="ตลาดน้ำขวัญเรียม" data-m-ph="places.name.placeholder" aria-describedby="pl-nh" autocomplete="off"></div>
+        <p class="field-hint" id="pl-nh"><span data-m="places.name.hint"></span> <span class="num">16/120</span></p>
+        <div class="place-link">
+          <div class="field-label-row"><label for="pl-l" data-m="places.link.label"></label></div>
+          <div class="input"><i data-icon="link"></i><input id="pl-l" class="input-bare" value="" data-m-ph="places.link.placeholder" aria-describedby="pl-lh" inputmode="url" autocapitalize="none" autocomplete="off"></div>
+          <p class="field-hint" id="pl-lh" data-m="places.link.hint"></p>
         </div>
-        <div class="places" role="radiogroup" aria-label="ผลการค้นหาสถานที่" data-t-aria="results">
-          <div class="place" role="radio" aria-checked="true" tabindex="0">
-            <span class="radio" aria-hidden="true"></span>
-            <span><span class="pn" style="display:block">ตลาดน้ำขวัญเรียม</span><span class="small muted" style="display:block">ถนนรามคำแหง แขวงมีนบุรี เขตมีนบุรี กรุงเทพมหานคร</span></span>
-          </div>
-          <div class="place" role="radio" aria-checked="false" tabindex="-1">
-            <span class="radio" aria-hidden="true"></span>
-            <span><span class="pn" style="display:block">ตลาดน้ำตลิ่งชัน</span><span class="small muted" style="display:block">ถนนฉิมพลี แขวงฉิมพลี เขตตลิ่งชัน กรุงเทพมหานคร</span></span>
-          </div>
-        </div>
-        <p class="or-link small" id="place-hint"><a href="#" style="display:inline-flex;align-items:center;min-height:var(--tap)" data-t="pasteLink">หรือวางลิงก์แผนที่/พิกัดแทน</a></p>
+        <div class="place-apps"><p class="place-apps-lead" data-m="places.apps.lead"></p>
+          <div class="map-apps" role="group" data-m-aria="places.apps.groupAria"><a class="btn btn-secondary map-app" href="#"><i data-icon="map-pin"></i><span data-m="places.apps.apple"></span></a><a class="btn btn-secondary map-app" href="#"><i data-icon="map-pin"></i><span data-m="places.apps.google"></span></a></div></div>
       </div>
       <div class="field">
         <label for="f-note"><span data-t="fNote">รายละเอียด</span> <span class="opt" data-t="optional">(ไม่ใส่ก็ได้)</span></label>

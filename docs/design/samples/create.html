@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="../../../src/styles/tokens.css">
 <link rel="stylesheet" href="../../../src/components/brand/aurora.css">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="../../../src/styles/appointments.css">
 <script src="sample.js"></script>
 <script>
 window.MESSAGES_EN = {
@@ -86,16 +87,13 @@ window.MESSAGES_EN = {
  "startAria": "Starts 17:30",
  "endAria": "Ends 21:00",
  "fitHint": "Everyone’s free then (17:30–22:00)",
- "fPlace": "Place",
  "optional": "(optional)",
- "search": "Search",
- "results": "Place search results",
- "pasteLink": "Or paste a map link or coordinates",
  "fNote": "Notes",
  "notifyNote": "All 6 members will see this on their home screen",
  "createBtn": "Create plan"
 };
 </script>
+<script>window.MESSAGES_EN = Object.assign(window.MESSAGES_EN || {}, {"places.label":"Place","appointments.form.optional":"optional","places.name.hint":"The name friends will see on the plan","places.link.label":"Map link","places.link.hint":"Open your maps app, find the place, tap Share, then Copy link, and paste it here. Optional.","places.apps.lead":"Look it up on a map","places.apps.apple":"Apple Maps","places.apps.google":"Google Maps","places.apps.groupAria":"Open a maps app to find the place","places.name.placeholder":"Place name, e.g. Auntie Daeng’s hotpot","places.link.placeholder":"Paste a https://… link or coordinates like 13.7563, 100.5018"});</script>
 </head>
 <body>
 <div class="aurora" data-intensity="soft" aria-hidden="true"><div class="aurora-field"><span class="aurora-blob b1"></span><span class="aurora-blob b2"></span><span class="aurora-blob b3"></span><span class="aurora-blob b4"></span></div></div>
@@ -200,23 +198,17 @@ window.MESSAGES_EN = {
         </div>
         <p class="hint"><svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /> <path d="m16 9-5.5 5.5L8 12" /></svg><span data-t="fitHint">อยู่ในช่วงที่ทุกคนว่าง (17:30–22:00)</span></p>
       </div>
-      <div class="field">
-        <label for="f-place"><span data-t="fPlace">สถานที่</span> <span class="opt" data-t="optional">(ไม่ใส่ก็ได้)</span></label>
-        <div class="search-row">
-          <span class="input"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m21 21-4.34-4.34" /> <circle cx="11" cy="11" r="8" /></svg><input id="f-place" class="input-bare" value="ตลาดน้ำ" aria-describedby="place-hint"></span>
-          <button type="button" class="btn btn-secondary" style="min-height: var(--tap-lg)" data-t="search">ค้นหา</button>
+      <div class="field place-field" id="place">
+        <div class="field-label-row"><label for="pl-n"><span data-t="places.label">สถานที่</span> <span class="opt">(<span data-t="appointments.form.optional">ไม่ใส่ก็ได้</span>)</span></label></div>
+        <div class="input"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /> <circle cx="12" cy="10" r="3" /></svg><input id="pl-n" class="input-bare" value="ตลาดน้ำขวัญเรียม" placeholder="ชื่อสถานที่ เช่น ป้าแดงหมูกระทะ" data-t-ph="places.name.placeholder" aria-describedby="pl-nh" autocomplete="off"></div>
+        <p class="field-hint" id="pl-nh"><span data-t="places.name.hint">ชื่อที่เพื่อนจะเห็นในนัด</span> <span class="num">16/120</span></p>
+        <div class="place-link">
+          <div class="field-label-row"><label for="pl-l" data-t="places.link.label">ลิงก์แผนที่</label></div>
+          <div class="input"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /> <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg><input id="pl-l" class="input-bare" value="" placeholder="วางลิงก์ https://… หรือพิกัด 13.7563, 100.5018" data-t-ph="places.link.placeholder" aria-describedby="pl-lh" inputmode="url" autocapitalize="none" autocomplete="off"></div>
+          <p class="field-hint" id="pl-lh" data-t="places.link.hint">เปิดแอปแผนที่ ค้นหาที่นั่น กด “แชร์” แล้ว “คัดลอกลิงก์” มาวางตรงนี้ ไม่ใส่ก็ได้</p>
         </div>
-        <div class="places" role="radiogroup" aria-label="ผลการค้นหาสถานที่" data-t-aria="results">
-          <div class="place" role="radio" aria-checked="true" tabindex="0">
-            <span class="radio" aria-hidden="true"></span>
-            <span><span class="pn" style="display:block">ตลาดน้ำขวัญเรียม</span><span class="small muted" style="display:block">ถนนรามคำแหง แขวงมีนบุรี เขตมีนบุรี กรุงเทพมหานคร</span></span>
-          </div>
-          <div class="place" role="radio" aria-checked="false" tabindex="-1">
-            <span class="radio" aria-hidden="true"></span>
-            <span><span class="pn" style="display:block">ตลาดน้ำตลิ่งชัน</span><span class="small muted" style="display:block">ถนนฉิมพลี แขวงฉิมพลี เขตตลิ่งชัน กรุงเทพมหานคร</span></span>
-          </div>
-        </div>
-        <p class="or-link small" id="place-hint"><a href="#" style="display:inline-flex;align-items:center;min-height:var(--tap)" data-t="pasteLink">หรือวางลิงก์แผนที่/พิกัดแทน</a></p>
+        <div class="place-apps"><p class="place-apps-lead" data-t="places.apps.lead">เปิดแผนที่เพื่อหาที่</p>
+          <div class="map-apps" role="group" aria-label="เปิดแอปแผนที่เพื่อหาสถานที่" data-t-aria="places.apps.groupAria"><a class="btn btn-secondary map-app" href="#"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /> <circle cx="12" cy="10" r="3" /></svg><span data-t="places.apps.apple">Apple Maps</span></a><a class="btn btn-secondary map-app" href="#"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /> <circle cx="12" cy="10" r="3" /></svg><span data-t="places.apps.google">Google Maps</span></a></div></div>
       </div>
       <div class="field">
         <label for="f-note"><span data-t="fNote">รายละเอียด</span> <span class="opt" data-t="optional">(ไม่ใส่ก็ได้)</span></label>

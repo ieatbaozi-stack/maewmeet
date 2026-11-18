@@ -45,7 +45,7 @@ for (const [tn, th] of [['light', light], ['dark', dark]]) {
   }
 }
 for (const r of rows) console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.tn.padEnd(5)} ${r.set.padEnd(11)} ${r.vn.padEnd(7)} คู่ที่ใกล้สุด ${r.i}-${r.j} ระยะ ${r.d.toFixed(1)} (min ${MIN[r.vn]})`);
-// รูปทรงประจำสี: members.css ต้องมี [data-slot="1".."10"] แต่ละอันมี clip-path ต่างกัน
+// รูปทรงประจำสี: members.css ต้องมี --member-shape-1..10 (ใช้กับ data-shape) แต่ละอันมี clip-path ต่างกัน
 let shapeMsg;
 try {
   const mc = readFileSync(resolve(root, 'src/styles/members.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');

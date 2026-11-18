@@ -40,7 +40,7 @@ npm ci
 ```
 ควรเห็นบรรทัดท้ายประมาณ `added ... packages` และไม่มี `ERR!`
 
-☐ **A3** บัญชีที่ต้องมี: GitHub (เจ้าของ repo **private** — ต้องเป็นบัญชีส่วนตัว ไม่ใช่ Organization เพราะ Vercel Hobby ต่อ repo ของ Organization ไม่ได้), Vercel (สมัครด้วย GitHub), Turso (<https://turso.tech> สมัครด้วย GitHub ได้)
+☐ **A3** บัญชีที่ต้องมี: GitHub (เจ้าของ repo — ตอนนี้ repo เป็น **public** (ดูส่วน E) · ต้องเป็นบัญชีส่วนตัว ไม่ใช่ Organization เพราะ Vercel Hobby ต่อ repo ของ Organization ไม่ได้), Vercel (สมัครด้วย GitHub), Turso (<https://turso.tech> สมัครด้วย GitHub ได้)
 
 ☐ **A4** ตัวจัดการรหัสผ่านพร้อมใช้ และเตรียมที่เก็บออฟไลน์ 1 ที่สำหรับ pepper (กระดาษในที่ปลอดภัย หรือ USB ที่ไม่ซิงก์คลาวด์ — ส่วน C)
 
@@ -116,6 +116,7 @@ Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL
 > - **Rollback**: (1) ย้อนแอปอย่างเดียว (Vercel Instant Rollback) **พอ** — รุ่นเดิมไม่รู้จักตาราง/คอลัมน์ใหม่ จึงทำงานได้ · ข้อควรรู้: ถ้ามีคนสร้างแบบประจำไปแล้ว แถว `busy_block` ที่ materialize จากแบบประจำ (`routine_id` ไม่ว่าง) จะถูกนับรวมในเพดาน 300 รายการเดี่ยวของรุ่นเก่า และแบบประจำเองจะแก้/ลบจากรุ่นเก่าไม่ได้ (ลบทีละวันได้เหมือน busy ปกติ) (2) ถอดของใหม่จริง **ไม่แนะนำ ทำเมื่อ boss สั่งเท่านั้น** ตามลำดับ: `DROP INDEX IF EXISTS busy_user_routine_idx;` → `ALTER TABLE busy_block DROP COLUMN routine_id;` → `DROP TABLE busy_routine_skip;` → `DROP INDEX IF EXISTS busy_routine_user_idx;` → `DROP TABLE busy_routine;` (ลบ index ก่อน DROP COLUMN ไม่งั้นล้ม · ต้อง SQLite >= 3.35 ยังไม่ได้ยืนยันกับฐานจริง · แถวใน `__drizzle_migrations` ยังไม่ได้ตรวจกับฐานจริง แจ้ง main ก่อนแตะ) · ผล: เสียแบบประจำทั้งหมด แต่ `busy_block` แถวที่สร้างไปแล้วยังอยู่เป็น busy ปกติ
 > - **Rate limit**: ถัง `busy:routine` 20 คำขอ / 10 นาที ต่อผู้ใช้ สำหรับ `POST /api/me/busy-routines` และ `PATCH/DELETE /api/me/busy-routines/:id` และ `POST /api/me/busy-routines/:id/skips` (ข้าม/กู้คืนวัน, R15a) · เกินแล้วได้ 429 · ไม่ต้องตั้ง env
 > - **Cron รายวัน** (`/api/cron/daily`) ลบแบบประจำที่ `end_date` เก่ากว่าวันนี้ 93 วันด้วย (รายการ skip ลบตามผ่าน cascade)
+
 > **หมายเหตุ R15a (migration `0006`, ADR 0013)**: รอบนี้มีไฟล์ใหม่ `drizzle/0006_r15_group_icon_drop_place_cache.sql` — boss รันตามลำดับเดียวกับ `0003`/`0005`: **preview ก่อนเปิด PR → prod ก่อน merge** ด้วยคำสั่ง B6/B7 (บล็อก `$env:TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` / `npx drizzle-kit migrate` ข้างบน เปลี่ยน URL/token ตามฐาน) · ควรเห็น `[✓] migrations applied successfully!` แล้วล้างค่า `Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL`
 > - **migration นี้ลบตาราง (ย้อนไม่ได้)**: `DROP TABLE place_search_cache;` (cache ผลค้นหาสถานที่ที่ R13 เลิกใช้ ไม่ผูกผู้ใช้ ไม่มี FK) และ `ALTER TABLE groups ADD icon text` (nullable ไม่ backfill = ไอคอนเริ่มต้น) · ไม่มีการเขียนข้อมูลเดิม · ไม่ต้อง backup ตารางนี้ (สร้างใหม่ไม่ได้แล้วและไม่มีคุณค่าต่อผู้ใช้) · ถ้าอยากดูจำนวนแถวก่อนลบ: `SELECT count(*) FROM place_search_cache;`
 > - **ลำดับกับ deploy (สำคัญ)**: คอลัมน์ `icon` รุ่นเดิมไม่อ่าน และโค้ดใหม่ (R15a) ไม่แตะ `place_search_cache` แต่ v0.12.0 ที่ยัง deploy อยู่จะลบจากตารางนี้ใน cron รายวัน (02:00 เวลาไทย) → **รัน migrate กับ prod และกด merge ในรอบเดียวกัน ทำต่อเนื่องกันทันที (migrate แล้ว merge ทันที) และให้เสร็จก่อน 02:00** · ถ้าพลาด (prod migrate แล้วแต่โค้ดใหม่ยังไม่ deploy ก่อน cron รอบถัดไป): batch เก็บกวาดของวันนั้นล้มทั้งชุดและถูก roll back = **ข้ามการล้างไป 1 วัน** (session/rate limit/notification/busy เก่าค้าง) · วันถัดไปปกติหลัง deploy · session หมดอายุยังถูกปฏิเสธตอนอ่านเสมอ จึงไม่มีผลต่อความปลอดภัย · ห้ามรัน migrate **หลัง** deploy รุ่นใหม่ (เลือกไอคอนกลุ่มจะล้มเพราะไม่มีคอลัมน์)
@@ -136,6 +137,13 @@ Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL
 >   รันด้วย `turso db shell maewmeet-prod "..."` แล้วกลับมารุ่นใหม่ภายหลัง: ตารางนี้จะค้างโดยไม่มีใครใช้ (ลบทิ้งด้วย `DROP TABLE place_search_cache;` ได้เมื่อ boss สั่ง) · คอลัมน์ `groups.icon` ไม่กระทบรุ่นเดิม · cron รายวันรุ่นใหม่ไม่มีชื่องาน `stalePlaceSearchCache` ใน response/log แล้ว (ไม่มีระบบภายนอกอ่านชื่อนี้)
 > - **ไม่ต้องตั้ง env/header เพิ่ม** สำหรับ manifest และ apple-touch-icon ของ "เปิดเหมือนแอปบน iPhone": CSP มี `manifest-src 'self'` อยู่แล้ว และ `img-src 'self' data: blob:` ครอบไอคอนที่เสิร์ฟจากโดเมนเดียวกัน (ตรวจใน `next.config.ts`) · ไม่มีตัวแปรใหม่ใน `.env.example`
 > - ไม่มีข้อมูล/ขั้นตอนมือเกี่ยวกับ `place_search_cache` เหลือในส่วน SQL มือหรือ retention (ค้นหาแล้ว ไม่พบ — ตรวจด้วย grep)
+
+> **หมายเหตุ R15b (ไม่มี migration · ไม่มี env ใหม่)**: รอบนี้เพิ่มถังจำกัดอัตราต่อผู้ใช้ (เกิน = 429 `RATE_LIMITED` + `Retry-After`) ไม่ต้องตั้งอะไรเพิ่ม:
+> - `busy:update` 60 คำขอ / 10 นาที — `PATCH` ช่วงไม่ว่าง
+> - `group:membership` 30 ครั้ง / ชม. — เข้า/ออกกลุ่ม (ถังเดียว ทุกกลุ่มรวมกัน) · ออก: นับทุกคำขอหลังด่านสิทธิ์ · ใช้โค้ด: นับเฉพาะครั้งที่เข้าได้จริง
+> - `group:icon` 30 ครั้ง / 10 นาที — `PUT /api/groups/:gid/icon` (นับเฉพาะครั้งที่ค่าเปลี่ยน)
+> - `busy:routine` (ของเดิม R14a) นับ `PATCH` แบบประจำที่ได้ 404 ด้วย
+> - **เพดาน LINE OA 300 ข้อความ/เดือน**: นับ push ทั้ง OA ตามเดือนปฏิทินเขต `Asia/Bangkok` (ไม่ใช่เดือนบิลของ LINE) เกินแล้วแถวคิวเป็น dead รหัส `LINE_OA_CAP` ไม่ส่ง · กระดิ่งยังทำงาน · log เฉพาะจำนวน · แผนฟรีของ LINE เองก็จำกัด 300/เดือน (ดูส่วน J)
 
 ---
 
@@ -201,10 +209,11 @@ Get-Clipboard | npx tsx scripts/pepper-fingerprint.ts
 | `CRON_SECRET` | **Secret** | ✔ (C6) | ✔ (C7) | preview ต้องมีด้วย ไม่งั้นแอปบน preview ไม่เริ่ม (ทุก URL ตอบ 500 — G1) |
 | `APP_ORIGIN` | Config | ✔ | ✘ (เว้นว่าง — ใช้ URL ของ preview เอง) | `https://maewmeet.vercel.app` (ดู D6) |
 | `LOG_LEVEL` | Config | ✔ | ✔ | `info` |
+| `TRUST_PROXY_HEADERS` | Config | ✘ (Vercel ไม่ต้องตั้ง) | ✘ | ตั้ง `1` เฉพาะ self-host หลัง proxy ที่เขียนทับ header IP (ดูกล่อง "IP ของผู้เรียก" ด้านล่าง) |
+| `SERVER_TIMING_ENABLED` | Config | ✘ (ว่าง = ปิดบน production) | ✘ (ว่าง = เปิด) | `true`/`false` · ดูภาคผนวก Server-Timing |
 | `LINE_MESSAGING_ACCESS_TOKEN` | **Secret** | ✔ (ส่วน J) | ✘ (เว้นว่าง) | Channel access token ของ OA (R10) |
 | `LINE_MESSAGING_CHANNEL_SECRET` | **Secret** | ✔ (ส่วน J) | ✘ (เว้นว่าง) | Channel secret ของ OA (R10) |
 
-  ตัวแปรที่เลิกใช้ใน R13 (ไม่มีค้นหาสถานที่/ภาพแผนที่แล้ว) — ลบออกจาก Vercel ได้ทั้ง Production และ Preview: `PLACE_SEARCH_ENABLED`, `NOMINATIM_BASE_URL`, `NOMINATIM_CONTACT`, `NEXT_PUBLIC_MAP_TILE_URL`, `NEXT_PUBLIC_MAP_ATTRIBUTION` (ค้างไว้ไม่ทำให้แอปล้ม แค่ถูกเมิน) · `VERCEL_URL`/`VERCEL_ENV` Vercel ใส่ให้เอง · ตัวแปร `LINE_MESSAGING_*` ใส่เฉพาะ Production ตามส่วน J (R10) · Preview เว้นว่าง
   ถ้าค่าใดใน `.env.example` เปลี่ยนในรอบหน้า Lead จะแจ้งในรายงาน
 
 ☐ **D4** กด **Deploy** → รอจน Status = Ready
@@ -232,7 +241,8 @@ workflow `keepalive` ยิงแอปทุก 12 ชม. (นาที 17 ข
 
 > **เงื่อนไขของ GitHub ที่ต้องรู้** (ตรวจแล้วจากเอกสาร GitHub):
 > - อีเมลของ workflow แบบตั้งเวลาส่งถึง **คนที่สร้าง workflow** (หรือคนล่าสุดที่แก้บรรทัด `cron` / คนที่เปิดใช้ใหม่) → ไฟล์ต้องเข้า `main` ด้วยบัญชีของ boss (ตามกฎ 10: agent push branch ด้วย credential ของ boss บนเครื่อง boss แล้ว boss กด Merge PR เอง) · ถ้าวันหนึ่ง agent/คนอื่นใช้บัญชีอื่น push branch ที่แก้บรรทัด `cron` ของ `keepalive.yml` ผู้รับอีเมลอาจเปลี่ยน → ตรวจ E2–E3 ใหม่ · ถ้าเคยกด Disable แล้วเปิดใหม่ คนที่กดเปิดจะเป็นผู้รับ
-> - repo ต้องเป็น **private** — repo สาธารณะที่ไม่มีความเคลื่อนไหว 60 วัน GitHub จะปิด workflow ตั้งเวลาเอง
+> - **repo นี้เป็น public** — GitHub ปิด workflow ตั้งเวลา (`schedule`) อัตโนมัติเมื่อ repo สาธารณะไม่มี activity 60 วัน (commit/PR/issue ฯลฯ) · ถ้าปิดแล้ว keepalive หยุดเงียบ ๆ → ไป Actions → keepalive → กด **Enable workflow** แล้วรัน **Run workflow** 1 ครั้ง · วิธีกัน: อย่าปล่อย repo เงียบเกิน 60 วัน (ทุก PR/commit ที่ merge เข้า `main` นับ) · ช่วงไม่มีงานใหม่ให้เปิดดู Actions เดือนละครั้ง
+> - ถ้ากลับไปเป็น private: ไม่มีกฎ 60 วันนี้ แต่โควตา Actions ฟรีของบัญชีนับนาทีรวม
 > - ก่อนตั้ง E1 workflow จะ "ข้าม" พร้อมคำเตือนสีเหลือง (ไม่ล้ม ไม่ส่งอีเมล)
 
 ---
@@ -547,3 +557,20 @@ cron รายวัน (`/api/cron/daily`) ลบ `busy_block` ที่ `end_a
 5. คลิกแถว `/api/...` หนึ่งแถว → แท็บ **Timing** → เลื่อนลงหาหัวข้อ **Server Timing**
 6. อ่านสองบรรทัด: **`db`** = เวลาที่ใช้กับ DB (ms) และจำนวน query (`N queries`) · **`total`** = เวลารวมที่เซิร์ฟเวอร์ใช้ (ms)
 7. จดมาให้ main: ชื่อ endpoint (เช่น `/api/appointments/...`), สิ่งที่ทำ (เปิดหน้าไหน/RSVP), ค่า `db` (ms + จำนวน query), ค่า `total` (ms) · ทำซ้ำ 3 รอบต่อ endpoint แล้วจดทุกรอบ (รอบแรกอาจช้ากว่าเพราะ cold start) · ถ้าไม่เห็นหัวข้อ Server Timing → ตรวจว่าล็อกอินแล้ว คำตอบสำเร็จ และ env เปิดอยู่ (ดูตารางด้านบน) แล้วแจ้ง main
+
+## ภาคผนวก — ผลประเมิน Dependabot (2026-11-18, docs/sync-r15)
+ตรวจด้วย `npm ls <pkg> --all` และ `npm audit` / `npm audit --omit=dev` บน `main` `8af88ee` · ทั้ง 3 รายการเป็น transitive ทั้งหมด
+
+| แพ็กเกจ | ช่องโหว่ | มาจาก | ถึงโค้ดที่รันบน production? | ที่ทำ |
+|---|---|---|---|---|
+| `esbuild` 0.18.20 | GHSA-67mh-4wv8-2f99 (moderate · เว็บใดก็ส่งคำขอถึง dev server ของ esbuild ได้) แก้ใน 0.25.0 | `drizzle-kit` → `@esbuild-kit/esm-loader` → `@esbuild-kit/core-utils` | **ไม่** — เครื่องมือ dev/migration เท่านั้น (ไม่ได้อยู่ใน bundle ของ Next) และช่องโหว่ต้องรัน esbuild serve | `overrides`: `@esbuild-kit/core-utils` → `esbuild` `0.25.12` (รุ่นเดียวกับที่ drizzle-kit ใช้อยู่แล้ว) · `drizzle-kit check` ผ่าน |
+| `minimatch` 10.2.6 | GHSA-g3hv-75wg-m249 (moderate · DoS) แก้ใน 11.0.1 | `eslint-config-next` → `typescript-eslint` → `@typescript-eslint/typescript-estree` | **ไม่** — lint ตอนพัฒนา/CI เท่านั้น | `overrides`: `@typescript-eslint/typescript-estree` → `minimatch` `11.0.1` (ตัวอื่นของ eslint ยังใช้ 3.1.5 ซึ่งไม่อยู่ในช่วงที่ได้รับผลกระทบ 7.0.0–11.0.0) · lint ผ่าน |
+| `picomatch` (ทุกรุ่น) | GHSA-fc5q-39xc-vjpf (**high** · ReDoS ผ่าน extglob ซ้ำ) **ยังไม่มีรุ่นที่แก้** | `vite`/`vitest`/`tinyglobby`/`fdir` (เทสต์), `micromatch` → `fast-glob` → `@next/eslint-plugin-next` (lint), `@parcel/watcher` ← `next-intl` | **ไม่พบทางถึงคำขอผู้ใช้** — picomatch รับ "รูปแบบ glob" จากโค้ด/คอนฟิกของเรา ไม่เคยรับจากคำขอของผู้ใช้ · ส่วนใหญ่เป็น dev/test/lint · `@parcel/watcher` อยู่ใน dependencies ของ `next-intl` แต่ใช้เฝ้าไฟล์ตอน dev/extract เท่านั้น แอปเราไม่ได้เปิดใช้ | **ไม่แก้** (ไม่มีรุ่นแก้ · `npm audit fix --force` จะถอย vitest เป็น 3.1.4 ซึ่งผิดทาง) · ตรวจซ้ำเมื่อ picomatch ออกรุ่นแก้ แล้วเพิ่ม override |
+
+หมายเหตุ: `npm audit --omit=dev` ยังรายงาน picomatch เพราะ `@parcel/watcher` นับเป็น production dependency ของ `next-intl` ตามไฟล์ package แต่ไม่ถูกเรียกในเส้นทางคำขอ
+
+**คำเตือน: ห้ามรัน `npm audit fix`** (แม้ไม่ใส่ `--force`) — dry-run แล้วจะถอย `vitest` เป็น 3.1.4 และ picomatch ก็ยังอยู่ · แก้ด้วย `overrides` ใน `package.json` เท่านั้น
+
+**เงื่อนไขประเมิน picomatch ใหม่:**
+- ถ้าเปิดใช้ `extract` ของ next-intl (ใช้ `@parcel/watcher`) หรือตั้ง `images` patterns ใน `next.config.ts` ให้ประเมินใหม่ทันที เพราะ picomatch อาจรับ pattern ที่เกี่ยวกับ runtime
+- เมื่อ picomatch ออกรุ่นที่แก้แล้ว ให้เพิ่ม override ตามรุ่นนั้นแล้วรัน build + typecheck + lint + vitest

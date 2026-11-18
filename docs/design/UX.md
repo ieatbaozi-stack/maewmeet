@@ -97,7 +97,7 @@ iPad: ไม่มี sheet — แผงขวาแสดงวันที่
   ชื่อนัด* → วัน (เติมให้แล้ว แตะเปลี่ยนได้) → เวลาเริ่ม–จบ (เติมช่วงว่างแรกให้)
      ├─ อยู่ในช่วงว่าง → ✓ "อยู่ในช่วงที่ทุกคนว่าง (17:30–22:00)"
      └─ ทับ busy → แถบเตือนสีอำพัน "ปาล์มติดช่วง 08:00–13:00 ยังสร้างนัดได้" (ไม่บล็อก)
-  สถานที่ (ไม่ใส่ก็ได้): พิมพ์ → [ค้นหา] (ไม่ค้นทุกตัวอักษร) → เลือก 1 ผล  หรือ [วางลิงก์แผนที่/พิกัดแทน]
+  สถานที่ (ไม่ใส่ก็ได้): ชื่อสถานที่ + ลิงก์แผนที่/พิกัด (วางได้เลย) + [Apple Maps] [Google Maps] ให้เปิดหาที่เอง — ไม่มีการค้นหาในแอป (R13)
   รายละเอียด (ไม่ใส่ก็ได้)
   [สร้างนัด] → หน้าสำเร็จใน sheet: แมวถือหมุด "สร้างนัดแล้ว" + [ดูนัด] [กลับไปปฏิทิน (ลิงก์ข้อความ)]
 ```
@@ -279,7 +279,7 @@ iPad: ปฏิทินซ้าย + แผงวันขวา (ไม่ม
 - ผิดพลาด: "เวลาจบต้องหลังเวลาเริ่ม" / "บันทึกไม่สำเร็จ ข้อมูลในฟอร์มยังอยู่ ลองอีกครั้ง"
 
 ### W7 สร้างนัด (sheet veil เหนือ aurora soft + scrim) — ดู `samples/create.html`
-> **R4B: แทนที่ด้วย §9 (W17–W20)** — ฟอร์มจริงมีค้นหาสถานที่/คำเตือนคนอาจไม่ว่าง/ข้ามคืน · ส่วนนี้เก็บไว้เป็นประวัติ
+> **R4B: แทนที่ด้วย §9 (W17–W20)** — ฟอร์มจริงมีค้นหาสถานที่/คำเตือนคนอาจไม่ว่าง/ข้ามคืน · **R13: เลิกค้นหาสถานที่แล้ว (ดู R13_LOCATION.md)** · ส่วนนี้เก็บไว้เป็นประวัติ
 
 ```
 ╞═══════════ (sheet) ═══════════╡
@@ -312,7 +312,7 @@ iPad: ปฏิทินซ้าย + แผงวันขวา (ไม่ม
 - สำเร็จ: แมวถือหมุด "สร้างนัดแล้ว" "ทุกคนในกลุ่มเห็นนัดนี้แล้ว" [ดูนัด]
 
 ### W8 รายละเอียดนัด
-> **R4B: แทนที่ด้วย §9 (W21)** — มีแผนที่ OSM, RSVP 3 ปุ่ม, ยกเลิกนัด
+> **R4B: แทนที่ด้วย §9 (W21)** — มีแผนที่ OSM, RSVP 3 ปุ่ม, ยกเลิกนัด · **R13: เอาแผนที่ OSM ออกแล้ว เหลือปุ่มเปิดแอปแผนที่/ลิงก์**
 
 ```
 ┌───────────────────────────────┐
@@ -431,7 +431,7 @@ iPad: ปฏิทินซ้าย + แผงวันขวา (ไม่ม
 | create.name | ชื่อนัด | What’s the plan? |
 | create.fitsAll | อยู่ในช่วงที่ทุกคนว่าง ({range}) | Everyone’s free then ({range}) |
 | create.overlap | {name}ติดช่วง {range} ยังสร้างนัดได้ | {name} is busy {range}. You can still create it. |
-| create.place / optional / search | สถานที่ / (ไม่ใส่ก็ได้) / ค้นหา | Place / (optional) / Search |
+| ~~create.place / optional / search~~ (เลิกใช้ R13: ใช้ `places.*` แทน ไม่มีปุ่มค้นหาแล้ว) | สถานที่ / (ไม่ใส่ก็ได้) / ค้นหา | Place / (optional) / Search |
 | create.pasteLink | หรือวางลิงก์แผนที่/พิกัดแทน | Or paste a map link or coordinates |
 | create.noResult | ไม่พบ "{q}" ลองคำอื่น หรือวางลิงก์แผนที่แทน | No results for “{q}”. Try another word or paste a map link. |
 | create.visibility | สมาชิกทั้ง {y} คนจะเห็นนัดนี้ในหน้าหลัก | All {y} members will see this on their home screen |
@@ -691,6 +691,8 @@ namespace ใหม่ `availability.*` + `calendar.view.free` (ปุ่มม�
 ## 9. R4B — นัด · RSVP · สถานที่/แผนที่ · แจ้งเตือนในแอป · หน้าหลัก
 > UX & Brand · 2026-10-26 · อ้างอิง: R4B_CONTRACT · PRD U10–U11/D4/D11 · ADR 0005 §4 · ADR 0006 · ADR 0007 · ตัวอย่าง: `samples/home.html` `appt-form.html` `appt-detail.html` `appt-list.html` `notifications.html` `group.html` `availability.html` (`?lang=th|en` `?theme=light|dark` `?state=…`) · CSS: `src/styles/{appointments,home,notifications}.css` (ไม่เพิ่ม token สีใหม่; 9 คู่คอนทราสต์ใหม่ใน `contrast.mjs`) · "วันนี้" ในฉาก = อังคาร 2026-10-20 18:00
 
+> **R13 (v0.12.0) แทนที่ส่วนสถานที่/แผนที่ในหัวข้อ 9 นี้:** ไม่มีการค้นหาสถานที่ในแอป ไม่มีแผนที่ OSM และไม่มี chip "เลือกแล้ว" (เลิกใช้ Nominatim/OSM tile · ตาราง `place_search_cache` ถูกลบด้วย migration 0006 — ADR 0013) · ฟอร์มจริง = ช่องชื่อสถานที่ + ช่องวางลิงก์แผนที่/พิกัด + ปุ่มเปิด Google/Apple Maps (ดู [R13_LOCATION.md](R13_LOCATION.md)) · แถว X56–X59, W18 และชื่อสถานะ `place-*` / `map-*` ด้านล่างเก็บไว้เป็นประวัติ
+
 ### 9.1 การตัดสินใจ
 | # | เรื่อง | ตัดสินใจ | เหตุผล |
 |---|---|---|---|
@@ -703,10 +705,10 @@ namespace ใหม่ `availability.*` + `calendar.view.free` (ปุ่มม�
 | X53 | ฟอร์มสร้าง/แก้ไข | sheet สูง · กลุ่มถูกกำหนดจากบริบท (ไม่มีตัวเลือกกลุ่ม) · ชื่อ(≤80)/วัน/เริ่ม–สิ้นสุด (ขั้น 30 นาที)/สถานที่/รายละเอียด(≤1000) · ท้าย = [ยกเลิก \| สร้างนัด] + บรรทัด "สมาชิกอีก N คนจะเห็นและได้รับแจ้งเตือน" · โหมดแก้ไขมี `form.editNote` "แก้ไขไม่แจ้งเตือน" | ตรงสัญญา: แก้ไม่ notify |
 | X54 | ข้ามคืน | เลือกเวลาสิ้นสุด ≤ เริ่ม = ข้ามคืนอัตโนมัติ แสดงแท็ก "จบ {วัน}" (`form.time.endsOn`) + ระยะรวม | ไม่ให้ผู้ใช้ต้องเลือกวันที่สองเอง · ยาวเกิน 62 วัน = `errors.LIMIT_REACHED` (appointmentSpan) |
 | X55 | คำเตือน "คนอาจไม่ว่าง" | **ไม่บล็อก** · 6 สถานะ: checking / clear / warn (ชื่อ + เวลา) / warn-min (ชื่อเท่านั้น) / unknown (ข้อมูลถูกตัดทอน) / check-error · clear เขียนอย่างซื่อสัตย์ "ตามที่สมาชิกลงไว้ ยังไม่มีใครติดช่วงนี้" · unknown **ห้ามพูดว่าไม่มีใครติด** · รายชื่อ ≤ 5 + "และอีก N คน" · ท้ายบล็อกลิงก์ความหมาย `availability.explain` | ADR 0005/0006: ผลคำนวณ ≠ ความจริง · ข้อมูลที่ซ่อน = "ไม่ว่าง" โดยไม่บอกเหตุ |
-| X56 | ค้นหาสถานที่ | ช่องชื่อ + ปุ่ม [ค้นหา] ชัดเจน (**ไม่ autocomplete**) · ผล ≤ 5 เป็น radiogroup + บรรทัดเครดิต OpenStreetMap · สถานะ: loading / noResults / error / rateLimited (`errors.RATE_LIMITED`) / disabled (`errors.FEATURE_DISABLED` → "ค้นหาสถานที่ปิดชั่วคราว — วางลิงก์หรือพิกัดแทน" และเปิดแผงวางลิงก์ให้เอง) / tooShort | Nominatim policy + kill-switch |
-| X57 | วางลิงก์/พิกัด | ปุ่มสลับ `places.paste.*` เปิดแผงช่องเดียว · รับลิงก์แผนที่หรือ "lat, lng" · ผิด = `errors.INVALID_MAP_URL` / `errors.INVALID_COORDINATES` ใต้ช่อง | ใช้ได้แม้ไม่มีการค้นหา |
-| X58 | สถานที่ที่เลือก | chip (ชื่อ + พิกัด หรือโฮสต์ของลิงก์) + ปุ่มล้าง (aria มีชื่อสถานที่) | |
-| X59 | แผนที่ | **เฉพาะหน้ารายละเอียด** ไม่มีแผนที่ในฟอร์ม · OSM tile · เครดิต "© OpenStreetMap contributors" เป็นลิงก์ 44 px **ใต้แผนที่** (ไม่ทับ tile) · ปุ่ม [เปิดในแอปแผนที่] · มีแต่ลิงก์ = ปุ่ม "เปิดลิงก์แผนที่ ({host})" ไม่มีแผนที่ · สถานะ loading/failed (โหลดไม่ได้ → ข้อความ + ปุ่มเปิดแอป) | CSP/policy · fallback เมื่อ tile ล้ม |
+| X56 | ~~ค้นหาสถานที่~~ (เลิกใช้ R13) | ช่องชื่อ + ปุ่ม [ค้นหา] ชัดเจน (**ไม่ autocomplete**) · ผล ≤ 5 เป็น radiogroup + บรรทัดเครดิต OpenStreetMap · สถานะ: loading / noResults / error / rateLimited (`errors.RATE_LIMITED`) / disabled (`errors.FEATURE_DISABLED` → "ค้นหาสถานที่ปิดชั่วคราว — วางลิงก์หรือพิกัดแทน" และเปิดแผงวางลิงก์ให้เอง) / tooShort | Nominatim policy + kill-switch |
+| X57 | วางลิงก์/พิกัด (R13: เป็นช่อง "ลิงก์แผนที่" ที่เห็นตลอด ไม่ต้องกดสลับ) | ปุ่มสลับ `places.paste.*` เปิดแผงช่องเดียว · รับลิงก์แผนที่หรือ "lat, lng" · ผิด = `errors.INVALID_MAP_URL` / `errors.INVALID_COORDINATES` ใต้ช่อง | ใช้ได้แม้ไม่มีการค้นหา |
+| X58 | ~~สถานที่ที่เลือก~~ (เลิกใช้ R13 — ไม่มี chip) | chip (ชื่อ + พิกัด หรือโฮสต์ของลิงก์) + ปุ่มล้าง (aria มีชื่อสถานที่) | |
+| X59 | ~~แผนที่~~ (เลิกใช้ R13 — ไม่มีภาพแผนที่/OSM) | **เฉพาะหน้ารายละเอียด** ไม่มีแผนที่ในฟอร์ม · OSM tile · เครดิต "© OpenStreetMap contributors" เป็นลิงก์ 44 px **ใต้แผนที่** (ไม่ทับ tile) · ปุ่ม [เปิดในแอปแผนที่] · มีแต่ลิงก์ = ปุ่ม "เปิดลิงก์แผนที่ ({host})" ไม่มีแผนที่ · สถานะ loading/failed (โหลดไม่ได้ → ข้อความ + ปุ่มเปิดแอป) | CSP/policy · fallback เมื่อ tile ล้ม |
 | X60 | หน้ารายละเอียด | topbar: ย้อน/"นัด"/ดินสอ (เมื่อ `canEdit`) · แบนเนอร์ยกเลิก (ใคร + เมื่อไร หรือ `bannerGone`) · แท็กสถานะ · ชื่อ · เวลา · กลุ่ม(ลิงก์) · สถานที่ · รายละเอียด (pre-wrap) · RSVP · รายชื่อตามคำตอบ · จัดการ (แก้ไข / ยกเลิกนัด) · "สร้างโดย" | |
 | X61 | ยกเลิกนัด | `alertdialog` กลางจอ: ชื่อนัด + `cancel.notify` (select `notify=yes\|no` — แจ้งสมาชิก N คน / ไม่แจ้ง) · ปุ่ม danger "ยกเลิกนัดนี้" + "ไม่ยกเลิก" · ผิดพลาด → alert ในกล่อง | ปุ่มทำลายล้างต้องยืนยัน |
 | X62 | หน้ารายการนัดของกลุ่ม | ปุ่มหลัก [สร้างนัด] · segmented "กำลังจะถึง \| ที่ผ่านมา" · บรรทัดจำนวน · เตือนใกล้เต็ม (`limitNear`) · ที่ผ่านมาถูกจำกัด (`pastCapped`) · ว่าง/โหลด/ผิดพลาด | |
@@ -738,7 +740,7 @@ namespace ใหม่ `availability.*` + `calendar.view.free` (ปุ่มม�
 └──────────────────────────────┘
 ```
 **W17 สร้าง/แก้ไขนัด (sheet)** — ชื่อ → วัน → เริ่ม|สิ้นสุด → รวม N ชม. [+จบ {วัน}] → **บล็อกคำเตือน (W19)** → สถานที่ [ชื่อ][ค้นหา] / วางลิงก์ → รายละเอียด → ท้าย sticky: "สมาชิกอีก N คนจะเห็น…" [ยกเลิก][สร้างนัด]
-**W18 สถานะค้นหาสถานที่** — loading (skeleton 3 แถว) · results (≤5 radiogroup + เครดิต OSM) · noResults (`places.search.noResults.*` + ชวนวางลิงก์) · error · rateLimited · disabled (เปิดแผงวางลิงก์ให้เอง) · selected chip [ชื่อ ⌖พิกัด ✕]
+**W18 สถานะค้นหาสถานที่ (เลิกใช้ R13 — เก็บเป็นประวัติ)** — loading (skeleton 3 แถว) · results (≤5 radiogroup + เครดิต OSM) · noResults (`places.search.noResults.*` + ชวนวางลิงก์) · error · rateLimited · disabled (เปิดแผงวางลิงก์ให้เอง) · selected chip [ชื่อ ⌖พิกัด ✕]
 **W19 คำเตือนคนอาจไม่ว่าง** — กล่องอำพัน ⚠ "9 คนอาจไม่ว่างช่วงนี้" › การ์ดย่อยพื้น `--surface`: [อวาตาร์] ชื่อ / 17:00–19:00 · ซ้อมดนตรี (ชื่อรายการเฉพาะที่เจ้าของเปิดเผย; ซ่อน = "ไม่ว่าง") · "และอีก N คน" · ⓘ ผลคำนวณจากที่สมาชิกลงไว้
 **W20 สร้างสำเร็จ (sheet กลางจอ)** — แมว `pin` · "สร้างนัดแล้ว" · แจ้งสมาชิกอีก N คนแล้ว · [ดูนัด][เสร็จแล้ว]
 **W21 รายละเอียดนัด** — ดูภาพ `appt-detail-full-*` (ลำดับตาม X60)
@@ -761,8 +763,8 @@ namespace ใหม่ `availability.*` + `calendar.view.free` (ปุ่มม�
 | หน้า | `?state=` |
 |---|---|
 | หน้าหลัก | `normal` `today` `tomorrow` `ongoing` `overnight` `one` `long` `only-cancelled` `many` `rsvp-saving` `rsvp-error` `empty` `nogroup` `loading` `error` |
-| ฟอร์ม | `create` `empty` `edit` `edit-cancelled` `checking` `check-error` `warn` `warn-many` `warn-min` `unknown` `unknown-warn` `error-fields` `error-limit` `error-rate` `place-*` (ค้นหา/ผล/ไม่พบ/ปิดชั่วคราว/rate/วางลิงก์/chip/ยาว) `created` |
-| รายละเอียด | `normal` `member` `today` `ongoing` `past` `cancelled` `cancelled-gone` `nolink` `nocoords` `noplace` `map-failed` `map-loading` `unanswered` `rsvp-saving` `rsvp-error` `cancel-confirm` `cancel-error` `overnight` `long` `loading` `error` `gone` |
+| ฟอร์ม | `create` `empty` `edit` `edit-cancelled` `checking` `check-error` `warn` `warn-many` `warn-min` `unknown` `unknown-warn` `error-fields` `error-limit` `error-rate` `place-*` (R13: ชื่อ/ลิงก์/ลิงก์ผิด/พิกัดผิด/ยาว — สถานะค้นหา/ผล/ไม่พบ/chip เลิกใช้แล้ว) `created` |
+| รายละเอียด | `normal` `member` `today` `ongoing` `past` `cancelled` `cancelled-gone` `nolink` `nocoords` `noplace` `map-failed` `map-loading` (R13: ไม่มีแผนที่แล้ว) `unanswered` `rsvp-saving` `rsvp-error` `cancel-confirm` `cancel-error` `overnight` `long` `loading` `error` `gone` |
 | รายการนัด | `upcoming` `past` `empty-upcoming` `empty-past` `loading` `error` `near-limit` `long` `past-capped` |
 | แจ้งเตือน | `normal` `allread` `more` `long` `mark-error` `empty` `loading` `error` |
 | availability | เพิ่ม `truncated` day-detail (note) · CTA เปิดใช้ทุกวัน |
@@ -817,3 +819,14 @@ namespace ใหม่ `availability.*` + `calendar.view.free` (ปุ่มม�
 2. ขอบเขต "นัดถัดไป" = นัดที่ยังไม่ผ่าน ไม่ยกเลิก เรียงตามเวลาเริ่ม (กำลังเกิดขึ้น = นับเป็นนัดถัดไป)
 3. ข้อความ "ปิดชั่วคราว" ของค้นหาสถานที่ใช้ `errors.FEATURE_DISABLED` เดียวกับทุกที่ (ปรับน้ำเสียงเป็น `places.search.disabled.*` ในบริบทนี้)
 4. ปุ่มตอบ RSVP ในการ์ดหน้าหลักใช้ endpoint เดียวกับหน้ารายละเอียด
+
+## 10. R15a — ไอคอนกลุ่ม · เว้นบางวัน · ไอคอนแอป
+> รายละเอียด ภาพ และสัญญากับ platform/frontend อยู่ที่ [R15_FEEDBACK.md](R15_FEEDBACK.md) · ตัวอย่าง: `samples/r15-feedback.html` · ภาพหน้าจอ (ไฟล์ในเครื่อง ไม่ได้ commit) `docs/design/screenshots/r15a/` สร้างด้วย `tools/shoot-r15.cjs`
+
+| # | เรื่อง | ตัดสินใจ | เหตุผล |
+|---|---|---|---|
+| X67 | ไอคอนกลุ่ม | เลือกจาก **allowlist 24 ไอคอน** (Lucide ชุดเดียวกับทั้งแอป) · ไม่รับรูปอัปโหลด/URL/อีโมจิ · ไม่ตั้ง = **แมว** (`groups.icon` เป็น `NULL`; เลือก "แมว" ก็เก็บเป็น `NULL`) · key นอก allowlist อ่านเจอ → แสดงแมว ไม่ error | ไม่มีเนื้อหาผู้ใช้ให้ต้องกลั่นกรอง · ไอคอนเส้นเรียบเข้ากับแอป · กลุ่มเก่าไม่ต้องแก้ข้อมูล |
+| X68 | ใครตั้งได้ | **admin และ moderator** ของกลุ่ม (รวม super admin ตามกติกาแก้กลุ่มเดิม) เห็นปุ่ม "เปลี่ยนไอคอน" · สมาชิกทั่วไปเห็นไอคอนอย่างเดียว · **สิทธิ์ตรวจที่เซิร์ฟเวอร์** ซ่อนปุ่มไม่นับเป็นการป้องกัน | กฎเหล็กข้อ 6 |
+| X69 | แสดงที่ไหน | ตัวสลับกลุ่ม/หัวปฏิทิน · รายการกลุ่ม · หน้ากลุ่ม · ชื่อกลุ่มของนัดบนหน้าหลัก · ตั้งค่ากลุ่ม (ส่วน "ไอคอนกลุ่ม" ต่อจากชื่อกลุ่ม) · แผ่นเลือกเป็น bottom sheet ตาราง (ปุ่มทุกช่อง ≥ 44px, มีชื่อ TH/EN ใน `groupIcon.names.*`) | เห็นว่านี่กลุ่มไหนได้เร็วโดยไม่ต้องอ่านชื่อ |
+| X70 | เว้นบางวันของแบบประจำ | ปุ่ม "เว้นบางวัน" บนการ์ดแบบประจำ → แผ่นเลือกหลายวันแล้วยืนยันครั้งเดียว · เว้นแล้วหายจากปฏิทินเพื่อนทันที กู้คืนได้ก่อนถึงวันนั้น · ลบเฉพาะวันเดียวได้จากขอบเขต "ลบเฉพาะวันนี้" (ดู R14_BUSY_ROUTINE.md) | เลื่อนนัดหรือหยุดบางวันโดยไม่ต้องลบทั้งชุด |
+| X71 | ไอคอนแอป | ไอคอน iOS/Android + manifest ใช้แมวแบรนด์ (R15_FEEDBACK §2) | ติดตั้งลงหน้าจอหลักได้ |
