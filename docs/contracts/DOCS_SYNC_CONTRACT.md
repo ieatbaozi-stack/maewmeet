@@ -52,3 +52,8 @@
 - ux: `docs/design/R14_BUSY_ROUTINE.md:152`, `docs/design/samples/create.html` และ `docs/design/tools/templates/create.html` ยังแสดงค้นหาสถานที่ (เอาออกแล้วใน R15a)
 - ~~main: บรรทัดสถานะ R14/R15 contract~~ เสร็จ 2026-11-18
 - qa: ตรวจทั้งชุดเทียบ §2–§3 แล้วเขียน `docs/reports/qa-docs-sync.md`
+
+## 6. รอบเคลียร์งานค้าง `docs/sync-r15` (boss: "อยากเคลียร์ให้หมด" 2026-11-18)
+- ทำ §5 ทั้งหมด + §4 (ops) ใน PR เดียว จาก `main` `8af88ee`
+- ops เพิ่ม: Dependabot 3 รายการบน main (high picomatch GHSA-fc5q-39xc-vjpf ยังไม่มีรุ่นแก้ · medium minimatch GHSA-g3hv-75wg-m249 แก้ใน 11.0.1 · medium esbuild GHSA-67mh-4wv8-2f99 แก้ใน 0.25.0 — ทั้งหมดเป็น transitive) → อัปเดตเฉพาะที่มีรุ่นแก้ผ่าน `overrides`/lockfile ถ้าไม่ทำให้ build/test พัง · ตัวที่ยังไม่มีรุ่นแก้ให้ประเมินว่าถึงโค้ดที่รันจริงไหม แล้วจดใน OPERATIONS
+- ผู้ตรวจอิสระ: qa (เอกสาร + เทสต์ docs-sync) · security (dependency)
