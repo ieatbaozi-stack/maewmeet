@@ -50,8 +50,8 @@ export const MEMBERS = [
   { n: 'นุ่น', slot: 4 }, { n: 'Kwan', slot: 6 }, { n: 'ณัฐพงศ์ วงศ์สวัสดิ์ศรีสกุล', slot: 7 }, { n: 'พลอย', slot: 9 }, { n: 'ไอซ์', slot: 1 }, { n: 'แพรว', slot: 2 },
 ];
 export const initial = (name) => { const ch = [...name].find((c) => !'เแโใไ'.includes(c)) || name[0]; return /[a-z]/i.test(ch) ? ch.toUpperCase() : ch; };
-export const avatar = (m, cls = 'sm') => `<span class="member-avatar ${cls}" data-slot="${m.slot}" aria-hidden="true"><span class="member-initial">${initial(m.n)}</span></span>`;
-const dot = (m) => `<span class="member-dot" data-slot="${m.slot}"></span>`;
+export const avatar = (m, cls = 'sm') => `<span class="member-avatar ${cls}" data-color="${m.slot}" data-shape="${m.slot}" aria-hidden="true"><span class="member-initial">${initial(m.n)}</span></span>`;
+const dot = (m) => `<span class="member-dot" data-color="${m.slot}" data-shape="${m.slot}"></span>`;
 
 // item: { m: index, sd, sm, ed, em, all, title, hidden }  (all = ทั้งวัน: sd..ed รวมปลาย · timed: sd sm → ed em)
 export const A = (m, sd, ed, title, hidden = false) => ({ m, all: true, sd, ed, title, hidden });
@@ -205,7 +205,7 @@ function dayBlock(sc, { long = false } = {}) {
   const rows = []; const people = []; const idle = [];
   members.forEach((m, mi) => {
     const xs = onDay(items, sc.d).filter((x) => x.it.m === mi);
-    const bars = xs.map((x) => `<span class="cal-bar${x.cutStart ? ' cut-start' : ''}${x.cutEnd ? ' cut-end' : ''}" data-slot="${m.slot}" style="--s:${(x.from / 14.4).toFixed(2)}%;--w:${((x.to - x.from) / 14.4).toFixed(2)}%"></span>`).join('');
+    const bars = xs.map((x) => `<span class="cal-bar${x.cutStart ? ' cut-start' : ''}${x.cutEnd ? ' cut-end' : ''}" data-color="${m.slot}" data-shape="${m.slot}" style="--s:${(x.from / 14.4).toFixed(2)}%;--w:${((x.to - x.from) / 14.4).toFixed(2)}%"></span>`).join('');
     rows.push(`<div class="cal-row"><span class="cal-name">${avatar(m)}<span class="nm">${m.n}</span></span><span class="cal-track" aria-hidden="true">${bars}</span></div>`);
     if (xs.length) people.push(`<li class="cal-person">${avatar(m, 'sm')}<span class="pn">${m.n}${m.me ? ` <span class="you small muted" data-m="group.members.you"></span>` : ''}</span><div class="items">${xs.sort((a, b) => a.from - b.from).map((x) => itemLines(x, sc.d)).join('')}</div></li>`);
     else idle.push(m.n);
