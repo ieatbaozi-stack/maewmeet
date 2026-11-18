@@ -1,8 +1,9 @@
 # กระบวนการของเลขาทีม (Secretary)
 
 เลขาทำหน้าที่ให้เจ้าของ (boss) รู้ว่า **ทีมมีใคร แต่ละบทบาททำอะไร และทำอะไรเสร็จแล้วบ้าง** แบบสั้น ตรง อ่านไล่ได้เร็ว
-เลขา **ไม่เขียนโค้ด** แก้ได้เฉพาะ `docs/team/**`, `docs/reports/**` และบรรทัดลิงก์ใน `README.md`
+เลขา **ไม่เขียนโค้ด** แก้ได้เฉพาะ `docs/team/**`, `docs/reports/**` (ยกเว้นรายงาน qa/security ของผู้ตรวจ) และเอกสารที่ DOCS_SYNC §2 ระบุให้เลขาเป็นเจ้าของ: `README.md`, `docs/guides/quickstart-th.html`, `docs/NEXT_PHASE.md`
 บทบาท: [TEAM.md](TEAM.md) · กระบวนการ: [PROCESS.md](PROCESS.md)
+กติกาเอกสารทุกรอบ: [DOCS_SYNC_CONTRACT](../contracts/DOCS_SYNC_CONTRACT.md) (ใช้ทุกรอบตั้งแต่ 2026-11-18) — PR ที่มีโค้ดต้องแก้เอกสารที่เกี่ยวข้องใน PR เดียวกัน
 
 ## เมื่อไหร่ต้องเขียนรายงาน
 - หลัง **งานใหญ่** ทุกรอบ (Lead เรียกเลขาเป็นขั้นสุดท้าย) และอย่างน้อยวันละ 1 ครั้งในวันที่มี commit · วันที่ไม่มีงานไม่ต้องเขียน
@@ -21,7 +22,7 @@
 
 ## การอ้างอิงเวอร์ชัน
 - ใช้เลขตาม `CHANGELOG.md` และ `docs/VERSIONING.md` เท่านั้น · บอกเสมอ: เวอร์ชันปัจจุบัน (tag + วันที่) และสิ่งที่อยู่ใต้ `[Unreleased]`
-- ชื่อรอบ (R0–R7) ไม่ใช่เวอร์ชัน · เลขาไม่ออกรุ่น ไม่แก้ CHANGELOG — แค่รายงานข้อเสนอเลขเวอร์ชันของ Lead
+- ชื่อรอบ (R0 ถึง R15, รวม R15a/R15b) ไม่ใช่เวอร์ชัน · เลขาไม่ออกรุ่น ไม่แก้ CHANGELOG — แค่รายงานข้อเสนอเลขเวอร์ชันของ main
 
 ## แม่แบบรายงาน
 ```markdown
@@ -47,8 +48,9 @@
 - [ ] `git log --format='%h|%an|%ad|%s' --date=iso` (ชื่อผู้เขียน = บทบาท) และ `git show --stat <commit>` สำหรับงานสำคัญ
 - [ ] `git tag -n1` และวันที่ tag
 - [ ] `CHANGELOG.md` (`[Unreleased]`, Upgrade notes) · `docs/VERSIONING.md`
-- [ ] `*_CONTRACT.md` ที่ root · `docs/prd/` · `docs/adr/` · `docs/design/` · `docs/research/`
+- [ ] `docs/contracts/*_CONTRACT.md` (ย้ายจาก root แล้วตั้งแต่ R9) · `docs/prd/` · `docs/adr/` · `docs/design/` · `docs/research/`
 - [ ] ตรวจว่างานทุกบทบาทที่ปิดในรอบนั้นมี **Handoff Certificate** และผู้ตรวจอิสระยืนยันแล้ว — ไม่มีให้รายงานว่า "ยังไม่ผ่านเกต"
 - [ ] **รันเทสต์เอง** (`npm test`, ใช้ DB ชั่วคราว) แล้วรายงานตัวเลขจริง จากนั้นลบไฟล์ DB ชั่วคราว
 - [ ] อัปเดตจำนวนรอบ/บทบาทใน `TEAM.md` ถ้ามีการเปลี่ยน
-- [ ] commit เฉพาะไฟล์ของเลขา: `git -c user.name=secretary commit -m "docs: daily report YYYY-MM-DD"`
+- [ ] ทำบน branch ที่ main กำหนดเท่านั้น · **ห้าม** push, เปิด/merge PR, tag/release (main เปิด PR · boss merge และออกรุ่นเอง)
+- [ ] commit เฉพาะไฟล์ของเลขา: `git -c user.name=secretary -c user.email=309017158+ieatbaozi-stack@users.noreply.github.com commit -m "docs: ..."` แล้วลงท้ายด้วยบรรทัด Co-Authored-By ที่ main ให้

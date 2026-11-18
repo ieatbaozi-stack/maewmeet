@@ -3,7 +3,10 @@
 หลักการ: **เขียนข้อตกลงก่อนโค้ด · ทุกงานมีเกณฑ์ผ่านที่ตรวจได้ · คนทำกับคนตรวจเป็นคนละ agent · คนทำต้องตรวจตัวเองและยืนยันด้วยหลักฐานก่อนส่ง · ไม่มีอะไรเข้าโดยไม่ผ่านเกต**
 ทีม: [TEAM.md](TEAM.md) · เลขา: [SECRETARY.md](SECRETARY.md)
 
-## เฟสของโปรเจกต์
+> **ใช้ทุกรอบ (ตั้งแต่ 2026-11-18):** [DOCS_SYNC_CONTRACT](../contracts/DOCS_SYNC_CONTRACT.md) — เอกสารต้องตรงกับของจริงใน PR เดียวกัน · ชื่อ "Lead" ในเอกสารนี้หมายถึง main (ผู้ประสานงาน) ตาม CLAUDE.md
+> **กติกาส่งงาน:** 1 contract ≥ 1 branch/PR · agent ทำบน branch ที่ main กำหนด, push เฉพาะ branch นั้น, เปิด PR แล้วหยุด · ห้าม push `main`, ห้าม merge, ห้าม tag/release · boss เป็นคน merge และออกรุ่นเอง (`npx tsx scripts/release.ts <เลข>` แล้ว push tag)
+
+## เฟสของโปรเจกต์ (แผนเดิม — ประวัติ)
 
 ```
 เฟส 0  Discovery     วิจัย LINE/stack/ข้อจำกัด → docs/research/RESEARCH_REPORT.md   (เสร็จ)
@@ -91,7 +94,7 @@
 | ประสิทธิภาพ | Lighthouse มือถือบน preview: Performance/Accessibility ≥ เกณฑ์ที่ contract กำหนด |
 
 ## ธรรมเนียม git
-- `user.name` = ชื่อบทบาท · commit แบบ conventional · 1 contract = 1 branch · Lead รวม · เอกสารล้วนไม่ต้องออกรุ่น
+- `user.name` = ชื่อบทบาท และ `user.email` = อีเมล noreply ของ boss (ดูไฟล์ agent) · commit แบบ conventional · **1 contract ≥ 1 branch/PR** · main รวมผลและเปิด PR · boss merge และออกรุ่นเอง · เอกสารล้วนไม่ต้องออกรุ่น
 
 ## รูปแบบ CONTRACT (แม่แบบ)
 ```markdown
@@ -105,7 +108,7 @@
 ## ความเสี่ยง / สิ่งที่ boss ต้องตัดสินใจ
 ```
 
-## แผนรอบงานเริ่มต้น (ข้อเสนอ ปรับได้หลัง boss ตัดสินใจ)
+## แผนรอบงานเริ่มต้น [ประวัติ — สถานะจริงดู PROGRESS]
 
 | รอบ | เนื้อหา | บทบาทหลัก |
 |---|---|---|
