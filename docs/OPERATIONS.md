@@ -568,3 +568,9 @@ cron รายวัน (`/api/cron/daily`) ลบ `busy_block` ที่ `end_a
 | `picomatch` (ทุกรุ่น) | GHSA-fc5q-39xc-vjpf (**high** · ReDoS ผ่าน extglob ซ้ำ) **ยังไม่มีรุ่นที่แก้** | `vite`/`vitest`/`tinyglobby`/`fdir` (เทสต์), `micromatch` → `fast-glob` → `@next/eslint-plugin-next` (lint), `@parcel/watcher` ← `next-intl` | **ไม่พบทางถึงคำขอผู้ใช้** — picomatch รับ "รูปแบบ glob" จากโค้ด/คอนฟิกของเรา ไม่เคยรับจากคำขอของผู้ใช้ · ส่วนใหญ่เป็น dev/test/lint · `@parcel/watcher` อยู่ใน dependencies ของ `next-intl` แต่ใช้เฝ้าไฟล์ตอน dev/extract เท่านั้น แอปเราไม่ได้เปิดใช้ | **ไม่แก้** (ไม่มีรุ่นแก้ · `npm audit fix --force` จะถอย vitest เป็น 3.1.4 ซึ่งผิดทาง) · ตรวจซ้ำเมื่อ picomatch ออกรุ่นแก้ แล้วเพิ่ม override |
 
 หมายเหตุ: `npm audit --omit=dev` ยังรายงาน picomatch เพราะ `@parcel/watcher` นับเป็น production dependency ของ `next-intl` ตามไฟล์ package แต่ไม่ถูกเรียกในเส้นทางคำขอ
+
+**คำเตือน: ห้ามรัน `npm audit fix`** (แม้ไม่ใส่ `--force`) — dry-run แล้วจะถอย `vitest` เป็น 3.1.4 และ picomatch ก็ยังอยู่ · แก้ด้วย `overrides` ใน `package.json` เท่านั้น
+
+**เงื่อนไขประเมิน picomatch ใหม่:**
+- ถ้าเปิดใช้ `extract` ของ next-intl (ใช้ `@parcel/watcher`) หรือตั้ง `images` patterns ใน `next.config.ts` ให้ประเมินใหม่ทันที เพราะ picomatch อาจรับ pattern ที่เกี่ยวกับ runtime
+- เมื่อ picomatch ออกรุ่นที่แก้แล้ว ให้เพิ่ม override ตามรุ่นนั้นแล้วรัน build + typecheck + lint + vitest
