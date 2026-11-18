@@ -25,7 +25,7 @@ const isDev = process.env.NODE_ENV === "development";
  *   (ห้ามมี CSP สองที่พร้อมกัน — เบราว์เซอร์บังคับทุก policy ซ้อนกัน)
  *   แอปไม่มี inline script ของเราเอง (ธีมใช้ data-theme จากเซิร์ฟเวอร์ ไม่มีสคริปต์กันกระพริบ — ADR 0008 §4)
  * - style-src ต้องมี 'unsafe-inline': React เรนเดอร์ prop `style` เป็น attribute style="…" ใน HTML จากเซิร์ฟเวอร์
- *   (เช่น ตำแหน่ง/สีที่คำนวณของ aurora, Leaflet) ซึ่งถูกบล็อกถ้าไม่มี 'unsafe-inline' หรือ nonce
+ *   (เช่น ตำแหน่ง/สีที่คำนวณของ aurora · R13 เอา Leaflet/แผนที่ในแอปออกแล้ว) ซึ่งถูกบล็อกถ้าไม่มี 'unsafe-inline' หรือ nonce
  *   ความเสี่ยงต่ำกว่า script มาก (CSS ไม่รันโค้ด) — ทบทวนพร้อมเรื่อง nonce
  * - img-src: data: สำหรับ noise ของ aurora (SVG data URL ใน tokens.css), blob: สำหรับภาพที่สร้างฝั่ง client
  * - img-src: R13 เอาภาพแผนที่ OSM ออกแล้ว → ไม่มี origin ภายนอกใน img-src (ลิงก์แผนที่เป็นแค่ <a href> เปิดแท็บใหม่ ไม่ต้องผ่าน CSP)
