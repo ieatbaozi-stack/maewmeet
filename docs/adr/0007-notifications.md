@@ -1,6 +1,6 @@
 # ADR 0007 — การแจ้งเตือน: ชั้นส่งแบบเสียบช่องทาง + `notification_outbox`
 
-- **Status**: Proposed (Architect, 2026-10-15) · แก้ R2 (2026-10-19): ชนิดคำเชิญเป็น `group.invite.received|accepted|declined` (เดิม `invite.direct.*`)
+- **Status**: Accepted (2026-11-18 · บันทึกย้อนหลังในรอบ DOCS_SYNC — implement แล้วและใช้งานจริงถึง v0.13.0; ช่องทาง LINE ใช้จริงตั้งแต่ R10 ตาม [ADR 0011](0011-line-reminders.md)) · เสนอ Proposed 2026-10-15 (Architect) · แก้ R2 (2026-10-19): ชนิดคำเชิญเป็น `group.invite.received|accepted|declined` (เดิม `invite.direct.*`)
 - **เกี่ยวข้อง**: [PRD D13, U2, U5, U10, §6](../prd/PRD.md) · [RESEARCH §2](../research/RESEARCH_REPORT.md) · [ADR 0008](0008-i18n-and-theme.md) · [ARCHITECTURE §3](../design/ARCHITECTURE.md)
 - **เจ้าของการ implement**: Platform (แกน `src/lib/data/notifications/**`) · Integrations (ช่องทาง LINE `src/lib/integrations/**`, v1.x)
 

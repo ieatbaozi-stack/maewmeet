@@ -1,6 +1,6 @@
 # ADR 0008 — i18n (TH/EN) และธีม (system/light/dark)
 
-- **Status**: Proposed (Architect, 2026-10-15)
+- **Status**: Accepted (2026-11-18 · บันทึกย้อนหลังในรอบ DOCS_SYNC — implement แล้วและใช้งานจริงถึง v0.13.0) · เสนอ Proposed 2026-10-15 (Architect)
 - **เกี่ยวข้อง**: [PRD D14, D15, U14, U15, §7, §8 ข้อ 4.1](../prd/PRD.md) · [UI_DIRECTION](../design/UI_DIRECTION.md) (UX เป็นเจ้าของ tokens/ข้อความ) · [ADR 0004](0004-time-and-timezone.md) (format วันที่) · [ADR 0007](0007-notifications.md)
 - **เจ้าของการ implement**: Front-end (`src/i18n/**`, กลไกสลับ) · UX (`messages/*.json` เนื้อหา, `src/styles/tokens*`) · Platform (`/api/prefs`, `user.locale/theme`)
 

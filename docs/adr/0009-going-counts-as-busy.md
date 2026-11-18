@@ -1,6 +1,6 @@
 # ADR 0009 — นัดที่ตอบ "ไป" นับเป็นช่วงไม่ว่าง (ทุกกลุ่ม) + คุกกี้จำกลุ่ม `mm_group`
 
-- **Status**: Proposed (Architect, 2026-11-02) · รอบ R6D · ไม่มี migration
+- **Status**: Accepted (2026-11-18 · บันทึกย้อนหลังในรอบ DOCS_SYNC — implement แล้วและใช้งานจริงถึง v0.13.0; ส่งครั้งแรกใน v0.8.0 (R6D)) · เสนอ Proposed 2026-11-02 (Architect) · รอบ R6D · ไม่มี migration
 - **เกี่ยวข้อง**: [R6D_CONTRACT](../contracts/R6D_CONTRACT.md) G1/G2 · [ADR 0005](0005-common-free-time-algorithm.md) §4 · [ADR 0006](0006-busy-visibility.md) §1–3 · [ADR 0003](0003-rbac.md) · [ADR 0004](0004-time-and-timezone.md) · [ARCHITECTURE](../design/ARCHITECTURE.md) Q8 (ถูกแทนที่ด้วย ADR นี้)
 - **เจ้าของการ implement**: Platform (repos/services/serializers, คุกกี้กลุ่ม) · Auth (ลบคุกกี้ตอน logout) · Frontend (UI) · ตรวจโดย Security & Privacy
 - **หมายเหตุเลข**: contract ระบุ `0008-going-counts-as-busy.md` แต่ 0008 ถูกใช้แล้ว (`0008-i18n-and-theme.md`) จึงใช้ 0009 — main ยืนยันแล้ว 2026-11-02 (รอบ R6E E9): ใช้ **0009**

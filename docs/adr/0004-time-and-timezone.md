@@ -1,6 +1,6 @@
 # ADR 0004 — การเก็บเวลา, timezone และการแสดงปี พ.ศ.
 
-- **Status**: Proposed (Architect, 2026-10-15) · แก้รอบ 2 (2026-10-16): **สัปดาห์เริ่มวันจันทร์** (boss ตัดสิน) — §5 `monthGrid`, §6, เทสต์ #17–#21
+- **Status**: Accepted (2026-11-18 · บันทึกย้อนหลังในรอบ DOCS_SYNC — implement แล้วและใช้งานจริงถึง v0.13.0) · เสนอ Proposed 2026-10-15 (Architect) · แก้รอบ 2 (2026-10-16): **สัปดาห์เริ่มวันจันทร์** (boss ตัดสิน) — §5 `monthGrid`, §6, เทสต์ #17–#21
 - **เกี่ยวข้อง**: [PRD D9, D10, U7, U8, U10, U11, U14](../prd/PRD.md) · [CLAUDE.md กฎ 9](../../CLAUDE.md) · [PROCESS ข้อ 10](../team/PROCESS.md) · [ADR 0001](0001-stack-and-project-structure.md) (temporal-polyfill) · [ADR 0005](0005-common-free-time-algorithm.md)
 - **เจ้าของการ implement**: Calendar & Time (`src/lib/calendar/**`, `tests/calendar/**`)
 

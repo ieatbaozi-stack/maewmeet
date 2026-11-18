@@ -1,6 +1,6 @@
 # ADR 0002 — Auth ด้วย PIN 6 หลัก: hash, lockout, session, reset `123456`
 
-- **Status**: Proposed (Architect, 2026-10-15) · แก้รอบ 2 (2026-10-16): เพิ่ม §7 การจัดการ pepper · แก้ R2 (2026-10-19): เพิ่ม §8 โค้ดเชิญ · **§6 (ผูก `123456` กับเครื่อง) — Accepted โดย boss 2026-10-16**
+- **Status**: Accepted (2026-11-18 · บันทึกย้อนหลังในรอบ DOCS_SYNC — implement แล้วและใช้งานจริงถึง v0.13.0) · เสนอ Proposed 2026-10-15 (Architect) · แก้รอบ 2 (2026-10-16): เพิ่ม §7 การจัดการ pepper · แก้ R2 (2026-10-19): เพิ่ม §8 โค้ดเชิญ · **§6 (ผูก `123456` กับเครื่อง) — Accepted โดย boss 2026-10-16**
 - **เกี่ยวข้อง**: [PRD D1–D3, U1–U3, U12, U13, §3 กติกาเสริม, §10](../prd/PRD.md) · [RESEARCH §3](../research/RESEARCH_REPORT.md) · [ADR 0003](0003-rbac.md) · [ARCHITECTURE §3–§4](../design/ARCHITECTURE.md)
 - **เจ้าของการ implement**: Auth & Access (`src/lib/auth/**`, `src/app/api/auth/**`)
 
