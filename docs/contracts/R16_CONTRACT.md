@@ -14,6 +14,7 @@
 | H2 | rate limit `PUT /api/prefs` (`prefs:update` 60/10 นาที) | เกินแล้ว 429 แต่ cookie ภาษา/ธีมฝั่ง client ยังทำงาน · เทสต์ |
 | H3 | rate limit ฝั่งอ่านแบบ global ต่อผู้ใช้ (ดู B1) ใน `src/app/api/_lib/route.ts` สำหรับ GET ที่ต้อง login | ผู้ใช้ปกติ (e2e ทั้งชุด) ไม่โดน 429 · เกินแล้ว 429 + `Retry-After` · cron/health/public ไม่นับ |
 | H4 | คำเชิญที่ super admin นอกกลุ่มเป็นคนเชิญ แสดง "ผู้ดูแลระบบ" แทนชื่อ (แบบเดียวกับ R15b B7 `actorSystemAdmin`) | แถวใหม่เท่านั้น · เทสต์ TH/EN |
+| H4b | `GET /api/me/invites` (รายการคำเชิญค้าง) แสดง "ผู้ดูแลระบบ" แทนชื่อ SA นอกกลุ่ม ให้สอดคล้องกับ H4 (platform serializer + frontend GroupsView) | เทสต์ |
 | H5 | หน้า auth (login/signup/forgot/set-pin) ที่ redirect หรือ error ระหว่าง stream ต้องได้ status ที่ถูก (3xx/4xx) ไม่ใช่ 200 — ตรวจก่อนว่าเกิดจริงไหม ถ้าแก้ต้องไม่ทำให้หน้าช้าลง ถ้าแก้ไม่ได้โดยไม่เสี่ยง ให้บันทึกเหตุผลแล้วไม่แก้ | เทสต์ status จริง หรือบันทึกใน §6 |
 | H6 | Server-Timing บนหน้า RSC (เปิดเมื่อ `SERVER_TIMING_ENABLED` เท่านั้น เหมือน API) | ปิดอยู่ = ไม่มี header · ไม่เปลี่ยน output |
 
@@ -51,6 +52,9 @@
 - แถวแจ้งเตือนเก่าก่อน R15b ที่ยังแสดงชื่อ SA — ต้องเขียนข้อมูลจริงย้อนหลัง ไม่คุ้ม (security R15b Info 1 ยอมรับได้)
 - วันที่เคยแยกแก้ + เอาวันของชุดกลับ = สองรายการ — ออกแบบไว้และแจ้งผู้ใช้แล้ว (`restoreNote`)
 - DST day strip — แอปใช้ Asia/Bangkok อย่างเดียว
+- **H5 (ตรวจแล้ว ไม่แก้):** status 200 + meta refresh เกิดจาก root `loading.tsx` (streaming) ครอบทุกหน้า ไม่ใช่แค่หน้า auth · ฝั่ง client redirect ทันทีจาก RSC payload และไม่มีข้อมูลหลุด (redirect ถูกโยนก่อน render) · แก้ได้ด้วย `proxy.ts` (ขัด ADR 0001) หรือเอา loading boundary ออก (หน้าช้าลง ขัด F2) → ไม่แก้ (platform 2026-11-18, curl บน `next start`)
+- **H6 (ทำไม่ได้):** Next 16 `headers()` ใน Server Component อ่านอย่างเดียว และหน้า streaming ส่ง header ก่อน query จบ · ใช้ `tests/perf/r7-baseline.test.ts` วัดหน้าแทน
+- **H2:** endpoint จริงคือ `POST /api/prefs` · 429 ไม่ตั้ง cookie ใหม่ แต่ cookie เดิมยังอยู่ · ผู้ที่ยังไม่ login ไม่ถูกนับ
 - picomatch — ยังไม่มีรุ่นแก้ ติดตามต่อ (ops)
 - boss ลองเครื่องจริง / เครื่อง boss (PROGRESS ข้อ 3–4) — ไม่ใช่งานโค้ด
 
