@@ -151,7 +151,8 @@ export function notificationView(kind: string, params: Record<string, unknown>, 
     }
     case "group.invite.received": {
       const groupName = str(params.groupName);
-      const inviterName = personName(params.inviterName, deletedName);
+      // R16 H4: super admin นอกกลุ่มเชิญ (inviterName ว่าง + actorSystemAdmin) → ป้ายกลาง "ผู้ดูแลระบบ" · แถวเก่าไม่มี key = false
+      const inviterName = params.actorSystemAdmin === true && systemAdminName !== "" ? systemAdminName : personName(params.inviterName, deletedName);
       if (!groupName || !inviterName) return UNKNOWN;
       return {
         known: true,

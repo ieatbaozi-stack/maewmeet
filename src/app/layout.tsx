@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { NavProgress } from "@/components/shell/NavProgress";
+import { SkeletonHold } from "@/components/shell/SkeletonHold";
 import { THEME_COOKIE, parseTheme } from "@/i18n/config";
 import { THEME_COLOR } from "@/styles/tokens.meta";
 import "./globals.css";
@@ -49,6 +50,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         </a>
         <NextIntlClientProvider>
           <NavProgress />
+          <SkeletonHold />
           {children}
         </NextIntlClientProvider>
       </body>

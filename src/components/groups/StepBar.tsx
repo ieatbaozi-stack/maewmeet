@@ -70,9 +70,14 @@ export function StepBar({ groupId, userId, input, solo, planAction }: StepBarPro
             <span className="steps-text">
               <span className="steps-label">{label}</span>
               <span className="steps-title">{title}</span>
+              {done ? (
+                // R16 U1: ป้ายเสร็จ + "Take another look" อยู่ใต้ชื่อขั้น (เยื้องตามชื่อเสมอ ไม่ลงไปชิดซ้ายใต้ไอคอนติ๊ก)
+                <span className="steps-meta">
+                  <span className="steps-done">{t("group.steps.done")}</span>
+                  {doneLinkLabel ? <span className="steps-redo" data-testid="group-step-cta-free-done">{doneLinkLabel}</span> : null}
+                </span>
+              ) : null}
             </span>
-            {done ? <span className="steps-done">{t("group.steps.done")}</span> : null}
-            {doneLinkLabel ? <span className="steps-redo" data-testid="group-step-cta-free-done">{doneLinkLabel}</span> : null}
           </>
         );
         return (

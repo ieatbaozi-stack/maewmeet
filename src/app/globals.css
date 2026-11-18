@@ -207,6 +207,8 @@
   .skeleton-title { height: var(--space-5); width: 40%; margin: var(--space-3) 0; }
   .skeleton-card { height: calc(var(--space-7) * 5); border-radius: var(--radius-lg); }
   .loading-note { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--ink); margin-top: var(--space-3); padding: var(--space-1) var(--space-3); background: var(--surface); border-radius: var(--radius-sm); }
+  /* R16 U4: แผ่น skeleton ค้างให้ครบ 250 ms หลังหน้าจริงมาถึง (ดู SkeletonHold) · เหนือเนื้อหา ใต้แถบ progress/แท็บบาร์ */
+  .skeleton-hold { position: fixed; z-index: var(--z-fab); inset: 0 0 calc(var(--nav-h) + env(safe-area-inset-bottom)) 0; overflow: hidden; background: var(--bg); pointer-events: none; }
   .error-state { padding-top: var(--space-4); display: grid; gap: var(--space-4); justify-items: start; }
   .alert { display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-4); border-radius: var(--radius-sm); background: var(--danger-soft); color: var(--danger-ink); width: 100%; }
   .alert b { display: block; font-weight: var(--weight-semibold); }

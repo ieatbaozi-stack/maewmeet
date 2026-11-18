@@ -211,7 +211,7 @@ export function RoutineSkipSheet({ routine, onClose, onDone }: RoutineSkipSheetP
             </div>
             <div className="sk-legend">
               <span>
-                <i className="sk-sw" />
+                <i className={`sk-sw${mode === "restore" ? " lock" : ""}`} />
                 {t("busy.routine.skip.legend.available")}
               </span>
               <span>

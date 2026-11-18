@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
+import { signalNavStart } from "@/components/shell/nav-start";
 import { Sheet } from "@/components/shell/Sheet";
 import { callApi } from "./api";
 import { failureText } from "./errors";
@@ -21,6 +22,7 @@ export function AccountActions() {
   const [pinDone, setPinDone] = useState(false);
 
   function toLogin() {
+    signalNavStart("/login"); // R16 U3: แถบ progress ขึ้นตอนออกจากระบบ
     router.replace("/login");
     router.refresh();
   }
