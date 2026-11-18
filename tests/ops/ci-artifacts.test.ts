@@ -26,12 +26,13 @@ describe('ci.yml: artifact ของ e2e (CI-1)', () => {
       const cond = field(step, 'if');
       expect(cond, step).toBeDefined();
       expect(cond).not.toMatch(/always\(\)/);
-      expect(cond === '${{ failure() }}' || /github\.event_name == 'workflow_dispatch' && inputs\.screenshots/.test(cond!)).toBe(true);
+      expect(cond).toContain("needs.changes.outputs.code == 'true'");
+      expect(/\bfailure\(\)/.test(cond!) || /github\.event_name == 'workflow_dispatch' && inputs\.screenshots/.test(cond!)).toBe(true);
     }
   });
 
   it('รายงานเมื่อล้มอัปโหลดเฉพาะ playwright-report/ (ไม่รวม test-results/ ที่มีภาพเต็มหน้าทุกหน้า)', () => {
-    const onFailure = uploadSteps.find((s) => field(s, 'if') === '${{ failure() }}');
+    const onFailure = uploadSteps.find((s) => field(s, 'if') === "${{ failure() && needs.changes.outputs.code == 'true' }}");
     expect(onFailure).toBeDefined();
     expect(field(onFailure!, 'path')).toBe('playwright-report/');
     expect(onFailure).not.toMatch(/test-results/);
@@ -40,7 +41,7 @@ describe('ci.yml: artifact ของ e2e (CI-1)', () => {
   it('ภาพหน้าจอครบชุด (test-results/) อัปโหลดเฉพาะรันมือ screenshots=true และไม่อัปโหลดเมื่อถูกยกเลิก', () => {
     const shots = uploadSteps.find((s) => field(s, 'path') === 'test-results/');
     expect(shots).toBeDefined();
-    expect(field(shots!, 'if')).toBe("${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.screenshots }}");
+    expect(field(shots!, 'if')).toBe("${{ !cancelled() && needs.changes.outputs.code == 'true' && github.event_name == 'workflow_dispatch' && inputs.screenshots }}");
   });
 
   it('retention-days ของทุก artifact อยู่ระหว่าง 1–3 วัน', () => {
