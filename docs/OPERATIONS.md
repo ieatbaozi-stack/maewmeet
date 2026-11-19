@@ -540,10 +540,13 @@ Schedule ชื่อ `reminders` อยู่ใน `vercel.json` ทุก 15 
 ### K2 cron รายวันลบกลุ่มถาวร
 `GET /api/cron/daily` (cron เดิม ส่วน E/J) เรียก `runDailyMaintenance` — หลังเก็บกวาดเดิมแล้วลบกลุ่มที่ถึงกำหนด:
 - ทำเป็นชุด: **ไม่เกิน 25 กลุ่มต่อรอบ** (`GROUP_PURGE_BATCH`) · เหลือค้างไปรอบถัดไป · หนึ่งธุรกรรมเขียนต่อกลุ่ม (ล้มกลางทางไม่ทำให้งานอื่นหาย)
-- ตอบกลับมีฟิลด์ใหม่ `purgedGroups`: `{ "groups": <จำนวนที่ลบรอบนี้>, "remaining": <true ถ้ายังมีกลุ่มถึงกำหนดค้าง> }` (ฟิลด์เดิม `heartbeat`, `cleaned` ไม่เปลี่ยน)
+- ตอบกลับมีฟิลด์ใหม่ `purgedGroups`: `{ "groups": <จำนวนที่ลบรอบนี้>, "failed": <จำนวนกลุ่มที่ลบไม่สำเร็จรอบนี้>, "remaining": <true ถ้ายังมีกลุ่มถึงกำหนดค้าง หรืออ่านรายการไม่ได้> }` (ฟิลด์เดิม `heartbeat`, `cleaned` ไม่เปลี่ยน)
 - audit `group.purge` ต่อกลุ่ม (ผู้ทำ = ระบบ) เก็บแค่ **id กลุ่ม + จำนวนแถวที่ลบ** (members, invites, appointments, rsvps, reminders, notifications, outbox) — ไม่เก็บชื่อกลุ่มหรือข้อความผู้ใช้ · ดูได้ที่ `/admin/audit` (ป้ายไทย/อังกฤษมีแล้ว)
 - **ที่ลบ:** แถวกลุ่ม · สมาชิก · คำเชิญ · นัดทั้งหมด + RSVP + ตัวเตือนนัด · แจ้งเตือนในกระดิ่งและคิว LINE (outbox) ที่อ้างกลุ่มนั้น
 - **ที่เก็บไว้:** `audit_log` (รวมแถว `group.delete`/`group.restore`/`group.purge` ที่อ้าง id กลุ่ม — มีแค่ id/enum ไม่มีชื่อกลุ่ม) · แถว `user` ของสมาชิก · `rate_limit_bucket` ที่คีย์มี id กลุ่ม (cron ลบเองภายใน 2 วัน)
+- **ถ้า `failed` > 0:** ค้น Vercel log ด้วย `[cron] group.purge failed <groupId> <CODE>` (log เฉพาะ id กลุ่มกับรหัส error ไม่มีชื่อกลุ่ม/ข้อมูลคน) · กลุ่มนั้น**ยังอยู่ครบ** (rollback ทั้งกลุ่ม) และกลุ่มอื่นในชุดทำต่อได้ · cron ลองใหม่เองทุกวัน · **กลุ่มเดียวกันล้มหลายวันติด → ตรวจกลุ่มนั้นด้วยมือ** (อ่านรหัส error แล้วแจ้ง Lead อย่าลบด้วย SQL สุ่ม)
+- `[cron] group.purge failed list <CODE>` (ตำแหน่ง groupId เป็นคำว่า `list`) = รอบนั้นอ่านรายการกลุ่มที่ถึงกำหนดไม่ได้ · ไม่มีกลุ่มถูกลบ `remaining` เป็น true · ลองใหม่รอบถัดไป
+- แถวแจ้งเตือน/คิว LINE ที่ JSON เสีย (malformed) ถูกข้ามตอนลบกลุ่ม ไม่ทำให้ลบกลุ่มล้ม · แถวเหล่านั้นหมดอายุเองด้วยการเก็บกวาดปกติ 90 วัน
 - รันซ้ำได้ (กลุ่มที่ลบแล้วไม่อยู่ในรายการอีก) · ถ้าถูกกู้คืนระหว่างรัน ฝั่งที่เขียนก่อนชนะ (กู้ก่อน = ไม่ถูกลบ)
 - ตรวจ: ดู JSON ที่ cron ตอบใน Vercel → Logs หรือรัน cron ด้วยมือด้วย `CRON_SECRET` ตาม F/J2 แล้วดู `purgedGroups` · ตรวจแถวที่ถึงกำหนดค้าง: `turso db shell maewmeet-prod "SELECT id, deleted_at FROM groups WHERE deleted_at IS NOT NULL ORDER BY deleted_at LIMIT 20;"` (ไม่ลบด้วยมือ — ปล่อยให้ cron)
 
