@@ -517,9 +517,9 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | R6C | `PATCH /api/groups/:gid/members/me/appearance` | `member.setOwnAppearance` | actor | `{color: 1–10 \| null, shape: 1–10 \| null}` → `group_member.color_slot/shape_slot` · RL `member:appearance` | Platform |
 | U6, D8 | `POST /api/groups/:gid/transfer-admin` | `group.transferAdmin` | actor | `{toUserId}` · admin เดิมกลายเป็น moderator | Platform |
 | U6, D8 | `POST /api/groups/:gid/leave` | `group.leave` | actor | 409 ถ้าเป็น admin | Platform |
-| U5 (ก) | `POST /api/groups/:gid/invites/direct` | `invite.direct.create` | actor | `{username}` · RL 30/ชม. · สร้าง notification `group.invite.received` — R16 H4: params มี `actorSystemAdmin` (super admin ที่ไม่ใช่สมาชิกเชิญ → `true` + `inviterName ''`) | Platform |
+| U5 (ก) | `POST /api/groups/:gid/invites/direct` | `invite.direct.create` | actor | `{username}` · RL 30/ชม. · สร้าง notification `group.invite.received` — R16 H4: params มี `actorSystemAdmin` (super admin ที่ไม่ใช่สมาชิกเชิญ → `true` + `inviterName ''`) · คำตอบ `invite` เป็น `InviteDto` มี `creatorSystemAdmin` (H4c — กติกาเดียวกับรายการคำเชิญ) | Platform |
 | U5 (ข) | `POST /api/groups/:gid/invites/code` | `invite.code.create` | actor | คืนโค้ด **ครั้งเดียว** (`XXXX-XXXX`, alphabet 31 ตัว ตัด 0 O 1 I L) + expiresAt | Platform |
-| U5, U6 | `GET /api/groups/:gid/invites` | `invite.list` | actor | MEM เห็นเฉพาะของตัวเอง | Platform |
+| U5, U6 | `GET /api/groups/:gid/invites` | `invite.list` | actor | MEM เห็นเฉพาะของตัวเอง · `InviteDto` มี `creatorSystemAdmin` — R16 H4c: ผู้สร้างเป็น super admin และไม่ใช่สมาชิกกลุ่มนั้น *ณ ตอนอ่าน* → `true` + `creatorName ''` (UI แสดง `common.systemAdmin`; `creatorName ''` + ธง false = บัญชีที่ลบแล้ว) · ธงภายใน `creatorIsSuperAdmin`/`creatorIsMember` ไม่ออกทาง API | Platform |
 | U5, U6 | `DELETE /api/groups/:gid/invites/:iid` | `invite.revoke` | actor | | Platform |
 | U5 (ข) | `POST /api/invites/redeem` | `invite.code.redeem` | actor | `{code}` · ผิด/หมดอายุ/เพิกถอน → `INVITE_INVALID` เดียวกัน · RL ADR 0002 · สมาชิกเดิม → 200 ไม่สร้างแถว | Platform |
 | U5 (ก) | `GET /api/me/invites` | `invite.direct.list.mine` | actor | คำเชิญตรงที่ค้าง · DTO `{id, groupId, groupName, inviterName, createdAt, expiresAt, actorSystemAdmin}` — R16 H4b: ผู้สร้างเป็น super admin และไม่ใช่สมาชิกกลุ่มนั้น *ณ ตอนอ่าน* → `actorSystemAdmin: true` + `inviterName ''` (UI แสดง `common.systemAdmin`) · ธงภายใน `inviterIsSuperAdmin`/`inviterIsMember` ไม่ออกทาง API | Platform |
@@ -677,9 +677,10 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 - ทางลัดใน process: ผู้ใช้ที่เพิ่งถูกปฏิเสธ → จำ `userId → ปลายหน้าต่าง` (Map ≤ `READ_BLOCK_MEMO_MAX` = 1,000 คีย์ ทิ้งเก่าสุดเมื่อเต็ม) แล้วตอบ 429 ทันทีโดยไม่แตะ DB และไม่รัน handler จนหน้าต่างหมด · หาย/ล้นเพดาน = เสียแค่ทางลัด DB ยังเป็นตัวตัดสิน · ไม่ได้แชร์ข้าม instance (แต่ละ instance เรียนรู้เองจากการถูก DB ปฏิเสธครั้งแรก)
 - ผลข้างเคียงต่อโหลด: GET ที่ล็อกอินทุกครั้งเขียน `rate_limit_bucket` 1 ครั้ง (ขนานกับ handler) · cron daily ลบถังเก่ากว่า 2 วันเหมือนเดิม (ข้อ 8)
 
-### 11.2 ธง `actorSystemAdmin` (H4, H4b — security R15b Info 3)
+### 11.2 ธง `actorSystemAdmin` / `creatorSystemAdmin` (H4, H4b, H4c — security R15b Info 3)
 - notification `group.invite.received` params เพิ่ม `actorSystemAdmin: boolean` (ADR 0007 §1) — ตั้ง `true` เมื่อผู้เชิญผ่านด่านสิทธิ์ในฐานะ super admin ที่ไม่ใช่สมาชิก (`actorRole === null`) แล้วเก็บ `inviterName ''` · แถวก่อน R16 ไม่มีคีย์ = ถือเป็น `false` (ไม่เขียนย้อนหลัง — R16 §6)
 - `GET /api/me/invites` DTO มี `actorSystemAdmin` คำนวณ *ตอนอ่าน* จาก `user.is_admin` ของผู้สร้าง + `EXISTS group_member` ใน query เดียว (`listPendingDirectInvitesFor`) · serializer เลือกฟิลด์ทีละตัว ไม่ส่งธงภายในออก · ต่างจาก notification ที่เป็นค่า ณ เวลาเกิด — ถ้า SA เข้ากลุ่มทีหลัง รายการคำเชิญจะแสดงชื่อจริง แต่กระดิ่งยังเป็น "ผู้ดูแลระบบ"
+- H4c: `GET /api/groups/:gid/invites` และคำตอบของ `POST /api/groups/:gid/invites/direct` ใช้ `InviteDto.creatorSystemAdmin` — กติกาเดียวกัน (super admin และไม่ใช่สมาชิก *ณ ตอนอ่าน* → `true` + `creatorName ''`) · รายการอ่าน `user.is_admin` + สมาชิกภาพใน query เดียว (`listActiveInvitesOfGroup` ใน `src/lib/data/repos/group-invite.ts`) · คำตอบตอนสร้างใช้ `group.actorRole !== null` หลังด่านสิทธิ์ · serializer `toInviteDto` ไม่ส่งธงภายในออก
 
 ### 11.3 ข้อจำกัดที่รู้ / ความเสี่ยงที่ยอมรับ
 | เรื่อง | สภาพจริง | เหตุผลที่ไม่แก้ | อ้างอิง |
