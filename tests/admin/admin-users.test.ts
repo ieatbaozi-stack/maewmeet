@@ -36,6 +36,7 @@ describe('R5-3 เมทริกซ์ HTTP ของทุก /api/admin/*', (
         'GET /api/admin/audit',
         'GET /api/admin/groups',
         'GET /api/admin/groups/:gid',
+        'POST /api/admin/groups/:gid/restore', // R17 G1
         'GET /api/admin/users',
         'POST /api/admin/users/:id/suspend',
         'POST /api/admin/users/:id/unlock',
@@ -139,7 +140,7 @@ describe('R5-4 ระงับ / คืนสถานะ', () => {
   });
 
   it('ผู้ใช้ที่ลบแล้ว / ไม่มีอยู่ → 404 ทั้ง suspend/unsuspend/unlock · id ผิดรูป → 400', async () => {
-    expect((await post(nm.c, '/api/me/delete', { pin: GOOD_PIN })).status).toBe(200);
+    expect((await post(nm.c, '/api/me/delete', { pin: GOOD_PIN, confirmUsername: nm.username })).status).toBe(200);
     for (const a of ['suspend', 'unsuspend', 'unlock']) {
       expect((await post(boss.c, `/api/admin/users/${nm.id}/${a}`)).status, a).toBe(404);
       expect((await post(boss.c, `/api/admin/users/00000000-0000-4000-8000-000000000000/${a}`)).status, a).toBe(404);

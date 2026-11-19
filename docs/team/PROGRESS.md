@@ -1,7 +1,7 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-19 (เวลาไทย) · **v0.14.0 ออกแล้ว 2026-11-19** (tag `v0.14.0` → `7eaff23` · `git tag --points-at` ตรวจแล้ว · หัวข้อ `[0.14.0] - 2026-11-19` ใน CHANGELOG · production `/api/health` = 0.14.0 (boss รายงาน)) · **R16 ออกรุ่นแล้วใน v0.14.0** (PR #38 merge แล้ว · `1ae70a6` · ไม่มี migration · ดูหัวข้อ "R16" ด้านล่าง) · **งานถัดไป = R17** (retention 30 วัน + กู้กลุ่ม/บัญชี · มี migration · contract ยังไม่มี) · CI บน `7eaff23` แดง (`test + migration` ที่ docs-sync) แก้ด้วย PR เอกสาร `docs/release-0.14.0` · **v0.13.0 ออกแล้ว 2026-11-18** (tag `v0.13.0` → `964a6f5`) · **PR #37** (docs sync) merge แล้ว 2026-11-18 (`9db2c08`) · รวม R15a (PR #34, `a29ba40`) + R15b (PR #35, `7e9a12d`) · migration `0006` boss รันบน preview และ prod แล้ว · Next.js 16.4.5 · **R15 ปิดแล้ว** (`docs/contracts/R15_CONTRACT.md` หัวข้อ "ปิดรอบ R15") · รายการที่เหลือทั้งหมดอยู่ในหัวข้อ "เหลือ" ด้านล่าง
+> อัปเดตล่าสุด: 2026-11-19 (เวลาไทย) · **v0.14.0 ออกแล้ว 2026-11-19** (tag `v0.14.0` → `7eaff23` · `git tag --points-at` ตรวจแล้ว · หัวข้อ `[0.14.0] - 2026-11-19` ใน CHANGELOG · production `/api/health` = 0.14.0 (boss รายงาน)) · **R16 ออกรุ่นแล้วใน v0.14.0** (PR #38 merge แล้ว · `1ae70a6` · ไม่มี migration · ดูหัวข้อ "R16" ด้านล่าง) · **งานถัดไป = R17** (retention 30 วัน + กู้กลุ่ม/บัญชี · มี migration · contract มีแล้ว boss เห็นชอบ 2026-11-19 · กำลังทำบน `feat/r17-retention`) · CI บน `7eaff23` แดง (`test + migration` ที่ docs-sync) แก้ด้วย PR เอกสาร `docs/release-0.14.0` · **v0.13.0 ออกแล้ว 2026-11-18** (tag `v0.13.0` → `964a6f5`) · **PR #37** (docs sync) merge แล้ว 2026-11-18 (`9db2c08`) · รวม R15a (PR #34, `a29ba40`) + R15b (PR #35, `7e9a12d`) · migration `0006` boss รันบน preview และ prod แล้ว · Next.js 16.4.5 · **R15 ปิดแล้ว** (`docs/contracts/R15_CONTRACT.md` หัวข้อ "ปิดรอบ R15") · รายการที่เหลือทั้งหมดอยู่ในหัวข้อ "เหลือ" ด้านล่าง
 
 > **วิธีอ่านไฟล์นี้:** สถานะจริงอยู่ที่หัวข้อ **สถานะปัจจุบัน** และ **เหลือ** (ตรวจกับ git log, tag, CHANGELOG, `docs/reports/` เมื่อ 2026-11-18) · หัวข้อที่ติดป้าย **[ประวัติ]** เป็นบันทึกของรอบเดิม ข้อความอย่าง "รอ boss" / "ค้างต่อ" / "ยังไม่ยืนยัน" ในหัวข้อนั้นอาจล้าสมัย ให้ดูสถานะล่าสุดที่ "เหลือ"
 
@@ -302,9 +302,22 @@
 
 ## เหลือ (รายการเดียวที่ใช้ต่อ · ตรวจกับ git log, โค้ด, CHANGELOG, `docs/reports/` เมื่อ 2026-11-19)
 
-### 0. งานถัดไป: R17 — เก็บ 30 วัน กู้กลุ่ม/บัญชี แล้วลบถาวรอัตโนมัติ (มี migration)
-- boss เลือกข้อ (ก) 2026-11-18 (R16 §5 · B4) · **ยังไม่มี contract** `docs/contracts/R17_CONTRACT.md` (main เขียนและ boss เห็นชอบก่อน ตามกฎข้อ 1) · **ยังไม่เริ่มโค้ด**
-- มี migration แบบมีเวอร์ชัน · ตอนปิดรอบต้องทำ DOCS_SYNC §3 (CHANGELOG, quickstart, PROGRESS, NEXT_PHASE, PRD, R17 contract, รายงานวัน, ARCHITECTURE)
+### 0. กำลังทำ: R17 — เก็บ 30 วัน กู้กลุ่ม/บัญชี แล้วลบถาวรอัตโนมัติ (ไม่มี migration · branch `feat/r17-retention`)
+- contract `docs/contracts/R17_CONTRACT.md` boss เห็นชอบแล้ว 2026-11-19 (`08e4f3a`) · B1–B4 = ค่าแนะนำ + §2 A1–A3 (ลบหนักขึ้น) · จาก `main` `7ff7e45`
+- **เสร็จแล้ว (ตาม git log `7ff7e45..HEAD`):**
+  - ux: `5dcd331` ถ้อยคำลบ/กู้คืน TH/EN · `c402181` ป้าย audit `group.restore` / `group.purge`
+  - platform: `20de516` กู้คืนกลุ่ม `POST /api/admin/groups/:gid/restore` (ตรวจ SA ที่เซิร์ฟเวอร์) · ลบถาวรอัตโนมัติใน `runDailyMaintenance` ทำเป็นชุดละ 25 กลุ่มต่อรอบ · ลบบัญชีรับ `confirmUsername` (ไม่ตรง = 400 ไม่นับเป็น PIN ผิด) · เพิ่ม action `admin.group.restore` ใน `src/lib/rbac` (แตะ rbac นอกขอบเขต ดู R17 §8)
+  - frontend: `f182b78` หน้า admin กู้คืนกลุ่ม + "จะลบถาวรในอีก N วัน" · ลบบัญชีพิมพ์ชื่อผู้ใช้ก่อนใส่ PIN · เลิกชุดประจำ "ตั้งแต่…" มี confirm · แจ้งเตือน `group.restored` ในกระดิ่ง
+  - main: `cfaa967` §8 บันทึกระหว่างทำ (ใช้ 403 แบบ route admin อื่น ไม่ใช่ 404 ตามที่เขียนใน §1)
+  - secretary (รอบนี้): README + quickstart ตามพฤติกรรมใหม่ (ลบกลุ่มกู้ได้ 30 วัน · ลบบัญชีพิมพ์ชื่อผู้ใช้ + PIN · หยุดประจำ "ตั้งแต่…" ต้องยืนยัน)
+- **ไม่มี migration** (R17 G6 · §8) → ไม่ต้องรันบน preview/prod
+- **B2:** `GROUP_RETENTION_START_DATE = 2026-12-01` (00:00 Asia/Bangkok) ใน `src/lib/data/group-retention.ts` · ถ้าออกรุ่นหลัง 1 ธ.ค. ต้องเลื่อนค่านี้ก่อน merge (ค่าช้ากว่าได้ = เก็บนานขึ้น ไม่สั้นลง)
+- **ยังทำ / ยังไม่ยืนยัน:**
+  - test: role×action ของ route กู้คืน · e2e หน้า admin กู้คืน · เทสต์ race กู้คืน vs purge · ทบทวนเทสต์ที่เรียก `/api/me/delete` ตาม API ใหม่ (ทำขนาน ยังไม่รายงานผล)
+  - docs: architect (ADR retention+restore, ARCHITECTURE routes/cron) · ops (OPERATIONS วิธีกู้ด้วยมือ/นโยบาย, CHANGELOG Unreleased) · รายงานวัน `docs/reports/2026-11-19.md` (secretary, รอบนี้)
+  - **ตอนนี้ `tests/ops/docs-sync.test.ts` ล้ม 1 ข้อ:** `POST /api/admin/groups/:gid/restore` ยังไม่มีแถวในตารางข้อ 5 ของ `docs/design/ARCHITECTURE.md` (ไฟล์ของ architect) → architect ต้องเพิ่มแถวก่อน PR จะผ่าน CI (`test + migration`) · เลขายังไม่แก้ไฟล์นี้ (นอกขอบเขต)
+  - qa (ผู้ตรวจอิสระ, ทุกรอบที่มีโค้ด) และ security (แตะ rbac + ข้อมูลคน) หลังทำ PR · main เปิด PR เข้า `main` แล้วหยุดรอ boss merge
+  - ยังไม่ยืนยัน: ผลเทสต์ของ branch (เลขาไม่ได้รันเทสต์ชุดเต็ม — รันเฉพาะ docs-sync ดูรายงานวัน) · ค่า status 403 ของ route กู้คืนยังไม่ได้เทสต์ในรอบนี้
 
 ### 1. ค้างจาก qa/security R16 (ไม่บล็อก · ไม่แก้ในรอบนี้)
 - security-r16 Info 1–5 (`docs/reports/security-r16.md`): `api:read` เกินโควตาแล้ว handler ยังทำงาน (Info 1) · ถังเป็นหน้าต่างคงที่ + ทางลัดต่อ instance (Info 2) · หน้า RSC ไม่นับถัง (Info 3) · ถอด `is_admin` ของ SA ด้วย SQL ขณะคำเชิญยังค้าง (≤ 7 วัน) ทำให้ชื่อ SA กลับมา (Info 4) · หน้า not-found ระหว่าง stream ตอบ 200 (Info 5) · Info 6 (รอยไฟล์ชั่วคราว) ลบแล้วตามรายงาน

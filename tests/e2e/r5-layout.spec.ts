@@ -65,6 +65,11 @@ for (const locale of LOCALES) {
       await m.getByTestId('me-delete').click();
       await expect(m.getByTestId('delete-info')).toBeVisible();
       await checkLayout(m, testInfo, 'r5-me-delete', locale, theme);
+      // R17 A1: ไปต่อไม่ได้จนกว่าจะพิมพ์ชื่อผู้ใช้ตรง
+      await expect(m.getByTestId('delete-continue')).toBeDisabled();
+      await m.getByTestId('delete-username').fill(member.username);
+      await expect(m.getByTestId('delete-continue')).toBeEnabled();
+      await checkLayout(m, testInfo, 'r5-me-delete-typed', locale, theme);
       await m.getByTestId('delete-continue').click();
       await expect(m.getByTestId('delete-pin')).toBeVisible();
       await checkLayout(m, testInfo, 'r5-me-delete-pin', locale, theme);

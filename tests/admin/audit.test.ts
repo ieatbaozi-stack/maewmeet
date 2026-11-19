@@ -148,7 +148,7 @@ describe('meta whitelist ต่อ action (ตอนอ่าน)', () => {
     await post(boss.c, `/api/admin/users/${bob.id}/unlock`);
     const gid = await makeGroup(alice, 'ก๊วน');
     await get(boss.c, `/api/admin/groups/${gid}`);
-    expect((await post(alice.c, '/api/me/delete', { pin: '135792' })).status).toBe(409); // ยังเป็น admin
+    expect((await post(alice.c, '/api/me/delete', { pin: '135792', confirmUsername: alice.username })).status).toBe(409); // ยังเป็น admin
     const es = (await audit('limit=20')).data.entries;
     const pick = (a: string) => es.filter((e) => e.action === a).map((e) => ({ actor: e.actor?.username, t: e.targetType, id: e.targetId, meta: e.meta }));
     expect(pick('admin.user.suspend')).toEqual([{ actor: 'boss', t: 'user', id: bob.id, meta: { state: 'suspended', asSuperAdmin: true } }]);

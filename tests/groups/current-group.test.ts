@@ -105,7 +105,7 @@ describe('rate limit + ลบบัญชีลบคุกกี้', () => {
     await join(admin, p, gid);
     expect((await put(p.c, { gid })).status).toBe(200);
     expect(p.c.get('mm_group')).toBe(gid);
-    const r = await post(p.c, '/api/me/delete', { pin: GOOD_PIN });
+    const r = await post(p.c, '/api/me/delete', { pin: GOOD_PIN, confirmUsername: p.username });
     expect(r.status, r.text).toBe(200);
     expect(groupCookie(r.setCookies)).toEqual(['mm_group=; Path=/; Max-Age=0; SameSite=Lax; Secure; HttpOnly']);
     expect(p.c.get('mm_group')).toBeUndefined();

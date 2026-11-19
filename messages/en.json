@@ -747,12 +747,12 @@
     },
     "delete": {
       "title": "Delete group",
-      "body": "Once deleted, nobody can open this group.",
+      "body": "Once deleted, nobody can open this group. You can’t restore it yourself, but a system admin can within 30 days.",
       "cta": "Delete group",
       "done": "“{group}” was deleted",
       "confirm": {
         "title": "Delete “{group}”?",
-        "body": "Everyone in the group loses access straight away, open invites and codes stop working, and you can’t bring the group back yourself.",
+        "body": "Everyone in the group loses access straight away, and open invites and codes stop working. To get it back, contact the system admin within 30 days. After that it’s gone for good.",
         "typeLabel": "Type the group name to confirm",
         "typeHint": "Type “{group}” exactly as it appears",
         "confirm": "Delete this group"
@@ -790,6 +790,7 @@
       "cancelled_by_login": "Your PIN reset request was cancelled because you signed in with your current PIN. If you didn’t send it, change your PIN in the Me tab."
     },
     "group": {
+      "restored": "A system admin restored “{groupName}”. It’s back in your groups.",
       "invite": {
         "received": "{inviterName} invited you to “{groupName}”",
         "accepted": "{inviteeName} accepted your invite and joined “{groupName}”",
@@ -1211,6 +1212,11 @@
           "body": "Every day of “{title}” goes, including days that have passed, and friends in your groups stop seeing it right away. You can’t undo it.",
           "bodyNoTitle": "Every day of this routine goes, including days that have passed, and friends in your groups stop seeing it right away. You can’t undo it.",
           "confirm": "Delete all of it"
+        },
+        "confirmFrom": {
+          "title": "Stop this routine from here?",
+          "body": "Every day from this point on is removed, and friends in your groups stop seeing those days right away. Earlier days stay. You can’t undo it.",
+          "confirm": "Stop from here"
         }
       },
       "toast": {
@@ -1592,11 +1598,17 @@
     },
     "delete": {
       "title": "Delete account",
-      "lead": "This can’t be undone, and you won’t be able to sign in with this account again.",
+      "lead": "This can’t be undone. Not even a system admin can bring your account back, and you won’t be able to sign in with it again.",
+      "noRestore": "Can’t be restored, not even by a system admin",
+      "typeLabel": "Type your username to confirm",
+      "typeHint": "Type “{username}” exactly. This is your username, not your PIN.",
+      "usernameMismatch": "That doesn’t match your username. Nothing was deleted, and it didn’t count as a wrong PIN.",
+      "pinLast": "Last step. Your account is deleted the moment you enter the 6th digit.",
       "goneTitle": "What goes away",
       "gone": {
         "sessions": "Your sign-ins on every device",
-        "groups": "Your membership in every group",
+        "groups": "Your spot in every group. To join one again, someone has to invite you",
+        "line": "Your LINE link, so reminders stop coming through LINE",
         "busy": "All your busy time, including private notes",
         "rsvp": "Your plan replies and your notifications",
         "invites": "Invites you created that nobody has used (they’re revoked)",
@@ -1704,7 +1716,10 @@
     "members": "{count, plural, one {1 member} other {# members}}",
     "created": "Created {date}",
     "deletedAt": "Deleted {date}",
-    "openAria": "Open details for {group}"
+    "openAria": "Open details for {group}",
+    "purgeIn": "{days, plural, =0 {Deleted for good today} one {Deleted for good in 1 day} other {Deleted for good in # days}}",
+    "restore": "Restore",
+    "restoreAria": "Restore {group}"
   },
   "adminGroup": {
     "title": "Group details",
@@ -1713,7 +1728,25 @@
     "openAppointments": "{count, plural, =0 {No upcoming plans} one {1 upcoming plan} other {# upcoming plans}}",
     "membersTitle": "Members",
     "joined": "Joined {date}",
-    "deletedBanner": "This group was deleted on {date}. Members can’t see it any more, and it can’t be restored.",
+    "deletedBanner": "This group was deleted on {date}. Members can’t see it. You can restore it until it’s deleted for good.",
+    "purgeIn": "{days, plural, =0 {Deleted for good today} one {Deleted for good in 1 day} other {Deleted for good in # days}}",
+    "restore": {
+      "title": "Restore this group",
+      "body": "The group comes back with its members, plans and invites, and everyone in it gets a notification.",
+      "cta": "Restore group",
+      "confirm": {
+        "title": "Restore {group}?",
+        "body": "Its members, plans and invites come back as they were, and everyone in it is told the group was restored. This is recorded as done by you.",
+        "confirm": "Restore group"
+      },
+      "done": "{group} was restored",
+      "error": {
+        "expired": "This group was deleted more than 30 days ago, so it can’t be restored.",
+        "noAdmin": "No one with an active account is left as admin of this group, so it can’t be restored. It would have nobody in charge.",
+        "purged": "This group has already been deleted for good. It can’t be restored.",
+        "alreadyRestored": "This group has already been restored. Reload to see the latest."
+      }
+    },
     "transfer": {
       "title": "Hand over group admin",
       "body": "Use this when the group admin can’t be reached or asks for help. The current admin becomes a moderator.",
@@ -1729,14 +1762,14 @@
     },
     "delete": {
       "title": "Delete group",
-      "body": "This can’t be undone. No member will see this group, its calendar or its plans again.",
+      "body": "No member will see this group, its calendar or its plans any more. You can restore it for 30 days, then it’s deleted for good.",
       "cta": "Delete group",
       "confirm": {
         "title": "Delete {group}?",
-        "body": "{count, plural, one {The 1 member} other {All # members}} will lose access to this group. All of its plans disappear from the app, unused invites stop working, and it can’t be restored. This is recorded as done by you.",
+        "body": "{count, plural, one {The 1 member} other {All # members}} will lose access to this group. Its plans disappear from the app and unused invites stop working. You can restore it for 30 days, then it’s deleted for good. This is recorded as done by you.",
         "typeLabel": "Type the group name to confirm",
         "typeHint": "Type “{group}” exactly",
-        "confirm": "Delete group for good"
+        "confirm": "Delete group"
       },
       "done": "{group} has been deleted"
     }
@@ -1772,6 +1805,8 @@
       "group_view": "Viewed a group",
       "group_update": "Edited a group",
       "group_delete": "Deleted a group",
+      "group_restore": "System admin restored a group",
+      "group_purge": "System deleted a group for good after 30 days",
       "group_leave": "Left a group",
       "group_transferAdmin": "Handed over group admin",
       "group_calendar_view": "Viewed the group calendar",
@@ -1820,7 +1855,14 @@
       "scope": "Scope",
       "state": "New status",
       "wasLocked": "Was locked",
-      "filtered": "Filtered"
+      "filtered": "Filtered",
+      "members": "Memberships removed",
+      "invites": "Invites removed",
+      "appointments": "Plans removed",
+      "rsvps": "Replies removed",
+      "reminders": "Reminders removed",
+      "notifications": "Notifications removed",
+      "outbox": "Queued messages removed"
     },
     "value": "{value, select, true {Yes} false {No} approved {Approved} approve {Approved} rejected {Rejected} reject {Rejected} accepted {Accepted} declined {Declined} active {Active} suspended {Suspended} admin {Group admin} moderator {Moderator} member {Member} code {Code} direct {Direct} other {{value}}}"
   },
@@ -1860,7 +1902,7 @@
       "notifications": "Notifications older than 90 days are deleted automatically.",
       "sessions": "Sign-ins expire within 60 days of your last use.",
       "security": "PIN reset requests and the audit log are kept for security, with no deletion date yet.",
-      "groups": "Groups and plans are kept until they’re deleted. A deleted group is hidden from its members, but system admins can still see its name and member list, and it isn’t removed from the database yet.",
+      "groups": "Groups and plans are kept until they’re deleted. A deleted group is hidden from its members and kept for 30 days. In that time a system admin can restore it, and can see its name and member list. After 30 days it’s deleted for good, automatically.",
       "providers": "The app runs on outside hosting and database providers, so the data above is stored and processed by them.",
       "line": "The linked LINE user ID is kept until you disconnect, delete your account, or unfollow our LINE account."
     },
@@ -1869,7 +1911,7 @@
       "how": "You can do it yourself in the Me tab → “Delete account”, with your PIN. If you’re a group admin, hand over admin or delete the group first.",
       "removed": "Removed or cleared: sign-ins on every device, membership in every group, all your busy time, your plan replies, your notifications, your PIN and display name, and the device and country details of your PIN reset requests. Invites you created and pending PIN reset requests are cancelled. Your old username becomes free for others to use.",
       "kept": "Kept: plans you created (shown as created by “a former member or deleted account”), the audit log, invite and PIN reset rows reduced to their status, time and account ID, and the account record itself, marked as deleted with no name or PIN.",
-      "noRestore": "Deleted accounts can’t be restored."
+      "noRestore": "Deleted accounts can’t be restored, not even by a system admin."
     },
     "contact": {
       "title": "Contact",

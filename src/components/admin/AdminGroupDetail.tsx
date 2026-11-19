@@ -12,11 +12,14 @@ import { RoleTag } from "@/components/groups/RoleTag";
 import { SelectField } from "@/components/groups/SelectField";
 import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
+import { clock } from "@/lib/shared/clock";
 import type { AdminGroupDetailDto } from "@/lib/data/serializers/admin";
+import { RestoreGroupDialog } from "./RestoreGroupDialog";
+import { PURGE_WARN_DAYS, purgeDaysLeft } from "./restore-model";
 import type { Failure } from "./usePaged";
 
 type Load = { kind: "loading" } | { kind: "error"; failure: Failure } | { kind: "ready"; group: AdminGroupDetailDto };
-type Dialog = null | { kind: "transfer"; toUserId: string } | { kind: "delete" };
+type Dialog = null | { kind: "transfer"; toUserId: string } | { kind: "delete" } | { kind: "restore" };
 
 /**
  * รายละเอียดกลุ่มสำหรับ super admin (R5 §2 ข้อ 3): ชื่อ เขตเวลา จำนวนนัดที่ยังไม่ถึง สมาชิก (ชื่อ/role/เวลาเข้า) — ไม่มี busy/รายละเอียดนัด
@@ -88,6 +91,7 @@ export function AdminGroupDetail({ groupId }: { groupId: string }) {
   const g = load.group;
   const live = g.deletedAt === null;
   const candidates = g.members.filter((m) => m.role !== "admin");
+  const daysLeft = g.deletedAt !== null ? purgeDaysLeft(g.purgeAt, clock.now()) : null;
   const target = candidates.find((m) => m.userId === picked) ?? candidates[0];
 
   function close() {
@@ -101,6 +105,7 @@ export function AdminGroupDetail({ groupId }: { groupId: string }) {
     if (!dialog || busy) return;
     setBusy(true);
     setSheetError(null);
+    if (dialog.kind === "restore") return; // กู้คืนใช้ RestoreGroupDialog (จัดการเอง)
     const res =
       dialog.kind === "transfer"
         ? await callApi(`/api/groups/${encodeURIComponent(g.id)}/transfer-admin`, { body: { toUserId: dialog.toUserId } })
@@ -155,6 +160,12 @@ export function AdminGroupDetail({ groupId }: { groupId: string }) {
             <Icon name="calendar-plus" size="sm" />
             <span>{t("adminGroups.created", { date: date(g.createdAt) })}</span>
           </li>
+          {daysLeft !== null ? (
+            <li className={daysLeft <= PURGE_WARN_DAYS ? "is-warn" : undefined} data-testid="admin-group-purge" data-days={daysLeft}>
+              <Icon name="clock" size="sm" />
+              <span>{t("adminGroup.purgeIn", { days: daysLeft })}</span>
+            </li>
+          ) : null}
         </ul>
       </section>
 
@@ -215,6 +226,34 @@ export function AdminGroupDetail({ groupId }: { groupId: string }) {
             </button>
           </section>
         </>
+      ) : g.restorable ? (
+        <section className="set-sec" aria-labelledby={`${id}-r`}>
+          <h2 id={`${id}-r`}>{t("adminGroup.restore.title")}</h2>
+          <p className="lead">{t("adminGroup.restore.body")}</p>
+          <button type="button" className="btn btn-primary" onClick={() => setDialog({ kind: "restore" })} data-testid="admin-restore-group">
+            <Icon name="rotate-ccw" />
+            <span>{t("adminGroup.restore.cta")}</span>
+          </button>
+        </section>
+      ) : g.restoreBlockedReason ? (
+        <p className="alert alert-warn" role="note" data-testid="admin-restore-blocked">
+          <Icon name="triangle-alert" />
+          <span>{t(`adminGroup.restore.error.${g.restoreBlockedReason === "RETENTION_EXPIRED" ? "expired" : "noAdmin"}`)}</span>
+        </p>
+      ) : null}
+
+      {dialog?.kind === "restore" ? (
+        <RestoreGroupDialog
+          group={{ id: g.id, name: g.name }}
+          onClose={close}
+          onDone={(r) => {
+            setReloadKey((k) => k + 1);
+            if (r.notice === "done") {
+              setToast(t("adminGroup.restore.done", { group: g.name }));
+              setDialog(null);
+            }
+          }}
+        />
       ) : null}
 
       {dialog?.kind === "transfer" ? (

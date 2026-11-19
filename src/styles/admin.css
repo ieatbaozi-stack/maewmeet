@@ -54,6 +54,7 @@
   .admin-card-name { flex: 1; min-width: 0; display: grid; gap: var(--space-1); }
   .admin-card-title { font-weight: var(--weight-semibold); font-size: var(--text-md); line-height: var(--leading-heading); overflow-wrap: anywhere; }
   .admin-card-sub { font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
+  .admin-restore-row { margin-top: var(--space-2); }
   .admin-card-meta { margin-top: var(--space-1); font-size: var(--text-sm); color: var(--ink-muted); }
   .admin-facts { margin-top: var(--space-2); display: grid; gap: var(--space-1); font-size: var(--text-sm); color: var(--ink); }
   .admin-facts li { display: flex; gap: var(--space-2); align-items: center; min-width: 0; overflow-wrap: anywhere; }

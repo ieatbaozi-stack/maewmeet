@@ -61,13 +61,13 @@ for (const locale of LOCALES) {
     const problems = watchConsole(me.page);
 
     // PIN ผิดก่อน: ข้อความผิด ไม่ลบ
-    await deleteAccountInUi(me.page, locale, OTHER_PIN);
+    await deleteAccountInUi(me.page, locale, OTHER_PIN, me.username);
     await expect(me.page.getByRole('alertdialog').getByRole('alert')).toContainText(msg(locale, 'errors.INVALID_CREDENTIALS', { attemptsRemaining: 4 }));
     expect((await userById(myId))?.status).toBe('active');
     await me.page.getByRole('alertdialog').getByRole('button', { name: msg(locale, 'common.cancel'), exact: true }).click();
 
     // PIN ถูก → /login
-    await deleteAccountInUi(me.page, locale, GOOD_PIN);
+    await deleteAccountInUi(me.page, locale, GOOD_PIN, me.username);
     await expect(me.page).toHaveURL(/\/login$/);
     const row = await userById(myId);
     expect(row?.status).toBe('deleted');
@@ -96,7 +96,7 @@ for (const locale of LOCALES) {
     const myId = await userIdByUsername(me.username);
     const problems = watchConsole(me.page, (m) => /status of 409/.test(m.text));
 
-    await deleteAccountInUi(me.page, locale, GOOD_PIN);
+    await deleteAccountInUi(me.page, locale, GOOD_PIN, me.username);
     const sheet = me.page.getByRole('alertdialog');
     await expect(sheet.getByRole('heading', { name: msg(locale, 'account.delete.transferTitle') })).toBeVisible();
     await expect(sheet.getByTestId('delete-transfer')).toContainText(msg(locale, 'account.delete.transferBody'));
@@ -114,6 +114,6 @@ test('th: super admin ไม่มีปุ่มลบบัญชี (เห�
   await sa.page.goto('/me', { waitUntil: 'networkidle' });
   await expect(sa.page.getByTestId('me-delete')).toHaveCount(0);
   await expect(sa.page.getByTestId('me-delete-sa')).toHaveText(msg('th', 'account.delete.superAdmin'));
-  const r = await call(sa.context.request, 'POST', '/api/me/delete', { pin: GOOD_PIN });
+  const r = await call(sa.context.request, 'POST', '/api/me/delete', { pin: GOOD_PIN, confirmUsername: sa.username });
   expect(r.status).toBe(403);
 });

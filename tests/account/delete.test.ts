@@ -12,7 +12,8 @@ let a: Person; // admin ของกลุ่ม g1
 let b: Person; // ผู้ใช้ที่จะลบบัญชี
 let c: Person;
 
-const del = (p: Person, pin: unknown = GOOD_PIN) => post<{ deleted: true }>(p.c, '/api/me/delete', { pin });
+// R17 A1: ต้องส่ง confirmUsername ด้วย — ค่าตั้งต้น = ชื่อผู้ใช้ของคนนั้น (ถูกต้อง)
+const del = (p: Person, pin: unknown = GOOD_PIN, confirmUsername: unknown = p.username) => post<{ deleted: true }>(p.c, '/api/me/delete', { pin, confirmUsername });
 
 async function snapshot(userId: string) {
   return {
@@ -92,8 +93,64 @@ describe('ปฏิเสธ — ไม่มีอะไรเปลี่ย�
   it('must_change_pin → 403 PIN_CHANGE_REQUIRED · anonymous → 401 · CSRF → 403', async () => {
     await h.rows('UPDATE user SET must_change_pin = 1 WHERE id = ?', [b.id]);
     expect((await del(b)).code).toBe('PIN_CHANGE_REQUIRED');
-    expect((await post(new Client(), '/api/me/delete', { pin: GOOD_PIN })).status).toBe(401);
-    expect((await post(a.c, '/api/me/delete', { pin: GOOD_PIN }, { headers: { origin: 'https://evil.test' } })).code).toBe('CSRF_REJECTED');
+    expect((await post(new Client(), '/api/me/delete', { pin: GOOD_PIN, confirmUsername: 'bob' })).status).toBe(401);
+    expect((await post(a.c, '/api/me/delete', { pin: GOOD_PIN, confirmUsername: 'alice' }, { headers: { origin: 'https://evil.test' } })).code).toBe('CSRF_REJECTED');
+  });
+});
+
+describe('R17 A1 — ต้องพิมพ์ชื่อผู้ใช้ยืนยัน (confirmUsername)', () => {
+  const throttled = () => h.count("login_throttle WHERE key = 'u:bob' AND failures > 0");
+
+  it('ไม่ส่ง confirmUsername → 400 VALIDATION REQUIRED · ไม่นับเป็น PIN ผิด · ไม่มีอะไรเปลี่ยน (แม้ PIN ผิด)', async () => {
+    const before = await snapshot(b.id);
+    for (const pin of [GOOD_PIN, OTHER_PIN]) {
+      const r = await post(b.c, '/api/me/delete', { pin });
+      expect(r.status).toBe(400);
+      expect(r.code).toBe('VALIDATION');
+      expect(r.json.error?.params).toEqual({ fields: { confirmUsername: 'REQUIRED' } });
+    }
+    for (const bad of ['', 123, null]) {
+      const r = await del(b, GOOD_PIN, bad);
+      expect(r.code, String(bad)).toBe('VALIDATION');
+    }
+    expect(await throttled()).toBe(0);
+    expect(await snapshot(b.id)).toEqual(before);
+  });
+
+  it('ชื่อไม่ตรง → 400 VALIDATION {confirmUsername: MISMATCH} ก่อน verify PIN · ไม่นับ/ไม่ล็อกแม้ส่งผิด 10 ครั้ง · ไม่สะท้อนชื่อจริง', async () => {
+    const before = await snapshot(b.id);
+    for (const wrong of ['alice', 'bobb', 'bo', 'b o b', 'deleted-' + b.id]) {
+      for (const pin of [GOOD_PIN, OTHER_PIN]) {
+        const r = await del(b, pin, wrong);
+        expect(r.status, wrong).toBe(400);
+        expect(r.code).toBe('VALIDATION');
+        expect(r.json.error?.params).toEqual({ fields: { confirmUsername: 'MISMATCH' } });
+        expect(JSON.stringify(r.json)).not.toContain('"bob"');
+      }
+    }
+    expect(await throttled()).toBe(0);
+    expect(await snapshot(b.id)).toEqual(before);
+    // ชื่อของคนอื่นที่มีอยู่จริง (alice) ก็ไม่ผ่าน · บัญชี alice ไม่ถูกแตะ
+    expect(await h.count("user WHERE id = ? AND status = 'active'", [a.id])).toBe(1);
+    // ยังลบได้ปกติหลังพิมพ์ผิดหลายครั้ง (ไม่ติดล็อก)
+    expect((await del(b)).status).toBe(200);
+  });
+
+  it('ชื่อถูกแต่ PIN ผิด → 401 INVALID_CREDENTIALS + นับ (ด่านชื่อไม่บัง PIN)', async () => {
+    const r = await del(b, OTHER_PIN, 'bob');
+    expect(r.code).toBe('INVALID_CREDENTIALS');
+    expect(await throttled()).toBe(1);
+  });
+
+  it('ชื่อถูก normalize แบบเดียวกับ login (ตัวพิมพ์ใหญ่/ช่องว่างหัวท้าย/NFKC full-width) → ลบได้', async () => {
+    expect((await del(b, GOOD_PIN, '  ＢＯＢ ')).status).toBe(200);
+    expect(await h.count("user WHERE id = ? AND status = 'deleted'", [b.id])).toBe(1);
+  });
+
+  it('confirmUsername ยาวเกิน 64 → VALIDATION TOO_LONG · คีย์แปลก → VALIDATION', async () => {
+    expect((await del(b, GOOD_PIN, 'b'.repeat(65))).json.error?.params).toEqual({ fields: { confirmUsername: 'TOO_LONG' } });
+    expect((await post(b.c, '/api/me/delete', { pin: GOOD_PIN, confirmUsername: 'bob', x: 1 })).code).toBe('VALIDATION');
+    expect(await h.count("user WHERE id = ? AND status = 'active'", [b.id])).toBe(1);
   });
 });
 
@@ -221,7 +278,7 @@ describe('สำเร็จ — ทุกข้อใน §2.2 ตรวจจ�
     sameResponse(asDeleted, ghost);
 
     expect((await get(stale, '/api/auth/session')).status).toBe(401);
-    const again = await post(stale, '/api/me/delete', { pin: GOOD_PIN });
+    const again = await post(stale, '/api/me/delete', { pin: GOOD_PIN, confirmUsername: 'bob' });
     expect(again.status).toBe(401);
     expect(again.code).toBe('AUTH_REQUIRED');
 

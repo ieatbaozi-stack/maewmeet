@@ -80,7 +80,7 @@ export function whenLabel(epochMs: number, tz: string, locale: CalendarLocale): 
   return `${weekdayShort(epochMs, { locale, tz: z })} ${format(epochMs, { locale, style: "day-month", tz: z })} ${format(epochMs, { locale, style: "time", tz: z })}`;
 }
 
-export type NotificationIcon = "calendar-plus" | "calendar-x" | "calendar" | "user-plus" | "circle-check" | "user-minus" | "key" | "shield" | "info";
+export type NotificationIcon = "calendar-plus" | "calendar-x" | "calendar" | "user-plus" | "circle-check" | "user-minus" | "key" | "shield" | "info" | "rotate-ccw";
 export type NotificationTone = "appt" | "invite" | "ok" | "plain";
 
 export interface NotificationView {
@@ -234,6 +234,13 @@ export function notificationView(kind: string, params: Record<string, unknown>, 
       if (!groupName) return UNKNOWN;
       // กลุ่มที่ถูกนำออกเข้าไม่ได้แล้ว → รายการกลุ่ม
       return { known: true, messageKey: "notifications.group.member.removed", values: { groupName: isolate(groupName) }, icon: "user-minus", tone: "plain", href: "/groups" };
+    }
+    case "group.restored": {
+      // R17 G5: SA กู้กลุ่มคืน — ข้อความไม่มีชื่อผู้กระทำ (ไม่รั่วว่าใครเป็น SA) · กลุ่มกลับมาเข้าได้ → ลิงก์ไปกลุ่ม
+      const groupName = str(params.groupName);
+      const gid = id(params.groupId);
+      if (!groupName || !gid) return UNKNOWN;
+      return { known: true, messageKey: "notifications.group.restored", values: { groupName: isolate(groupName) }, icon: "rotate-ccw", tone: "ok", href: `/groups/${gid}` };
     }
     case "group.member.role_changed": {
       const groupName = str(params.groupName);

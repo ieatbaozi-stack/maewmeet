@@ -2,6 +2,7 @@
 //  PATCH /api/me (self.update): ชื่อที่แสดงด้วยกติกาเดียวกับสมัคร (checkDisplayName 1–40 + ห้ามป้ายของระบบ) · 10 ครั้ง/วัน/ผู้ใช้ (นับเฉพาะที่เปลี่ยนจริง) · ไม่ audit
 //  POST /api/me/delete (self.delete):
 //    authorize (ด่านบัญชี + super admin → 403) → ถือ admin กลุ่มที่ยังอยู่ → 409 ADMIN_TRANSFER_REQUIRED {groups} (ยังไม่แตะ PIN/throttle) →
+//    R17 A1: confirmUsername (normalize แบบเดียวกับ login) ต้องตรงชื่อผู้ใช้ปัจจุบัน — ไม่ส่ง/ไม่ตรง = 400 VALIDATION ก่อน verify PIN (ไม่นับเป็น PIN ผิด ไม่เปลี่ยนอะไร) →
 //    PIN ปัจจุบัน (จองช่อง IP + username ก่อน verify — ตัวนับชุดเดียวกับ login: ผิดนับ, ถูกล้าง) →
 //    ธุรกรรมเดียว: UPDATE user มีเงื่อนไขในตัว (active + ไม่ใช่ SA + ไม่ถือ admin) เป็นคำสั่งแรก → ลบ/ปิดร่องรอย → audit user.delete
 //    (โอน admin มาให้ระหว่างลบ: ฝั่งใดเขียนก่อนชนะ — ไม่มีกลุ่มไร้ admin และไม่มีสถานะครึ่งทาง)
@@ -12,7 +13,7 @@ import { findUserById } from '@/lib/data/repos/user';
 import type { AuthCtx } from '@/lib/auth/context';
 import { pepperOfVersion, requirePepper } from '@/lib/auth/pepper';
 import { verifyDummy, verifyPin } from '@/lib/auth/pin';
-import { DISPLAY_NAME_MAX, isPinFormat } from '@/lib/auth/pin-rules';
+import { DISPLAY_NAME_MAX, isPinFormat, normalizeUsername, USERNAME_MAX_INPUT } from '@/lib/auth/pin-rules';
 import { clearSessionCookie, sessionUserDto, type AuthCookie, type SessionUserDto } from '@/lib/auth/session';
 import { failedAttempt, reserveIpSlot, reserveUsernameSlot, succeededAttempt, usernameThrottleKey } from '@/lib/auth/throttle';
 import { pinField } from '@/lib/auth/services/shared';
@@ -31,7 +32,8 @@ import { asUser } from './group-common';
 export const updateMeInputSchema = z.object({ displayName: z.string().min(1).max(200) }).strict();
 export type UpdateMeInput = z.output<typeof updateMeInputSchema>;
 
-export const deleteMeInputSchema = z.object({ pin: pinField }).strict();
+/** R17 A1: confirmUsername = ชื่อผู้ใช้ที่ผู้ใช้พิมพ์ยืนยัน (บังคับ) · ไม่ส่ง → VALIDATION {fields:{confirmUsername:'REQUIRED'}} จาก route */
+export const deleteMeInputSchema = z.object({ pin: pinField, confirmUsername: z.string().min(1).max(USERNAME_MAX_INPUT) }).strict();
 export type DeleteMeInput = z.output<typeof deleteMeInputSchema>;
 
 export async function updateMe(actor: Actor, input: UpdateMeInput, ctx: AuthCtx): Promise<{ user: SessionUserDto }> {
@@ -88,6 +90,10 @@ export async function deleteMe(actor: Actor, input: DeleteMeInput, ctx: AuthCtx)
   if (!isPinFormat(input.pin)) throw new AppError('PIN_FORMAT');
   const row = await findUserById(db, me.id);
   if (!row || row.status !== 'active') throw new AppError('AUTH_REQUIRED');
+  // R17 A1: ก่อนจองตัวนับ/verify PIN — พิมพ์ชื่อผิดไม่ใช่การเดา PIN (ไม่นับ ไม่ล็อก) · ไม่สะท้อนชื่อจริงกลับใน error
+  if (normalizeUsername(input.confirmUsername) !== row.usernameNormalized) {
+    throw new AppError('VALIDATION', { fields: { confirmUsername: 'MISMATCH' } });
+  }
   const pepper = row.pinHash ? pepperOfVersion(pepperCtx, row.pinPepperVersion) : null;
   if (row.pinHash && !pepper) throw new AppError('AUTH_MAINTENANCE'); // ก่อนจอง — ไม่นับ (เหมือน login / เปลี่ยน PIN)
 

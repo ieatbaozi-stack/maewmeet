@@ -40,7 +40,7 @@ const CHOICE_TESTID: Record<ScopeChoice, string> = { one: "one", from: "from", a
 
 /**
  * sheet เลือกขอบเขตแก้/ลบ (design §4): เฉพาะวันนี้ · ตั้งแต่สัปดาห์/เดือนนี้ไป · ทั้งหมด — ปุ่มเต็มความกว้าง ≥ --tap-lg (ชื่อ + คำอธิบาย)
- * ลบ "ทั้งหมด" ขอยืนยันอีกชั้น (ConfirmDialog) · ลบ one/from ยิง API ทันที (คำอธิบายใต้ปุ่มบอกผลไว้แล้ว)
+ * ลบ "ตั้งแต่…ไป" และ "ทั้งหมด" ขอยืนยันอีกชั้น (ConfirmDialog · R17 A3) · ลบ "เฉพาะวันนี้" ยิง API ทันที (กระทบ 1 วัน คำอธิบายใต้ปุ่มบอกผลไว้แล้ว)
  * สิทธิ์/ขอบเขตจริงตัดสินที่เซิร์ฟเวอร์ — ที่นี่แค่ส่งคำขอและแสดงผล
  */
 export function RoutineScopeSheet({ action, target, onClose, onEdit, onDone, onStale }: RoutineScopeSheetProps) {
@@ -50,7 +50,7 @@ export function RoutineScopeSheet({ action, target, onClose, onEdit, onDone, onS
   const [today] = useState(() => todayIn(DEFAULT_TZ, clock.now()));
   const { choices, periodStart } = useMemo(() => scopeChoices(target, today), [target, today]);
   const [busyChoice, setBusyChoice] = useState<ScopeChoice | null>(null);
-  const [confirmAll, setConfirmAll] = useState(false);
+  const [confirming, setConfirming] = useState<null | "from" | "all">(null);
   const [problem, setProblem] = useState<RoutineProblem | null>(null);
   const r = target.routine;
   const text = (ref: { key: string; values: Record<string, string | number> }) => t(ref.key, ref.values);
@@ -89,7 +89,7 @@ export function RoutineScopeSheet({ action, target, onClose, onEdit, onDone, onS
       return;
     }
     if (f.type === "conflict") onStale();
-    setConfirmAll(false);
+    setConfirming(null);
     setProblem(f.problem);
   }
 
@@ -99,14 +99,31 @@ export function RoutineScopeSheet({ action, target, onClose, onEdit, onDone, onS
       onEdit(c, periodStart);
       return;
     }
-    if (c === "all") {
-      setConfirmAll(true);
+    if (c === "all" || c === "from") {
+      setConfirming(c);
       return;
     }
     void runDelete(c);
   }
 
-  if (confirmAll) {
+  if (confirming === "from") {
+    return (
+      <ConfirmDialog
+        title={t("busy.routine.scope.confirmFrom.title")}
+        body={t("busy.routine.scope.confirmFrom.body")}
+        confirmLabel={t("busy.routine.scope.confirmFrom.confirm")}
+        busy={busyChoice === "from"}
+        error={problem ? problem.refs.map(text).join(" ") : null}
+        onConfirm={() => void runDelete("from")}
+        onClose={() => {
+          setConfirming(null);
+          setProblem(null);
+        }}
+      />
+    );
+  }
+
+  if (confirming === "all") {
     return (
       <ConfirmDialog
         title={t("busy.routine.scope.confirmAll.title")}
@@ -116,7 +133,7 @@ export function RoutineScopeSheet({ action, target, onClose, onEdit, onDone, onS
         error={problem ? problem.refs.map(text).join(" ") : null}
         onConfirm={() => void runDelete("all")}
         onClose={() => {
-          setConfirmAll(false);
+          setConfirming(null);
           setProblem(null);
         }}
       />

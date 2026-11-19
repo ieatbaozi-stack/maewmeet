@@ -235,6 +235,7 @@ const RULES: Rules = {
   'admin.user.unlock': superAdminAction('admin.user.unlock'),
   'admin.group.list': superAdminAction('admin.group.list'),
   'admin.group.view': superAdminAction('admin.group.view'),
+  'admin.group.restore': superAdminAction('admin.group.restore'),
   'admin.audit.view': superAdminAction('admin.audit.view'),
 
   'notification.list.own': ownerOnly,

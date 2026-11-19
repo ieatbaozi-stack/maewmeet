@@ -97,6 +97,7 @@ export const ROUTE_MANIFEST = [
   { method: 'POST', path: '/api/admin/users/:id/unlock', action: 'admin.user.unlock', auth: 'actor', owner: 'platform' },
   { method: 'GET', path: '/api/admin/groups', action: 'admin.group.list', auth: 'actor', owner: 'platform' },
   { method: 'GET', path: '/api/admin/groups/:gid', action: 'admin.group.view', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/admin/groups/:gid/restore', action: 'admin.group.restore', auth: 'actor', owner: 'platform' }, // R17 G1
   { method: 'GET', path: '/api/admin/audit', action: 'admin.audit.view', auth: 'actor', owner: 'platform' },
   // ── R6D G1 (Platform) — คุกกี้กลุ่มปัจจุบัน · ใช้กฎ member.setOwnAppearance (ค่าตั้งส่วนตัวของสมาชิกในกลุ่ม: สมาชิกเท่านั้น) ──
   { method: 'PUT', path: '/api/me/current-group', action: 'member.setCurrentGroup', auth: 'actor', owner: 'platform' },

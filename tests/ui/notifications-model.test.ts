@@ -151,6 +151,8 @@ describe('notificationView — ข้อความ ปลายทาง ไ�
       'group.member.left': { groupId: gid, groupName: 'ก๊วน', memberName: 'นุ่น' },
       'group.member.removed': { groupId: gid, groupName: 'ก๊วน' },
       'group.member.role_changed': { groupId: gid, groupName: 'ก๊วน', role: 'moderator' },
+      // R17 G5
+      'group.restored': { groupId: gid, groupName: 'ก๊วน', actorSystemAdmin: true },
       'pin_reset.approved': { expiresAt: at('2026-10-21', '17:42') },
       'pin_reset.cancelled_by_login': {},
     };
@@ -163,6 +165,12 @@ describe('notificationView — ข้อความ ปลายทาง ไ�
         expect(text).not.toMatch(/[{}]/);
       }
     }
+  });
+  it('R17 G5: group.restored → ไอคอน rotate-ccw · ok · ลิงก์ไปกลุ่ม · ไม่มีชื่อผู้กระทำ · ขาดชื่อ/id → unknown', () => {
+    expect(notificationView('group.restored', { groupId: gid, groupName: 'G', actorSystemAdmin: true }, 'th')).toMatchObject({ known: true, messageKey: 'notifications.group.restored', icon: 'rotate-ccw', tone: 'ok', href: `/groups/${gid}` });
+    expect(notificationView('group.restored', { groupId: gid }, 'th').known).toBe(false);
+    expect(notificationView('group.restored', { groupName: 'G' }, 'th').known).toBe(false);
+    expect(notificationView('group.restored', { groupId: 'a/b', groupName: 'G' }, 'th').known).toBe(false);
   });
   it('notifications.unknown มีทั้ง th/en', () => {
     expect(fmt('th', 'notifications.unknown', {})).toBeTruthy();
