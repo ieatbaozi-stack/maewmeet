@@ -4,7 +4,8 @@
  *   npx tsx scripts/release.ts <version> [--dry-run] [--skip-gates]
  *
  * ขั้นตอน: ตรวจเงื่อนไข → (ไม่ใช่ dry-run) เกต lint/typecheck/test/build → ย้าย [Unreleased] ใน CHANGELOG
- * → bump package.json (+ package-lock.json) → commit "chore(release): vX.Y.Z" → git tag -a vX.Y.Z
+ * → bump package.json (+ package-lock.json) → เปลี่ยนเลข vX.Y.Z ในบรรทัดสถานะของ quickstart/PRD/PROGRESS
+ * (ที่ tests/ops/docs-sync.test.ts อ่าน) → commit "chore(release): vX.Y.Z" → git tag -a vX.Y.Z
  * ไม่ push — พิมพ์คำสั่ง push ให้ boss
  *
  * --dry-run: แสดงแผน + diff โดยไม่แก้ไฟล์ ไม่รันคำสั่ง git ที่เขียน ไม่รันเกต npm
@@ -206,6 +207,60 @@ export function bumpLockVersion(text: string, version: string): string {
   return JSON.stringify(parsed, null, 2) + "\n";
 }
 
+// ───────────────────────────── เลขรุ่นในเอกสาร (DOCS_SYNC §4/§7) ─────────────────────────────
+
+const DOC_SEMVER = String.raw`\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?`;
+
+export interface DocVersionTarget {
+  /** path เทียบ root ของ repo */
+  file: string;
+  /** อธิบายตำแหน่งที่แก้ (ใช้ในข้อความ) */
+  where: string;
+  /** null = ใช้ match สุดท้ายของ "app vX.Y.Z" ทั้งไฟล์ · string = บรรทัดแรกที่มีข้อความนี้ แล้วใช้ vX.Y.Z แรกในบรรทัด */
+  lineKeyword: string | null;
+}
+
+/** 3 ตำแหน่งที่ tests/ops/docs-sync.test.ts เทียบกับ package.json — ใช้ร่วมกัน ห้ามต่างกัน */
+export const DOC_VERSION_TARGETS: readonly DocVersionTarget[] = [
+  { file: "docs/guides/quickstart-th.html", where: 'ท้ายหน้า "app vX.Y.Z"', lineKeyword: null },
+  { file: "docs/prd/PRD.md", where: 'บรรทัด "สถานะปัจจุบัน"', lineKeyword: "สถานะปัจจุบัน" },
+  { file: "docs/team/PROGRESS.md", where: 'บรรทัด "อัปเดตล่าสุด"', lineKeyword: "อัปเดตล่าสุด" },
+];
+
+/** ตำแหน่ง [เริ่ม, จบ) ของตัวเลขรุ่น (ไม่รวมตัว "v") ในไฟล์ · ไม่พบ → null */
+function locateDocVersion(text: string, t: DocVersionTarget): [number, number] | null {
+  if (t.lineKeyword === null) {
+    const all = [...text.matchAll(new RegExp(`app v(${DOC_SEMVER})`, "g"))];
+    const m = all.at(-1);
+    if (!m || m[1] === undefined) return null;
+    const start = m.index + "app v".length;
+    return [start, start + m[1].length];
+  }
+  let offset = 0;
+  for (const line of text.split(/\n/)) {
+    if (line.includes(t.lineKeyword)) {
+      const m = new RegExp(`v(${DOC_SEMVER})`).exec(line);
+      if (!m || m[1] === undefined) return null;
+      const start = offset + m.index + 1;
+      return [start, start + m[1].length];
+    }
+    offset += line.length + 1;
+  }
+  return null;
+}
+
+/** เลขรุ่น (ไม่มี "v") ที่เอกสารระบุตามกติกาเดียวกับ docs-sync test · ไม่พบ → null */
+export function readDocVersion(text: string, t: DocVersionTarget): string | null {
+  const loc = locateDocVersion(text, t);
+  return loc ? text.slice(loc[0], loc[1]) : null;
+}
+
+/** แทนที่เฉพาะตัวเลขรุ่น ไม่แตะข้อความ/การขึ้นบรรทัดอื่น · ไม่พบตำแหน่ง → null */
+export function replaceDocVersion(text: string, t: DocVersionTarget, version: string): string | null {
+  const loc = locateDocVersion(text, t);
+  return loc ? text.slice(0, loc[0]) + version + text.slice(loc[1]) : null;
+}
+
 // ───────────────────────────── วันที่ ─────────────────────────────
 
 /** YYYY-MM-DD ตามเวลา Asia/Bangkok */
@@ -223,7 +278,7 @@ export function bangkokDate(now: Date): string {
 // ───────────────────────────── ตรวจเงื่อนไข ─────────────────────────────
 
 export interface Check {
-  id: "version" | "newer-than-tag" | "tag-free" | "newer-than-package" | "branch" | "clean" | "unreleased";
+  id: "version" | "newer-than-tag" | "tag-free" | "newer-than-package" | "branch" | "clean" | "unreleased" | "docs-version";
   ok: boolean;
   message: string;
 }
@@ -239,6 +294,8 @@ export interface PreconditionInput {
   changelog: string | null;
   /** version ใน package.json ปัจจุบัน */
   packageVersion: string | null;
+  /** ตำแหน่งเลขรุ่นในเอกสารที่หาไม่เจอ (ข้อความอธิบาย) · ไม่ใส่ = ไม่ตรวจ */
+  docVersionMissing?: readonly string[];
 }
 
 export function checkPreconditions(input: PreconditionInput): { ok: boolean; checks: Check[] } {
@@ -325,6 +382,19 @@ export function checkPreconditions(input: PreconditionInput): { ok: boolean; che
     checks.push({ id: "unreleased", ok: false, message: "[Unreleased] ว่าง — ไม่มีอะไรให้ออกรุ่น / nothing to release" });
   } else {
     checks.push({ id: "unreleased", ok: true, message: "[Unreleased] มีเนื้อหา" });
+  }
+
+  if (input.docVersionMissing !== undefined) {
+    if (input.docVersionMissing.length === 0) {
+      checks.push({ id: "docs-version", ok: true, message: "พบตำแหน่งเลขรุ่นในเอกสารครบ (quickstart · PRD · PROGRESS)" });
+    } else {
+      for (const m of input.docVersionMissing)
+        checks.push({
+          id: "docs-version",
+          ok: false,
+          message: `หาตำแหน่งเลขรุ่นไม่เจอ: ${m} — แก้เอกสารให้มีเลขรุ่น vX.Y.Z ก่อน / doc version line not found`,
+        });
+    }
   }
 
   return { ok: checks.every((c) => c.ok), checks };
@@ -456,7 +526,12 @@ export function runRelease(opts: RunOptions): number {
   const dirty = statusOut.split("\n").filter((l) => l.trim() !== "");
   const tags = (tryGit(cwd, ["tag", "--list", "v*"]) ?? "").split("\n").filter((t) => t.trim() !== "");
 
-  const pre = checkPreconditions({ version: opts.version, branch, dirty, tags, changelog, packageVersion });
+  const docTexts = DOC_VERSION_TARGETS.map((t) => ({ t, path: join(cwd, t.file), text: readIfExists(join(cwd, t.file)) }));
+  const docVersionMissing = docTexts
+    .filter((d) => d.text === null || locateDocVersion(d.text, d.t) === null)
+    .map((d) => (d.text === null ? `${d.t.file} (ไม่พบไฟล์)` : `${d.t.file} ${d.t.where}`));
+
+  const pre = checkPreconditions({ version: opts.version, branch, dirty, tags, changelog, packageVersion, docVersionMissing });
   log("");
   log("ผลการตรวจ / checks:");
   for (const c of pre.checks) log(`  ${c.ok ? "✓" : "✗"} ${c.message}`);
@@ -480,6 +555,12 @@ export function runRelease(opts: RunOptions): number {
   if (lockText !== null && nextLock !== null && nextLock !== lockText)
     files.push({ name: "package-lock.json", path: lockPath, before: lockText, after: nextLock });
 
+  for (const d of docTexts) {
+    if (d.text === null) continue;
+    const after = replaceDocVersion(d.text, d.t, version);
+    if (after !== null && after !== d.text) files.push({ name: d.t.file, path: d.path, before: d.text, after });
+  }
+
   log("");
   log(`แผน / plan (${tag}, วันที่ ${date} Asia/Bangkok):`);
   let step = 1;
@@ -487,6 +568,7 @@ export function runRelease(opts: RunOptions): number {
   else for (const g of GATES) log(`  ${step++}. npm run ${g}`);
   log(`  ${step++}. CHANGELOG.md: ## [Unreleased] → ## [${version}] - ${date} + [Unreleased] ว่างใหม่`);
   log(`  ${step++}. package.json version: ${packageVersion ?? "?"} → ${version}` + (lockText !== null ? " (+ package-lock.json)" : ""));
+  log(`  ${step++}. เอกสาร: เปลี่ยนเฉพาะเลข vX.Y.Z ใน ${DOC_VERSION_TARGETS.map((t) => t.file).join(" · ")}`);
   log(`  ${step++}. git commit -m "chore(release): ${tag}" -- ${files.map((f) => f.name).join(" ")}`);
   log(`  ${step++}. git tag -a ${tag} -m "maewmeet ${tag}"`);
   log(`  ${step++}. (ไม่ push) พิมพ์คำสั่ง push ให้ boss`);

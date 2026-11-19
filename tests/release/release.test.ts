@@ -1,9 +1,9 @@
 // เทสต์ของ scripts/release.ts — Release engineer (#15) · R0-17
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { removeTempDir } from "../helpers/fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -13,11 +13,14 @@ import {
   bumpLockVersion,
   checkPreconditions,
   compareSemver,
+  DOC_VERSION_TARGETS,
   getUnreleasedBody,
   hasUnreleasedContent,
   latestVersionFromTags,
   parseArgs,
   parseSemver,
+  readDocVersion,
+  replaceDocVersion,
   runRelease,
   unifiedDiff,
   type PreconditionInput,
@@ -287,7 +290,27 @@ const PKG = '{\n  "name": "demo",\n  "version": "0.0.0",\n  "private": true\n}\n
 const LOCK =
   '{\n  "name": "demo",\n  "version": "0.0.0",\n  "lockfileVersion": 3,\n  "requires": true,\n  "packages": {\n    "": {\n      "name": "demo",\n      "version": "0.0.0"\n    }\n  }\n}\n';
 
-function makeRepo(changelog = CHANGELOG.replace(/## \[0\.1\.0\][\s\S]*$/, "")): string {
+// เอกสารจำลอง 3 ไฟล์ที่ release.ts ต้องเปลี่ยนเลขรุ่นให้ (PRD ใช้ CRLF · มีเลขรุ่นอื่นในไฟล์เดียวกันที่ห้ามแตะ)
+const DOCS: Record<string, string> = {
+  "docs/guides/quickstart-th.html":
+    "<footer>\n  <span>app v0.0.0</span>\n</footer>\n<!-- เดิมเคยเป็น app v9.9.9 -->\n<span>app v0.0.0</span>\n",
+  "docs/prd/PRD.md":
+    "# PRD\r\n\r\n> **สถานะปัจจุบัน (2026-01-01):** แอปอยู่ที่ **v0.0.0** (รอบ R0 ออกแล้ว) · ดู v1.0.0 ในแผนเดิม\r\n\r\nเนื้อหา v0.0.0 ที่ไม่ใช่หมายเหตุ\r\n",
+  "docs/team/PROGRESS.md":
+    '# PROGRESS\n\n> อัปเดตล่าสุด: 2026-01-01 · ออกรุ่น v0.0.0 แล้ว · ก่อนหน้า v0.0.0\n\nบรรทัดอื่นที่ไม่เกี่ยวกับ "อัปเดตล่าสุด" v0.0.0\n',
+};
+
+function writeDocs(dir: string, docs: Record<string, string>): void {
+  for (const [rel, text] of Object.entries(docs)) {
+    mkdirSync(dirname(join(dir, rel)), { recursive: true });
+    writeFileSync(join(dir, rel), text);
+  }
+}
+
+function makeRepo(
+  changelog = CHANGELOG.replace(/## \[0\.1\.0\][\s\S]*$/, ""),
+  docs: Record<string, string> = DOCS,
+): string {
   const dir = mkdtempSync(join(tmpdir(), "mm-release-"));
   tmpDirs.push(dir);
   g(dir, "init", "-q", "-b", "main");
@@ -298,6 +321,7 @@ function makeRepo(changelog = CHANGELOG.replace(/## \[0\.1\.0\][\s\S]*$/, "")): 
   writeFileSync(join(dir, "CHANGELOG.md"), changelog);
   writeFileSync(join(dir, "package.json"), PKG);
   writeFileSync(join(dir, "package-lock.json"), LOCK);
+  writeDocs(dir, docs);
   g(dir, "add", "-A");
   g(dir, "commit", "-q", "-m", "init");
   return dir;
@@ -405,6 +429,9 @@ describe("runRelease บน git repo ชั่วคราว", () => {
     expect(g(dir, "status", "--porcelain")).toBe("");
     expect(g(dir, "show", "--name-only", "--format=", "HEAD").split("\n").sort()).toEqual([
       "CHANGELOG.md",
+      "docs/guides/quickstart-th.html",
+      "docs/prd/PRD.md",
+      "docs/team/PROGRESS.md",
       "package-lock.json",
       "package.json",
     ]);
@@ -469,5 +496,108 @@ describe("runRelease บน git repo ชั่วคราว", () => {
     const lines: string[] = [];
     expect(runRelease({ version: "0.1.0", dryRun: true, cwd: dir, now: NOW, log: (l) => lines.push(l) })).toBe(1);
     expect(lines.join("\n")).toContain("ไม่ใช่ git repository");
+  });
+});
+
+describe("เลขรุ่นในเอกสาร (DOCS_SYNC §7)", () => {
+  const [quickstart, prd, progress] = DOC_VERSION_TARGETS;
+  const NEW = "0.2.0";
+
+  it("replaceDocVersion เปลี่ยนเฉพาะเลขรุ่นในตำแหน่งที่ docs-sync อ่าน ไม่แตะอย่างอื่น (รวม CRLF)", () => {
+    const qOld = DOCS[quickstart!.file]!;
+    const q = replaceDocVersion(qOld, quickstart!, NEW)!;
+    expect(q).toBe(qOld.slice(0, qOld.lastIndexOf("app v0.0.0")) + "app v0.2.0" + qOld.slice(qOld.lastIndexOf("app v0.0.0") + 10));
+    expect(q).toContain("app v9.9.9");
+    expect(q.match(/app v0\.0\.0/g)).toHaveLength(1);
+
+    const pOld = DOCS[prd!.file]!;
+    expect(replaceDocVersion(pOld, prd!, NEW)).toBe(pOld.replace("**v0.0.0**", "**v0.2.0**"));
+
+    const rOld = DOCS[progress!.file]!;
+    expect(replaceDocVersion(rOld, progress!, NEW)).toBe(rOld.replace("ออกรุ่น v0.0.0", "ออกรุ่น v0.2.0"));
+  });
+
+  it("หาตำแหน่งไม่เจอ → null · รองรับ prerelease", () => {
+    expect(replaceDocVersion("ไม่มีอะไร", quickstart!, NEW)).toBeNull();
+    expect(replaceDocVersion("> สถานะปัจจุบัน ไม่มีเลข", prd!, NEW)).toBeNull();
+    expect(replaceDocVersion("ไม่มีคำนั้น v1.0.0", progress!, NEW)).toBeNull();
+    const pre = replaceDocVersion("> อัปเดตล่าสุด v1.0.0-rc.1 จบ", progress!, "1.0.0-rc.2")!;
+    expect(pre).toBe("> อัปเดตล่าสุด v1.0.0-rc.2 จบ");
+    expect(readDocVersion(pre, progress!)).toBe("1.0.0-rc.2");
+  });
+
+  it("ออกรุ่นจริงบน temp copy: commit เดียวกันเปลี่ยนเลขใน 3 ไฟล์ และ diff เป็นแค่เลขรุ่น", () => {
+    const dir = makeRepo();
+    expect(runRelease({ version: NEW, dryRun: false, skipGates: true, cwd: dir, now: NOW, log: () => {} })).toBe(0);
+    for (const t of DOC_VERSION_TARGETS) {
+      const text = readFileSync(join(dir, t.file), "utf8");
+      expect(readDocVersion(text, t), t.file).toBe(NEW);
+      expect(text.length).toBe(DOCS[t.file]!.length); // 0.0.0 → 0.2.0 ยาวเท่าเดิม และ CRLF คงเดิม
+    }
+    expect(g(dir, "diff", "--numstat", "HEAD~1", "HEAD", "--", ...DOC_VERSION_TARGETS.map((t) => t.file)).split("\n").sort()).toEqual([
+      "1\t1\tdocs/guides/quickstart-th.html",
+      "1\t1\tdocs/prd/PRD.md",
+      "1\t1\tdocs/team/PROGRESS.md",
+    ]);
+    expect(g(dir, "status", "--porcelain")).toBe("");
+    expect(g(dir, "log", "-1", "--format=%s")).toBe("chore(release): v0.2.0");
+  });
+
+  it("ตรรกะเทียบของ docs-sync (package.json = quickstart = PRD = PROGRESS) ผ่านหลังออกรุ่น", () => {
+    const dir = makeRepo();
+    const mismatched = (): string[] => {
+      const pkg = (JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as { version: string }).version;
+      return DOC_VERSION_TARGETS.filter((t) => readDocVersion(readFileSync(join(dir, t.file), "utf8"), t) !== pkg).map((t) => t.file);
+    };
+    expect(mismatched()).toEqual([]);
+    writeFileSync(join(dir, "package.json"), PKG.replace("0.0.0", "0.1.0")); // จำลอง release.ts เดิม: ขยับแค่ package.json
+    expect(mismatched()).toHaveLength(3);
+    g(dir, "checkout", "-q", "--", "package.json");
+    expect(runRelease({ version: NEW, dryRun: false, skipGates: true, cwd: dir, now: NOW, log: () => {} })).toBe(0);
+    expect(mismatched()).toEqual([]);
+  });
+
+  it("--dry-run แสดง diff เลขรุ่นของเอกสาร และไม่แก้ไฟล์", () => {
+    const dir = makeRepo();
+    const before = snapshot(dir);
+    const lines: string[] = [];
+    expect(runRelease({ version: NEW, dryRun: true, cwd: dir, now: NOW, log: (l) => lines.push(l) })).toBe(0);
+    const out = lines.join("\n");
+    expect(out).toContain("+++ b/docs/prd/PRD.md");
+    expect(out).toContain("+++ b/docs/team/PROGRESS.md");
+    expect(out).toContain("+++ b/docs/guides/quickstart-th.html");
+    expect(snapshot(dir)).toEqual(before);
+  });
+
+  it("บรรทัดใดบรรทัดหนึ่งหาไม่เจอ → หยุดก่อนแก้ไฟล์ พร้อมบอกว่าไฟล์ไหน (dry-run และของจริง)", () => {
+    const dir = makeRepo(undefined, { ...DOCS, "docs/prd/PRD.md": "# PRD\n\nไม่มีหมายเหตุ\n" });
+    const before = snapshot(dir);
+    const dry: string[] = [];
+    expect(runRelease({ version: NEW, dryRun: true, cwd: dir, now: NOW, log: (l) => dry.push(l) })).toBe(1);
+    expect(dry.join("\n")).toContain('✗ หาตำแหน่งเลขรุ่นไม่เจอ: docs/prd/PRD.md บรรทัด "สถานะปัจจุบัน"');
+    const lines: string[] = [];
+    let gates = 0;
+    const code = runRelease({
+      version: NEW,
+      dryRun: false,
+      cwd: dir,
+      now: NOW,
+      log: (l) => lines.push(l),
+      runGate: () => {
+        gates++;
+      },
+    });
+    expect(code).toBe(1);
+    expect(gates).toBe(0);
+    expect(lines.join("\n")).toContain("หยุด: เงื่อนไขไม่ผ่าน");
+    expect(snapshot(dir)).toEqual(before);
+    expect(g(dir, "tag", "--list")).toBe("");
+  });
+
+  it("ไม่มีไฟล์เอกสาร → หยุดเช่นกัน", () => {
+    const dir = makeRepo(undefined, {});
+    const lines: string[] = [];
+    expect(runRelease({ version: NEW, dryRun: true, cwd: dir, now: NOW, log: (l) => lines.push(l) })).toBe(1);
+    expect(lines.join("\n")).toContain("docs/team/PROGRESS.md (ไม่พบไฟล์)");
   });
 });
