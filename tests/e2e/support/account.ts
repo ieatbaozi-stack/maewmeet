@@ -87,7 +87,7 @@ export async function deleteAccountInUi(page: Page, locale: Locale, pin: string,
   await expect(sheet.getByRole('button', { name: msg(locale, 'common.cancel'), exact: true })).toBeFocused();
   // R17 A1: ไปต่อไม่ได้จนกว่าจะพิมพ์ชื่อผู้ใช้ตรง (เทียบแบบเซิร์ฟเวอร์: NFKC + trim + ตัวเล็ก → พิมพ์ตัวใหญ่/เว้นวรรคท้ายได้)
   const next = sheet.getByRole('button', { name: msg(locale, 'account.delete.continue') });
-  await expect(sheet.getByText(msg(locale, 'account.delete.noRestore'))).toBeVisible();
+  await expect(sheet.getByText(msg(locale, 'account.delete.noRestore'), { exact: true })).toBeVisible();
   await expect(next).toBeDisabled();
   const typed = sheet.getByLabel(msg(locale, 'account.delete.typeLabel'), { exact: true });
   await typed.fill(`${username}x`);
@@ -107,4 +107,20 @@ export async function findUserCard(page: Page, locale: Locale, username: string)
   const card = page.locator(`[data-testid="admin-user"][data-username="${username}"]`);
   await expect(card).toBeVisible();
   return card;
+}
+
+// ───────── R17: ตั้งฉากกลุ่มที่ "ลบมาแล้ว N วัน" (ไม่มี hook ในโค้ดแอป — เขียน DB ของเซิร์ฟเวอร์ E2E ตรง เหมือน promoteToSuperAdmin) ─────────
+
+/** ย้าย groups.deleted_at ของกลุ่มที่ลบแล้ว (ผ่าน UI/API จริง) ไปเป็น daysAgo วันก่อนหน้าตอนนี้ */
+export async function backdateGroupDeletion(groupId: string, daysAgo: number): Promise<number> {
+  const at = Date.now() - daysAgo * 86_400_000;
+  const r = await withBusyRetry(() => db().execute({ sql: 'UPDATE groups SET deleted_at = ? WHERE id = ? AND deleted_at IS NOT NULL', args: [at, groupId] }));
+  if (r.rowsAffected !== 1) throw new Error(`กลุ่ม ${groupId} ไม่ได้อยู่ในสถานะลบ`);
+  return at;
+}
+
+/** จำนวนวันปฏิทิน (Asia/Bangkok) จากวันนี้ถึง epochMs — oracle อิสระด้วย Intl (ไม่ใช้ src/lib/calendar ที่เป็นตัวถูกทดสอบ) */
+export function bangkokDaysUntil(epochMs: number, nowMs = Date.now()): number {
+  const day = (ms: number) => Date.parse(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(ms)}T00:00:00Z`);
+  return Math.round((day(epochMs) - day(nowMs)) / 86_400_000);
 }
