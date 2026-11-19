@@ -1805,6 +1805,8 @@
       "group_view": "Viewed a group",
       "group_update": "Edited a group",
       "group_delete": "Deleted a group",
+      "group_restore": "System admin restored a group",
+      "group_purge": "System deleted a group for good after 30 days",
       "group_leave": "Left a group",
       "group_transferAdmin": "Handed over group admin",
       "group_calendar_view": "Viewed the group calendar",
@@ -1853,7 +1855,14 @@
       "scope": "Scope",
       "state": "New status",
       "wasLocked": "Was locked",
-      "filtered": "Filtered"
+      "filtered": "Filtered",
+      "members": "Memberships removed",
+      "invites": "Invites removed",
+      "appointments": "Plans removed",
+      "rsvps": "Replies removed",
+      "reminders": "Reminders removed",
+      "notifications": "Notifications removed",
+      "outbox": "Queued messages removed"
     },
     "value": "{value, select, true {Yes} false {No} approved {Approved} approve {Approved} rejected {Rejected} reject {Rejected} accepted {Accepted} declined {Declined} active {Active} suspended {Suspended} admin {Group admin} moderator {Moderator} member {Member} code {Code} direct {Direct} other {{value}}}"
   },

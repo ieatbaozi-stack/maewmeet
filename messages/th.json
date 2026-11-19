@@ -1805,6 +1805,8 @@
       "group_view": "เปิดดูกลุ่ม",
       "group_update": "แก้ไขกลุ่ม",
       "group_delete": "ลบกลุ่ม",
+      "group_restore": "ผู้ดูแลระบบกู้คืนกลุ่ม",
+      "group_purge": "ระบบลบกลุ่มถาวรเมื่อครบ 30 วัน",
       "group_leave": "ออกจากกลุ่ม",
       "group_transferAdmin": "โอนผู้ดูแลกลุ่ม",
       "group_calendar_view": "เปิดดูปฏิทินกลุ่ม",
@@ -1853,7 +1855,14 @@
       "scope": "ขอบเขต",
       "state": "สถานะใหม่",
       "wasLocked": "ล็อกอยู่ก่อนหน้า",
-      "filtered": "มีตัวกรอง"
+      "filtered": "มีตัวกรอง",
+      "members": "สมาชิกที่ถูกลบ",
+      "invites": "คำเชิญที่ถูกลบ",
+      "appointments": "นัดที่ถูกลบ",
+      "rsvps": "การตอบรับที่ถูกลบ",
+      "reminders": "การเตือนที่ถูกลบ",
+      "notifications": "การแจ้งเตือนที่ถูกลบ",
+      "outbox": "ข้อความในคิวที่ถูกลบ"
     },
     "value": "{value, select, true {ใช่} false {ไม่ใช่} approved {อนุมัติ} approve {อนุมัติ} rejected {ปฏิเสธ} reject {ปฏิเสธ} accepted {ตอบรับ} declined {ปฏิเสธ} active {ใช้งานได้} suspended {ระงับ} admin {ผู้ดูแล} moderator {ผู้ช่วยดูแล} member {สมาชิก} code {โค้ด} direct {ชวนตรง} other {{value}}}"
   },
