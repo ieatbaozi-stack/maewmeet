@@ -15,6 +15,7 @@
 | H3 | rate limit ฝั่งอ่านแบบ global ต่อผู้ใช้ (ดู B1) ใน `src/app/api/_lib/route.ts` สำหรับ GET ที่ต้อง login | ผู้ใช้ปกติ (e2e ทั้งชุด) ไม่โดน 429 · เกินแล้ว 429 + `Retry-After` · cron/health/public ไม่นับ |
 | H4 | คำเชิญที่ super admin นอกกลุ่มเป็นคนเชิญ แสดง "ผู้ดูแลระบบ" แทนชื่อ (แบบเดียวกับ R15b B7 `actorSystemAdmin`) | แถวใหม่เท่านั้น · เทสต์ TH/EN |
 | H4b | `GET /api/me/invites` (รายการคำเชิญค้าง) แสดง "ผู้ดูแลระบบ" แทนชื่อ SA นอกกลุ่ม ให้สอดคล้องกับ H4 (platform serializer + frontend GroupsView) | เทสต์ |
+| H4c | `GET /api/groups/:gid/invites` ช่อง `creatorName` (รายการคำเชิญของกลุ่ม "สร้างโดย …") แสดง "ผู้ดูแลระบบ" เมื่อผู้สร้างเป็น SA ที่ไม่ใช่สมาชิก แบบเดียวกับ H4b (security-r16 Low 1) | เทสต์ API + UI TH/EN |
 | H7 | คำเชิญตรง (`insertDirectInvite`) ต้องไม่สร้างให้ผู้รับที่บัญชีถูกลบ/ระงับระหว่างทาง — เงื่อนไขสถานะผู้รับใน statement เดียวกัน (security-r5 Info 1) | เทสต์แข่งกับลบบัญชี |
 | H5 | หน้า auth (login/signup/forgot/set-pin) ที่ redirect หรือ error ระหว่าง stream ต้องได้ status ที่ถูก (3xx/4xx) ไม่ใช่ 200 — ตรวจก่อนว่าเกิดจริงไหม ถ้าแก้ต้องไม่ทำให้หน้าช้าลง ถ้าแก้ไม่ได้โดยไม่เสี่ยง ให้บันทึกเหตุผลแล้วไม่แก้ | เทสต์ status จริง หรือบันทึกใน §6 |
 | H6 | Server-Timing บนหน้า RSC (เปิดเมื่อ `SERVER_TIMING_ENABLED` เท่านั้น เหมือน API) | ปิดอยู่ = ไม่มี header · ไม่เปลี่ยน output |
