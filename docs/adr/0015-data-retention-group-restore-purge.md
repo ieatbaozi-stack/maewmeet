@@ -35,7 +35,7 @@
 - หน้า admin ไม่คำนวณเอง: รายการ/รายละเอียดกลุ่มคืน `purgeAt` / `restorable` / `restoreBlockedReason` ที่เซิร์ฟเวอร์คำนวณด้วยฟังก์ชันเดียวกัน (กฎ 6)
 
 ### 4. ลบถาวรอัตโนมัติ — ข้อ 6 ของ `runDailyMaintenance` (cron daily เดิม)
-- เลือก id กลุ่มที่ `deleted_at IS NOT NULL AND deleted_at <= cutoff` (`cutoff = now − 30 วัน` และ ≥ START) เก่าสุดก่อน ไม่เกิน `GROUP_PURGE_BATCH = 25` กลุ่ม/รอบ (เกินไปรอบถัดไป · ผลคืน `purgedGroups: {groups, remaining}`)
+- เลือก id กลุ่มที่ `deleted_at IS NOT NULL AND deleted_at <= cutoff` (`cutoff = now − 30 วัน` และ ≥ START) เก่าสุดก่อน ไม่เกิน `GROUP_PURGE_BATCH = 25` กลุ่ม/รอบ (เกินไปรอบถัดไป · ผลคืน `purgedGroups: {groups, failed, remaining}`)
 - **ธุรกรรมเขียนแยกต่อกลุ่ม** · ในธุรกรรม: ตรวจเงื่อนไขซ้ำเป็นคำสั่งแรก (ถูกกู้ไปแล้ว → ข้าม) แล้วลบตาม**ลำดับ**:
   1. `notification_outbox` ที่ `payload.params.groupId` = กลุ่ม (ทุกสถานะ)
   2. `notification` ที่ `params.groupId` = กลุ่ม (ของทุกผู้รับ)
