@@ -77,3 +77,21 @@ describe('U4 skeleton ค้างขั้นต่ำ 250 ms ครอบ load
     expect(src).toContain('NAV_LOADING_ATTR');
   });
 });
+
+describe('H4b รายการคำเชิญ (GroupsView) — inviterLabel', () => {
+  it.each(['th', 'en'] as const)('%s: SA นอกกลุ่ม → common.systemAdmin · ชื่อว่าง → account.deletedName · ปกติ → ชื่อจริง', async (l) => {
+    const { inviterLabel } = await import('@/components/groups/invite-label');
+    const m = messages(l);
+    const sa = m.common.systemAdmin as string;
+    const gone = m.account.deletedName as string;
+    expect(sa && gone && sa !== gone).toBeTruthy();
+    expect(inviterLabel({ inviterName: '', actorSystemAdmin: true }, sa, gone)).toBe(sa);
+    expect(inviterLabel({ inviterName: '', actorSystemAdmin: false }, sa, gone)).toBe(gone);
+    expect(inviterLabel({ inviterName: '' }, sa, gone)).toBe(gone);
+    expect(inviterLabel({ inviterName: 'นุ่น', actorSystemAdmin: false }, sa, gone)).toBe('นุ่น');
+  });
+  it('GroupsView ใช้ inviterLabel กับ common.systemAdmin', () => {
+    const src = read('src/components/groups/GroupsView.tsx');
+    expect(src).toContain('inviterLabel(inv, t("common.systemAdmin"), t("account.deletedName"))');
+  });
+});

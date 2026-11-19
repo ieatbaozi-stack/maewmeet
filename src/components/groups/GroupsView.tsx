@@ -16,6 +16,7 @@ import { setFlash } from "./flash";
 import { GROUP_NAME_MAX, formatShortDate, groupNameLength } from "./helpers";
 import { FlashNotice, Notice } from "./Notice";
 import { Name, withNames } from "@/components/Name";
+import { inviterLabel } from "./invite-label";
 import { BusyButton } from "@/components/shell/BusyButton";
 import { signalNavStart } from "@/components/shell/nav-start";
 
@@ -86,7 +87,7 @@ export function GroupsView({ groups, invites }: { groups: GroupSummaryDto[]; inv
               {invites.map((inv) => (
                 <article className="panel invite-card" key={inv.id}>
                   <div>
-                    <p className="who-line">{withNames((n) => t("groups.invites.item", { inviter: n.inviter, group: n.group }), { inviter: inv.inviterName, group: inv.groupName })}</p>
+                    <p className="who-line">{withNames((n) => t("groups.invites.item", { inviter: n.inviter, group: n.group }), { inviter: inviterLabel(inv, t("common.systemAdmin"), t("account.deletedName")), group: inv.groupName })}</p>
                     <p className="small muted">{t("groups.invites.expires", { date: formatShortDate(inv.expiresAt, locale) })}</p>
                   </div>
                   <div className="actions">
