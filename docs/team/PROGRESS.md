@@ -310,7 +310,7 @@
   - เทสต์ R16 (`tests/platform/r16-hardening.test.ts`, `tests/ui/r16-ui.test.ts`) อยู่ในไฟล์ของคอมมิต platform/frontend (ตาม `git diff --stat 9db2c08..HEAD`) · `2c46335` allowlist `actorSystemAdmin` ใน test
   - main contract H5/H6 ใน §6 — `1ae0737` · ops CHANGELOG Unreleased + OPERATIONS (bucket, B3, H5) — `7f370ab`
 - **ไม่ทำ (เหตุผลใน R16 §6):** H5 หน้า auth ตอบ 200 ระหว่าง stream (loading boundary ของ root ครอบทุกหน้า) · H6 Server-Timing บนหน้า RSC · B3 CSP nonce (boss ยอมรับความเสี่ยง) · DST day strip
-- **ย้ายไป R17:** retention 30 วัน + กู้กลุ่ม/บัญชีที่ลบ (B4 ข้อ ก, มี migration) · **R17 รอเริ่มหลัง R16 merge** (ยังไม่มี contract R17)
+- **ย้ายไป R17:** retention 30 วัน + กู้กลุ่ม/บัญชีที่ลบ (B4 ข้อ ก, สุดท้ายไม่มี migration) · R17 ทำแล้ว ออกรุ่น v0.15.0 (ดูหัวข้อ R17 ด้านล่าง)
 - **ผลตรวจอิสระ (2026-11-19):** qa `docs/reports/qa-r16.md` **ผ่านแบบมีข้อสังเกต** — ไม่มีบั๊กที่ต้องแก้ก่อน merge · พบบั๊ก 1 ข้อใน H4c (`InviteSection.tsx` ใช้ namespace i18n ผิด → MISSING_MESSAGE) แก้แล้ว `97779b0` และตรวจซ้ำผ่าน `2f0527c` · Info: ปฏิทินกลืน 429 (ออกแบบเดิม R14) · security `docs/reports/security-r16.md` **ผ่านแบบมีข้อสังเกต** (Critical/High/Medium 0 · Low 1 = ชื่อ SA นอกกลุ่มยังออกทาง `GET /api/groups/:gid/invites` → แก้แล้วเป็น H4c · Info 6 ข้อ ดู "เหลือ") · **ยืนยันแล้ว (2026-11-19):** PR #38 MERGED (`1ae70a6`) · CI ของ `1ae70a6` = success (`gh run list`) · **ยังไม่ยืนยัน:** ผลเทสต์ของ branch ที่เลขาไม่ได้รัน · Vercel prod (ยกเว้นที่ boss รายงาน) · ARCHITECTURE ทำแล้ว `10b01f5` (architect · rate limit R16 + ADR 0014 CSP unsafe-inline accepted) · H2 ใน contract §1 เขียน `PUT /api/prefs` แต่ endpoint จริงคือ `POST /api/prefs` (contract §6 บันทึกไว้แล้ว)
 
 ## เหลือ (รายการเดียวที่ใช้ต่อ · ตรวจกับ git log, โค้ด, CHANGELOG, `docs/reports/` เมื่อ 2026-11-20)
@@ -321,7 +321,6 @@
   - **เก็บคำเชิญเก่า (old invite retention) ยังไม่ทำ** — R17 ทำนโยบาย 30 วันเฉพาะกลุ่ม ไม่รวมคำเชิญที่ลบ/หมดอายุ · ต้องเปิดเป็นรอบแยกและ boss ตัดสินนโยบายก่อน
   - **ยืนยันให้หนักขึ้นอีก (ถ้า boss ต้องการ):** "ลบวันนี้ (วันเดียว)" ของ busy/routine และ "ยกเลิกคำเชิญตรง" — ux ตัดสินไว้เป็น L1 แล้ว (`docs/design/R17_DELETE_CONFIRM.md` แถว 6, 8, 15–16) · ทำได้โดยใช้รูปแบบ `confirmFrom` เดิม · รอ boss สั่ง
   - **security-r17 Info 1–4** (`docs/reports/security-r17.md`, ไม่บล็อก): Info 1 กู้คืนอาจข้ามเพดานที่นับเฉพาะกลุ่มที่ยังอยู่ · Info 2 โค้ดเชิญที่ยังไม่หมดอายุกลับมาใช้ได้หลังกู้คืน · Info 3 purge ลบ outbox ที่ส่งแล้ว ทำให้ตัวนับ LINE OA รายเดือนลดลงได้ (แทบไม่เกิด) · Info 4 สแกนทั้งตารางต่อกลุ่มตอน purge ไม่มี index
-  - **เอกสารที่ยังไม่ตรงกับ v0.15.0 (เจ้าของไฟล์แก้):** `docs/design/ARCHITECTURE.md` บรรทัด 10 ยังเขียน "ยังไม่ออกรุ่น — เสนอ v0.15.0" (architect) · qa-r17 ข้อ 2: ARCHITECTURE/ADR ยังไม่เล่าการล้มทีละกลุ่ม (OPERATIONS K2 เล่าแล้ว)
 - **picomatch GHSA-fc5q-39xc-vjpf** ยังอยู่ที่ข้อ 3 (ไม่ได้ตรวจรุ่นแก้ซ้ำในรอบนี้)
 
 ### 1. ค้างจาก qa/security R16 (ไม่บล็อก · ไม่แก้ในรอบนี้)
