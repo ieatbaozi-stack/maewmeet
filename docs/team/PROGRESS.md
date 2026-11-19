@@ -1,7 +1,7 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-19 (เวลาไทย) · **R16 กำลังทำ** (branch `feat/r16-cleanup` ยังไม่ merge · ดูหัวข้อ "R16" ด้านล่าง) · **PR #37** (docs sync) merge แล้ว 2026-11-18 (`9db2c08`) · **v0.13.0 ออกแล้ว 2026-11-18** (tag `v0.13.0` → `964a6f5` · `git ls-remote --tags origin` ตรวจแล้ว · หัวข้อ `[0.13.0] - 2026-11-18` ใน CHANGELOG) · รวม R15a (PR #34, `a29ba40`) + R15b (PR #35, `7e9a12d`) · migration `0006` boss รันบน preview และ prod แล้ว · Next.js 16.4.5 · production `/api/health` = 0.13.0 (boss รายงาน) · **R15 ปิดแล้ว** (`docs/contracts/R15_CONTRACT.md` หัวข้อ "ปิดรอบ R15") · รายการที่เหลือทั้งหมดอยู่ในหัวข้อ "เหลือ" ด้านล่าง
+> อัปเดตล่าสุด: 2026-11-19 (เวลาไทย) · **R16 เสร็จ รอ boss merge PR** (branch `feat/r16-cleanup` · ไม่มี migration · ดูหัวข้อ "R16" ด้านล่าง) · **PR #37** (docs sync) merge แล้ว 2026-11-18 (`9db2c08`) · **v0.13.0 ออกแล้ว 2026-11-18** (tag `v0.13.0` → `964a6f5` · `git ls-remote --tags origin` ตรวจแล้ว · หัวข้อ `[0.13.0] - 2026-11-18` ใน CHANGELOG) · รวม R15a (PR #34, `a29ba40`) + R15b (PR #35, `7e9a12d`) · migration `0006` boss รันบน preview และ prod แล้ว · Next.js 16.4.5 · production `/api/health` = 0.13.0 (boss รายงาน) · **R15 ปิดแล้ว** (`docs/contracts/R15_CONTRACT.md` หัวข้อ "ปิดรอบ R15") · รายการที่เหลือทั้งหมดอยู่ในหัวข้อ "เหลือ" ด้านล่าง
 
 > **วิธีอ่านไฟล์นี้:** สถานะจริงอยู่ที่หัวข้อ **สถานะปัจจุบัน** และ **เหลือ** (ตรวจกับ git log, tag, CHANGELOG, `docs/reports/` เมื่อ 2026-11-18) · หัวข้อที่ติดป้าย **[ประวัติ]** เป็นบันทึกของรอบเดิม ข้อความอย่าง "รอ boss" / "ค้างต่อ" / "ยังไม่ยืนยัน" ในหัวข้อนั้นอาจล้าสมัย ให้ดูสถานะล่าสุดที่ "เหลือ"
 
@@ -282,18 +282,21 @@
 1. ~~merge PR #21~~ — merge แล้ว (`e41f9d2`)
 2. ~~ออก v0.10.0~~ — ออกแล้ว (`d670fcc`, 2026-11-09 · ดูหัวข้อ "v0.10.0 ออกแล้ว + repo เป็น public")
 
-## R16 — เก็บงานค้าง (กำลังทำ · รอ qa/security/PR) — 2026-11-19
+## R16 — เก็บงานค้าง — เสร็จ รอ boss merge PR (ไม่มี migration) · เสนอออกรุ่น v0.14.0 — 2026-11-19
 - contract `docs/contracts/R16_CONTRACT.md` (main `3edee80`) · **boss เห็นชอบ 2026-11-18** ("มาทำที่เหลือให้จบครับ" + ค่าแนะนำ B1–B4) · **ไม่มี migration** · branch `feat/r16-cleanup` จาก `main` `9db2c08` · PR เดียว · เลขรุ่นที่เสนอ **v0.14.0** (boss ออกรุ่นเอง)
-- **ทำแล้วใน branch (ตาม git log · ยังไม่มีผลตรวจอิสระ):**
+- **ทำแล้วใน branch (ตาม git log · ผลตรวจอิสระดูด้านล่าง):**
   - platform H1 `group:settings` 30/10 นาที (`PATCH /api/groups/:gid`) · H2 `prefs:update` 60/10 นาที (`POST /api/prefs` ตอนล็อกอิน) · H3 `api:read` 600/10 นาที (GET ที่ต้องล็อกอิน) — `d7de916`
   - platform + frontend H4/H4b คำเชิญที่ super admin นอกกลุ่มเป็นคนเชิญ แสดง "ผู้ดูแลระบบ" (แถวใหม่เท่านั้น) — `d7de916`, `0b1d17e`, `37f6aee`
+  - platform H7 `1f9670d` คำเชิญตรง: เงื่อนไข invitee active อยู่ในคำสั่ง INSERT เดียว (ปิด security-r5 Info 1) · เทสต์ `tests/groups/r16-direct-invite-race.test.ts`
+  - platform + frontend H4c `d196cc5`, `2972a17` รายการคำเชิญของกลุ่มแสดง SA ผู้สร้างเป็นป้าย "ผู้ดูแลระบบ" (ปิด security-r16 Low 1) · qa แก้ namespace `97779b0`
+  - ops `f98b265` CHANGELOG H7/H4c · architect `4ead0d0` ARCHITECTURE H4c
   - frontend U1–U4 (เยื้องขั้น, legend "เอากลับ", NavProgress ตอนออกจากระบบ/ลบบัญชี, skeleton ขั้นต่ำ 250 ms) — `5d009fb`
   - test T1 e2e retries 1 บน CI (0 ในเครื่อง) และ T2 config-hygiene (`runBlocks` ตามการเยื้อง) — `5ced8bb`
   - เทสต์ R16 (`tests/platform/r16-hardening.test.ts`, `tests/ui/r16-ui.test.ts`) อยู่ในไฟล์ของคอมมิต platform/frontend (ตาม `git diff --stat 9db2c08..HEAD`) · `2c46335` allowlist `actorSystemAdmin` ใน test
   - main contract H5/H6 ใน §6 — `1ae0737` · ops CHANGELOG Unreleased + OPERATIONS (bucket, B3, H5) — `7f370ab`
 - **ไม่ทำ (เหตุผลใน R16 §6):** H5 หน้า auth ตอบ 200 ระหว่าง stream (loading boundary ของ root ครอบทุกหน้า) · H6 Server-Timing บนหน้า RSC · B3 CSP nonce (boss ยอมรับความเสี่ยง) · DST day strip
 - **ย้ายไป R17:** retention 30 วัน + กู้กลุ่ม/บัญชีที่ลบ (B4 ข้อ ก, มี migration) · **R17 รอเริ่มหลัง R16 merge** (ยังไม่มี contract R17)
-- **ยังไม่มี/ยังไม่ยืนยัน:** ผล qa และ security ของ R16 (ยังไม่มี `qa-r16.md` / `security-r16.md`) · PR ของ R16 (ยังไม่ได้ตรวจ GitHub รอบนี้) · ผลเทสต์ของ branch (เลขาไม่ได้รัน) · CI ของ commit ใน branch · ARCHITECTURE ทำแล้ว `10b01f5` (architect · rate limit R16 + ADR 0014 CSP unsafe-inline accepted) · H2 ใน contract §1 เขียน `PUT /api/prefs` แต่ endpoint จริงคือ `POST /api/prefs` (contract §6 บันทึกไว้แล้ว)
+- **ผลตรวจอิสระ (2026-11-19):** qa `docs/reports/qa-r16.md` **ผ่านแบบมีข้อสังเกต** — ไม่มีบั๊กที่ต้องแก้ก่อน merge · พบบั๊ก 1 ข้อใน H4c (`InviteSection.tsx` ใช้ namespace i18n ผิด → MISSING_MESSAGE) แก้แล้ว `97779b0` และตรวจซ้ำผ่าน `2f0527c` · Info: ปฏิทินกลืน 429 (ออกแบบเดิม R14) · security `docs/reports/security-r16.md` **ผ่านแบบมีข้อสังเกต** (Critical/High/Medium 0 · Low 1 = ชื่อ SA นอกกลุ่มยังออกทาง `GET /api/groups/:gid/invites` → แก้แล้วเป็น H4c · Info 6 ข้อ ดู "เหลือ") · **ยังไม่ยืนยัน:** · PR ของ R16 (ยังไม่ได้ตรวจ GitHub รอบนี้) · ผลเทสต์ของ branch (เลขาไม่ได้รัน) · CI ของ commit ใน branch · ARCHITECTURE ทำแล้ว `10b01f5` (architect · rate limit R16 + ADR 0014 CSP unsafe-inline accepted) · H2 ใน contract §1 เขียน `PUT /api/prefs` แต่ endpoint จริงคือ `POST /api/prefs` (contract §6 บันทึกไว้แล้ว)
 
 ## เหลือ (รายการเดียวที่ใช้ต่อ · ตรวจกับ git log, โค้ด, CHANGELOG, `docs/reports/` เมื่อ 2026-11-19)
 
@@ -330,9 +333,14 @@
 - **DST day strip** → **ไม่จำเป็น** (R16 §6 · แอปใช้ Asia/Bangkok อย่างเดียว)
 
 ### ค้าง (ไม่อยู่ใน R16 · ให้ main/boss ตัดสิน)
-- **security-r5 Info 1 — คำเชิญตรงแข่งกับการลบบัญชี** (ข้อต่ำ) — `createDirectInvite` ตรวจ `invitee.status === 'active'` นอกธุรกรรม (`src/lib/data/services/invites.ts` บรรทัด 128) แต่ `insertDirectInvite` (`src/lib/data/repos/group-invite.ts`) ไม่มีเงื่อนไขสถานะผู้รับ · ยังไม่มีคอมมิตแก้
+- **ปิดแล้ว (H7 `1f9670d`)** — security-r5 Info 1 คำเชิญตรงแข่งกับการลบบัญชี: ตอนนี้เงื่อนไข invitee active อยู่ในคำสั่ง INSERT เดียว
 - **picomatch GHSA-fc5q-39xc-vjpf** — ยังไม่มีรุ่นแก้ (Dependabot alert #5 เปิดอยู่ `first_patched_version` = none ตรวจ 2026-11-19) · ops ติดตาม และเพิ่ม override/อัปเดต lockfile ทันทีเมื่อมีรุ่นแก้ (security-docs-sync Low 1)
 - **แถวแจ้งเตือนเก่าและรายการเก่าที่แสดงชื่อ SA** — ไม่มี backfill (ไม่มี migration) · อยู่ในหัวข้อ "ไม่ทำ" ของ R16 §6 แล้ว
+
+### backlog ต่ำจาก qa/security R16 (ไม่บล็อก · ไม่แก้ในรอบนี้)
+- render test สำหรับ i18n namespace — เทสต์ grep ของ R16 จับ namespace ผิดไม่ได้ (บั๊ก H4c ที่ qa เจอ) ควรมีเทสต์ render จริง
+- security-r16 Info 1–6 (ตามรายงาน): `api:read` เกินโควตาแล้ว handler ยังทำงาน (Info 1) · ถังเป็นหน้าต่างคงที่ + ทางลัดต่อ instance (Info 2) · หน้า RSC ไม่นับถัง (Info 3) · ถอด `is_admin` ของ SA ด้วย SQL ขณะคำเชิญยังค้าง (≤ 7 วัน) ทำให้ชื่อ SA กลับมา (Info 4) · หน้า not-found ระหว่าง stream ตอบ 200 (Info 5) · รอยไฟล์ชั่วคราวระหว่างตรวจ (Info 6 ลบแล้วตามรายงาน)
+- qa-r16 Info 1: ปฏิทินกลืนข้อผิดพลาด 429 ของ `GET /api/me/busy` (`CalendarView.tsx`, ออกแบบเดิม R14) — ผู้ใช้ไม่เห็นข้อความ
 
 ### 3. boss ลองบนเครื่องจริง (ไม่บล็อก)
 - ลิงก์ในชื่อนัดบนแอป LINE กดไม่ได้จริงหรือไม่ (R15b) — ยังไม่ทดสอบ · ตอนนี้ระบบทำให้ลิงก์ไม่เป็นลิงก์ตั้งแต่ฝั่งข้อความ (ดู README/quickstart)
