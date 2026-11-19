@@ -1,4 +1,6 @@
-# NEXT_PHASE — เอกสารส่งต่อให้ Claude Code (อัปเดต 2026-11-18)
+# NEXT_PHASE — เอกสารส่งต่อให้ Claude Code (อัปเดต 2026-11-19)
+
+> **หมายเหตุ (2026-11-19):** R16 (เก็บงานค้าง) กำลังทำบน branch `feat/r16-cleanup` ยังไม่ merge · R17 (retention 30 วัน + กู้กลุ่ม/บัญชี, มี migration) รอ R16 merge · สถานะรายข้อของ backlog R6 อยู่ที่หัวข้อ "backlog R6 hardening" ด้านล่าง
 
 > **หมายเหตุ (2026-11-18):** R15 **ปิดรอบและออกรุ่นแล้ว v0.13.0** (2026-11-18, tag `v0.13.0` → `964a6f5`) · R11–R14 ออกใน **v0.12.0** (2026-11-15) · งานค้างและสถานะจริงอยู่ที่ [docs/team/PROGRESS.md](team/PROGRESS.md) หัวข้อ **เหลือ** · ตามหมายเหตุเดิม B1, F1, F3, F4, F5 และ F6 เสร็จตาม [R15_CONTRACT.md](contracts/R15_CONTRACT.md) §0 และ **F2 ความเร็วยังเปิดบางส่วน** (R15b §3) · เนื้อหาด้านล่างเป็นประวัติการตัดสินใจ ไม่ใช่แผนปัจจุบัน
 
@@ -41,8 +43,17 @@
   - ข้อเสนอ: แจ้งเตือนในแอป + Web Push + ตัวตั้งเวลานอกก่อน, LINE OA ทีหลัง — **boss ยังไม่ตัดสินใจ**
   - แหล่งอ้างอิง: developers.line.biz/en/docs/messaging-api/pricing, webkit.org/blog/13878, vercel.com/docs/cron-jobs/usage-and-pricing
 
-### backlog R6 hardening
-rate limit แบบ global/อ่าน, retention กลุ่ม/คำเชิญที่ลบ, e2e retries ซ่อน flake, guard stream HTTP 200, CSP unsafe-inline, DST day strip, ข้อสังเกตจาก `docs/reports/qa-r5.md` / `security-r5.md`, แจ้งเตือน appointment.cancelled, กู้กลุ่ม/บัญชีที่ลบ
+### backlog R6 hardening [ประวัติ — สถานะรายข้อ ณ 2026-11-19]
+รายการเดิม: rate limit แบบ global/อ่าน, retention กลุ่ม/คำเชิญที่ลบ, e2e retries ซ่อน flake, guard stream HTTP 200, CSP unsafe-inline, DST day strip, ข้อสังเกตจาก `docs/reports/qa-r5.md` / `security-r5.md`, แจ้งเตือน appointment.cancelled, กู้กลุ่ม/บัญชีที่ลบ
+
+- **แจ้งเตือน appointment.cancelled:** เสร็จแล้ว (มีในโค้ดตั้งแต่ R11: `src/lib/data/notifications/notify.ts` · LINE ส่งเฉพาะคนที่ตอบ "ไป")
+- **rate limit อ่านแบบ global:** ทำใน R16 (H3: 600 คำขอ/10 นาที ต่อผู้ใช้ สำหรับ GET ที่ต้องล็อกอิน) · รอ qa/security ตรวจ
+- **e2e retries ซ่อน flake:** ทำใน R16 (T1: retry 1 รอบบน CI, 0 ในเครื่อง) · วิธีดูเทสต์ flaky อยู่ใน `docs/OPERATIONS.md`
+- **guard stream HTTP 200:** ตรวจแล้ว ไม่แก้ (R16 §6 H5) · สาเหตุคือ loading boundary ของ root ที่ครอบทุกหน้า แก้ได้ด้วยการขัด ADR 0001 หรือทำให้หน้าช้าลง
+- **CSP unsafe-inline:** boss ตัดสินไม่ทำ ยอมรับความเสี่ยง (R16 B3, 2026-11-18) · บันทึกเหตุผลใน `docs/OPERATIONS.md` แล้ว
+- **DST day strip:** ไม่จำเป็น — แอปใช้ Asia/Bangkok อย่างเดียว (R16 §6)
+- **ข้อสังเกต qa-r5 / security-r5:** ปิดแล้วทั้งหมดตาม commit ใน main ยกเว้น security-r5 Info 1 (คำเชิญตรงแข่งกับการลบบัญชี) ซึ่งยังเปิดเป็นข้อต่ำ ดู PROGRESS "เหลือ"
+- **retention ลบถาวร + กู้กลุ่ม/บัญชี (PDPA):** ย้ายไป **R17** (boss B4 ข้อ ก: เก็บ 30 วัน ซุปเปอร์แอดมินกู้ได้ แล้วลบถาวรอัตโนมัติ · มี migration · เริ่มหลัง R16 merge)
 
 ## ลำดับที่แนะนำ
 1) boss ตั้ง region (F2 ส่วนตั้งค่า) → 2) B1 + F4 (เล็ก) → 3) F3 → 4) F1 → 5) F6 (ต้องตัดสินใจช่องทางก่อน) ; รอ feedback เพิ่มจากผู้ใช้แล้วค่อยจัดเป็นรอบเดียวตามที่ boss ต้องการ

@@ -1,7 +1,7 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-18 (เวลาไทย) · **v0.13.0 ออกแล้ว 2026-11-18** (tag `v0.13.0` → `964a6f5` · `git ls-remote --tags origin` ตรวจแล้ว · หัวข้อ `[0.13.0] - 2026-11-18` ใน CHANGELOG) · รวม R15a (PR #34, `a29ba40`) + R15b (PR #35, `7e9a12d`) · migration `0006` boss รันบน preview และ prod แล้ว · Next.js 16.4.5 · production `/api/health` = 0.13.0 (boss รายงาน) · **R15 ปิดแล้ว** (`docs/contracts/R15_CONTRACT.md` หัวข้อ "ปิดรอบ R15") · รายการที่เหลือทั้งหมดอยู่ในหัวข้อ "เหลือ" ด้านล่าง
+> อัปเดตล่าสุด: 2026-11-19 (เวลาไทย) · **R16 กำลังทำ** (branch `feat/r16-cleanup` ยังไม่ merge · ดูหัวข้อ "R16" ด้านล่าง) · **PR #37** (docs sync) merge แล้ว 2026-11-18 (`9db2c08`) · **v0.13.0 ออกแล้ว 2026-11-18** (tag `v0.13.0` → `964a6f5` · `git ls-remote --tags origin` ตรวจแล้ว · หัวข้อ `[0.13.0] - 2026-11-18` ใน CHANGELOG) · รวม R15a (PR #34, `a29ba40`) + R15b (PR #35, `7e9a12d`) · migration `0006` boss รันบน preview และ prod แล้ว · Next.js 16.4.5 · production `/api/health` = 0.13.0 (boss รายงาน) · **R15 ปิดแล้ว** (`docs/contracts/R15_CONTRACT.md` หัวข้อ "ปิดรอบ R15") · รายการที่เหลือทั้งหมดอยู่ในหัวข้อ "เหลือ" ด้านล่าง
 
 > **วิธีอ่านไฟล์นี้:** สถานะจริงอยู่ที่หัวข้อ **สถานะปัจจุบัน** และ **เหลือ** (ตรวจกับ git log, tag, CHANGELOG, `docs/reports/` เมื่อ 2026-11-18) · หัวข้อที่ติดป้าย **[ประวัติ]** เป็นบันทึกของรอบเดิม ข้อความอย่าง "รอ boss" / "ค้างต่อ" / "ยังไม่ยืนยัน" ในหัวข้อนั้นอาจล้าสมัย ให้ดูสถานะล่าสุดที่ "เหลือ"
 
@@ -282,41 +282,57 @@
 1. ~~merge PR #21~~ — merge แล้ว (`e41f9d2`)
 2. ~~ออก v0.10.0~~ — ออกแล้ว (`d670fcc`, 2026-11-09 · ดูหัวข้อ "v0.10.0 ออกแล้ว + repo เป็น public")
 
-## เหลือ (รายการเดียวที่ใช้ต่อ · ตรวจกับ git log, โค้ด, CHANGELOG, `docs/reports/` เมื่อ 2026-11-18)
+## R16 — เก็บงานค้าง (กำลังทำ · รอ qa/security/PR) — 2026-11-19
+- contract `docs/contracts/R16_CONTRACT.md` (main `3edee80`) · **boss เห็นชอบ 2026-11-18** ("มาทำที่เหลือให้จบครับ" + ค่าแนะนำ B1–B4) · **ไม่มี migration** · branch `feat/r16-cleanup` จาก `main` `9db2c08` · PR เดียว · เลขรุ่นที่เสนอ **v0.14.0** (boss ออกรุ่นเอง)
+- **ทำแล้วใน branch (ตาม git log · ยังไม่มีผลตรวจอิสระ):**
+  - platform H1 `group:settings` 30/10 นาที (`PATCH /api/groups/:gid`) · H2 `prefs:update` 60/10 นาที (`POST /api/prefs` ตอนล็อกอิน) · H3 `api:read` 600/10 นาที (GET ที่ต้องล็อกอิน) — `d7de916`
+  - platform + frontend H4/H4b คำเชิญที่ super admin นอกกลุ่มเป็นคนเชิญ แสดง "ผู้ดูแลระบบ" (แถวใหม่เท่านั้น) — `d7de916`, `0b1d17e`, `37f6aee`
+  - frontend U1–U4 (เยื้องขั้น, legend "เอากลับ", NavProgress ตอนออกจากระบบ/ลบบัญชี, skeleton ขั้นต่ำ 250 ms) — `5d009fb`
+  - test T1 e2e retries 1 บน CI (0 ในเครื่อง) และ T2 config-hygiene (`runBlocks` ตามการเยื้อง) — `5ced8bb`
+  - เทสต์ R16 (`tests/platform/r16-hardening.test.ts`, `tests/ui/r16-ui.test.ts`) อยู่ในไฟล์ของคอมมิต platform/frontend (ตาม `git diff --stat 9db2c08..HEAD`) · `2c46335` allowlist `actorSystemAdmin` ใน test
+  - main contract H5/H6 ใน §6 — `1ae0737` · ops CHANGELOG Unreleased + OPERATIONS (bucket, B3, H5) — `7f370ab`
+- **ไม่ทำ (เหตุผลใน R16 §6):** H5 หน้า auth ตอบ 200 ระหว่าง stream (loading boundary ของ root ครอบทุกหน้า) · H6 Server-Timing บนหน้า RSC · B3 CSP nonce (boss ยอมรับความเสี่ยง) · DST day strip
+- **ย้ายไป R17:** retention 30 วัน + กู้กลุ่ม/บัญชีที่ลบ (B4 ข้อ ก, มี migration) · **R17 รอเริ่มหลัง R16 merge** (ยังไม่มี contract R17)
+- **ยังไม่มี/ยังไม่ยืนยัน:** ผล qa และ security ของ R16 (ยังไม่มี `qa-r16.md` / `security-r16.md`) · PR ของ R16 (ยังไม่ได้ตรวจ GitHub รอบนี้) · ผลเทสต์ของ branch (เลขาไม่ได้รัน) · CI ของ commit ใน branch · ARCHITECTURE ทำแล้ว `10b01f5` (architect · rate limit R16 + ADR 0014 CSP unsafe-inline accepted) · H2 ใน contract §1 เขียน `PUT /api/prefs` แต่ endpoint จริงคือ `POST /api/prefs` (contract §6 บันทึกไว้แล้ว)
 
-### 0. รอบ `docs/sync-r15` — เคลียร์เอกสารให้ตรงของจริง (DOCS_SYNC_CONTRACT §5–§6) · **เสร็จใน PR `docs/sync-r15` รอ boss merge** (ห้ามออกรุ่นเอง: เอกสารล้วน)
+## เหลือ (รายการเดียวที่ใช้ต่อ · ตรวจกับ git log, โค้ด, CHANGELOG, `docs/reports/` เมื่อ 2026-11-19)
+
+### 0. รอบ `docs/sync-r15` — **PR #37 merge แล้ว** (`9db2c08`, 2026-11-18 22:08 เวลาไทย · `gh pr view 37`: MERGED) · ตัดออกจากรายการค้างแล้ว
 - **secretary:** `403ca6f` PROGRESS, NEXT_PHASE, quickstart v0.13.0 (+ แถวข้อจำกัด LINE / ค้นหาในแอป), README (LINE: ลิงก์กดไม่ได้, เพดาน 300/เดือน), SECRETARY, PROCESS, TEAM (หมายเหตุบรรทัดเดียว), `docs/reports/2026-11-18.md`
 - **ops:** `de54f16` CHANGELOG [0.13.0] รายการ R15b · OPERATIONS sync · `tests/ops/docs-sync.test.ts` (DOCS_SYNC §4) · `2bc7808` keepalive comment (repo public) · `a3d18ed` override esbuild 0.25.12 และ minimatch 11.0.1 (Dependabot) · **picomatch ยังไม่มีรุ่นแก้** (ดูหัวข้อ 2 และ Low 1 ใน security-docs-sync)
 - **architect:** `0b67738` ARCHITECTURE ตรง v0.13.0 (schema, 72 routes, env, cron) · ADR 0001–0009 → Accepted · ADR ทั้ง 13 (0001–0013) Accepted แล้ว
 - **ux:** `8560707` sync design docs และ samples กับ v0.13.0
 - **qa:** `7c5e597` ตัวตรวจ route เข้มขึ้น (ต้องมีแถว METHOD+path ใน ARCHITECTURE §5) · `f94b7aa` รายงาน `docs/reports/qa-docs-sync.md` **ผ่านแบบมีข้อสังเกต** (Medium แก้แล้ว · Low ข้อ 2 แก้ด้วยงานนี้)
 - **security:** `8ea2f41` รายงาน `docs/reports/security-docs-sync.md` **ผ่านแบบมีข้อสังเกต** — npm audit: moderate 0 · high 18 ทั้งหมดมาจาก picomatch ตัวเดียว ไม่มีรุ่นแก้ · Low 1 ยอมรับความเสี่ยงและติดตาม (ไม่มีทางที่ input ผู้ใช้เข้า glob บน production ตามการตรวจ trace)
-- **ยังไม่ยืนยัน:** CI ของ commit ล่าสุด และ Vercel prod (เลขาไม่ได้รันเอง) · ผลเทสต์ `docs-sync` ของเลขา (เลขาไม่ได้รัน)
+- **ยืนยันแล้ว (`gh pr view --json statusCheckRollup`):** PR #36 และ #37 — `lint`, `typecheck`, `test + migration`, `contrast`, `build`, `e2e (Playwright)` 1–4 ขึ้น SUCCESS (ไม่ใช่ skipped) · **ยังไม่ยืนยัน:** Vercel prod · ผลเทสต์ `docs-sync` ของเลขา (เลขาไม่ได้รัน)
 
-### 1. ต้องให้ boss ตัดสินนโยบายก่อน
-- **retention ลบถาวร + กู้คืนกลุ่ม/บัญชีที่ลบ** (PDPA) — R15 §2, B9 · ต้องมีนโยบายก่อนลงมือ
-- **CSP แบบ nonce** (เลิก `unsafe-inline` ใน `script-src`/`style-src` ของ `next.config.ts`) — R15 §2, B9 · security R6E Info 4
+### 1. ตัดสินแล้ว (boss 2026-11-18 · R16 §5)
+- **retention ลบถาวร + กู้คืนกลุ่ม/บัญชีที่ลบ** (PDPA) — boss เลือก (ก) เก็บ 30 วัน กู้ได้ แล้วลบถาวรอัตโนมัติ → **ย้ายไป R17** (มี migration · รอ R16 merge)
+- **CSP แบบ nonce** — boss เลือก **ไม่ทำ ยอมรับความเสี่ยง** (R16 B3) · บันทึกเหตุผลใน `docs/OPERATIONS.md` (ops `7f370ab`) และ ADR 0014 (architect `10b01f5`)
 
-### 2. ทำได้เลย (ไม่ต้องตัดสิน)
-- rate limit ฝั่งอ่านแบบ global (R15 §2)
-- หน้า auth ตอบ 200 ระหว่าง stream (R15 §2)
-- e2e retries 2 → 0 หรือ 1 (`playwright.config.ts` ปัจจุบัน `retries: 2`) — R15 §2
-- Server-Timing บนหน้า RSC (R15 §2)
-- **PATCH `/api/groups/:gid` ไม่มี rate limit** — `updateGroupSettings` ใน `src/lib/data/services/groups.ts` เรียก `authorize` อย่างเดียว (ตรวจโค้ดแล้ว) · หมายเหตุ: `security-r15a` Info 3 เขียนว่ามี bucket เดิม ซึ่งขัดกับโค้ด ให้ platform ยืนยันก่อนแก้
-- **/api/prefs ไม่มี rate limit** — สลับ th/en รัว ๆ ได้ (security R15b Info 5 · ผลกระทบต่ำ)
-- **ผู้ถูกเชิญเห็นชื่อ SA นอกกลุ่ม** — `group.invite.received` ใช้ `inviterName` = ชื่อ super admin (security R15b Info 3)
-- **เพดาน LINE OA ไม่แบ่งต่อกลุ่ม** — เป็นผลของ B6 ที่ตัดสินแล้ว · ทางแก้ต้องให้ boss เปลี่ยนนโยบาย (security R15b Info 2)
-- **แถวแจ้งเตือนเก่าก่อน R15b ยังแสดงชื่อ SA** — ไม่มี backfill (ไม่มี migration) · ยอมรับได้ หรือเขียนข้อมูลใหม่ถ้าต้องการ (security R15b Info 1)
-- **config-hygiene: `runBlocks` ตัดที่ `\n\n` แรก** — ถ้า step `run: |` มีบรรทัดว่างกลาง `${{ }}` หลังบรรทัดว่างจะไม่ถูกตรวจ (qa R15b Low 1 · `tests/security/config-hygiene.test.ts`)
-- **npm audit (ปัจจุบัน): high 18 / moderate 0** — ทั้งหมดมาจาก picomatch GHSA-fc5q-39xc-vjpf ตัวเดียว (`first_patched_version: null`) · ยอมรับความเสี่ยงตาม `docs/reports/security-docs-sync.md` Low 1 · **backlog (ops):** ติดตาม picomatch เมื่อมีรุ่นแก้ แล้วเพิ่ม override ทันที
-- **ติดตาม picomatch GHSA-fc5q-39xc-vjpf** — เมื่อมีรุ่นแก้ ให้ ops เพิ่ม override/อัปเดต lockfile และรัน build/test (security-docs-sync Low 1 เงื่อนไข ก–ข)
-- **วันที่เคยแยกแก้ + เอาวันของชุดกลับ = มีสองรายการ** — qa R15a ข้อ 6 ระบุว่าเป็นพฤติกรรมที่ออกแบบและแจ้งผู้ใช้แล้ว (`restoreNote`) ไม่ใช่บั๊ก · ถ้าจะเปลี่ยนต้องตัดสินก่อนและอาจต้อง migration
-- **"Take another look" ที่ 375 ขึ้นบรรทัดใหม่ไม่เยื้องตามชื่อขั้น** (qa R15a ข้อ 2 · ต่ำ) — ยังไม่ยืนยันว่า `f612b0b` แก้ข้อนี้ครบ
-- **legend แท็บ "เอากลับ"**: ช่อง "วันของชุดนี้" เป็นสี่เหลี่ยมขาว แต่วันที่ล็อกเป็นสีเทา (qa R15a ข้อ 3 · ต่ำ)
-- **skeleton ขั้นต่ำ 250 ms ยังไม่ครอบ `src/app/loading.tsx`** — เรียก `LoadingState` ตรง · `useMinSkeleton` ใช้เฉพาะคอมโพเนนต์ client (อ่านจากโค้ด)
-- **NavProgress ไม่ขึ้นตอนออกจากระบบและลบบัญชี** — `AccountActions`/`AccountSection` ไม่เรียก `signalNavStart` (qa R15a)
-- **DST day strip** — แอปใช้ Asia/Bangkok อย่างเดียว ยังไม่เกิด (R15 §2)
-- **required check ที่ถูกข้ามใน docs-only PR:** ruleset `main` ตั้ง build และ e2e 1–4 เป็น required · ยังไม่ยืนยันบน GitHub ว่า job ที่ `skipped` ถูกนับเป็นผ่าน (security R15b Info 4)
+### 2. ผลตาม R16 (ตรวจกับ git log และโค้ด 2026-11-19)
+- rate limit ฝั่งอ่านแบบ global → **R16 H3** (600/10 นาที ต่อผู้ใช้ · รอ qa/security)
+- หน้า auth ตอบ 200 ระหว่าง stream → **ตรวจแล้ว ไม่แก้** (R16 §6 H5)
+- e2e retries → **R16 T1** (`playwright.config.ts`: `retries: isCI ? 1 : 0`) · วิธีดูเทสต์ flaky อยู่ใน OPERATIONS · ยังไม่ยืนยันผลบน CI จริง
+- Server-Timing บนหน้า RSC → **ไม่ทำ** (R16 §6 H6 · ใช้ `tests/perf/r7-baseline.test.ts` แทน)
+- **PATCH `/api/groups/:gid` ไม่มี rate limit** → **R16 H1** (ถัง `group:settings` 30/10 นาที · ก่อน R16 ไม่มีถังนี้ในโค้ด)
+- **/api/prefs ไม่มี rate limit** → **R16 H2** (endpoint จริงคือ `POST /api/prefs` · 60/10 นาที เฉพาะคนล็อกอิน)
+- **ผู้ถูกเชิญเห็นชื่อ SA นอกกลุ่ม** → **R16 H4 + H4b** (แถวใหม่เท่านั้น · แถวเก่าดูข้อ "แถวแจ้งเตือนเก่า")
+- **เพดาน LINE OA ไม่แบ่งต่อกลุ่ม** → **ไม่ทำ** เป็นผลของ R15 B6 (เพดานรวมทั้งระบบ) · ถ้าจะเปลี่ยนต้องให้ boss เปลี่ยนนโยบาย
+- **แถวแจ้งเตือนเก่าก่อน R15b ยังแสดงชื่อ SA** → **ไม่ทำ** (R16 §6 · ไม่มี backfill)
+- **config-hygiene: `runBlocks` ตัดที่บรรทัดว่างแรก** → **R16 T2** (`5ced8bb`) · รอ qa ตรวจ
+- **npm audit (picomatch)** → **ยังค้าง** (ดูหัวข้อ "ค้าง" ด้านล่าง)
+- **วันที่เคยแยกแก้ + เอาวันของชุดกลับ** → **ปิด** — พฤติกรรมที่ออกแบบและแจ้งผู้ใช้แล้ว (`restoreNote`) ไม่ใช่บั๊ก (qa R15a ข้อ 6)
+- **"Take another look" ที่ 375 ไม่เยื้องตามชื่อขั้น** → **R16 U1** (`5d009fb`) · `f612b0b` (2026-11-16) อยู่ใน main แต่ยังไม่ยืนยันว่าแก้ครบ · รอ qa ตรวจ 375
+- **legend แท็บ "เอากลับ"** → **R16 U2** (`5d009fb`) · รอ qa ตรวจสีให้ตรงปฏิทิน
+- **skeleton ขั้นต่ำ 250 ms ไม่ครอบ `loading.tsx`** → **R16 U4** (`5d009fb`, `SkeletonHold.tsx`) · รอ qa
+- **NavProgress ไม่ขึ้นตอนออกจากระบบและลบบัญชี** → **R16 U3** (ตรวจโค้ดแล้ว: `AccountActions.tsx` และ `DeleteAccountSheet.tsx` เรียก `signalNavStart`) · รอ qa
+- **DST day strip** → **ไม่จำเป็น** (R16 §6 · แอปใช้ Asia/Bangkok อย่างเดียว)
+
+### ค้าง (ไม่อยู่ใน R16 · ให้ main/boss ตัดสิน)
+- **security-r5 Info 1 — คำเชิญตรงแข่งกับการลบบัญชี** (ข้อต่ำ) — `createDirectInvite` ตรวจ `invitee.status === 'active'` นอกธุรกรรม (`src/lib/data/services/invites.ts` บรรทัด 128) แต่ `insertDirectInvite` (`src/lib/data/repos/group-invite.ts`) ไม่มีเงื่อนไขสถานะผู้รับ · ยังไม่มีคอมมิตแก้
+- **picomatch GHSA-fc5q-39xc-vjpf** — ยังไม่มีรุ่นแก้ (Dependabot alert #5 เปิดอยู่ `first_patched_version` = none ตรวจ 2026-11-19) · ops ติดตาม และเพิ่ม override/อัปเดต lockfile ทันทีเมื่อมีรุ่นแก้ (security-docs-sync Low 1)
+- **แถวแจ้งเตือนเก่าและรายการเก่าที่แสดงชื่อ SA** — ไม่มี backfill (ไม่มี migration) · อยู่ในหัวข้อ "ไม่ทำ" ของ R16 §6 แล้ว
 
 ### 3. boss ลองบนเครื่องจริง (ไม่บล็อก)
 - ลิงก์ในชื่อนัดบนแอป LINE กดไม่ได้จริงหรือไม่ (R15b) — ยังไม่ทดสอบ · ตอนนี้ระบบทำให้ลิงก์ไม่เป็นลิงก์ตั้งแต่ฝั่งข้อความ (ดู README/quickstart)
@@ -328,7 +344,7 @@
 - ติดตั้ง Node 24 (เครื่องเป็น v26 ทำให้เทสต์ health ล้มในเครื่อง · R15 §8)
 - เทสต์ที่ล้มเฉพาะในเครื่อง Windows: `release.test` (`.bin/tsx` ENOENT) และเทสต์ที่ต้องใช้ Python (qa R15b) · ผลจริงดูจาก CI
 
-**ตัดออกจากรายการแล้ว (เสร็จตามหลักฐาน):** RSVP 10→9 รอตัดสิน (แก้แล้ว R15b `ac6e99e`) · ลบ `place_search_cache` (migration `0006`, boss รันแล้วตามที่ PROGRESS ระบุ) · เตือน 1 วัน LINE (boss ยืนยัน) · env เก่าใน Vercel (boss ลบแล้ว) · repo private/public (repo PUBLIC ตาม `gh repo view`) · ไฟล์ตัวอย่าง `appt-*` (แก้แล้ว) · ปุ่ม Maps 768 (CSS ตาม qa R15a) · แถบล่างแบบประจำที่ 375 (qa R15a) · ขั้น 3 ของแถบ (`f612b0b` + StepBar) · /api/prefs locale (`0ff2e6f`) · ลิงก์ LINE ในชื่อนัด/ชื่อกลุ่มไม่เป็นลิงก์ (`e9eb18f` แก้ neutralizeLinks ให้ครอบโดเมน Unicode, IPv4 และจุดแบบอื่น ตาม security R15b Low 1 — ยังไม่มีรายงานตรวจซ้ำจาก security) · เพดาน LINE OA 300/เดือน (`0ff2e6f`, เหลือข้อ per-group ในข้อ 2) · B7 ป้าย "ผู้ดูแลระบบ" (แก้แล้ว เหลือข้อ Info ในข้อ 2/3) · EPERM helper (`a1f6ccb`, qa ยืนยัน) · CI ข้าม build/e2e เมื่อแก้เอกสาร (`ddbe57e`, ปรับต่อที่ `321a060` และ `7d5ed24` ใน PR #36) · `/privacy` B4 (ข้อความ `busyStatus` มีแล้ว) · ป้ายชุดใน MineList (`sr-only` ใน `MineList.tsx`) · required checks บน main (ตั้งไว้แล้ว 9 ตัว ตาม PROGRESS เดิม) · R14 ทดสอบ T1–T4 (boss) · qa-r14b และ security-r14b มีในรีโปแล้ว (ผ่าน/ผ่านแบบมีข้อสังเกต) · ศัพท์ "กิจวัตร" ไม่พบใน OPERATIONS/CHANGELOG แล้ว
+**ตัดออกจากรายการแล้ว (เสร็จตามหลักฐาน):** ข้อสังเกต qa-r5 / security-r5 ปิดแล้ว (ตรวจ 2026-11-19 · commit อยู่ใน main ตาม `git merge-base --is-ancestor`): qa M1 `52b9547` · qa L1–L4 `9afb6d2` · qa L5 `86cc578`, `58c1565` · qa L6 `c6c3e4e` · qa L7 `17b2bcf` (งบ 120 วินาที) · sec L1/L2 `c2958ef` · sec L3 `a32f43d`, `2a8f00d` · sec L4 `79325b7` · sec L5 `089a1ef` · sec L6 `02d51ab` · sec Info 2 `24d7f57` · sec Info 3 และ 5 ยอมรับตามสัญญา · sec Info 4 (admin กลุ่มที่ถูกระงับ) ยอมรับตาม R5 §7.2 · sec Info 6 ครอบด้วย R16 H3 เมื่อ merge · required check ที่ข้ามใน docs-only PR (PR #36/#37 e2e 1–4 SUCCESS) · RSVP 10→9 รอตัดสิน (แก้แล้ว R15b `ac6e99e`) · ลบ `place_search_cache` (migration `0006`, boss รันแล้วตามที่ PROGRESS ระบุ) · เตือน 1 วัน LINE (boss ยืนยัน) · env เก่าใน Vercel (boss ลบแล้ว) · repo private/public (repo PUBLIC ตาม `gh repo view`) · ไฟล์ตัวอย่าง `appt-*` (แก้แล้ว) · ปุ่ม Maps 768 (CSS ตาม qa R15a) · แถบล่างแบบประจำที่ 375 (qa R15a) · ขั้น 3 ของแถบ (`f612b0b` + StepBar) · /api/prefs locale (`0ff2e6f`) · ลิงก์ LINE ในชื่อนัด/ชื่อกลุ่มไม่เป็นลิงก์ (`e9eb18f` แก้ neutralizeLinks ให้ครอบโดเมน Unicode, IPv4 และจุดแบบอื่น ตาม security R15b Low 1 — ยังไม่มีรายงานตรวจซ้ำจาก security) · เพดาน LINE OA 300/เดือน (`0ff2e6f`, เหลือข้อ per-group ในข้อ 2) · B7 ป้าย "ผู้ดูแลระบบ" (แก้แล้ว เหลือข้อ Info ในข้อ 2/3) · EPERM helper (`a1f6ccb`, qa ยืนยัน) · CI ข้าม build/e2e เมื่อแก้เอกสาร (`ddbe57e`, ปรับต่อที่ `321a060` และ `7d5ed24` ใน PR #36) · `/privacy` B4 (ข้อความ `busyStatus` มีแล้ว) · ป้ายชุดใน MineList (`sr-only` ใน `MineList.tsx`) · required checks บน main (ตั้งไว้แล้ว 9 ตัว ตาม PROGRESS เดิม) · R14 ทดสอบ T1–T4 (boss) · qa-r14b และ security-r14b มีในรีโปแล้ว (ผ่าน/ผ่านแบบมีข้อสังเกต) · ศัพท์ "กิจวัตร" ไม่พบใน OPERATIONS/CHANGELOG แล้ว
 
 ## ข้อสังเกต [ประวัติ]
 - **ลำดับ migration `0003` (ปิดแล้ว):** commit `ca104a0` (ops) แก้ `docs/OPERATIONS.md` ให้ตรงกับลำดับที่ main สั่ง (preview ก่อน PR, prod ก่อน merge) — ปิดตาม commit message
