@@ -235,6 +235,8 @@ describe('3. params ของ notification มีเฉพาะคีย์ใ�
     'group.member.left': ['groupId', 'groupName', 'memberName', 'memberId'],
     'group.member.removed': ['groupId', 'groupName'],
     'group.member.role_changed': ['groupId', 'groupName', 'role'],
+    // R17 G5 (contract R17 §1 G5 · B3): ไม่มีชื่อ super admin — ธง actorSystemAdmin แทน (แบบ R16 H4)
+    'group.restored': ['groupId', 'groupName', 'actorSystemAdmin'],
     'pin_reset.approved': ['expiresAt'],
     'pin_reset.cancelled_by_login': [],
   };

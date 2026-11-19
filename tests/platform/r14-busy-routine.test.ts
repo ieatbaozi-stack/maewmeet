@@ -695,7 +695,7 @@ describe('R14-7 — ลบบัญชี / cron', () => {
   it('ลบบัญชี → กฎ routine + ทุกแถว + skip หาย', async () => {
     const r = await mustCreate(a);
     await del(a.c, `/api/me/busy/${(await rowsOf(r.routine.id))[0]!.id}`);
-    const res = await post(a.c, '/api/me/delete', { pin: GOOD_PIN });
+    const res = await post(a.c, '/api/me/delete', { pin: GOOD_PIN, confirmUsername: a.username });
     expect(res.status, JSON.stringify(res.json)).toBe(200);
     expect(await h.count('busy_routine WHERE user_id = ?', [a.id])).toBe(0);
     expect(await h.count('busy_block WHERE user_id = ?', [a.id])).toBe(0);

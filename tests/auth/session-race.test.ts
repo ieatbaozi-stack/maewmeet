@@ -23,7 +23,7 @@ describe('login แข่งกับการลบบัญชี (L1)', () =>
     for (let i = 0; i < 6; i++) {
       const v = await person(h, `del${i}`);
       const other = new Client();
-      const [login, del] = await Promise.all([other.login(v.username, GOOD_PIN), post(v.c, '/api/me/delete', { pin: GOOD_PIN })]);
+      const [login, del] = await Promise.all([other.login(v.username, GOOD_PIN), post(v.c, '/api/me/delete', { pin: GOOD_PIN, confirmUsername: v.username })]);
       expect(del.status, `round ${i}`).toBe(200);
       expect(await sessionsOf(v.id), `round ${i}: session ค้างของบัญชีที่ลบ`).toBe(0);
       if (login.status !== 200) expect(login.code).toBe('INVALID_CREDENTIALS');
@@ -37,7 +37,7 @@ describe('login แข่งกับการลบบัญชี (L1)', () =>
     const v = await person(h, 'ghost');
     const stale = new Client();
     v.c.cloneJarTo(stale);
-    expect((await post(v.c, '/api/me/delete', { pin: GOOD_PIN })).status).toBe(200);
+    expect((await post(v.c, '/api/me/delete', { pin: GOOD_PIN, confirmUsername: v.username })).status).toBe(200);
     // จำลองแถวที่หลุดรอดมาก่อนแก้: session id เดียวกับคุกกี้ของ stale
     const { readSessionId } = await import('@/lib/auth/session');
     const sid = readSessionId(new Request('https://x/', { headers: { cookie: stale.cookieHeader() } }))!;

@@ -252,6 +252,7 @@ export const MATRIX = {
   'admin.user.unlock': { ref: '§3 หน้า super admin', resource: 'none', cases: { any: SA_ONLY } },
   'admin.group.list': { ref: '§3 หน้า super admin', resource: 'none', cases: { any: SA_ONLY } },
   'admin.group.view': { ref: '§3 หน้า super admin · R5 §2 ข้อ 3 (รายละเอียดกลุ่ม + audit)', resource: 'none', cases: { any: SA_ONLY } },
+  'admin.group.restore': { ref: 'R17 G1 + B4 (กู้คืนกลุ่มที่ลบ — super admin เท่านั้น + audit)', resource: 'none', cases: { any: SA_ONLY } },
   'admin.audit.view': { ref: '§3 หน้า super admin', resource: 'none', cases: { any: SA_ONLY } },
 
   // ───────── อื่น ๆ ─────────
@@ -279,6 +280,7 @@ export const EXPECT_SA_AUDITED_SA_ONLY: readonly Action[] = [
   'admin.user.suspend',
   'admin.user.unlock',
   'admin.group.view',
+  'admin.group.restore',
   'admin.audit.view',
 ];
 

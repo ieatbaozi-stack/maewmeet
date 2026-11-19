@@ -55,7 +55,7 @@ const SAMPLE_BODY: Record<string, unknown> = {
   'POST /api/me/notifications/read': { all: true },
   // R5 (Platform): บัญชีของฉัน — body ผ่าน zod ก่อน actor
   'PATCH /api/me': { displayName: 'x' },
-  'POST /api/me/delete': { pin: '482915' },
+  'POST /api/me/delete': { pin: '482915', confirmUsername: 'someone' },
 };
 
 const concretePath = (e: ManifestEntry) => e.path.replace(/:\w+/g, UUID);

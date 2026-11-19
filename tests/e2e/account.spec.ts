@@ -114,6 +114,6 @@ test('th: super admin ไม่มีปุ่มลบบัญชี (เห�
   await sa.page.goto('/me', { waitUntil: 'networkidle' });
   await expect(sa.page.getByTestId('me-delete')).toHaveCount(0);
   await expect(sa.page.getByTestId('me-delete-sa')).toHaveText(msg('th', 'account.delete.superAdmin'));
-  const r = await call(sa.context.request, 'POST', '/api/me/delete', { pin: GOOD_PIN });
+  const r = await call(sa.context.request, 'POST', '/api/me/delete', { pin: GOOD_PIN, confirmUsername: sa.username });
   expect(r.status).toBe(403);
 });

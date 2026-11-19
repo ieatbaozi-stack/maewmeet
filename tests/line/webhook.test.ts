@@ -295,7 +295,7 @@ describe('/api/me/line', () => {
 
   it('ลบบัญชี: ล้างโค้ดเชื่อมของผู้ใช้', async () => {
     await newCode(b);
-    expect((await post(b.c, '/api/me/delete', { pin: '135792' })).status).toBe(200);
+    expect((await post(b.c, '/api/me/delete', { pin: '135792', confirmUsername: b.username })).status).toBe(200);
     expect(await h.count('line_link_code WHERE user_id = ?', [b.id])).toBe(0);
   });
 });

@@ -80,6 +80,8 @@ export const ACTIONS = [
   'admin.user.unlock',
   'admin.group.list',
   'admin.group.view',
+  // R17 G1: กู้คืนกลุ่มที่ลบ (ภายใน 30 วัน) — super admin เท่านั้น (R17 B4)
+  'admin.group.restore',
   'admin.audit.view',
 
   // ── อื่น ๆ ──
@@ -116,6 +118,7 @@ export const SUPER_ADMIN_ONLY = [
   'admin.user.unlock',
   'admin.group.list',
   'admin.group.view',
+  'admin.group.restore',
   'admin.audit.view',
 ] as const satisfies readonly Action[];
 
@@ -131,6 +134,7 @@ export const SUPER_ADMIN_AUDITED = [
   'admin.user.suspend',
   'admin.user.unlock',
   'admin.group.view',
+  'admin.group.restore',
   'admin.audit.view',
 ] as const satisfies readonly (typeof SUPER_ADMIN_ONLY)[number][];
 
@@ -215,6 +219,7 @@ export const ACTION_RESOURCE = {
   'admin.user.unlock': ['none'],
   'admin.group.list': ['none'],
   'admin.group.view': ['none'],
+  'admin.group.restore': ['none'],
   'admin.audit.view': ['none'],
 
   'notification.list.own': ['ownedByUser'],

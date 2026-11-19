@@ -30,6 +30,8 @@ export const NOTIFICATION_KINDS = [
   'group.member.left',
   'group.member.removed',
   'group.member.role_changed',
+  // R17 G5: super admin กู้คืนกลุ่มที่ลบ → สมาชิกที่บัญชี active ทุกคน (กระดิ่งเท่านั้น ไม่เข้า LINE)
+  'group.restored',
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -66,6 +68,11 @@ export type NotificationParamsByKind = {
   /** ไม่บอกชื่อผู้นำออก (R11 §1) */
   'group.member.removed': { groupId: string; groupName: string };
   'group.member.role_changed': { groupId: string; groupName: string; role: 'admin' | 'moderator' | 'member' };
+  /**
+   * R17 G5 (B3): กลุ่มถูกกู้คืน — ผู้กระทำเป็น super admin เสมอ (B4) → ไม่เก็บชื่อ SA · actorSystemAdmin: true ให้ UI แสดง common.systemAdmin (แบบ R16 H4)
+   * groupName = ชื่อกลุ่ม ณ เวลากู้คืน
+   */
+  'group.restored': { groupId: string; groupName: string; actorSystemAdmin: true };
 };
 
 export function isNotificationKind(value: unknown): value is NotificationKind {

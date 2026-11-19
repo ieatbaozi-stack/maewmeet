@@ -42,7 +42,7 @@ describe('GET /api/admin/users', () => {
       "INSERT INTO pin_reset_request (id, user_id, status, device_token_hash, requested_at, pending_expires_at) VALUES (?, ?, 'pending', 'x', ?, ?)",
       [newId(), a.id, h.clock.now(), h.clock.now() + 86_400_000],
     );
-    expect((await call(gone.c, 'POST', '/api/me/delete', { pin: GOOD_PIN })).status).toBe(200);
+    expect((await call(gone.c, 'POST', '/api/me/delete', { pin: GOOD_PIN, confirmUsername: gone.username })).status).toBe(200);
 
     const r = await users();
     expect(r.status).toBe(200);
@@ -126,8 +126,8 @@ describe('GET /api/admin/groups', () => {
     expect(r.status).toBe(200);
     expect(r.data.groups.map((g) => g.id).sort()).toEqual([g1, g2].sort());
     const one = r.data.groups.find((g) => g.id === g1)!;
-    expect(Object.keys(one).sort()).toEqual(['adminUsername', 'createdAt', 'deletedAt', 'id', 'memberCount', 'name'].sort());
-    expect(one).toMatchObject({ name: 'แมว_ส้ม', adminUsername: 'alice', memberCount: 2, deletedAt: null });
+    expect(Object.keys(one).sort()).toEqual(['adminUsername', 'createdAt', 'deletedAt', 'id', 'memberCount', 'name', 'purgeAt', 'restorable', 'restoreBlockedReason'].sort());
+    expect(one).toMatchObject({ name: 'แมว_ส้ม', adminUsername: 'alice', memberCount: 2, deletedAt: null, purgeAt: null, restorable: false, restoreBlockedReason: null });
     expect((await groups('status=deleted')).data.groups.map((g) => g.id)).toEqual([g3]);
     expect((await groups('status=deleted')).data.groups[0]!.deletedAt).toBe(h.clock.now());
     expect((await groups('status=all')).data.groups).toHaveLength(3);

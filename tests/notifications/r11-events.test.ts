@@ -637,7 +637,7 @@ describe('R11-7 ลบบัญชีแล้วชื่อถูกล้า�
     await h.rows('UPDATE notification SET read_at = created_at'); // ไม่ให้แถวถูกแทนที่ระหว่างทาง
     await patch(w.m.c, `/api/appointments/${other.id}`, { placeName: 'ร้าน m3' });
 
-    expect((await post(x.c, '/api/me/delete', { pin: GOOD_PIN })).status).toBe(200);
+    expect((await post(x.c, '/api/me/delete', { pin: GOOD_PIN, confirmUsername: x.username })).status).toBe(200);
 
     const scrubbed = await h.rows<{ kind: string; params: string }>(
       "SELECT kind, params FROM notification WHERE (json_extract(params, '$.memberId') = ? OR json_extract(params, '$.responderId') = ? OR json_extract(params, '$.actorId') = ?)",
@@ -660,7 +660,7 @@ describe('R11-7 ลบบัญชีแล้วชื่อถูกล้า�
 
   it('ออกจากกลุ่มแล้วลบบัญชี: memberName ใน left ถูกล้างด้วย', async () => {
     expect((await post(w.c.c, `/api/groups/${w.gid}/leave`)).status).toBe(200);
-    expect((await post(w.c.c, '/api/me/delete', { pin: GOOD_PIN })).status).toBe(200);
+    expect((await post(w.c.c, '/api/me/delete', { pin: GOOD_PIN, confirmUsername: w.c.username })).status).toBe(200);
     const left = await paramsFor(w.a.id, 'group.member.left');
     expect(left[0]).toMatchObject({ memberName: '' });
     expect(left[0]).not.toHaveProperty('memberId');

@@ -80,8 +80,8 @@ describe('canary: ทุก GET /api/admin/* ของ super admin', () => {
 
   it('รายละเอียดกลุ่ม: ชื่อ + tz + สมาชิก (username, displayName, role, joinedAt) + จำนวน เท่านั้น', async () => {
     const r = await get<{ group: Record<string, unknown> & { members: Record<string, unknown>[] } }>(boss.c, `/api/admin/groups/${gid}`);
-    expect(Object.keys(r.data.group).sort()).toEqual(['createdAt', 'deletedAt', 'id', 'memberCount', 'members', 'name', 'openAppointmentCount', 'tz'].sort());
-    expect(r.data.group).toMatchObject({ name: 'ก๊วนลับ', tz: 'Asia/Bangkok', memberCount: 2, openAppointmentCount: 1, deletedAt: null });
+    expect(Object.keys(r.data.group).sort()).toEqual(['createdAt', 'deletedAt', 'id', 'memberCount', 'members', 'name', 'openAppointmentCount', 'tz', 'purgeAt', 'restorable', 'restoreBlockedReason'].sort());
+    expect(r.data.group).toMatchObject({ name: 'ก๊วนลับ', tz: 'Asia/Bangkok', memberCount: 2, openAppointmentCount: 1, deletedAt: null, purgeAt: null, restorable: false, restoreBlockedReason: null });
     for (const m of r.data.group.members) expect(Object.keys(m).sort()).toEqual(['displayName', 'joinedAt', 'role', 'userId', 'username']);
     expect(r.data.group.members.map((m) => [m.username, m.role])).toEqual([
       ['alice', 'admin'],

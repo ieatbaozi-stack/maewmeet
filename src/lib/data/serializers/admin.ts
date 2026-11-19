@@ -7,6 +7,7 @@ import type { AdminUserRow } from '@/lib/data/repos/admin-users';
 import type { AuditListRow } from '@/lib/data/repos/admin-audit';
 import type { GroupRole } from '@/lib/data/repos/group';
 import { sanitizeDisplayText as clean } from '@/lib/shared/name-rules';
+import { groupPurgeAt, withinRestoreWindow } from '../group-retention';
 
 // ───────── ผู้ใช้ ─────────
 export type AdminUserDto = {
@@ -39,6 +40,26 @@ export const toAdminUserDto = (r: AdminUserRow): AdminUserDto => ({
 export type AdminUserActionDto = { id: string; status: 'active' | 'suspended'; changed: boolean };
 
 // ───────── กลุ่ม ─────────
+
+/** R17: ทำไมกู้คืนไม่ได้ (ตรงกับ params.reason ของ 409 CONFLICT จาก POST /api/admin/groups/:gid/restore) */
+export type GroupRestoreBlockedReason = 'RETENTION_EXPIRED' | 'NO_ACTIVE_ADMIN';
+
+/** R17 G1/G3: สถานะ retention ของกลุ่ม — กลุ่มที่ยังไม่ลบ: purgeAt null, restorable false, restoreBlockedReason null */
+export type AdminGroupRetentionDto = {
+  /** epoch ms ที่จะถูกลบถาวร (cron รายวันรอบแรกที่ >= เวลานี้) · null = ยังไม่ลบ */
+  purgeAt: number | null;
+  /** กดกู้คืนได้ตอนนี้ (ลบอยู่ + ยังไม่ถึง purgeAt + มี admin ที่บัญชี active) */
+  restorable: boolean;
+  /** ลบอยู่แต่กู้ไม่ได้ เพราะอะไร · null = กู้ได้ หรือยังไม่ลบ */
+  restoreBlockedReason: GroupRestoreBlockedReason | null;
+};
+
+export function groupRetentionDto(deletedAt: number | null, hasActiveAdmin: boolean, now: number): AdminGroupRetentionDto {
+  if (deletedAt === null) return { purgeAt: null, restorable: false, restoreBlockedReason: null };
+  const reason: GroupRestoreBlockedReason | null = !withinRestoreWindow(deletedAt, now) ? 'RETENTION_EXPIRED' : !hasActiveAdmin ? 'NO_ACTIVE_ADMIN' : null;
+  return { purgeAt: groupPurgeAt(deletedAt), restorable: reason === null, restoreBlockedReason: reason };
+}
+
 export type AdminGroupDto = {
   id: string;
   name: string;
@@ -46,15 +67,16 @@ export type AdminGroupDto = {
   memberCount: number;
   createdAt: number;
   deletedAt: number | null;
-};
+} & AdminGroupRetentionDto;
 
-export const toAdminGroupDto = (r: AdminGroupRow): AdminGroupDto => ({
+export const toAdminGroupDto = (r: AdminGroupRow, now: number): AdminGroupDto => ({
   id: r.id,
   name: clean(r.name),
   adminUsername: r.adminUsername,
   memberCount: r.memberCount,
   createdAt: r.createdAt,
   deletedAt: r.deletedAt,
+  ...groupRetentionDto(r.deletedAt, r.hasActiveAdmin, now),
 });
 
 export type AdminGroupMemberDto = { userId: string; username: string; displayName: string; role: GroupRole; joinedAt: number };
@@ -68,9 +90,9 @@ export type AdminGroupDetailDto = {
   memberCount: number;
   openAppointmentCount: number;
   members: AdminGroupMemberDto[];
-};
+} & AdminGroupRetentionDto;
 
-export const toAdminGroupDetailDto = (g: AdminGroupDetailRow, members: AdminMemberRow[]): AdminGroupDetailDto => ({
+export const toAdminGroupDetailDto = (g: AdminGroupDetailRow, members: AdminMemberRow[], now: number): AdminGroupDetailDto => ({
   id: g.id,
   name: clean(g.name),
   tz: g.tz,
@@ -79,6 +101,7 @@ export const toAdminGroupDetailDto = (g: AdminGroupDetailRow, members: AdminMemb
   memberCount: members.length,
   openAppointmentCount: g.openAppointmentCount,
   members: members.map((m) => ({ userId: m.userId, username: m.username, displayName: clean(m.displayName), role: m.role, joinedAt: m.joinedAt })),
+  ...groupRetentionDto(g.deletedAt, g.hasActiveAdmin, now),
 });
 
 // ───────── audit ─────────
@@ -117,6 +140,10 @@ export const AUDIT_META_WHITELIST: Readonly<Record<string, readonly string[]>> =
   'admin.user.unlock': ['wasLocked', 'asSuperAdmin'],
   'admin.group.view': ['asSuperAdmin'],
   'admin.audit.view': ['filtered', 'asSuperAdmin'],
+  // R17
+  'group.restore': ['asSuperAdmin'],
+  /** ระบบ (cron) ลบกลุ่มถาวร — จำนวนแถวเท่านั้น (ไม่มีชื่อกลุ่ม) */
+  'group.purge': ['members', 'invites', 'appointments', 'rsvps', 'reminders', 'notifications', 'outbox'],
 };
 
 const META_STRING_MAX = 64;

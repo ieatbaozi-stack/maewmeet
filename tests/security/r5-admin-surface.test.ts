@@ -32,6 +32,7 @@ describe('A. route R5 → action', () => {
     'POST /api/admin/users/:id/unlock': 'admin.user.unlock',
     'GET /api/admin/groups': 'admin.group.list',
     'GET /api/admin/groups/:gid': 'admin.group.view',
+    'POST /api/admin/groups/:gid/restore': 'admin.group.restore', // R17 G1
     'GET /api/admin/audit': 'admin.audit.view',
   };
   it.each(Object.entries(EXPECTED))('%s → %s', (key, action) => {
@@ -55,7 +56,7 @@ describe('A. route R5 → action', () => {
   it.each([
     ['src/lib/data/services/account.ts', /^self\.(update|delete)$/],
     ['src/lib/data/services/admin-users.ts', /^admin\.user\.(list|suspend|unlock)$/],
-    ['src/lib/data/services/admin-groups.ts', /^admin\.group\.(list|view)$/],
+    ['src/lib/data/services/admin-groups.ts', /^admin\.group\.(list|view|restore)$/],
     ['src/lib/data/services/admin-audit.ts', /^admin\.audit\.view$/],
   ] as const)('%s ใช้เฉพาะ action ในตระกูลของตัวเอง', (file, re) => {
     const used = [...strip(read(file)).matchAll(ACTION_LITERAL)].map((m) => m[1]!);
