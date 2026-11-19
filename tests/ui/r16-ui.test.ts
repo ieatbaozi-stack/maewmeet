@@ -108,6 +108,6 @@ describe('H4c โค้ดเชิญ (InviteSection) — creatorLabel', () => 
     expect(creatorLabel({ creatorName: 'นุ่น', creatorSystemAdmin: false }, sa, gone)).toBe('นุ่น');
   });
   it('InviteSection ใช้ creatorLabel กับ common.systemAdmin', () => {
-    expect(read('src/components/groups/InviteSection.tsx')).toContain('creatorLabel(c, t("common.systemAdmin"), t("account.deletedName"))');
+    expect(read('src/components/groups/InviteSection.tsx')).toContain('creatorLabel(c, tAll("common.systemAdmin"), tAll("account.deletedName"))');
   });
 });

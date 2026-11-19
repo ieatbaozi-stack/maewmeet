@@ -146,7 +146,7 @@ export function InviteSection({ groupId, groupName, invites, seesOthers, notify 
               <p className="meta">
                 {t("code.expires", { date: formatShortDate(c.expiresAt, locale) })} · {t("code.usedCount", { count: c.usesCount })}
               </p>
-              <p className="meta">{withNames((n) => t("code.createdBy", { name: n.name }), { name: creatorLabel(c, t("common.systemAdmin"), t("account.deletedName")) })}</p>
+              <p className="meta">{withNames((n) => t("code.createdBy", { name: n.name }), { name: creatorLabel(c, tAll("common.systemAdmin"), tAll("account.deletedName")) })}</p>
             </li>
           ))}
         </ul>
