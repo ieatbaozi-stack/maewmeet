@@ -173,7 +173,8 @@ export async function createDirectInvite(actor: Actor, groupId: string, input: D
   });
 
   return {
-    invite: toInviteDto({ ...row, codeHash: null, creatorName: inviter.displayName, inviteeName: invitee.displayName }),
+    // R16 H4c: กติกาเดียวกับรายการคำเชิญ — SA ที่ไม่ใช่สมาชิก (actorRole null หลังด่านสิทธิ์) → creatorSystemAdmin
+    invite: toInviteDto({ ...row, codeHash: null, creatorName: inviter.displayName, inviteeName: invitee.displayName, creatorIsSuperAdmin: inviter.isAdmin, creatorIsMember: group.actorRole !== null }),
   };
 }
 

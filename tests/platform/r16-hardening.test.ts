@@ -284,3 +284,45 @@ describe('H4b GET /api/me/invites — ผู้เชิญเป็น super ad
     expect(after).toMatchObject({ inviterName: boss.displayName, actorSystemAdmin: false });
   });
 });
+
+// ───────────────────────────── H4c ─────────────────────────────
+describe('H4c GET /api/groups/:gid/invites — ผู้สร้างเป็น super admin นอกกลุ่ม (ณ ตอนอ่าน) → creatorName ว่าง + creatorSystemAdmin', () => {
+  type Inv = { id: string; kind: string; createdBy: string; creatorName: string; creatorSystemAdmin: boolean };
+  const list = async (p: Person, gid: string) => {
+    const r = await get<{ invites: Inv[] }>(p.c, `/api/groups/${gid}/invites`);
+    expect(r.status, r.text).toBe(200);
+    return r;
+  };
+
+  it('SA นอกกลุ่ม (โค้ด + เชิญตรง) → ว่าง + true · สมาชิกสร้าง → ชื่อจริง + false · SA เข้ากลุ่มทีหลัง → ชื่อจริง · คำตอบตอนสร้างก็ใช้กติกาเดียวกัน · ธงภายในไม่หลุด', async () => {
+    h = await setupHarness({ startAt: NOW });
+    const a = await person(h, 'alice');
+    const boss = await person(h, 'boss', { admin: true });
+    await person(h, 'carol');
+    const gid = await makeGroup(a, 'ก๊วนแมว');
+
+    const saCode = await post<{ invite: { id: string } }>(boss.c, `/api/groups/${gid}/invites/code`);
+    expect(saCode.status, saCode.text).toBe(201);
+    const saDirect = await post<{ invite: Inv }>(boss.c, `/api/groups/${gid}/invites/direct`, { username: 'carol' });
+    expect(saDirect.status, saDirect.text).toBe(201);
+    expect(saDirect.data.invite).toMatchObject({ creatorName: '', creatorSystemAdmin: true });
+    const memCode = await post<{ invite: { id: string } }>(a.c, `/api/groups/${gid}/invites/code`);
+    expect(memCode.status).toBe(201);
+
+    for (const viewer of [a, boss]) {
+      const r = await list(viewer, gid);
+      const byId = new Map(r.data.invites.map((i) => [i.id, i]));
+      expect(byId.get(saCode.data.invite.id)).toMatchObject({ createdBy: boss.id, creatorName: '', creatorSystemAdmin: true });
+      expect(byId.get(saDirect.data.invite.id)).toMatchObject({ creatorName: '', creatorSystemAdmin: true });
+      expect(byId.get(memCode.data.invite.id)).toMatchObject({ creatorName: a.displayName, creatorSystemAdmin: false });
+      expect(r.text).not.toContain(boss.displayName);
+      expect(r.text).not.toContain('creatorIsSuperAdmin');
+      expect(r.text).not.toContain('creatorIsMember');
+    }
+
+    // SA เข้ากลุ่มทีหลัง → ไม่ใช่ "นอกกลุ่ม" แล้ว (ตัดสินตอนอ่าน)
+    await join(a, boss, gid);
+    const after = (await list(a, gid)).data.invites.find((i) => i.id === saCode.data.invite.id)!;
+    expect(after).toMatchObject({ creatorName: boss.displayName, creatorSystemAdmin: false });
+  });
+});

@@ -103,23 +103,30 @@ export type InviteDto = {
   /** ผู้รับ (kind = direct) */
   inviteeName: string | null;
   createdBy: string;
+  /** R16 H4c: '' เมื่อ creatorSystemAdmin */
   creatorName: string;
+  /** R16 H4c: ผู้สร้างเป็น super admin ที่ไม่ใช่สมาชิกกลุ่มนี้ ณ ตอนอ่าน → UI แสดง common.systemAdmin แทนชื่อ (แบบ actorSystemAdmin ของ H4/H4b) */
+  creatorSystemAdmin: boolean;
   createdAt: number;
   expiresAt: number;
   usesCount: number;
 };
 
-export const toInviteDto = (r: InviteListRow): InviteDto => ({
-  id: r.id,
-  kind: r.kind,
-  codeHint: r.codeHint,
-  inviteeName: r.inviteeName === null ? null : clean(r.inviteeName),
-  createdBy: r.createdBy,
-  creatorName: clean(r.creatorName),
-  createdAt: r.createdAt,
-  expiresAt: r.expiresAt,
-  usesCount: r.usesCount,
-});
+export const toInviteDto = (r: InviteListRow): InviteDto => {
+  const systemAdmin = r.creatorIsSuperAdmin && !r.creatorIsMember;
+  return {
+    id: r.id,
+    kind: r.kind,
+    codeHint: r.codeHint,
+    inviteeName: r.inviteeName === null ? null : clean(r.inviteeName),
+    createdBy: r.createdBy,
+    creatorName: systemAdmin ? '' : clean(r.creatorName),
+    creatorSystemAdmin: systemAdmin,
+    createdAt: r.createdAt,
+    expiresAt: r.expiresAt,
+    usesCount: r.usesCount,
+  };
+};
 
 /** ผลของการสร้างโค้ด — `code` (XXXX-XXXX) อยู่ที่นี่ที่เดียว และคืนครั้งเดียว */
 export type CreatedCodeInviteDto = {

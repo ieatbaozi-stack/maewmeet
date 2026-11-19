@@ -117,7 +117,10 @@ export async function findInviteById(db: DbOrTx, inviteId: string): Promise<Invi
   return rows[0] ?? null;
 }
 
-export type InviteListRow = InviteRow & { creatorName: string; inviteeName: string | null };
+/**
+ * R16 H4c: creatorIsSuperAdmin / creatorIsMember (ณ ตอนอ่าน — มากับ query เดียวกัน) ใช้ที่ serializer ตัดสิน creatorSystemAdmin เท่านั้น ไม่ส่งออก
+ */
+export type InviteListRow = InviteRow & { creatorName: string; inviteeName: string | null; creatorIsSuperAdmin: boolean; creatorIsMember: boolean };
 
 /**
  * คำเชิญที่ "ยังใช้ได้" ของกลุ่ม (active + ยังไม่หมดอายุ) ใหม่สุดก่อน
@@ -146,6 +149,8 @@ export async function listActiveInvitesOfGroup(
         revokedBy: groupInvite.revokedBy,
       },
       creatorName: user.displayName,
+      creatorIsSuperAdmin: user.isAdmin,
+      creatorIsMember: sql<boolean>`EXISTS (SELECT 1 FROM group_member gm WHERE gm.group_id = ${groupInvite.groupId} AND gm.user_id = ${groupInvite.createdBy})`.mapWith(Boolean),
       inviteeName: sql<string | null>`(SELECT u.display_name FROM user u WHERE u.id = ${groupInvite.inviteeUserId})`,
     })
     .from(groupInvite)
@@ -159,7 +164,14 @@ export async function listActiveInvitesOfGroup(
       ),
     )
     .orderBy(desc(groupInvite.createdAt), asc(groupInvite.id));
-  return rows.map((r) => ({ ...r.invite, codeHash: null, creatorName: r.creatorName, inviteeName: r.inviteeName }));
+  return rows.map((r) => ({
+    ...r.invite,
+    codeHash: null,
+    creatorName: r.creatorName,
+    inviteeName: r.inviteeName,
+    creatorIsSuperAdmin: r.creatorIsSuperAdmin,
+    creatorIsMember: r.creatorIsMember,
+  }));
 }
 
 export type PendingDirectInvite = {
