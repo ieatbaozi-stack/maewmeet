@@ -51,3 +51,10 @@ platform (G1, G2 + race restore vs purge) · test (role×action ของ route 
 ## 7. ผู้ทำ / ผู้ตรวจ
 platform (G1, G2, G5, G6) · auth (A1 route/service) · frontend (G3, G4, A1–A3) · ux (ถ้อยคำ, messages, A3) · test · architect (ADR, ARCHITECTURE) · ops (OPERATIONS, CHANGELOG) · secretary (§3) · **qa** และ **security** ตรวจอิสระ (แตะ api admin + auth ลบบัญชี + ลบข้อมูล)
 PR เดียว · เลขรุ่นที่เสนอ: v0.15.0 (boss ออกรุ่นเอง)
+
+## 8. บันทึกระหว่างทำ (main 2026-11-19)
+- G1 ไม่ใช่ SA: ใช้ **403 FORBIDDEN แบบเดียวกับ `/api/admin/*` ทุกตัว** (ของจริง) แทน "404" ที่เขียนใน §1 — §1 เขียนผิด เกณฑ์คือ "แบบเดียวกับ route admin อื่น"
+- platform แตะ `src/lib/rbac` (เพิ่ม action `admin.group.restore` 6 บรรทัด) นอกขอบเขต → security ตรวจเป็นพิเศษ
+- B2: `GROUP_RETENTION_START_DATE = 2026-12-01` (Asia/Bangkok) ช้ากว่าวันออกรุ่นได้ = เก็บนานขึ้น ไม่สั้นลง · **ถ้าออกรุ่นหลัง 1 ธ.ค. ต้องเลื่อนค่านี้ก่อน merge**
+- G6: **ไม่มี migration** (ตาราง groups เล็ก, purge วันละครั้ง) → ไม่ต้องรันบน preview/prod
+- platform แก้ call site `/api/me/delete` ในเทสต์ของ test agent ตาม API ใหม่ (`confirmUsername`) — test ทบทวนใน phase 3
