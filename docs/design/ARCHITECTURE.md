@@ -1,13 +1,13 @@
 # ARCHITECTURE — แมวเจอกัน (maewmeet) v1
 
-> เจ้าของไฟล์: Architect · สถานะ: **ตรงกับโค้ดจริงที่ v0.13.0 (ตรวจ 2026-11-18)** — ADR 0001–0013 สถานะ Accepted · ใช้ประกอบ [DOCS_SYNC_CONTRACT](../contracts/DOCS_SYNC_CONTRACT.md) (ทุก route ใน ROUTE_MANIFEST และทุกตารางที่ migration สร้างต้องมีชื่อในไฟล์นี้)
+> เจ้าของไฟล์: Architect · สถานะ: **ตรงกับโค้ดจริงที่ v0.14.0 (ออกรุ่น 2026-11-19 · R0–R16 · ตรวจ 2026-11-19)** — ADR 0001–0014 สถานะ Accepted · ใช้ประกอบ [DOCS_SYNC_CONTRACT](../contracts/DOCS_SYNC_CONTRACT.md) (ทุก route ใน ROUTE_MANIFEST และทุกตารางที่ migration สร้างต้องมีชื่อในไฟล์นี้)
 > แหล่งความจริงของโค้ด: schema = `src/db/schema.ts` + `drizzle/*.sql` · routes = `src/app/api/_lib/manifest.ts` (`ROUTE_MANIFEST`) · env = `.env.example` + `src/lib/shared/env.ts` · cron = `vercel.json` + `.github/workflows/keepalive.yml` — ถ้าเอกสารนี้ขัดกับไฟล์เหล่านี้ ให้ถือโค้ดเป็นหลักแล้วแจ้ง architect
 > repo บน GitHub เป็น **public** แล้ว (ผลต่อ keepalive ดูข้อ 8)
 > แก้รอบ 2 (2026-10-16): การจัดการ pepper (ADR 0002 §7) — env `PIN_PEPPER_V<n>`, ตาราง `pepper_fingerprint`, `AUTH_MAINTENANCE` · keep-alive Turso 2 ชั้น (ADR 0001 §3.1) — ตาราง `system_heartbeat`, `/api/cron/heartbeat`, GitHub Actions · สัปดาห์เริ่มวันจันทร์ (ADR 0004)
 > แหล่งความจริงของความต้องการ: [PRD](../prd/PRD.md) · ตัดสินใจรายเรื่อง: [ADR 0001](../adr/0001-stack-and-project-structure.md) · [0002](../adr/0002-auth-pin.md) · [0003](../adr/0003-rbac.md) · [0004](../adr/0004-time-and-timezone.md) · [0005](../adr/0005-common-free-time-algorithm.md) · [0006](../adr/0006-busy-visibility.md) · [0007](../adr/0007-notifications.md) · [0008](../adr/0008-i18n-and-theme.md) · [0009](../adr/0009-going-counts-as-busy.md) · [0010](../adr/0010-daily-busy-series.md) · [0011](../adr/0011-line-reminders.md) · [0012](../adr/0012-busy-routines.md) · [0013](../adr/0013-drop-place-search-cache.md) · [0014](../adr/0014-csp-unsafe-inline-accepted.md)
 > **หมายเหตุ R13 (2026-11-11, boss อนุมัติ):** การค้นหาสถานที่ผ่าน Nominatim (U10 `GET /api/places/search`, action `place.search`, env `PLACE_SEARCH_ENABLED`/`NOMINATIM_*`/`NEXT_PUBLIC_MAP_*`) และภาพแผนที่ OSM ถูกเอาออกแล้ว — ผู้ใช้วางลิงก์แผนที่เอง + ปุ่มเปิด Google Maps / Apple Maps · ตาราง `place_search_cache` + งาน cron ล้างมัน **ถูกลบใน migration `0006` (R15, [ADR 0013](../adr/0013-drop-place-search-cache.md), ย้อนไม่ได้)** · ส่วนที่พูดถึงเรื่องนี้ด้านล่างคงไว้เป็นประวัติ · ดู [R13_CONTRACT §1.3](../contracts/R13_CONTRACT.md) และ [PRD D11](../prd/PRD.md)
-> **หมายเหตุ R16 (2026-11-19, branch `feat/r16-cleanup`):** rate limit ใหม่ `group:settings` / `prefs:update` / `api:read` (ข้อ 2, 5, 11) · DTO คำเชิญค้างและ notification `group.invite.received` มีธง `actorSystemAdmin` (ข้อ 5) · ข้อจำกัดที่รู้และความเสี่ยงที่ยอมรับ (redirect ได้ 200 ระหว่าง stream, Server-Timing เฉพาะ API, CSP `'unsafe-inline'` — [ADR 0014](../adr/0014-csp-unsafe-inline-accepted.md)) อยู่ข้อ 11 · ไม่มี route/ตารางใหม่
-> โค้ดใน §3 เริ่มจากฉบับที่ใช้ตอน R0–R1 แล้วปรับตามโค้ดจริงถึง v0.13.0 — คอลัมน์ทุกตัวที่ยังมีอยู่ตรงกับ `src/db/schema.ts` (สรุปตารางทั้งหมดอยู่ต้น §3) · ชื่อไฟล์/คอลัมน์ถือเป็นสัญญา เปลี่ยนต้องผ่าน migration + ADR/contract
+> **หมายเหตุ R16 (2026-11-19, ออกรุ่นใน v0.14.0):** rate limit ใหม่ `group:settings` / `prefs:update` / `api:read` (ข้อ 2, 5, 11) · DTO คำเชิญค้างและ notification `group.invite.received` มีธง `actorSystemAdmin` (ข้อ 5) · ข้อจำกัดที่รู้และความเสี่ยงที่ยอมรับ (redirect ได้ 200 ระหว่าง stream, Server-Timing เฉพาะ API, CSP `'unsafe-inline'` — [ADR 0014](../adr/0014-csp-unsafe-inline-accepted.md)) อยู่ข้อ 11 · ไม่มี route/ตารางใหม่
+> โค้ดใน §3 เริ่มจากฉบับที่ใช้ตอน R0–R1 แล้วปรับตามโค้ดจริงถึง v0.14.0 (R16 ไม่มี migration — schema เท่ากับ v0.13.0) — คอลัมน์ทุกตัวที่ยังมีอยู่ตรงกับ `src/db/schema.ts` (สรุปตารางทั้งหมดอยู่ต้น §3) · ชื่อไฟล์/คอลัมน์ถือเป็นสัญญา เปลี่ยนต้องผ่าน migration + ADR/contract
 
 ## สารบัญ
 1. โครงโฟลเดอร์และเจ้าของ · 2. การไหลของ request · 3. Schema Drizzle (ตารางทั้งหมด) · 4. Session และ actor · 5. API endpoint ต่อ story · 6. รหัส error · 7. ตัวแปร env (`.env.example`) · 8. งานตามเวลา (cron) · 9. คำถามถึง Lead / ประเด็นเปิด · 10. เปิดแบบแอปบนหน้าจอโฮม (R15) · 11. Rate limit ที่ wrapper + ข้อจำกัดที่รู้ (R16)
@@ -118,7 +118,7 @@ Server Component (src/app/(app)/**/page.tsx):
 - PolicyError → HTTP: `AUTH_REQUIRED`/`ACCOUNT_SUSPENDED` 401 · `PIN_CHANGE_REQUIRED`/`FORBIDDEN` 403 · `NOT_FOUND` 404 · `ADMIN_TRANSFER_REQUIRED`/`CONFLICT` 409 · `RATE_LIMITED`/`LOGIN_LOCKED` 429 (+ `Retry-After`)
 - Route manifest (`src/app/api/_lib/manifest.ts`): ทุก route ลงทะเบียน `{method, path, action}` — ใช้ทั้งเอกสาร (ข้อ 5) และเทสต์เมทริกซ์อัตโนมัติ (ADR 0003 §4)
 
-## 3. Schema Drizzle (ตรงกับ v0.13.0)
+## 3. Schema Drizzle (ตรงกับ v0.14.0 — R16 ไม่มี migration ใหม่ ล่าสุดคือ `0006`)
 
 ### ตารางทั้งหมดในฐานจริง (หลัง migration `0000`–`0006`)
 | ตาราง | สร้าง/แก้ใน migration | ที่มา | หมายเหตุ |
@@ -486,7 +486,7 @@ export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy N
 Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` · `mustChangePin` → redirect `/set-pin` (เป็น UX เท่านั้น ด่านจริงคือ `can()`)
 
 ## 5. API endpoint ต่อ story
-ทุก endpoint: JSON, prefix `/api`, ผ่าน wrapper ข้อ 2 · ตารางนี้ **ตรงกับ `ROUTE_MANIFEST` ใน `src/app/api/_lib/manifest.ts` ที่ v0.13.0 ทีละแถว** — path เขียนแบบ manifest (`:param`) · คอลัมน์ "action" = ชื่อใน [ADR 0003](../adr/0003-rbac.md) ที่ service เรียก · "auth" = `actor` (session + CSRF Origin/JSON สำหรับ non-GET) / `cron` (Bearer `CRON_SECRET`) / `public` · "เจ้าของ" = บทบาทที่เขียน route
+ทุก endpoint: JSON, prefix `/api`, ผ่าน wrapper ข้อ 2 · ตารางนี้ **ตรงกับ `ROUTE_MANIFEST` ใน `src/app/api/_lib/manifest.ts` ที่ v0.14.0 ทีละแถว (R16 ไม่มี route ใหม่)** — path เขียนแบบ manifest (`:param`) · คอลัมน์ "action" = ชื่อใน [ADR 0003](../adr/0003-rbac.md) ที่ service เรียก · "auth" = `actor` (session + CSRF Origin/JSON สำหรับ non-GET) / `cron` (Bearer `CRON_SECRET`) / `public` · "เจ้าของ" = บทบาทที่เขียน route
 เพิ่ม/เปลี่ยน route ใน manifest ต้องแก้ตารางนี้ใน PR เดียวกัน (DOCS_SYNC §2) · เทสต์ `tests/ops/docs-sync.test.ts` ตรวจว่าทุก path ใน manifest มีในไฟล์นี้
 
 | Story | Method + path | action (RBAC) | auth | หมายเหตุ | เจ้าของ |
@@ -577,7 +577,7 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | นัด | `INVALID_MAP_URL` `INVALID_COORDINATES` `APPOINTMENT_CANCELLED` |
 ทุกรหัสมีคีย์ `errors.<CODE>` ใน `messages/th.json` และ `en.json` (ADR 0008 เทสต์ข้อ 4)
 
-## 7. ตัวแปร env (ตรงกับ `.env.example` ที่ v0.13.0 — ไม่มีค่าจริง)
+## 7. ตัวแปร env (ตรงกับ `.env.example` ที่ v0.14.0 — ไม่มีค่าจริง · R16 ไม่มีตัวแปรใหม่)
 แหล่งความจริง: `.env.example` (เจ้าของ OPS) + schema zod ใน `src/lib/shared/env.ts` · ขั้นตั้งค่าบน Vercel และวิธีสร้างความลับ: `docs/OPERATIONS.md` (ส่วน C, D, J) · ห้ามใส่ค่าจริงในไฟล์/แชท/PR (กฎ 7)
 
 | ตัวแปร | ต้องมีเมื่อ | ใช้ทำอะไร |
@@ -599,7 +599,7 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 ตัวแปรที่ Vercel ใส่ให้เอง (ไม่อยู่ใน `.env.example`): `VERCEL`, `VERCEL_URL`, `VERCEL_ENV` · เทสต์ (Vitest) สร้าง `TURSO_DATABASE_URL=file:<tmp>` และความลับสุ่มต่อรอบเอง · แอป **ล้มตอนเริ่ม** ถ้าตัวแปร "ต้องมี" หายหรือสั้นเกิน (zod ใน `src/lib/shared/env.ts`) — ยกเว้น pepper ที่ล้มเป็น `AUTH_MAINTENANCE` แทน
 
 ## 8. งานตามเวลา (cron)
-ที่มา: `vercel.json` (OPS) + `.github/workflows/keepalive.yml` (OPS) ที่ v0.13.0
+ที่มา: `vercel.json` (OPS) + `.github/workflows/keepalive.yml` (OPS) ที่ v0.14.0 (R16 ไม่เปลี่ยนตาราง cron — keepalive แก้เฉพาะ comment เรื่อง repo public)
 
 | ตัวเรียก | ตาราง | เรียก | หมายเหตุ |
 |---|---|---|---|

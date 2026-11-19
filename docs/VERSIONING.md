@@ -71,13 +71,13 @@ npm ci
 ```powershell
 npx tsx scripts/release.ts 0.1.0 --dry-run
 ```
-ดูว่า "ผลการตรวจ" ผ่านทุกข้อ และ diff ของ `CHANGELOG.md` / `package.json` ถูกต้อง · exit code 0 = พร้อม
+ดูว่า "ผลการตรวจ" ผ่านทุกข้อ และ diff ของ `CHANGELOG.md` / `package.json` / เลขรุ่นใน quickstart · PRD · PROGRESS ถูกต้อง · exit code 0 = พร้อม
 
 **4) ออกรุ่นจริง** (รันเกต lint/typecheck/test/build ก่อน ใช้เวลาหลายนาที)
 ```powershell
 npx tsx scripts/release.ts 0.1.0
 ```
-สคริปต์จะ: แก้ `CHANGELOG.md` + `package.json` (+ `package-lock.json`) → commit `chore(release): v0.1.0` → สร้าง tag `v0.1.0` (ในเครื่องเท่านั้น)
+สคริปต์จะ: แก้ `CHANGELOG.md` + `package.json` (+ `package-lock.json`) + เลขรุ่น `vX.Y.Z` ใน 3 บรรทัดเอกสาร (ดู §7) → commit `chore(release): v0.1.0` → สร้าง tag `v0.1.0` (ในเครื่องเท่านั้น)
 
 **5) ตรวจแล้ว push** (สคริปต์พิมพ์คำสั่งนี้ให้ตอนจบด้วย)
 ```powershell
@@ -99,6 +99,7 @@ git reset --hard HEAD~1
 | `ต้องอยู่บน branch main` | `git switch main` |
 | `working tree ไม่สะอาด` | commit/ทิ้งไฟล์ที่ค้าง หรือแจ้ง Lead (ห้ามลบไฟล์ที่ไม่รู้จัก) |
 | `เวอร์ชันต้องมากกว่า tag ล่าสุด` | ใช้เลขที่ใหม่กว่า — ดู tag ล่าสุดด้วย `git describe --tags --abbrev=0` |
+| `หาตำแหน่งเลขรุ่นไม่เจอ: <ไฟล์>` | บรรทัดเลขรุ่นในเอกสารถูกแก้จนไม่มี `vX.Y.Z` หรือคำนำ ("สถานะปัจจุบัน" / "อัปเดตล่าสุด" / "app vX.Y.Z") — แจ้ง Lead ให้เจ้าของไฟล์คืนบรรทัดนั้น · ยังไม่มีไฟล์ถูกแก้ |
 | `[Unreleased] ว่าง` | ยังไม่มีอะไรให้ออกรุ่น — แจ้ง Lead |
 | เกต `npm run …` ล้ม | ไม่มีไฟล์ถูกแก้ · ส่งข้อความ error ให้ Lead |
 
@@ -112,6 +113,8 @@ npx tsx scripts/release.ts <version> [--dry-run] [--skip-gates]
 | `--dry-run` | ตรวจเงื่อนไข + แสดงแผนและ diff ทั้งหมด **ไม่แก้ไฟล์ ไม่รันคำสั่ง git ที่เขียน ไม่รันเกต npm** · exit 0 = เงื่อนไขครบ, exit 1 = มีข้อไม่ผ่าน (แผนยังแสดงให้ดู) |
 | `--skip-gates` | ข้ามเกต npm (ใช้เมื่อ Lead ยืนยันว่า CI เขียวบน commit นี้แล้วเท่านั้น) |
 
+**เลขรุ่นในเอกสาร (ตั้งแต่หลัง v0.14.0):** ในคอมมิตออกรุ่นเดียวกัน สคริปต์เปลี่ยน *เฉพาะตัวเลข* `vX.Y.Z` ในบรรทัดที่ `tests/ops/docs-sync.test.ts` เทียบกับ `package.json` — (1) `app vX.Y.Z` ตัวสุดท้ายใน `docs/guides/quickstart-th.html` (2) `vX.Y.Z` แรกในบรรทัดที่มี "สถานะปัจจุบัน" ของ `docs/prd/PRD.md` (3) `vX.Y.Z` แรกในบรรทัดที่มี "อัปเดตล่าสุด" ของ `docs/team/PROGRESS.md` · ข้อความอื่นไม่ถูกแตะ จึงไม่ต้องมี PR มาแก้เลขรุ่นให้ CI เขียว (เหลือแต่เนื้อหาตาม DOCS_SYNC §3 ที่เจ้าของไฟล์ทำ) · หาบรรทัดไหนไม่เจอ สคริปต์หยุดก่อนแก้ไฟล์พร้อมบอกชื่อไฟล์ (ทั้ง `--dry-run` และของจริง) · ใช้ร่วมกับ `--skip-gates` ได้เหมือนเดิม · ตำแหน่งที่อ่าน/แก้ใช้ตัวเดียวกัน (`DOC_VERSION_TARGETS`, `readDocVersion`, `replaceDocVersion` ใน `scripts/release.ts`) — docs-sync test import ไปใช้ จึงไม่เพี้ยนกัน
+
 ลำดับที่ทำ (ไม่ใช่ dry-run): ตรวจเงื่อนไข → เกต npm → แก้ไฟล์ → `git commit` (เฉพาะไฟล์ที่แก้) → `git tag -a` · ถ้าขั้นใดหลังแก้ไฟล์ล้ม สคริปต์คืนไฟล์เดิมให้ (ไม่มี commit/tag ค้าง)
 
-logic ที่ทดสอบได้ (export จาก `scripts/release.ts`): `parseSemver`, `compareSemver`, `latestVersionFromTags`, `getUnreleasedBody`, `hasUnreleasedContent`, `applyRelease`, `bumpJsonVersion`, `bumpLockVersion`, `bangkokDate`, `checkPreconditions`, `unifiedDiff`, `runRelease` · เทสต์ใน `tests/release/`
+logic ที่ทดสอบได้ (export จาก `scripts/release.ts`): `parseSemver`, `compareSemver`, `latestVersionFromTags`, `getUnreleasedBody`, `hasUnreleasedContent`, `applyRelease`, `bumpJsonVersion`, `bumpLockVersion`, `readDocVersion`, `replaceDocVersion`, `bangkokDate`, `checkPreconditions`, `unifiedDiff`, `runRelease` · เทสต์ใน `tests/release/`

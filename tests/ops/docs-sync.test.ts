@@ -4,10 +4,10 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ROUTE_MANIFEST } from '@/app/api/_lib/manifest';
+import { DOC_VERSION_TARGETS, readDocVersion } from '../../scripts/release';
 
 const root = process.cwd();
 const read = (rel: string): string => readFileSync(path.join(root, rel), 'utf8');
-const SEMVER = String.raw`\d+\.\d+\.\d+`;
 
 function fail(msg: string): never {
   throw new Error(msg);
@@ -25,26 +25,27 @@ describe('DOCS_SYNC §4 — เลขรุ่นตรงกันทุกไ�
     expect(latestChangelog(), `CHANGELOG.md หัวข้อรุ่นล่าสุดไม่ตรง package.json (${pkgVersion})`).toBe(pkgVersion);
   });
 
+  // ตำแหน่งที่อ่านเลขรุ่นใช้ตัวเดียวกับที่ scripts/release.ts แก้ให้ตอนออกรุ่น (DOCS_SYNC §7) — จึงไม่มีทางเพี้ยนกัน
+  const [quickstart, prd, progress] = DOC_VERSION_TARGETS;
+
   it('docs/guides/quickstart-th.html ท้ายหน้า "app vX.Y.Z" = package.json', () => {
-    const html = read('docs/guides/quickstart-th.html');
-    const all = [...html.matchAll(new RegExp(String.raw`app v(${SEMVER})`, 'g'))];
-    const last = all.at(-1)?.[1];
-    if (!last) fail('docs/guides/quickstart-th.html: ไม่พบข้อความ "app vX.Y.Z" ที่ท้ายหน้า');
-    expect(last, `docs/guides/quickstart-th.html ท้ายหน้าเป็น v${last} แต่ package.json เป็น v${pkgVersion}`).toBe(pkgVersion);
+    const v = readDocVersion(read(quickstart!.file), quickstart!);
+    if (!v) fail('docs/guides/quickstart-th.html: ไม่พบข้อความ "app vX.Y.Z" ที่ท้ายหน้า');
+    expect(v, `docs/guides/quickstart-th.html ท้ายหน้าเป็น v${v} แต่ package.json เป็น v${pkgVersion}`).toBe(pkgVersion);
   });
 
   it('docs/prd/PRD.md หมายเหตุ "สถานะปัจจุบัน" = package.json', () => {
-    const line = read('docs/prd/PRD.md').split(/\r?\n/).find((l) => l.includes('สถานะปัจจุบัน'));
-    if (!line) fail('docs/prd/PRD.md: ไม่พบบรรทัดหมายเหตุ "สถานะปัจจุบัน"');
-    const v = new RegExp(`v(${SEMVER})`).exec(line)?.[1];
+    const text = read(prd!.file);
+    if (!text.includes('สถานะปัจจุบัน')) fail('docs/prd/PRD.md: ไม่พบบรรทัดหมายเหตุ "สถานะปัจจุบัน"');
+    const v = readDocVersion(text, prd!);
     if (!v) fail('docs/prd/PRD.md: บรรทัด "สถานะปัจจุบัน" ไม่มีเลขรุ่น vX.Y.Z');
     expect(v, `docs/prd/PRD.md บรรทัด "สถานะปัจจุบัน" เป็น v${v} แต่ package.json เป็น v${pkgVersion}`).toBe(pkgVersion);
   });
 
   it('docs/team/PROGRESS.md บรรทัด "อัปเดตล่าสุด" มีรุ่น = package.json', () => {
-    const line = read('docs/team/PROGRESS.md').split(/\r?\n/).find((l) => l.includes('อัปเดตล่าสุด'));
-    if (!line) fail('docs/team/PROGRESS.md: ไม่พบบรรทัด "อัปเดตล่าสุด"');
-    const v = new RegExp(`v(${SEMVER})`).exec(line)?.[1];
+    const text = read(progress!.file);
+    if (!text.includes('อัปเดตล่าสุด')) fail('docs/team/PROGRESS.md: ไม่พบบรรทัด "อัปเดตล่าสุด"');
+    const v = readDocVersion(text, progress!);
     if (!v) fail('docs/team/PROGRESS.md: บรรทัด "อัปเดตล่าสุด" ไม่มีเลขรุ่น vX.Y.Z');
     expect(v, `docs/team/PROGRESS.md บรรทัด "อัปเดตล่าสุด" เป็น v${v} แต่ package.json เป็น v${pkgVersion}`).toBe(pkgVersion);
   });

@@ -57,3 +57,9 @@
 - ทำ §5 ทั้งหมด + §4 (ops) ใน PR เดียว จาก `main` `8af88ee`
 - ops เพิ่ม: Dependabot 3 รายการบน main (high picomatch GHSA-fc5q-39xc-vjpf ยังไม่มีรุ่นแก้ · medium minimatch GHSA-g3hv-75wg-m249 แก้ใน 11.0.1 · medium esbuild GHSA-67mh-4wv8-2f99 แก้ใน 0.25.0 — ทั้งหมดเป็น transitive) → อัปเดตเฉพาะที่มีรุ่นแก้ผ่าน `overrides`/lockfile ถ้าไม่ทำให้ build/test พัง · ตัวที่ยังไม่มีรุ่นแก้ให้ประเมินว่าถึงโค้ดที่รันจริงไหม แล้วจดใน OPERATIONS
 - ผู้ตรวจอิสระ: qa (เอกสาร + เทสต์ docs-sync) · security (dependency)
+
+## 7. รอบหลังออกรุ่น v0.14.0 `docs/release-0.14.0` (2026-11-19)
+- ปัญหาที่เจอ: CI บน main แดงหลังออกรุ่นทุกครั้ง (`7eaff23` · `test + migration` ล้มที่ docs-sync) เพราะ `release.ts` ขยับ `package.json` แต่ quickstart / PRD / PROGRESS ยังเป็นรุ่นเก่า จนกว่า PR หลังออกรุ่นจะ merge
+- ทำ §3 ครบทุกข้อ (secretary · ops · architect · main) ใน PR เดียว จาก `main` `7eaff23`
+- **ops แก้ต้นเหตุ:** `scripts/release.ts` เปลี่ยนเลขรุ่นใน 3 บรรทัดนั้นให้ด้วยใน commit ออกรุ่นเดียวกัน (แทนที่เฉพาะเลข `vX.Y.Z` ในบรรทัดที่ docs-sync test อ่าน ไม่แตะข้อความอื่น) + เทสต์ · ตรวจด้วยการรัน release แบบ dry-run/บน temp copy ว่าหลังออกรุ่น docs-sync test ผ่านทันที · เนื้อหาอื่นตาม §3 ยังเป็นงานของเจ้าของไฟล์เหมือนเดิม
+- ผู้ตรวจอิสระ: qa (เอกสารตรงของจริง + เทสต์ release/docs-sync)

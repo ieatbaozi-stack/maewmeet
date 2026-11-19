@@ -1,6 +1,7 @@
 # R16_CONTRACT.md — เก็บงานค้างทั้งหมด (hardening เล็ก, UI เล็ก, เทสต์/CI, เอกสาร)
 
 > ผู้เขียน: main · 2026-11-18 · สถานะ: **boss เห็นชอบแล้ว** 2026-11-18 ("มาทำที่เหลือให้จบครับ" + เลือกค่าแนะนำ B1–B4)
+> **ปิดรอบ + ออกรุ่น v0.14.0 (2026-11-19)** · PR #38 merge แล้ว · tag `v0.14.0` → `7eaff23` · production `/api/health` = 0.14.0
 > branch: `feat/r16-cleanup` จาก `main` `9db2c08` (PR #37 merge แล้ว) · **ไม่มี migration** · ใช้คู่กับ [DOCS_SYNC_CONTRACT.md](DOCS_SYNC_CONTRACT.md)
 > ที่มา: `docs/team/PROGRESS.md` หัวข้อ "เหลือ" ข้อ 1–2 (2026-11-18) · R15 §2 · รายงาน qa/security R15a, R15b
 

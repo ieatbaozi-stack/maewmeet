@@ -7,6 +7,12 @@
 
 ## [Unreleased]
 
+### Changed
+- ออกรุ่น: `scripts/release.ts` เปลี่ยนเฉพาะเลข `vX.Y.Z` ในบรรทัดที่ `tests/ops/docs-sync.test.ts` เทียบกับ `package.json` (ท้ายหน้า `docs/guides/quickstart-th.html` "app vX.Y.Z" · บรรทัด "สถานะปัจจุบัน" ใน `docs/prd/PRD.md` · บรรทัด "อัปเดตล่าสุด" ใน `docs/team/PROGRESS.md`) ใน commit ออกรุ่นเดียวกัน — แก้ปัญหา CI บน main แดงหลังออกรุ่นทุกครั้งจนกว่า PR เอกสารจะ merge · หาบรรทัดใดไม่เจอ = หยุดก่อนแก้ไฟล์พร้อมบอกว่าไฟล์ไหน · ข้อความอื่นในบรรทัดไม่ถูกแตะ · `--dry-run` แสดง diff ของ 3 ไฟล์นี้ด้วย
+
+### Fixed
+- ออกรุ่นแล้ว CI `test + migration` ล้มที่ docs-sync (เกิดกับ v0.14.0, run 44459866120) — ดูข้อบนว่าแก้อย่างไร
+
 ## [0.14.0] - 2026-11-19
 
 ### Added
@@ -22,6 +28,7 @@
 
 ### Notes
 - ไม่ทำ CSP nonce (ผู้ใช้ตัดสินแล้ว ยอมรับความเสี่ยง) และไม่แก้ status 200 ของหน้า auth ที่ redirect ระหว่าง stream — เหตุผลอยู่ใน `docs/OPERATIONS.md` (R16 B3, H5)
+- ไม่ทำ Server-Timing บนหน้า RSC (R16 H6): Next 16 อ่าน `headers()` ใน Server Component ได้อย่างเดียว และหน้า streaming ส่ง header ก่อน query จบ — ใช้ `tests/perf/r7-baseline.test.ts` วัดหน้าแทน
 - ไม่มี migration · ไม่มี env ใหม่
 
 ## [0.13.0] - 2026-11-18
