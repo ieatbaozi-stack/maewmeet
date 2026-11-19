@@ -1,14 +1,14 @@
 # ARCHITECTURE — แมวเจอกัน (maewmeet) v1
 
-> เจ้าของไฟล์: Architect · สถานะ: **ตรงกับโค้ดจริงที่ v0.14.0 (ออกรุ่น 2026-11-19 · R0–R16 · ตรวจ 2026-11-19)** — ADR 0001–0015 สถานะ Accepted · ใช้ประกอบ [DOCS_SYNC_CONTRACT](../contracts/DOCS_SYNC_CONTRACT.md) (ทุก route ใน ROUTE_MANIFEST และทุกตารางที่ migration สร้างต้องมีชื่อในไฟล์นี้)
+> เจ้าของไฟล์: Architect · สถานะ: **ตรงกับโค้ดจริงที่ v0.15.0 (ออกรุ่น 2026-11-20 · R0–R17 · ตรวจ 2026-11-20)** — ADR 0001–0015 สถานะ Accepted · ใช้ประกอบ [DOCS_SYNC_CONTRACT](../contracts/DOCS_SYNC_CONTRACT.md) (ทุก route ใน ROUTE_MANIFEST และทุกตารางที่ migration สร้างต้องมีชื่อในไฟล์นี้)
 > แหล่งความจริงของโค้ด: schema = `src/db/schema.ts` + `drizzle/*.sql` · routes = `src/app/api/_lib/manifest.ts` (`ROUTE_MANIFEST`) · env = `.env.example` + `src/lib/shared/env.ts` · cron = `vercel.json` + `.github/workflows/keepalive.yml` — ถ้าเอกสารนี้ขัดกับไฟล์เหล่านี้ ให้ถือโค้ดเป็นหลักแล้วแจ้ง architect
 > repo บน GitHub เป็น **public** แล้ว (ผลต่อ keepalive ดูข้อ 8)
 > แก้รอบ 2 (2026-10-16): การจัดการ pepper (ADR 0002 §7) — env `PIN_PEPPER_V<n>`, ตาราง `pepper_fingerprint`, `AUTH_MAINTENANCE` · keep-alive Turso 2 ชั้น (ADR 0001 §3.1) — ตาราง `system_heartbeat`, `/api/cron/heartbeat`, GitHub Actions · สัปดาห์เริ่มวันจันทร์ (ADR 0004)
 > แหล่งความจริงของความต้องการ: [PRD](../prd/PRD.md) · ตัดสินใจรายเรื่อง: [ADR 0001](../adr/0001-stack-and-project-structure.md) · [0002](../adr/0002-auth-pin.md) · [0003](../adr/0003-rbac.md) · [0004](../adr/0004-time-and-timezone.md) · [0005](../adr/0005-common-free-time-algorithm.md) · [0006](../adr/0006-busy-visibility.md) · [0007](../adr/0007-notifications.md) · [0008](../adr/0008-i18n-and-theme.md) · [0009](../adr/0009-going-counts-as-busy.md) · [0010](../adr/0010-daily-busy-series.md) · [0011](../adr/0011-line-reminders.md) · [0012](../adr/0012-busy-routines.md) · [0013](../adr/0013-drop-place-search-cache.md) · [0014](../adr/0014-csp-unsafe-inline-accepted.md) · [0015](../adr/0015-data-retention-group-restore-purge.md)
 > **หมายเหตุ R13 (2026-11-11, boss อนุมัติ):** การค้นหาสถานที่ผ่าน Nominatim (U10 `GET /api/places/search`, action `place.search`, env `PLACE_SEARCH_ENABLED`/`NOMINATIM_*`/`NEXT_PUBLIC_MAP_*`) และภาพแผนที่ OSM ถูกเอาออกแล้ว — ผู้ใช้วางลิงก์แผนที่เอง + ปุ่มเปิด Google Maps / Apple Maps · ตาราง `place_search_cache` + งาน cron ล้างมัน **ถูกลบใน migration `0006` (R15, [ADR 0013](../adr/0013-drop-place-search-cache.md), ย้อนไม่ได้)** · ส่วนที่พูดถึงเรื่องนี้ด้านล่างคงไว้เป็นประวัติ · ดู [R13_CONTRACT §1.3](../contracts/R13_CONTRACT.md) และ [PRD D11](../prd/PRD.md)
 > **หมายเหตุ R16 (2026-11-19, ออกรุ่นใน v0.14.0):** rate limit ใหม่ `group:settings` / `prefs:update` / `api:read` (ข้อ 2, 5, 11) · DTO คำเชิญค้างและ notification `group.invite.received` มีธง `actorSystemAdmin` (ข้อ 5) · ข้อจำกัดที่รู้และความเสี่ยงที่ยอมรับ (redirect ได้ 200 ระหว่าง stream, Server-Timing เฉพาะ API, CSP `'unsafe-inline'` — [ADR 0014](../adr/0014-csp-unsafe-inline-accepted.md)) อยู่ข้อ 11 · ไม่มี route/ตารางใหม่
-> **หมายเหตุ R17 (2026-11-19, ยังไม่ออกรุ่น — เสนอ v0.15.0):** นโยบายเก็บข้อมูลที่ลบ [ADR 0015](../adr/0015-data-retention-group-restore-purge.md) — กลุ่มที่ลบเก็บ 30 วัน super admin กู้ได้ (`POST /api/admin/groups/:gid/restore`, action `admin.group.restore` ใน `SUPER_ADMIN_ONLY`/`SUPER_ADMIN_AUDITED`) แล้ว cron daily ลบถาวร (ข้อ 8 งานที่ 5) · DTO กลุ่มของ admin มี `purgeAt`/`restorable`/`restoreBlockedReason` · notification ชนิดใหม่ `group.restored` (ADR 0007, กระดิ่งเท่านั้น) · audit action `group.restore`/`group.purge` · บัญชียังล้างทันที แต่ `POST /api/me/delete` ต้องส่ง `confirmUsername` (ข้อ 5) · **ไม่มี migration/ตาราง/env ใหม่**
-> โค้ดใน §3 เริ่มจากฉบับที่ใช้ตอน R0–R1 แล้วปรับตามโค้ดจริงถึง v0.14.0 (R16 ไม่มี migration — schema เท่ากับ v0.13.0) — คอลัมน์ทุกตัวที่ยังมีอยู่ตรงกับ `src/db/schema.ts` (สรุปตารางทั้งหมดอยู่ต้น §3) · ชื่อไฟล์/คอลัมน์ถือเป็นสัญญา เปลี่ยนต้องผ่าน migration + ADR/contract
+> **หมายเหตุ R17 (2026-11-19, ออกรุ่นใน v0.15.0 เมื่อ 2026-11-20):** นโยบายเก็บข้อมูลที่ลบ [ADR 0015](../adr/0015-data-retention-group-restore-purge.md) — กลุ่มที่ลบเก็บ 30 วัน super admin กู้ได้ (`POST /api/admin/groups/:gid/restore`, action `admin.group.restore` ใน `SUPER_ADMIN_ONLY`/`SUPER_ADMIN_AUDITED`) แล้ว cron daily ลบถาวร (ข้อ 8 งานที่ 5) · DTO กลุ่มของ admin มี `purgeAt`/`restorable`/`restoreBlockedReason` · notification ชนิดใหม่ `group.restored` (ADR 0007, กระดิ่งเท่านั้น) · audit action `group.restore`/`group.purge` · บัญชียังล้างทันที แต่ `POST /api/me/delete` ต้องส่ง `confirmUsername` (ข้อ 5) · **ไม่มี migration/ตาราง/env ใหม่**
+> โค้ดใน §3 เริ่มจากฉบับที่ใช้ตอน R0–R1 แล้วปรับตามโค้ดจริงถึง v0.15.0 (R16 และ R17 ไม่มี migration — schema เท่ากับ v0.13.0) — คอลัมน์ทุกตัวที่ยังมีอยู่ตรงกับ `src/db/schema.ts` (สรุปตารางทั้งหมดอยู่ต้น §3) · ชื่อไฟล์/คอลัมน์ถือเป็นสัญญา เปลี่ยนต้องผ่าน migration + ADR/contract
 
 ## สารบัญ
 1. โครงโฟลเดอร์และเจ้าของ · 2. การไหลของ request · 3. Schema Drizzle (ตารางทั้งหมด) · 4. Session และ actor · 5. API endpoint ต่อ story · 6. รหัส error · 7. ตัวแปร env (`.env.example`) · 8. งานตามเวลา (cron) · 9. คำถามถึง Lead / ประเด็นเปิด · 10. เปิดแบบแอปบนหน้าจอโฮม (R15) · 11. Rate limit ที่ wrapper + ข้อจำกัดที่รู้ (R16)
@@ -119,7 +119,7 @@ Server Component (src/app/(app)/**/page.tsx):
 - PolicyError → HTTP: `AUTH_REQUIRED`/`ACCOUNT_SUSPENDED` 401 · `PIN_CHANGE_REQUIRED`/`FORBIDDEN` 403 · `NOT_FOUND` 404 · `ADMIN_TRANSFER_REQUIRED`/`CONFLICT` 409 · `RATE_LIMITED`/`LOGIN_LOCKED` 429 (+ `Retry-After`)
 - Route manifest (`src/app/api/_lib/manifest.ts`): ทุก route ลงทะเบียน `{method, path, action}` — ใช้ทั้งเอกสาร (ข้อ 5) และเทสต์เมทริกซ์อัตโนมัติ (ADR 0003 §4)
 
-## 3. Schema Drizzle (ตรงกับ v0.14.0 — R16 และ R17 ไม่มี migration ใหม่ ล่าสุดคือ `0006`)
+## 3. Schema Drizzle (ตรงกับ v0.15.0 — R16 และ R17 ไม่มี migration ใหม่ ล่าสุดคือ `0006`)
 
 ### ตารางทั้งหมดในฐานจริง (หลัง migration `0000`–`0006`)
 | ตาราง | สร้าง/แก้ใน migration | ที่มา | หมายเหตุ |
@@ -487,7 +487,7 @@ export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy N
 Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` · `mustChangePin` → redirect `/set-pin` (เป็น UX เท่านั้น ด่านจริงคือ `can()`)
 
 ## 5. API endpoint ต่อ story
-ทุก endpoint: JSON, prefix `/api`, ผ่าน wrapper ข้อ 2 · ตารางนี้ **ตรงกับ `ROUTE_MANIFEST` ใน `src/app/api/_lib/manifest.ts` ที่ v0.14.0 ทีละแถว (R16 ไม่มี route ใหม่) + R17 (ยังไม่ออกรุ่น) เพิ่ม `POST /api/admin/groups/:gid/restore`** — path เขียนแบบ manifest (`:param`) · คอลัมน์ "action" = ชื่อใน [ADR 0003](../adr/0003-rbac.md) ที่ service เรียก · "auth" = `actor` (session + CSRF Origin/JSON สำหรับ non-GET) / `cron` (Bearer `CRON_SECRET`) / `public` · "เจ้าของ" = บทบาทที่เขียน route
+ทุก endpoint: JSON, prefix `/api`, ผ่าน wrapper ข้อ 2 · ตารางนี้ **ตรงกับ `ROUTE_MANIFEST` ใน `src/app/api/_lib/manifest.ts` ที่ v0.15.0 ทีละแถว (73 route · R16 ไม่มี route ใหม่ · R17 เพิ่ม `POST /api/admin/groups/:gid/restore`)** — path เขียนแบบ manifest (`:param`) · คอลัมน์ "action" = ชื่อใน [ADR 0003](../adr/0003-rbac.md) ที่ service เรียก · "auth" = `actor` (session + CSRF Origin/JSON สำหรับ non-GET) / `cron` (Bearer `CRON_SECRET`) / `public` · "เจ้าของ" = บทบาทที่เขียน route
 เพิ่ม/เปลี่ยน route ใน manifest ต้องแก้ตารางนี้ใน PR เดียวกัน (DOCS_SYNC §2) · เทสต์ `tests/ops/docs-sync.test.ts` ตรวจว่าทุก path ใน manifest มีในไฟล์นี้
 
 | Story | Method + path | action (RBAC) | auth | หมายเหตุ | เจ้าของ |
@@ -579,7 +579,7 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | นัด | `INVALID_MAP_URL` `INVALID_COORDINATES` `APPOINTMENT_CANCELLED` |
 ทุกรหัสมีคีย์ `errors.<CODE>` ใน `messages/th.json` และ `en.json` (ADR 0008 เทสต์ข้อ 4)
 
-## 7. ตัวแปร env (ตรงกับ `.env.example` ที่ v0.14.0 — ไม่มีค่าจริง · R16 ไม่มีตัวแปรใหม่)
+## 7. ตัวแปร env (ตรงกับ `.env.example` ที่ v0.15.0 — ไม่มีค่าจริง · R16 และ R17 ไม่มีตัวแปรใหม่)
 แหล่งความจริง: `.env.example` (เจ้าของ OPS) + schema zod ใน `src/lib/shared/env.ts` · ขั้นตั้งค่าบน Vercel และวิธีสร้างความลับ: `docs/OPERATIONS.md` (ส่วน C, D, J) · ห้ามใส่ค่าจริงในไฟล์/แชท/PR (กฎ 7)
 
 | ตัวแปร | ต้องมีเมื่อ | ใช้ทำอะไร |
@@ -601,7 +601,7 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 ตัวแปรที่ Vercel ใส่ให้เอง (ไม่อยู่ใน `.env.example`): `VERCEL`, `VERCEL_URL`, `VERCEL_ENV` · เทสต์ (Vitest) สร้าง `TURSO_DATABASE_URL=file:<tmp>` และความลับสุ่มต่อรอบเอง · แอป **ล้มตอนเริ่ม** ถ้าตัวแปร "ต้องมี" หายหรือสั้นเกิน (zod ใน `src/lib/shared/env.ts`) — ยกเว้น pepper ที่ล้มเป็น `AUTH_MAINTENANCE` แทน
 
 ## 8. งานตามเวลา (cron)
-ที่มา: `vercel.json` (OPS) + `.github/workflows/keepalive.yml` (OPS) ที่ v0.14.0 (R16 ไม่เปลี่ยนตาราง cron — keepalive แก้เฉพาะ comment เรื่อง repo public)
+ที่มา: `vercel.json` (OPS) + `.github/workflows/keepalive.yml` (OPS) ที่ v0.15.0 (R16 และ R17 ไม่เปลี่ยนตาราง cron — R16 keepalive แก้เฉพาะ comment เรื่อง repo public · R17 เพิ่มงานลบกลุ่มถาวรใน `/api/cron/daily` เดิม ข้อ 5 ด้านล่าง)
 
 | ตัวเรียก | ตาราง | เรียก | หมายเหตุ |
 |---|---|---|---|
@@ -617,7 +617,7 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 2. เปลี่ยนสถานะ `pin_reset_request` (pending/approved) / `group_invite` ที่หมดอายุเป็น `expired` (สำรอง — กลไกหลักคือ lazy)
 3. ลบ `notification` เก่ากว่า 90 วัน · `notification_outbox` สถานะ `sent`/`dead` เก่ากว่า 90 วัน (ไม่แตะ `pending`) · `line_link_code` ที่หมดอายุหรือใช้แล้วเกิน 1 วัน
 4. ลบ `busy_block` ที่จบเกิน 90 วัน แล้วลบ `busy_routine` ที่ `end_date` < วันนี้ − 93 วัน (90 + 3 · `busy_routine_skip` ตาม FK cascade) — ลำดับนี้ทำให้ไม่เหลือแถว busy กำพร้า (ADR 0012 §8)
-5. **R17 — ลบกลุ่มถาวร** (`purgeExpiredGroups`, [ADR 0015](../adr/0015-data-retention-group-restore-purge.md) §4) หลัง batch ข้อ 1–4 (ในโค้ด `maintenance.ts` เรียกว่างานที่ 6) · กลุ่มที่ `max(deleted_at, 2026-12-01 00:00 Asia/Bangkok) + 30 วัน <= now` เก่าสุดก่อน ≤ 25 กลุ่ม/รอบ · **ธุรกรรมเขียนแยกต่อกลุ่ม**: ตรวจเงื่อนไขซ้ำ → ลบ `notification_outbox`/`notification` ที่ `params.groupId` ตรง → `appointment_reminder` → `appointment_rsvp` → `appointment` → `group_invite` → `group_member` → `groups` → audit `group.purge` (actor ระบบ, meta = จำนวนแถวเท่านั้น) · คง `audit_log` ไว้ · ผลอยู่ใน `purgedGroups: {groups, failed, remaining}` ของคำตอบ · รันซ้ำได้ · แข่งกับการกู้คืน: ฝั่งที่เขียนก่อนชนะ
+5. **R17 — ลบกลุ่มถาวร** (`purgeExpiredGroups` · กำหนดเวลาใน `src/lib/data/group-retention.ts` — `GROUP_RETENTION_START_DATE` 2026-12-01, `GROUP_PURGE_BATCH` 25 · ลบแถวใน `src/lib/data/repos/group-purge.ts`, [ADR 0015](../adr/0015-data-retention-group-restore-purge.md) §4) หลัง batch ข้อ 1–4 (ในโค้ด `maintenance.ts` เรียกว่างานที่ 6) · กลุ่มที่ `max(deleted_at, 2026-12-01 00:00 Asia/Bangkok) + 30 วัน <= now` เก่าสุดก่อน ≤ 25 กลุ่ม/รอบ · **ธุรกรรมเขียนแยกต่อกลุ่ม**: ตรวจเงื่อนไขซ้ำ → ลบ `notification_outbox`/`notification` ที่ `params.groupId` ตรง → `appointment_reminder` → `appointment_rsvp` → `appointment` → `group_invite` → `group_member` → `groups` → audit `group.purge` (actor ระบบ, meta = จำนวนแถวเท่านั้น) · คง `audit_log` ไว้ · ผลอยู่ใน `purgedGroups: {groups, failed, remaining}` ของคำตอบ (`remaining` เป็น boolean = ยังมีกลุ่มถึงกำหนดค้าง) · กลุ่มที่ล้ม rollback ทั้งกลุ่มแล้วลองใหม่รอบหน้า · รันซ้ำได้ · แข่งกับการกู้คืน: ฝั่งที่เขียนก่อนชนะ
 - ~~ลบ `place_search_cache` เก่ากว่า 30 วัน~~ — ลบพร้อมตารางใน migration 0006 (ADR 0013)
 - ตรวจ fingerprint pepper (ADR 0002 §7.1–7.2) อยู่ที่ `GET /api/health` (`checks.pepper`, keepalive เรียกทุก 12 ชม.) และ fail closed ตอน login (`src/lib/auth/pepper.ts`) — ไม่ได้อยู่ใน cron รายวัน
 
