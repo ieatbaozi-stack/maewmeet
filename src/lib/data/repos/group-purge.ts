@@ -39,8 +39,14 @@ export async function purgeGroupIfDue(db: DbOrTx, groupId: string, deletedAtCuto
     SELECT id FROM groups WHERE id = ${groupId} AND deleted_at IS NOT NULL AND deleted_at <= ${deletedAtCutoff}`);
   if (due.length === 0) return null;
 
-  const outbox = await changes(db, sql`DELETE FROM notification_outbox WHERE json_extract(payload, '$.params.groupId') = ${groupId}`);
-  const notifications = await changes(db, sql`DELETE FROM notification WHERE json_extract(params, '$.groupId') = ${groupId}`);
+  // security R17 Low 1: แถวที่ JSON เสีย (json_extract จะโยน "malformed JSON") ต้องไม่ทำให้ลบกลุ่มล้ม → ตรวจ json_valid ใน CASE
+  // (CASE รับประกันลำดับประเมิน ต่างจาก AND) · แถวเสียเหล่านั้นอ่านไม่ได้อยู่แล้ว และหมดอายุตาม cron 90 วันเดิม
+  const outbox = await changes(db, sql`
+    DELETE FROM notification_outbox
+     WHERE CASE WHEN json_valid(payload) THEN json_extract(payload, '$.params.groupId') END = ${groupId}`);
+  const notifications = await changes(db, sql`
+    DELETE FROM notification
+     WHERE CASE WHEN json_valid(params) THEN json_extract(params, '$.groupId') END = ${groupId}`);
   const reminders = await changes(db, sql`
     DELETE FROM appointment_reminder WHERE appointment_id IN (SELECT id FROM appointment WHERE group_id = ${groupId})`);
   const rsvps = await changes(db, sql`

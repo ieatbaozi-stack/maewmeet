@@ -10,8 +10,27 @@ import { upsertHeartbeat, type HeartbeatSource } from '../repos/system-heartbeat
 import { heartbeatAgeHours, type HeartbeatAgeHours } from '../health';
 import { inTx } from '../tx';
 
-/** R17 G2: ผลการลบกลุ่มถาวรของรอบนี้ — groups = จำนวนกลุ่มที่ลบ · remaining = ยังมีกลุ่มถึงกำหนดค้าง (ไปรอบถัดไป) */
-export type GroupPurgeResult = { groups: number; remaining: boolean };
+/**
+ * R17 G2: ผลการลบกลุ่มถาวรของรอบนี้ — groups = จำนวนกลุ่มที่ลบ · failed = กลุ่มที่ลบไม่สำเร็จ (rollback ทั้งกลุ่ม ลองใหม่รอบหน้า)
+ * remaining = ยังมีกลุ่มถึงกำหนดค้าง (ไปรอบถัดไป · true ด้วยถ้าอ่านรายการไม่ได้)
+ */
+export type GroupPurgeResult = { groups: number; failed: number; remaining: boolean };
+
+/** รหัส error ที่ log ได้ (ไม่ใช่ข้อความ — ข้อความของ driver อาจมีค่า SQL/ข้อมูลผู้ใช้): AppError.code / LibsqlError.code / ชื่อชนิด */
+function errorCodeOf(e: unknown): string {
+  const seen = new Set<unknown>();
+  for (let x: unknown = e; x && typeof x === 'object' && !seen.has(x); x = (x as { cause?: unknown }).cause) {
+    seen.add(x);
+    const code = (x as { code?: unknown }).code;
+    if (typeof code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(code)) return code;
+  }
+  return e instanceof Error ? e.name : typeof e;
+}
+
+/** log เฉพาะ id กลุ่ม (uuid) + รหัส error — ไม่มีชื่อกลุ่ม/ข้อมูลคน (security R17 Low 1) */
+function logPurgeFailure(groupId: string | null, e: unknown): void {
+  console.error(`[cron] group.purge failed ${groupId ?? 'list'} ${errorCodeOf(e)}`);
+}
 
 export type DailyMaintenanceResult = {
   heartbeat: { source: 'vercel-cron'; lastAt: number };
@@ -26,19 +45,32 @@ export type DailyMaintenanceResult = {
  */
 export async function purgeExpiredGroups(db: Db, now: number): Promise<GroupPurgeResult> {
   const cutoff = purgeDeletedAtCutoff(now);
-  if (cutoff === null) return { groups: 0, remaining: false };
-  const due = await listGroupsDueForPurge(db, cutoff, GROUP_PURGE_BATCH + 1);
-  let groups = 0;
-  for (const groupId of due.slice(0, GROUP_PURGE_BATCH)) {
-    const purged = await inTx(db, async (tx) => {
-      const counts = await purgeGroupIfDue(tx, groupId, cutoff);
-      if (!counts) return false;
-      await insertAuditLog(tx, { id: newId(), actorId: null, action: 'group.purge', targetType: 'group', targetId: groupId, groupId, meta: counts }, now);
-      return true;
-    });
-    if (purged) groups++;
+  if (cutoff === null) return { groups: 0, failed: 0, remaining: false };
+  let due: string[];
+  try {
+    due = await listGroupsDueForPurge(db, cutoff, GROUP_PURGE_BATCH + 1);
+  } catch (e) {
+    logPurgeFailure(null, e);
+    return { groups: 0, failed: 0, remaining: true };
   }
-  return { groups, remaining: due.length > GROUP_PURGE_BATCH };
+  let groups = 0;
+  let failed = 0;
+  // ล้มทีละกลุ่ม (CONFLICT จากการกู้คืนบน instance อื่น, ข้อมูลเสีย ฯลฯ) → rollback เฉพาะกลุ่มนั้น แล้วทำกลุ่มถัดไปต่อ
+  for (const groupId of due.slice(0, GROUP_PURGE_BATCH)) {
+    try {
+      const purged = await inTx(db, async (tx) => {
+        const counts = await purgeGroupIfDue(tx, groupId, cutoff);
+        if (!counts) return false;
+        await insertAuditLog(tx, { id: newId(), actorId: null, action: 'group.purge', targetType: 'group', targetId: groupId, groupId, meta: counts }, now);
+        return true;
+      });
+      if (purged) groups++;
+    } catch (e) {
+      failed++;
+      logPurgeFailure(groupId, e);
+    }
+  }
+  return { groups, failed, remaining: due.length > GROUP_PURGE_BATCH };
 }
 
 /**

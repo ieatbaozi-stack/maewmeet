@@ -1,5 +1,5 @@
 // R17 G1/G2/G5 — กู้คืนกลุ่มที่ลบ (super admin) · ลบถาวรอัตโนมัติใน cron รายวันเมื่อครบ 30 วัน (B2: นับจากวันเริ่มใช้กติกา) · แจ้งสมาชิกตอนกู้คืน
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET as dailyGET } from '@/app/api/cron/daily/route';
 import { GROUP_PURGE_BATCH, GROUP_RETENTION_MS, GROUP_RETENTION_START_MS, groupPurgeAt, purgeDeletedAtCutoff, withinRestoreWindow } from '@/lib/data/group-retention';
 import { getDb } from '@/db/client';
@@ -25,7 +25,7 @@ const restore = (p: Person, g = gid, opts?: Parameters<typeof post>[3]) =>
 const daily = async () => {
   const res = await dailyGET(new Request(`${ORIGIN}/api/cron/daily`, { method: 'GET', headers: { authorization: `Bearer ${process.env.CRON_SECRET}` } }));
   expect(res.status).toBe(200);
-  return ((await res.json()) as { data: { purgedGroups: { groups: number; remaining: boolean }; cleaned: Record<string, number> } }).data;
+  return ((await res.json()) as { data: { purgedGroups: { groups: number; failed: number; remaining: boolean }; cleaned: Record<string, number> } }).data;
 };
 const deletedAt = async (g = gid): Promise<number | null | 'gone'> => {
   const r = (await h.rows<{ deleted_at: number | null }>('SELECT deleted_at FROM groups WHERE id = ?', [g]))[0];
@@ -76,8 +76,8 @@ async function refsTo(g: string): Promise<Refs> {
     appointments: await h.count('appointment WHERE group_id = ?', [g]),
     rsvps: await h.count('appointment_rsvp WHERE appointment_id NOT IN (SELECT id FROM appointment)'),
     reminders: await h.count('appointment_reminder WHERE appointment_id NOT IN (SELECT id FROM appointment)'),
-    notifications: await h.count("notification WHERE json_extract(params, '$.groupId') = ?", [g]),
-    outbox: await h.count("notification_outbox WHERE json_extract(payload, '$.params.groupId') = ?", [g]),
+    notifications: await h.count("notification WHERE CASE WHEN json_valid(params) THEN json_extract(params, '$.groupId') END = ?", [g]),
+    outbox: await h.count("notification_outbox WHERE CASE WHEN json_valid(payload) THEN json_extract(payload, '$.params.groupId') END = ?", [g]),
   };
 }
 
@@ -291,14 +291,14 @@ describe('G2 — ลบถาวรใน cron รายวัน', () => {
     const keepBefore = await refsTo(keep);
 
     await softDelete(gid, T0 - 29 * DAY);
-    expect((await daily()).purgedGroups).toEqual({ groups: 0, remaining: false });
+    expect((await daily()).purgedGroups).toEqual({ groups: 0, failed: 0, remaining: false });
     expect(await deletedAt()).toBe(T0 - 29 * DAY);
 
     await h.rows('UPDATE groups SET deleted_at = ? WHERE id = ?', [T0 - 30 * DAY, gid]);
     const before = await refsTo(gid);
     expect(before.groups).toBe(1);
     const out = await daily();
-    expect(out.purgedGroups).toEqual({ groups: 1, remaining: false });
+    expect(out.purgedGroups).toEqual({ groups: 1, failed: 0, remaining: false });
     expect(await refsTo(gid)).toEqual({ groups: 0, members: 0, invites: 0, appointments: 0, rsvps: 0, reminders: 0, notifications: 0, outbox: 0 });
     expect(await refsTo(keep)).toEqual(keepBefore);
 
@@ -331,7 +331,7 @@ describe('G2 — ลบถาวรใน cron รายวัน', () => {
     await softDelete(gid, T0 - 31 * DAY);
     expect((await daily()).purgedGroups.groups).toBe(1);
     const snap = { audit: await h.count('audit_log'), groups: await h.count('groups'), notif: await h.count('notification') };
-    expect((await daily()).purgedGroups).toEqual({ groups: 0, remaining: false });
+    expect((await daily()).purgedGroups).toEqual({ groups: 0, failed: 0, remaining: false });
     expect({ audit: await h.count('audit_log'), groups: await h.count('groups'), notif: await h.count('notification') }).toEqual(snap);
   });
 
@@ -350,8 +350,8 @@ describe('G2 — ลบถาวรใน cron รายวัน', () => {
       ]);
       await h.rows("INSERT INTO group_member (group_id, user_id, role, joined_at) VALUES (?, ?, 'admin', ?)", [id, a.id, T0 - 90 * DAY]);
     }
-    expect((await daily()).purgedGroups).toEqual({ groups: GROUP_PURGE_BATCH, remaining: true });
-    expect((await daily()).purgedGroups).toEqual({ groups: 3, remaining: false });
+    expect((await daily()).purgedGroups).toEqual({ groups: GROUP_PURGE_BATCH, failed: 0, remaining: true });
+    expect((await daily()).purgedGroups).toEqual({ groups: 3, failed: 0, remaining: false });
     for (const id of ids) expect(await h.count('group_member WHERE group_id = ?', [id])).toBe(0);
     expect(await h.count("audit_log WHERE action = 'group.purge'")).toBe(GROUP_PURGE_BATCH + 3);
   });
@@ -359,7 +359,64 @@ describe('G2 — ลบถาวรใน cron รายวัน', () => {
   it('cron เก็บกวาดเดิม (cleaned) ยังทำงาน และ purgedGroups แยกออกมา', async () => {
     const out = await daily();
     expect(out.cleaned).toHaveProperty('expiredSessions');
-    expect(out.purgedGroups).toEqual({ groups: 0, remaining: false });
+    expect(out.purgedGroups).toEqual({ groups: 0, failed: 0, remaining: false });
+  });
+});
+
+describe('G2 — กลุ่มที่ล้มไม่หยุดกลุ่มอื่น (security R17 Low 1)', () => {
+  beforeEach(() => setup());
+
+  it('กลุ่มแรก (เก่าสุด) ล้มทุกครั้ง → กลุ่มอื่นยังถูกลบ · failed นับ · กลุ่มที่ล้ม rollback ครบ · งานเก็บกวาดอื่นยังทำ · log มีแค่ id + รหัส', async () => {
+    const bad = await makeGroup(a, 'กลุ่มชื่อลับมาก');
+    const g2 = await makeGroup(a, 'สอง');
+    await seedChildren(bad, a, b);
+    await softDelete(bad, T0 - 50 * DAY);
+    await softDelete(gid, T0 - 40 * DAY);
+    await softDelete(g2, T0 - 35 * DAY);
+    // จำลองข้อผิดพลาดถาวรของกลุ่มเดียว (เช่น ข้อมูลเสีย/ชนกัน) ที่คำสั่งลบแถวกลุ่ม
+    await h.rows(`CREATE TRIGGER r17_fail_purge BEFORE DELETE ON groups WHEN old.id = '${bad}' BEGIN SELECT RAISE(ABORT, 'boom'); END`);
+    // งานเก็บกวาดเดิม: session หมดอายุต้องถูกลบแม้ purge มีกลุ่มล้ม
+    await h.rows("INSERT INTO session (id, user_id, created_at, expires_at, last_seen_at) SELECT 'r17-expired', id, 0, 1, 0 FROM user WHERE username = 'oscar'");
+    const badBefore = await refsTo(bad);
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      for (let day = 0; day < 2; day++) {
+        const out = await daily();
+        expect(out.purgedGroups).toEqual(day === 0 ? { groups: 2, failed: 1, remaining: false } : { groups: 0, failed: 1, remaining: false });
+        expect(out.cleaned.expiredSessions).toBe(day === 0 ? 1 : 0);
+      }
+      const lines = spy.mock.calls.map((c) => c.map(String).join(' '));
+      const purgeLines = lines.filter((l) => l.includes('group.purge failed'));
+      expect(purgeLines).toHaveLength(2);
+      for (const l of purgeLines) {
+        expect(l.startsWith(`[cron] group.purge failed ${bad} `), l).toBe(true);
+        expect(l.slice(`[cron] group.purge failed ${bad} `.length)).toMatch(/^[A-Za-z_0-9]+$/);
+        expect(l).not.toContain('กลุ่มชื่อลับมาก');
+        expect(l).not.toContain('boom');
+      }
+    } finally {
+      spy.mockRestore();
+    }
+    expect(await deletedAt(gid)).toBe('gone');
+    expect(await deletedAt(g2)).toBe('gone');
+    expect(await refsTo(bad)).toEqual(badBefore);
+    expect(await h.count("audit_log WHERE action = 'group.purge' AND target_id = ?", [bad])).toBe(0);
+    expect(await h.count("session WHERE id = 'r17-expired'")).toBe(0);
+  });
+
+  it('แถว notification / outbox ที่ JSON เสีย ไม่ทำให้ลบกลุ่มล้ม (json_valid) · แถวเสียไม่ถูกแตะ', async () => {
+    await seedChildren(gid, a, b);
+    const now = h.clock.now();
+    await h.rows("INSERT INTO notification (id, user_id, kind, params, created_at) VALUES ('n-bad', ?, 'appointment.created', '{not json', ?)", [b.id, now]);
+    await h.rows(
+      "INSERT INTO notification_outbox (id, notification_id, user_id, channel, payload, status, attempts, next_attempt_at, created_at) VALUES ('o-bad', NULL, ?, 'line', 'oops{', 'pending', 0, ?, ?)",
+      [b.id, now, now],
+    );
+    await softDelete(gid, T0 - 31 * DAY);
+    expect((await daily()).purgedGroups).toEqual({ groups: 1, failed: 0, remaining: false });
+    expect(await refsTo(gid)).toEqual({ groups: 0, members: 0, invites: 0, appointments: 0, rsvps: 0, reminders: 0, notifications: 0, outbox: 0 });
+    expect(await h.count("notification WHERE id = 'n-bad'")).toBe(1);
+    expect(await h.count("notification_outbox WHERE id = 'o-bad'")).toBe(1);
   });
 });
 
