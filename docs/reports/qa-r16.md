@@ -45,3 +45,20 @@
 - บน Windows: 8 เทสต์ใน `tests/ops` ล้มเพราะเครื่อง (tsx subprocess, Node 26) — ไม่ได้เทียบกับ main `9db2c08` ด้วยการรันซ้ำ แต่ R16 ไม่แตะ `tests/ops` และ `scripts/` (ยืนยันด้วย `git diff 9db2c08..HEAD --stat -- tests/ops scripts` ว่าว่าง) · ผลจริงให้ดูจาก CI
 - ไม่ได้รัน e2e ทั้งชุด (รันเฉพาะสเปกที่เกี่ยว 3 ชุดข้างบน)
 - ไม่ได้ตรวจบนอุปกรณ์จริง/Safari
+
+## ส่วนต่าง H4c (`git diff 1f9670d..HEAD`: d196cc5, 2972a17, f98b265, 4ead0d0, 04cb08a, 5f154e3)
+ตรวจเพิ่มหลังรายงานข้างบน · verdict ส่วนนี้: **ผ่าน หลังแก้บั๊ก 1 ข้อ**
+
+**บั๊กที่เจอและแก้ (commit `qa:` แยก):** `src/components/groups/InviteSection.tsx` เรียก `t("common.systemAdmin")` / `t("account.deletedName")` ด้วย `t` ที่ผูก namespace `groupSettings.invite` → เมื่อ SA นอกกลุ่มสร้างโค้ดเชิญ แล้ว admin เปิดหน้าตั้งค่ากลุ่ม หน้าแสดงข้อความดิบ **"สร้างโดย groupSettings.invite.common.systemAdmin"** + เซิร์ฟเวอร์ log `MISSING_MESSAGE` (th/light ที่ 375; เทสต์เดิมผ่านเพราะเช็คแค่ซอร์สด้วย grep ไม่ได้ render) · แก้เป็น `tAll(...)` (มี `useTranslations()` ระดับ root อยู่แล้วในไฟล์เดียวกัน) และแก้ regex/assert ใน `tests/ui/r16-ui.test.ts` ให้ตรง (`name-isolation.test.ts` ใช้ `.*` จึงไม่ต้องแก้) · สังเกต: เทสต์ซอร์ส-grep ของ H4c ไม่จับ namespace ผิด — ถ้าจะให้แน่น ควรมีเทสต์ที่ render หรือเทียบกับ key จริงของ namespace
+
+**คำสั่ง (หลังแก้):**
+| คำสั่ง | ผล |
+|---|---|
+| `npm run typecheck` / `npm run lint` | exit 0 / exit 0 |
+| `npm run build` (ใหม่ก่อนตรวจ) | ผ่าน (ไม่มีคำว่า error ใน output) |
+| `vitest run tests/platform tests/groups tests/ui tests/security tests/ops/docs-sync.test.ts` (ก่อนแก้) | 86 ไฟล์ · 1606 ผ่าน / 1 skip / 0 ล้ม |
+| `vitest run tests/ui` (หลังแก้) | 33 ไฟล์ · 613 ผ่าน |
+
+**ตาจริง (375, SA นอกกลุ่มสร้างโค้ดเชิญ → admin เปิดตั้งค่ากลุ่ม):** th/light แสดง "สร้างโดย ผู้ดูแลระบบ" · en/dark แสดง "Created by System admin" (ภาพ `Created by System admin` อยู่ใต้ "Expires … · Not used yet", คอนทราสต์/เลย์เอาต์ปกติ) · ไม่มีชื่อจริงของ SA ใน DOM หรือ `GET /api/groups/:gid/invites` (leak=false) · API สร้างโค้ด 201
+**ตรวจอ่านโค้ด:** `creatorSystemAdmin = creatorIsSuperAdmin && !creatorIsMember` ตัดสิน ณ ตอนอ่านใน query เดียว · `createDirectInvite` ใช้กติกาเดียวกัน · DTO ไม่หลุด `creatorIsSuperAdmin`/`creatorIsMember` (เทสต์ r16-hardening ยืนยัน)
+**ไม่ได้รัน:** e2e ชุดอื่นซ้ำหลัง H4c (แตะเฉพาะ InviteSection/serializer; ตรวจด้วยสเปกชั่วคราวที่ลบแล้ว) · เทสต์ `tests/ops` เต็มชุด (ยังเป็นปัญหา Windows เดิม)
