@@ -70,7 +70,13 @@ export type DeleteOutcome =
   | { kind: "transfer"; groups: GroupRef[] }
   | { kind: "superAdmin" }
   | { kind: "authLost" }
+  | { kind: "usernameMismatch" }
   | { kind: "error"; ref: MessageRef; resetPin: boolean };
+
+function hasField(params: unknown, name: string): boolean {
+  const fields = typeof params === "object" && params !== null ? (params as { fields?: unknown }).fields : undefined;
+  return typeof fields === "object" && fields !== null && Object.prototype.hasOwnProperty.call(fields, name);
+}
 
 export function deleteOutcome(res: Failure): DeleteOutcome {
   if (res.kind === "network") return { kind: "error", ref: { key: "states.error.network", values: {} }, resetPin: false };
@@ -78,6 +84,10 @@ export function deleteOutcome(res: Failure): DeleteOutcome {
   if (code === "ADMIN_TRANSFER_REQUIRED") return { kind: "transfer", groups: transferGroupsOf(res.params) };
   if (code === "FORBIDDEN") return { kind: "superAdmin" };
   if (code === "AUTH_REQUIRED" || code === "ACCOUNT_SUSPENDED") return { kind: "authLost" };
+  // R17 A1: ชื่อผู้ใช้ที่พิมพ์ยืนยันไม่ตรง/ไม่ส่ง (ไม่นับเป็น PIN ผิด) → กลับขั้นพิมพ์ชื่อ
+  if (code === "VALIDATION" && hasField(res.params, "confirmUsername")) {
+    return { kind: "usernameMismatch" };
+  }
   // PIN ผิด/ล็อก/รูปแบบผิด → ล้างจุด PIN ให้ใส่ใหม่
   return { kind: "error", ref: messageRefOf(res.error), resetPin: true };
 }
@@ -125,6 +135,14 @@ export const AUDIT_META_KEYS = [
   "wasLocked",
   "filtered",
   "asSuperAdmin",
+  // R17: group.purge (จำนวนแถวที่ลบ)
+  "members",
+  "invites",
+  "appointments",
+  "rsvps",
+  "reminders",
+  "notifications",
+  "outbox",
 ] as const;
 export type AuditMetaKey = (typeof AUDIT_META_KEYS)[number];
 

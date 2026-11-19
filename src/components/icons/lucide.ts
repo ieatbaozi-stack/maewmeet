@@ -52,6 +52,7 @@ export const ICONS = {
   "calendar-x": [["path", {"d":"M8 2v4"}], ["path", {"d":"M16 2v4"}], ["rect", {"width":"18","height":"18","x":"3","y":"4","rx":"2"}], ["path", {"d":"M3 10h18"}], ["path", {"d":"m14 14-4 4"}], ["path", {"d":"m10 14 4 4"}]],
   "repeat": [["path", {"d":"m17 2 4 4-4 4"}], ["path", {"d":"M3 11v-1a4 4 0 0 1 4-4h14"}], ["path", {"d":"m7 22-4-4 4-4"}], ["path", {"d":"M21 13v1a4 4 0 0 1-4 4H3"}]],
   "bell": [["path", {"d":"M10.268 21a2 2 0 0 0 3.464 0"}], ["path", {"d":"M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"}]],
+  "rotate-ccw": [["path", {"d":"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"}], ["path", {"d":"M3 3v5h5"}]],
 } as const satisfies Record<string, readonly IconNode[]>;
 
 export type IconName = keyof typeof ICONS;

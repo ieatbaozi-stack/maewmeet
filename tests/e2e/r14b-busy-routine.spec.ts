@@ -392,6 +392,11 @@ for (const { loc, theme } of COMBOS) {
     await a.getByTestId('routine-day-delete').click();
     await expect(a.getByTestId('routine-scope')).toHaveAttribute('data-action', 'delete');
     await a.getByTestId('routine-scope-from').click();
+    // R17 A3: เลิกตั้งแต่…ไป ต้องยืนยันก่อน (ยกเลิก = ไม่มีอะไรเปลี่ยน)
+    const stopDialog = a.getByRole('alertdialog').filter({ hasText: T('busy.routine.scope.confirmFrom.title') });
+    await expect(stopDialog).toBeVisible();
+    await expect(stopDialog.getByRole('button', { name: T('common.cancel'), exact: true })).toBeFocused();
+    await stopDialog.getByRole('button', { name: T('busy.routine.scope.confirmFrom.confirm'), exact: true }).click();
     await expect(a.getByTestId('routine-scope')).toHaveCount(0);
     await expect(toastOf(a)).toBeVisible();
     await expect(toastOf(a)).not.toContainText(T('busy.routine.error.gone'));

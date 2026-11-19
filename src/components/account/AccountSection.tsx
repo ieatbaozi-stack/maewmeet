@@ -16,7 +16,7 @@ type Open = null | "rename" | "delete";
  * ส่วน "บัญชี" ของแท็บ ฉัน (R5 §2 ข้อ 4): เปลี่ยนชื่อที่แสดง · ความเป็นส่วนตัว · ลบบัญชี
  * super admin ลบตัวเองในแอปไม่ได้ (เซิร์ฟเวอร์ตอบ 403) — แสดงเหตุผลแทนปุ่ม
  */
-export function AccountSection({ displayName, isSuperAdmin }: { displayName: string; isSuperAdmin: boolean }) {
+export function AccountSection({ displayName, username, isSuperAdmin }: { displayName: string; username: string; isSuperAdmin: boolean }) {
   const t = useTranslations();
   const router = useRouter();
   const id = useId();
@@ -83,7 +83,7 @@ export function AccountSection({ displayName, isSuperAdmin }: { displayName: str
           }}
         />
       ) : null}
-      {open === "delete" ? <DeleteAccountSheet onClose={() => setOpen(null)} /> : null}
+      {open === "delete" ? <DeleteAccountSheet username={username} onClose={() => setOpen(null)} /> : null}
     </section>
   );
 }

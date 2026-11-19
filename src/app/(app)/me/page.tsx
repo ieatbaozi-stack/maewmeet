@@ -49,7 +49,7 @@ export default async function MePage() {
           <p className="account-name"><Name>{user.displayName}</Name></p>
           <p className="muted">{t("signedInAs", { username: user.username })}</p>
         </section>
-        <AccountSection displayName={user.displayName} isSuperAdmin={user.isAdmin} />
+        <AccountSection displayName={user.displayName} username={user.username} isSuperAdmin={user.isAdmin} />
         <PrefsSettings current={{ locale, theme }} />
         <AccountActions />
         <LineSection />
