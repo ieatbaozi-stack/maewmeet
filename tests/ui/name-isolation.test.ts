@@ -25,7 +25,7 @@ describe('<Name> / withNames', () => {
 const SITES: [string, RegExp[]][] = [
   ['src/components/groups/MemberList.tsx', [/<Name>\{m\.displayName\}<\/Name>/]],
   ['src/components/groups/GroupsView.tsx', [/<Name>\{g\.name\}<\/Name>/, /inviter: inviterLabel\(inv, .*\), group: inv\.groupName \}\)\}/, /withNames\(/]],
-  ['src/components/groups/InviteSection.tsx', [/withNames\(/, /name: c\.creatorName \}\)\}/, /username: d\.inviteeName \?\? "" \}\)\}/]],
+  ['src/components/groups/InviteSection.tsx', [/withNames\(/, /name: creatorLabel\(c, .*\) \}\)\}/, /username: d\.inviteeName \?\? "" \}\)\}/]],
   ['src/components/admin/PinResetList.tsx', [/<Name>\{item\.username\}<\/Name>/]],
   ['src/app/(app)/me/page.tsx', [/<Name>\{user\.displayName\}<\/Name>/]],
   ['src/app/(app)/groups/[gid]/page.tsx', [/<Name>\{group\.name\}<\/Name>/]],

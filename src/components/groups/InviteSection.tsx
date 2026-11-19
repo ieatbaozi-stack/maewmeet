@@ -12,6 +12,7 @@ import { formatShortDate } from "./helpers";
 import { InviteCodeSheet, type CreatedCode } from "./InviteCodeSheet";
 import type { SectionProps } from "./NameSection";
 import { withNames } from "@/components/Name";
+import { creatorLabel } from "./invite-label";
 
 type Revoking = { invite: InviteDto } | null;
 
@@ -145,7 +146,7 @@ export function InviteSection({ groupId, groupName, invites, seesOthers, notify 
               <p className="meta">
                 {t("code.expires", { date: formatShortDate(c.expiresAt, locale) })} · {t("code.usedCount", { count: c.usesCount })}
               </p>
-              <p className="meta">{withNames((n) => t("code.createdBy", { name: n.name }), { name: c.creatorName })}</p>
+              <p className="meta">{withNames((n) => t("code.createdBy", { name: n.name }), { name: creatorLabel(c, t("common.systemAdmin"), t("account.deletedName")) })}</p>
             </li>
           ))}
         </ul>

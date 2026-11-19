@@ -95,3 +95,19 @@ describe('H4b รายการคำเชิญ (GroupsView) — inviterLabel
     expect(src).toContain('inviterLabel(inv, t("common.systemAdmin"), t("account.deletedName"))');
   });
 });
+
+describe('H4c โค้ดเชิญ (InviteSection) — creatorLabel', () => {
+  it.each(['th', 'en'] as const)('%s: SA นอกกลุ่ม → common.systemAdmin · ชื่อว่าง → account.deletedName · ปกติ → ชื่อจริง', async (l) => {
+    const { creatorLabel } = await import('@/components/groups/invite-label');
+    const m = messages(l);
+    const sa = m.common.systemAdmin as string;
+    const gone = m.account.deletedName as string;
+    expect(creatorLabel({ creatorName: '', creatorSystemAdmin: true }, sa, gone)).toBe(sa);
+    expect(creatorLabel({ creatorName: '', creatorSystemAdmin: false }, sa, gone)).toBe(gone);
+    expect(creatorLabel({ creatorName: '' }, sa, gone)).toBe(gone);
+    expect(creatorLabel({ creatorName: 'นุ่น', creatorSystemAdmin: false }, sa, gone)).toBe('นุ่น');
+  });
+  it('InviteSection ใช้ creatorLabel กับ common.systemAdmin', () => {
+    expect(read('src/components/groups/InviteSection.tsx')).toContain('creatorLabel(c, t("common.systemAdmin"), t("account.deletedName"))');
+  });
+});
