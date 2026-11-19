@@ -142,6 +142,8 @@ export async function createDirectInvite(actor: Actor, groupId: string, input: D
       // มีคำเชิญ active ถึงคนเดียวกันในกลุ่มนี้อยู่แล้ว (group_invite_direct_active_uq)
       throw constraintKind(e) === 'unique' ? new AppError('CONFLICT') : e;
     });
+    // R16 H7: ผู้รับถูกลบ/ระงับระหว่างทาง → รหัสเดียวกับผู้รับไม่พบตั้งแต่แรก (ไม่บอกว่าเพิ่งถูกลบ) · throw ใน tx = ไม่มีแจ้งเตือน/audit
+    if (created === 'invitee_gone') throw new AppError('USER_NOT_FOUND');
     if (created === 'invitee_full') throw new AppError('LIMIT_REACHED', { limit: 'pendingInvites', max: GROUP_LIMITS.pendingDirectInvitesPerInvitee });
     if (!created) {
       // ผู้ชวนไม่ถือ role เดิมแล้ว (ถูกลบ/เปลี่ยน role กลางทาง) หรือกลุ่มถูกลบ
