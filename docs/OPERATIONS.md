@@ -145,6 +145,16 @@ Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL
 > - `busy:routine` (ของเดิม R14a) นับ `PATCH` แบบประจำที่ได้ 404 ด้วย
 > - **เพดาน LINE OA 300 ข้อความ/เดือน**: นับ push ทั้ง OA ตามเดือนปฏิทินเขต `Asia/Bangkok` (ไม่ใช่เดือนบิลของ LINE) เกินแล้วแถวคิวเป็น dead รหัส `LINE_OA_CAP` ไม่ส่ง · กระดิ่งยังทำงาน · log เฉพาะจำนวน · แผนฟรีของ LINE เองก็จำกัด 300/เดือน (ดูส่วน J)
 
+> **หมายเหตุ R16 (ไม่มี migration · ไม่มี env ใหม่)**: ถังจำกัดอัตราใหม่ 3 ตัว ต่อผู้ใช้ (ค่าอยู่ใน `src/lib/shared/limits.ts`):
+> - `group:settings` 30 ครั้ง / 10 นาที — `PATCH /api/groups/:gid` (ทุกกลุ่มรวมกัน) · นับก่อนตัดสิน 404/403 ด้วย
+> - `prefs:update` 60 ครั้ง / 10 นาที — `POST /api/prefs` ตอนล็อกอินอยู่ (คนที่ยังไม่ล็อกอินไม่นับ) · 429 ไม่ตั้ง cookie ใหม่ แต่ cookie ภาษา/ธีมเดิมยังอยู่
+> - `api:read` 600 คำขอ / 10 นาที — GET ทุก route ที่ต้องล็อกอิน รวมกัน (`src/lib/data/read-limit.ts`, ตัดสินใน `src/app/api/_lib/route.ts`)
+> - **เกินถัง = HTTP 429 `RATE_LIMITED` + header `Retry-After` (วินาทีถึงปลายหน้าต่าง, อย่างน้อย 1)** · ผู้ใช้ที่เพิ่งถูกปฏิเสธจะได้ 429 ทันทีจากความจำใน process จนหน้าต่างหมด (ไม่แตะ DB) · ถังเก็บใน `rate_limit_bucket` จึงนับรวมข้าม instance · ไม่มีขั้นตอนมือ ปลายหน้าต่างแล้วใช้ได้เอง
+> - **`api:read` นับ**: GET + route ที่ต้องล็อกอินเป็นผู้ใช้ + action ที่ไม่สาธารณะ · **ไม่นับ**: cron, `/api/health`, action สาธารณะ (เช่น สถานะ pin-reset), คำขอที่ยังไม่ล็อกอิน, เมธอดอื่น (มีถังของตัวเอง), webhook LINE (POST)
+> - **e2e retries**: CI ลอง retry 1 รอบ (เครื่อง 0) · ดูเทสต์ flaky จาก annotation ของ reporter github ในหน้า run ของ Actions และคำว่า "flaky" ในผล reporter list — เทสต์ที่ผ่านเฉพาะรอบสองต้องตามแก้ต้นเหตุ ไม่ใช่เพิ่ม retries
+> - **B3 ไม่ทำ CSP nonce (boss ยอมรับความเสี่ยง 2026-11-18)**: nonce บังคับให้ทุกหน้า render ใหม่ทุกคำขอ (ไม่มี static/cache) ทำให้ช้าลง ขัดกับ F2 ความเร็ว · แอปไม่มี HTML จากผู้ใช้ (React escape ทั้งหมด) ความเสี่ยง XSS จึงต่ำ · ถ้าจะทำในอนาคตต้องเป็นรอบแยก
+> - **รู้ไว้ (H5)**: หน้า auth ที่ redirect ระหว่าง stream ตอบ status 200 + meta refresh — เกิดจาก root `loading.tsx` (streaming) ครอบทุกหน้า ไม่ใช่เฉพาะ auth · client redirect ทันทีจาก RSC payload และไม่มีข้อมูลหลุด (redirect ถูกโยนก่อน render) · แก้ได้เฉพาะ `proxy.ts` (ขัด ADR 0001) หรือถอด loading boundary (หน้าช้าลง) จึงไม่แก้ · Server-Timing บนหน้า RSC ทำไม่ได้ (header ถูกส่งก่อน query จบ) ใช้ `tests/perf/r7-baseline.test.ts` แทน
+
 ---
 
 ## C. สร้างความลับ (pepper, APP_SECRET, CRON_SECRET)
