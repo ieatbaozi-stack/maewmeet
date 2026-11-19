@@ -584,3 +584,7 @@ cron รายวัน (`/api/cron/daily`) ลบ `busy_block` ที่ `end_a
 **เงื่อนไขประเมิน picomatch ใหม่:**
 - ถ้าเปิดใช้ `extract` ของ next-intl (ใช้ `@parcel/watcher`) หรือตั้ง `images` patterns ใน `next.config.ts` ให้ประเมินใหม่ทันที เพราะ picomatch อาจรับ pattern ที่เกี่ยวกับ runtime
 - เมื่อ picomatch ออกรุ่นที่แก้แล้ว ให้เพิ่ม override ตามรุ่นนั้นแล้วรัน build + typecheck + lint + vitest
+
+## ภาคผนวก — ออกรุ่น: เลขรุ่นในเอกสาร (DOCS_SYNC §7)
+
+`npx tsx scripts/release.ts <เลข>` (boss รันเอง · ขั้นตอนเต็มใน `docs/VERSIONING.md` §6) เปลี่ยนเลข `vX.Y.Z` ใน `docs/guides/quickstart-th.html` (ท้ายหน้า) · `docs/prd/PRD.md` (บรรทัด "สถานะปัจจุบัน") · `docs/team/PROGRESS.md` (บรรทัด "อัปเดตล่าสุด") ให้ใน commit `chore(release)` เดียวกับ `package.json`/`CHANGELOG.md` — CI `test + migration` (docs-sync) บน main จึงไม่แดงหลังออกรุ่น · ถ้าสคริปต์หยุดด้วย `หาตำแหน่งเลขรุ่นไม่เจอ` ให้แจ้ง Lead (เจ้าของไฟล์ต้องคืนบรรทัดนั้น) · เนื้อหาเอกสารอื่นหลังออกรุ่นยังต้องทำตาม `docs/contracts/DOCS_SYNC_CONTRACT.md` §3
