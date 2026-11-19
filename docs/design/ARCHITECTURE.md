@@ -4,12 +4,13 @@
 > แหล่งความจริงของโค้ด: schema = `src/db/schema.ts` + `drizzle/*.sql` · routes = `src/app/api/_lib/manifest.ts` (`ROUTE_MANIFEST`) · env = `.env.example` + `src/lib/shared/env.ts` · cron = `vercel.json` + `.github/workflows/keepalive.yml` — ถ้าเอกสารนี้ขัดกับไฟล์เหล่านี้ ให้ถือโค้ดเป็นหลักแล้วแจ้ง architect
 > repo บน GitHub เป็น **public** แล้ว (ผลต่อ keepalive ดูข้อ 8)
 > แก้รอบ 2 (2026-10-16): การจัดการ pepper (ADR 0002 §7) — env `PIN_PEPPER_V<n>`, ตาราง `pepper_fingerprint`, `AUTH_MAINTENANCE` · keep-alive Turso 2 ชั้น (ADR 0001 §3.1) — ตาราง `system_heartbeat`, `/api/cron/heartbeat`, GitHub Actions · สัปดาห์เริ่มวันจันทร์ (ADR 0004)
-> แหล่งความจริงของความต้องการ: [PRD](../prd/PRD.md) · ตัดสินใจรายเรื่อง: [ADR 0001](../adr/0001-stack-and-project-structure.md) · [0002](../adr/0002-auth-pin.md) · [0003](../adr/0003-rbac.md) · [0004](../adr/0004-time-and-timezone.md) · [0005](../adr/0005-common-free-time-algorithm.md) · [0006](../adr/0006-busy-visibility.md) · [0007](../adr/0007-notifications.md) · [0008](../adr/0008-i18n-and-theme.md) · [0009](../adr/0009-going-counts-as-busy.md) · [0010](../adr/0010-daily-busy-series.md) · [0011](../adr/0011-line-reminders.md) · [0012](../adr/0012-busy-routines.md) · [0013](../adr/0013-drop-place-search-cache.md)
+> แหล่งความจริงของความต้องการ: [PRD](../prd/PRD.md) · ตัดสินใจรายเรื่อง: [ADR 0001](../adr/0001-stack-and-project-structure.md) · [0002](../adr/0002-auth-pin.md) · [0003](../adr/0003-rbac.md) · [0004](../adr/0004-time-and-timezone.md) · [0005](../adr/0005-common-free-time-algorithm.md) · [0006](../adr/0006-busy-visibility.md) · [0007](../adr/0007-notifications.md) · [0008](../adr/0008-i18n-and-theme.md) · [0009](../adr/0009-going-counts-as-busy.md) · [0010](../adr/0010-daily-busy-series.md) · [0011](../adr/0011-line-reminders.md) · [0012](../adr/0012-busy-routines.md) · [0013](../adr/0013-drop-place-search-cache.md) · [0014](../adr/0014-csp-unsafe-inline-accepted.md)
 > **หมายเหตุ R13 (2026-11-11, boss อนุมัติ):** การค้นหาสถานที่ผ่าน Nominatim (U10 `GET /api/places/search`, action `place.search`, env `PLACE_SEARCH_ENABLED`/`NOMINATIM_*`/`NEXT_PUBLIC_MAP_*`) และภาพแผนที่ OSM ถูกเอาออกแล้ว — ผู้ใช้วางลิงก์แผนที่เอง + ปุ่มเปิด Google Maps / Apple Maps · ตาราง `place_search_cache` + งาน cron ล้างมัน **ถูกลบใน migration `0006` (R15, [ADR 0013](../adr/0013-drop-place-search-cache.md), ย้อนไม่ได้)** · ส่วนที่พูดถึงเรื่องนี้ด้านล่างคงไว้เป็นประวัติ · ดู [R13_CONTRACT §1.3](../contracts/R13_CONTRACT.md) และ [PRD D11](../prd/PRD.md)
+> **หมายเหตุ R16 (2026-11-19, branch `feat/r16-cleanup`):** rate limit ใหม่ `group:settings` / `prefs:update` / `api:read` (ข้อ 2, 5, 11) · DTO คำเชิญค้างและ notification `group.invite.received` มีธง `actorSystemAdmin` (ข้อ 5) · ข้อจำกัดที่รู้และความเสี่ยงที่ยอมรับ (redirect ได้ 200 ระหว่าง stream, Server-Timing เฉพาะ API, CSP `'unsafe-inline'` — [ADR 0014](../adr/0014-csp-unsafe-inline-accepted.md)) อยู่ข้อ 11 · ไม่มี route/ตารางใหม่
 > โค้ดใน §3 เริ่มจากฉบับที่ใช้ตอน R0–R1 แล้วปรับตามโค้ดจริงถึง v0.13.0 — คอลัมน์ทุกตัวที่ยังมีอยู่ตรงกับ `src/db/schema.ts` (สรุปตารางทั้งหมดอยู่ต้น §3) · ชื่อไฟล์/คอลัมน์ถือเป็นสัญญา เปลี่ยนต้องผ่าน migration + ADR/contract
 
 ## สารบัญ
-1. โครงโฟลเดอร์และเจ้าของ · 2. การไหลของ request · 3. Schema Drizzle (ตารางทั้งหมด) · 4. Session และ actor · 5. API endpoint ต่อ story · 6. รหัส error · 7. ตัวแปร env (`.env.example`) · 8. งานตามเวลา (cron) · 9. คำถามถึง Lead / ประเด็นเปิด · 10. เปิดแบบแอปบนหน้าจอโฮม (R15)
+1. โครงโฟลเดอร์และเจ้าของ · 2. การไหลของ request · 3. Schema Drizzle (ตารางทั้งหมด) · 4. Session และ actor · 5. API endpoint ต่อ story · 6. รหัส error · 7. ตัวแปร env (`.env.example`) · 8. งานตามเวลา (cron) · 9. คำถามถึง Lead / ประเด็นเปิด · 10. เปิดแบบแอปบนหน้าจอโฮม (R15) · 11. Rate limit ที่ wrapper + ข้อจำกัดที่รู้ (R16)
 
 ---
 
@@ -92,6 +93,8 @@ HTTP request ──► │ route(spec) wrapper  (src/app/api/_lib/route.ts)     
                  │  3. actor = getActor(cookies)  ← src/lib/auth/session.ts                 │
                  │       hash(token) → session JOIN user (status, is_admin, must_change_pin) │
                  │       sliding renew (≤ 1 write/วัน)                                      │
+                 │  3½. R16: GET + ผู้ใช้ล็อกอิน + action ไม่สาธารณะ → จองช่อง `api:read`    │
+                 │      ขนานกับข้อ 4 (เต็ม → 429 ทิ้งผล handler) — ข้อ 11                    │
                  │  4. result = service(actor, input)                                       │
                  │  5. JSON {data} | {error:{code,params}} + Cache-Control: private,no-store │
                  └──────────────────────────────────────────────────────────────────────────┘
@@ -491,7 +494,7 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | ระบบ | `GET /api/cron/daily` | — | cron | ข้อ 8 · งานแรก = เขียน heartbeat | Platform |
 | ระบบ | `POST /api/cron/heartbeat` | — | cron | GitHub Actions ทุก 12 ชม. เขียน heartbeat แล้วคืน `heartbeatAgeHours` | Platform |
 | ระบบ | `GET /api/health` | — | public | 200/503 + `checks: {db, pepper, heartbeat}` เป็น pass/fail เท่านั้น (ADR 0002 §7.1) | OPS |
-| U14, U15 | `POST /api/prefs` | `prefs.cookie.set` | actor | `{locale?, theme?}` ตั้ง cookie อย่างเดียว (ก่อนล็อกอิน / must_change_pin) | Platform |
+| U14, U15 | `POST /api/prefs` | `prefs.cookie.set` | actor | `{locale?, theme?}` ตั้ง cookie (ก่อนล็อกอิน / must_change_pin) · ล็อกอินอยู่ + ส่ง locale → บันทึก `user.locale` ด้วย (R15b) · R16 H2: ล็อกอินอยู่ → RL `prefs:update` 60/10 นาที/ผู้ใช้ (เกิน = 429 ไม่ตั้งคุกกี้ใหม่ คุกกี้เดิมคงอยู่) · ไม่ได้ล็อกอินไม่นับ | Platform |
 | U1 | `POST /api/auth/signup` | `auth.signup` | actor | `{username, displayName, pin, pinConfirm}` · RL 5/ชม./IP · สร้าง session ทันที · locale/theme จาก cookie | Auth |
 | U1 | `POST /api/auth/login` | `auth.login` | actor | `{username, pin}` · throttle (ADR 0002 §3) · ตั้ง cookie session + `mm_locale`/`mm_theme` จากบัญชี | Auth |
 | U1, U3 | `POST /api/auth/logout` | `auth.logout` | actor | ลบ session ปัจจุบัน · อนุญาตระหว่าง must_change_pin | Auth |
@@ -506,7 +509,7 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | U4 | `POST /api/groups` | `group.create` | actor | `{name}` → ผู้สร้างเป็น admin | Platform |
 | U4 | `GET /api/groups` | `group.list.mine` | actor | กลุ่มที่เป็นสมาชิก + role ของฉัน + `icon` | Platform |
 | U4, U6 | `GET /api/groups/:gid` | `group.view` | actor | รายละเอียด + สมาชิก (id, display name, role, สี/รูปทรง) | Platform |
-| U6, D9 | `PATCH /api/groups/:gid` | `group.update` | actor | `{name?, freeWindowStartMin?, freeWindowEndMin?, minFreeMinutes?}` | Platform |
+| U6, D9 | `PATCH /api/groups/:gid` | `group.update` | actor | `{name?, freeWindowStartMin?, freeWindowEndMin?, minFreeMinutes?}` · R16 H1: RL `group:settings` 30/10 นาที/ผู้ใช้ (ทุกกลุ่มรวม) นับหลังด่านบัญชี — 404/403 ของด่านกลุ่มก็นับ (ถังเต็ม → 429 แทน 404/403) · ด่านบัญชี (anonymous/suspended/must_change_pin) ไม่นับ | Platform |
 | U6 | `DELETE /api/groups/:gid` | `group.delete` | actor | soft delete + audit | Platform |
 | U6 (R15) | `PUT /api/groups/:gid/icon` | `group.icon.update` | actor | `{icon: <คีย์ใน allowlist> \| null}` · `.strict()` · RL `group:icon` · route แยกเพื่อให้ 1 route = 1 action | Platform |
 | U6, D7 | `DELETE /api/groups/:gid/members/:uid` | `member.remove` | actor | 409 ถ้าเป้าหมายเป็น admin | Platform |
@@ -514,12 +517,12 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | R6C | `PATCH /api/groups/:gid/members/me/appearance` | `member.setOwnAppearance` | actor | `{color: 1–10 \| null, shape: 1–10 \| null}` → `group_member.color_slot/shape_slot` · RL `member:appearance` | Platform |
 | U6, D8 | `POST /api/groups/:gid/transfer-admin` | `group.transferAdmin` | actor | `{toUserId}` · admin เดิมกลายเป็น moderator | Platform |
 | U6, D8 | `POST /api/groups/:gid/leave` | `group.leave` | actor | 409 ถ้าเป็น admin | Platform |
-| U5 (ก) | `POST /api/groups/:gid/invites/direct` | `invite.direct.create` | actor | `{username}` · RL 30/ชม. · สร้าง notification | Platform |
+| U5 (ก) | `POST /api/groups/:gid/invites/direct` | `invite.direct.create` | actor | `{username}` · RL 30/ชม. · สร้าง notification `group.invite.received` — R16 H4: params มี `actorSystemAdmin` (super admin ที่ไม่ใช่สมาชิกเชิญ → `true` + `inviterName ''`) | Platform |
 | U5 (ข) | `POST /api/groups/:gid/invites/code` | `invite.code.create` | actor | คืนโค้ด **ครั้งเดียว** (`XXXX-XXXX`, alphabet 31 ตัว ตัด 0 O 1 I L) + expiresAt | Platform |
 | U5, U6 | `GET /api/groups/:gid/invites` | `invite.list` | actor | MEM เห็นเฉพาะของตัวเอง | Platform |
 | U5, U6 | `DELETE /api/groups/:gid/invites/:iid` | `invite.revoke` | actor | | Platform |
 | U5 (ข) | `POST /api/invites/redeem` | `invite.code.redeem` | actor | `{code}` · ผิด/หมดอายุ/เพิกถอน → `INVITE_INVALID` เดียวกัน · RL ADR 0002 · สมาชิกเดิม → 200 ไม่สร้างแถว | Platform |
-| U5 (ก) | `GET /api/me/invites` | `invite.direct.list.mine` | actor | คำเชิญตรงที่ค้าง | Platform |
+| U5 (ก) | `GET /api/me/invites` | `invite.direct.list.mine` | actor | คำเชิญตรงที่ค้าง · DTO `{id, groupId, groupName, inviterName, createdAt, expiresAt, actorSystemAdmin}` — R16 H4b: ผู้สร้างเป็น super admin และไม่ใช่สมาชิกกลุ่มนั้น *ณ ตอนอ่าน* → `actorSystemAdmin: true` + `inviterName ''` (UI แสดง `common.systemAdmin`) · ธงภายใน `inviterIsSuperAdmin`/`inviterIsMember` ไม่ออกทาง API | Platform |
 | U5 (ก) | `POST /api/me/invites/:iid/accept` | `invite.direct.respond` | actor | | Platform |
 | U5 (ก) | `POST /api/me/invites/:iid/decline` | `invite.direct.respond` | actor | | Platform |
 | U7 | `GET /api/me/busy` | `busy.list.own` | actor | `?from&to` · เห็นครบรวม note | Platform |
@@ -658,3 +661,30 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 - [N2] Next.js — manifest file convention (`app/manifest.(json|webmanifest)` หรือ `app/manifest.ts`; "cached by default unless it uses a Request-time API") · lastUpdated 2026-03-03 — https://nextjs.org/docs/app/api-reference/file-conventions/metadata/manifest · PWA guide (lastUpdated 2026-07-30) — https://nextjs.org/docs/app/guides/progressive-web-apps
 - [A1] Apple — Safari Web Content Guide: Configuring Web Applications (`apple-touch-icon` + sizes, `apple-mobile-web-app-capable`, status-bar-style · เอกสาร archive อัปเดต 2016-12-12 ใช้เป็นประวัติ) — https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariWebContent/ConfiguringWebApplications/ConfiguringWebApplications.html
 - [A2] WebKit — WebKit Features in Safari 26.0 ("By default, every website added to the Home Screen opens as a web app"; manifest ยังใช้ไอคอน) — https://webkit.org/blog/17333/webkit-features-in-safari-26-0/
+
+## 11. Rate limit ที่ wrapper + ข้อจำกัดที่รู้ (R16)
+ที่มา: [R16_CONTRACT](../contracts/R16_CONTRACT.md) §1 (H1–H6), §5 (ผลตัดสิน boss 2026-11-18), §6 · อ่านโค้ด `feat/r16-cleanup` 2026-11-19 (`git diff 9db2c08..HEAD -- src`)
+
+### 11.1 ถัง rate limit ใหม่ (`src/lib/shared/limits.ts` — เก็บใน `rate_limit_bucket` เหมือนถังอื่น นับรวมข้าม instance)
+| prefix | เพดาน | นับที่ | นับ | ไม่นับ |
+|---|---|---|---|---|
+| `group:settings` (H1) | 30/10 นาที/ผู้ใช้ (ทุกกลุ่มรวม) | `updateGroupSettings` (`src/lib/data/services/groups.ts`) | `PATCH /api/groups/:gid` ทุกคำขอที่ผ่านด่านบัญชี รวมที่ด่านกลุ่มตอบ `NOT_FOUND`/`FORBIDDEN` (ตัดสินจากรหัสของ policy กลาง ไม่เทียบ role เอง) · ถังเต็ม → 429 แทน 404/403 | ด่านบัญชี (anonymous / suspended / must_change_pin) |
+| `prefs:update` (H2) | 60/10 นาที/ผู้ใช้ | `takePrefsSlot` (`src/lib/data/services/prefs.ts`) หลังด่าน `prefs.cookie.set` ก่อนตั้งคุกกี้/เขียน `user.locale` | `POST /api/prefs` ของผู้ที่ล็อกอินอยู่ | ไม่ได้ล็อกอิน (หน้า login/signup/forgot — ไม่มีตัวตนให้ผูกถัง และไม่เขียน DB) |
+| `api:read` (H3, boss B1) | 600/10 นาที/ผู้ใช้ รวมทุก route | wrapper `route()` ขั้น 3½ (`src/app/api/_lib/route.ts` + `src/lib/data/read-limit.ts`) | `GET` + `auth: 'actor'` + action ไม่ใช่ `null` และไม่สาธารณะ + actor เป็นผู้ใช้ (`readLimited()`) — รวม GET ที่ handler ตอบ error ด้วย | cron / health (auth ไม่ใช่ actor หรือ action `null`) · action สาธารณะ (เช่น สถานะ pin-reset) · anonymous · เมธอดอื่น (มีถังของตัวเองต่อ route) · webhook LINE (POST) · หน้า Server Component (ไม่ผ่าน wrapper) |
+
+กลไก `api:read`:
+- จองช่อง (UPSERT มีเพดาน `reserveBucket` ใน `serialized`) **ขนานกับ handler** ไม่เพิ่ม round trip · ผลของ limiter ตัดสินก่อนใช้ผล handler เสมอ — เต็ม → 429 `RATE_LIMITED` + `Retry-After` และทิ้งผล handler · ข้อควรรู้: handler เริ่มทำงานพร้อม limiter จึงอาจทำงานจบไปแล้วตอนถูกปฏิเสธ — ผลข้างเคียงของ GET (ถ้ามี เช่น audit ตอน SA เปิดดูกลุ่ม ตามข้อ 5 `GET /api/admin/groups/:gid`) อาจเกิดแม้ผู้เรียกได้ 429 (อ่านจากโค้ด ยังไม่ได้ทดสอบกรณีนี้)
+- ทางลัดใน process: ผู้ใช้ที่เพิ่งถูกปฏิเสธ → จำ `userId → ปลายหน้าต่าง` (Map ≤ `READ_BLOCK_MEMO_MAX` = 1,000 คีย์ ทิ้งเก่าสุดเมื่อเต็ม) แล้วตอบ 429 ทันทีโดยไม่แตะ DB และไม่รัน handler จนหน้าต่างหมด · หาย/ล้นเพดาน = เสียแค่ทางลัด DB ยังเป็นตัวตัดสิน · ไม่ได้แชร์ข้าม instance (แต่ละ instance เรียนรู้เองจากการถูก DB ปฏิเสธครั้งแรก)
+- ผลข้างเคียงต่อโหลด: GET ที่ล็อกอินทุกครั้งเขียน `rate_limit_bucket` 1 ครั้ง (ขนานกับ handler) · cron daily ลบถังเก่ากว่า 2 วันเหมือนเดิม (ข้อ 8)
+
+### 11.2 ธง `actorSystemAdmin` (H4, H4b — security R15b Info 3)
+- notification `group.invite.received` params เพิ่ม `actorSystemAdmin: boolean` (ADR 0007 §1) — ตั้ง `true` เมื่อผู้เชิญผ่านด่านสิทธิ์ในฐานะ super admin ที่ไม่ใช่สมาชิก (`actorRole === null`) แล้วเก็บ `inviterName ''` · แถวก่อน R16 ไม่มีคีย์ = ถือเป็น `false` (ไม่เขียนย้อนหลัง — R16 §6)
+- `GET /api/me/invites` DTO มี `actorSystemAdmin` คำนวณ *ตอนอ่าน* จาก `user.is_admin` ของผู้สร้าง + `EXISTS group_member` ใน query เดียว (`listPendingDirectInvitesFor`) · serializer เลือกฟิลด์ทีละตัว ไม่ส่งธงภายในออก · ต่างจาก notification ที่เป็นค่า ณ เวลาเกิด — ถ้า SA เข้ากลุ่มทีหลัง รายการคำเชิญจะแสดงชื่อจริง แต่กระดิ่งยังเป็น "ผู้ดูแลระบบ"
+
+### 11.3 ข้อจำกัดที่รู้ / ความเสี่ยงที่ยอมรับ
+| เรื่อง | สภาพจริง | เหตุผลที่ไม่แก้ | อ้างอิง |
+|---|---|---|---|
+| redirect ระหว่าง stream ได้ HTTP 200 | root `src/app/loading.tsx` (และ `src/app/(app)/loading.tsx`) ทำให้ทุกหน้าเป็น streaming → `redirect()` ใน Server Component ส่งเป็น status 200 + meta refresh / คำสั่งใน RSC payload แทน 3xx · client ย้ายหน้าทันที และ redirect ถูกโยนก่อน render จึงไม่มีข้อมูลหลุด · เกิดกับทุกหน้า ไม่ใช่แค่หน้า auth | แก้ได้ด้วย `proxy.ts` (ขัด ADR 0001 §1) หรือเอา loading boundary ออก (หน้าช้าลง ขัด F2) | R16 §6 H5 (platform ตรวจด้วย curl บน `next start` 2026-11-18) |
+| `Server-Timing` มีเฉพาะ API | header ออกจาก wrapper `route()` เท่านั้น (เปิด/ปิดด้วย `SERVER_TIMING_ENABLED`, ข้อ 7) · หน้า RSC ไม่มี | Next 16 `headers()` ใน Server Component อ่านอย่างเดียว และหน้า streaming ส่ง header ก่อน query จบ · วัดหน้าด้วย `tests/perf/r7-baseline.test.ts` แทน | R16 §6 H6 |
+| CSP ยังมี `'unsafe-inline'` ใน `script-src` / `style-src` | `next.config.ts` `contentSecurityPolicy()` | boss B3 = (ก) ไม่ทำ nonce ยอมรับความเสี่ยง | [ADR 0014](../adr/0014-csp-unsafe-inline-accepted.md) · R16 §5 B3 |
+| SkeletonHold (U4) | `src/components/shell/SkeletonHold.tsx` ใน root layout เฝ้า `data-nav-loading` แล้ววาง skeleton ค้างให้ครบ 250 ms หลัง `loading.tsx` หาย (client-only ไม่กระทบ status/stream) | — (บันทึกไว้เพราะอยู่ที่ root layout ทุกหน้า) | R16 §1 U4 |
