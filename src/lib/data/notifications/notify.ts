@@ -46,7 +46,8 @@ type GroupMemberEventParams = { groupId: string; groupName: string; memberName: 
 
 /** params ต่อชนิด — ตรงกับ ADR 0007 §1 + R11 §1 (ชื่อ ณ เวลาเกิดเหตุ · instant = epoch ms) */
 export type NotificationParamsByKind = {
-  'group.invite.received': { groupId: string; groupName: string; inviterName: string; inviteId: string };
+  /** R16 H4: actorSystemAdmin = ผู้เชิญเป็น super admin ที่ไม่ใช่สมาชิก → inviterName '' (UI แสดง common.systemAdmin) · แถวก่อน R16 ไม่มีคีย์นี้ = false */
+  'group.invite.received': { groupId: string; groupName: string; inviterName: string; inviteId: string; actorSystemAdmin: boolean };
   'group.invite.accepted': { groupId: string; groupName: string; inviteeName: string; inviteId: string };
   'group.invite.declined': { groupId: string; groupName: string; inviteeName: string; inviteId: string };
   'appointment.created': { groupId: string; groupName: string; appointmentId: string; title: string; startAt: number; tz: string };

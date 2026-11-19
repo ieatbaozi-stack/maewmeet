@@ -130,6 +130,50 @@ describe('ความลับไม่อยู่ใน repo (working tree �
   });
 });
 
+/**
+ * เนื้อหาของทุกคีย์ `run:` ใน YAML แยกตามระดับเยื้อง (ไม่ตัดที่บรรทัดว่าง)
+ * - `run: คำสั่งเดียว` → บรรทัดนั้น · `run: |` / `run: >` → ทุกบรรทัดถัดไปที่เยื้องลึกกว่าคีย์ (บรรทัดว่างอยู่ในบล็อกต่อได้)
+ * - บล็อกจบเมื่อเจอบรรทัดไม่ว่างที่เยื้อง <= ตำแหน่งของคีย์ run
+ */
+function runScriptBlocks(yaml: string): string[] {
+  const lines = yaml.replace(/\r\n/g, '\n').split('\n');
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = /^ *(?:- +)?run:(.*)$/.exec(lines[i]!);
+    if (!m) continue;
+    const keyIndent = lines[i]!.indexOf('run:');
+    const body = [m[1]!];
+    if (/^\s*[|>][+-]?\d*\s*$/.test(m[1]!)) {
+      for (let j = i + 1; j < lines.length; j++) {
+        const l = lines[j]!;
+        if (l.trim() !== '' && l.length - l.trimStart().length <= keyIndent) break;
+        body.push(l);
+      }
+    }
+    out.push(body.join('\n'));
+  }
+  return out;
+}
+
+describe('runScriptBlocks — แยกบล็อก run: ตามระดับเยื้อง', () => {
+  it('บรรทัดว่างกลางบล็อก run: | ไม่ตัดบล็อก — ${{ }} หลังบรรทัดว่างยังถูกเห็น', () => {
+    const y = ['      - name: x', '        run: |', '          echo ok', '', '          echo "${{ github.event.pull_request.title }}"', '      - run: echo next'].join('\n');
+    const blocks = runScriptBlocks(y);
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0]).toMatch(/\$\{\{ github\.event/);
+    expect(blocks[1]).not.toMatch(/\$\{\{/);
+  });
+  it('บล็อกจบที่บรรทัดเยื้องเท่าคีย์ — ${{ }} ใน env: ของ step ถัดไปไม่ติดมา', () => {
+    const y = ['      - name: x', '        run: |', '          echo ok', '', '      - name: y', '        env:', '          T: ${{ github.event.x }}', '        run: echo hi'].join('\n');
+    const blocks = runScriptBlocks(y);
+    expect(blocks).toHaveLength(2);
+    for (const b of blocks) expect(b).not.toMatch(/\$\{\{/);
+  });
+  it('run: บรรทัดเดียวที่มี ${{ }} ถูกจับ · CRLF ใช้ได้', () => {
+    expect(runScriptBlocks('      - run: echo ${{ github.event.x }}\r\n')[0]).toMatch(/\$\{\{/);
+  });
+});
+
 describe('GitHub workflows', () => {
   const wf = (name: string) => readFileSync(path.join(ROOT, '.github/workflows', name), 'utf8').replace(/\r\n/g, '\n');
   const files = ['ci.yml', 'keepalive.yml'];
@@ -145,7 +189,7 @@ describe('GitHub workflows', () => {
     const checkouts = y.match(/uses: actions\/checkout@/g)?.length ?? 0;
     expect((y.match(/persist-credentials: false/g)?.length ?? 0)).toBe(checkouts);
     // ${{ }} ที่อยู่ในบล็อก run: เท่านั้นที่อันตราย — ci.yml ใช้ github.event ใน concurrency.group (ไม่รันเป็น shell)
-    const runBlocks = y.replace(/\r\n/g, '\n').split(/\n(?= {6}- )/).filter((b) => /\brun:/.test(b)).map((b) => b.slice(b.indexOf('run:')).split('\n\n')[0]); // ตัดที่บรรทัดว่าง = จบ step/job (กัน if: ของ job ถัดไปติดมา)
+    const runBlocks = runScriptBlocks(y); // แยกตามระดับเยื้อง ไม่ใช่ที่บรรทัดว่าง (QA R15b Low 1)
     for (const b of runBlocks) expect(b, b).not.toMatch(/\$\{\{/);
   });
 

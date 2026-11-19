@@ -52,25 +52,34 @@ export async function expireDueDirectInvites(db: DbOrTx, groupId: string, invite
 }
 
 /**
- * สร้างคำเชิญตรง ถ้ากลุ่มยังไม่ถูกลบ + ผู้ชวนยังถือ role ที่ตัดสินสิทธิ์ไว้ (ActorGuard) — คำสั่งเดียวอะตอมมิก
+ * สร้างคำเชิญตรง ถ้ากลุ่มยังไม่ถูกลบ + ผู้ชวนยังถือ role ที่ตัดสินสิทธิ์ไว้ (ActorGuard) + ผู้รับยัง active — คำสั่งเดียวอะตอมมิก
  * มีคำเชิญ active คู่เดียวกันอยู่ (unique index) → โยน unique violation ให้ผู้เรียกแปลง · คืน null = ไม่เข้าเงื่อนไข (ผู้เรียกวินิจฉัยด้วย findGroupById)
+ * R16 H7 (security-r5 Info 1): ผู้รับถูกลบ/ระงับระหว่างตรวจกับ INSERT → ไม่สร้าง คืน 'invitee_gone' (ผู้เรียกตอบเหมือนผู้รับไม่พบ · ไม่มีแจ้งเตือน)
  */
 export async function insertDirectInvite(
   db: DbOrTx,
   input: { id: string; groupId: string; inviteeUserId: string; createdBy: string; expiresAt: number; inviteeCap: number },
   now: number,
   guard: ActorGuard,
-): Promise<InviteRow | 'invitee_full' | null> {
+): Promise<InviteRow | 'invitee_full' | 'invitee_gone' | null> {
   const rows = await db.all<{ id: string }>(sql`
     INSERT INTO group_invite (id, group_id, kind, invitee_user_id, status, uses_count, created_by, created_at, expires_at)
     SELECT ${input.id}, ${input.groupId}, 'direct', ${input.inviteeUserId}, 'active', 0, ${input.createdBy}, ${now}, ${input.expiresAt}
     WHERE EXISTS (SELECT 1 FROM groups WHERE id = ${input.groupId} AND deleted_at IS NULL)
+      AND EXISTS (SELECT 1 FROM user u WHERE u.id = ${input.inviteeUserId} AND u.status = 'active')
       AND ${actorGuardClause(input.groupId, guard)}
       AND (SELECT count(*) FROM group_invite i JOIN groups g ON g.id = i.group_id AND g.deleted_at IS NULL
             WHERE i.invitee_user_id = ${input.inviteeUserId} AND i.kind = 'direct' AND i.status = 'active' AND i.expires_at > ${now}) < ${input.inviteeCap}
     RETURNING id`);
+  if (rows.length !== 1 && !(await isActiveUser(db, input.inviteeUserId))) return 'invitee_gone';
   if (rows.length !== 1) return (await countPendingDirectFor(db, input.inviteeUserId, now)) >= input.inviteeCap && (await actorHolds(db, input.groupId, guard)) ? 'invitee_full' : null;
   return (await findInviteById(db, input.id)) ?? null;
+}
+
+/** R16 H7: ผู้ใช้ยัง active ไหม (ใช้วินิจฉัยหลัง INSERT แบบมีเงื่อนไขไม่สำเร็จ — การตัดสินจริงอยู่ในคำสั่ง INSERT) */
+async function isActiveUser(db: DbOrTx, userId: string): Promise<boolean> {
+  const rows = await db.all<{ n: number }>(sql`SELECT count(*) AS n FROM user WHERE id = ${userId} AND status = 'active'`);
+  return Number(rows[0]?.n ?? 0) > 0;
 }
 
 /**
@@ -108,7 +117,10 @@ export async function findInviteById(db: DbOrTx, inviteId: string): Promise<Invi
   return rows[0] ?? null;
 }
 
-export type InviteListRow = InviteRow & { creatorName: string; inviteeName: string | null };
+/**
+ * R16 H4c: creatorIsSuperAdmin / creatorIsMember (ณ ตอนอ่าน — มากับ query เดียวกัน) ใช้ที่ serializer ตัดสิน creatorSystemAdmin เท่านั้น ไม่ส่งออก
+ */
+export type InviteListRow = InviteRow & { creatorName: string; inviteeName: string | null; creatorIsSuperAdmin: boolean; creatorIsMember: boolean };
 
 /**
  * คำเชิญที่ "ยังใช้ได้" ของกลุ่ม (active + ยังไม่หมดอายุ) ใหม่สุดก่อน
@@ -137,6 +149,8 @@ export async function listActiveInvitesOfGroup(
         revokedBy: groupInvite.revokedBy,
       },
       creatorName: user.displayName,
+      creatorIsSuperAdmin: user.isAdmin,
+      creatorIsMember: sql<boolean>`EXISTS (SELECT 1 FROM group_member gm WHERE gm.group_id = ${groupInvite.groupId} AND gm.user_id = ${groupInvite.createdBy})`.mapWith(Boolean),
       inviteeName: sql<string | null>`(SELECT u.display_name FROM user u WHERE u.id = ${groupInvite.inviteeUserId})`,
     })
     .from(groupInvite)
@@ -150,7 +164,14 @@ export async function listActiveInvitesOfGroup(
       ),
     )
     .orderBy(desc(groupInvite.createdAt), asc(groupInvite.id));
-  return rows.map((r) => ({ ...r.invite, codeHash: null, creatorName: r.creatorName, inviteeName: r.inviteeName }));
+  return rows.map((r) => ({
+    ...r.invite,
+    codeHash: null,
+    creatorName: r.creatorName,
+    inviteeName: r.inviteeName,
+    creatorIsSuperAdmin: r.creatorIsSuperAdmin,
+    creatorIsMember: r.creatorIsMember,
+  }));
 }
 
 export type PendingDirectInvite = {
@@ -160,6 +181,10 @@ export type PendingDirectInvite = {
   inviterName: string;
   createdAt: number;
   expiresAt: number;
+  /** R16 H4b: ผู้สร้างเป็น super admin (ณ ตอนอ่าน) — ใช้ร่วมกับ inviterIsMember ที่ serializer เท่านั้น ไม่ส่งออก */
+  inviterIsSuperAdmin: boolean;
+  /** R16 H4b: ผู้สร้างยังเป็นสมาชิกของกลุ่มนี้ (ณ ตอนอ่าน — EXISTS ใน query เดียวกัน) */
+  inviterIsMember: boolean;
 };
 
 /** จำนวนคำเชิญตรงที่ค้างของผู้รับ (นิยามเดียวกับรายการ/เพดาน) */
@@ -180,6 +205,8 @@ export async function listPendingDirectInvitesFor(db: DbOrTx, userId: string, no
       inviterName: user.displayName,
       createdAt: groupInvite.createdAt,
       expiresAt: groupInvite.expiresAt,
+      inviterIsSuperAdmin: user.isAdmin,
+      inviterIsMember: sql<boolean>`EXISTS (SELECT 1 FROM group_member gm WHERE gm.group_id = ${groupInvite.groupId} AND gm.user_id = ${groupInvite.createdBy})`.mapWith(Boolean),
     })
     .from(groupInvite)
     .innerJoin(groups, eq(groups.id, groupInvite.groupId))

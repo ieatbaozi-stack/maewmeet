@@ -13,7 +13,8 @@ v1 มีแค่ "ในแอป" (คำเชิญตรง, นัดใ�
 ```ts
 // pseudo-code
 type NotificationKind =
-  | 'group.invite.received'         // → ผู้ถูกเชิญ  params: { groupId, groupName, inviterName, inviteId }
+  | 'group.invite.received'         // → ผู้ถูกเชิญ  params: { groupId, groupName, inviterName, inviteId, actorSystemAdmin }
+                                    //   R16 H4: actorSystemAdmin = ผู้เชิญเป็น super admin ที่ไม่ใช่สมาชิก → inviterName '' (UI แสดง common.systemAdmin) · แถวก่อน R16 ไม่มีคีย์ = false
   | 'group.invite.accepted'         // → ผู้เชิญ     params: { groupId, groupName, inviteeName, inviteId }
   | 'group.invite.declined'         // → ผู้เชิญ     params: { groupId, groupName, inviteeName, inviteId }
   | 'appointment.created'           // params: { groupId, groupName, appointmentId, title, startAt, tz }

@@ -220,7 +220,7 @@ describe('2. mapUrl: https เท่านั้น ≤500 ไม่มี crede
 describe('3. params ของ notification มีเฉพาะคีย์ใน allowlist ต่อ kind (ADR 0007 §1)', () => {
   /** เขียนมือจาก ADR 0007 — ไม่คัดจากโค้ด */
   const ALLOW: Record<string, readonly string[]> = {
-    'group.invite.received': ['groupId', 'groupName', 'inviterName', 'inviteId'],
+    'group.invite.received': ['groupId', 'groupName', 'inviterName', 'inviteId', 'actorSystemAdmin'],
     'group.invite.accepted': ['groupId', 'groupName', 'inviteeName', 'inviteId'],
     'group.invite.declined': ['groupId', 'groupName', 'inviteeName', 'inviteId'],
     'appointment.created': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz'],

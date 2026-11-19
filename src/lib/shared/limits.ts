@@ -164,6 +164,20 @@ export const GROUP_MEMBERSHIP_RATE_LIMIT = { prefix: 'group:membership', limit: 
 /** PUT /api/groups/:gid/icon — 30 ครั้ง/10 นาที/ผู้ใช้ (ทุกกลุ่มรวมกัน) · นับเฉพาะครั้งที่ค่าเปลี่ยน (ค่าเท่าเดิมไม่เขียนอะไร) */
 export const GROUP_ICON_RATE_LIMIT = { prefix: 'group:icon', limit: 30, windowMs: 10 * MINUTE_MS } as const;
 
+// ───────── R16 §1 — limiter ที่ขาด (security R15b Info 5 · PROGRESS "เหลือ") ─────────
+/**
+ * H1: PATCH /api/groups/:gid (ชื่อ/หน้าต่างวันว่าง) — 30 ครั้ง/10 นาที/ผู้ใช้ (ทุกกลุ่มรวมกัน) · เกิน → RATE_LIMITED + Retry-After
+ * นับทุกคำขอหลังด่านบัญชี ก่อนตัดสินด่านกลุ่ม — 404 (คนนอก/ไม่มีกลุ่ม/ลบแล้ว) และ 403 (member) ก็นับ (แบบ PATCH busy ของ R15b)
+ */
+export const GROUP_SETTINGS_RATE_LIMIT = { prefix: 'group:settings', limit: 30, windowMs: 10 * MINUTE_MS } as const;
+/** H2: POST /api/prefs ตอนล็อกอินอยู่ — 60 ครั้ง/10 นาที/ผู้ใช้ · ไม่ได้ล็อกอิน (หน้า login/signup) ไม่นับ — ไม่มีตัวตนให้ผูก และไม่เขียน DB */
+export const PREFS_RATE_LIMIT = { prefix: 'prefs:update', limit: 60, windowMs: 10 * MINUTE_MS } as const;
+/**
+ * H3 (boss B1 2026-11-18): GET API ที่ต้องล็อกอิน — 600 คำขอ/10 นาที/ผู้ใช้ รวมทุก route (กันสคริปต์ยิงรัว · การใช้ปกติต่ำกว่านี้มาก)
+ * ไม่นับ: cron / health (auth ไม่ใช่ actor) · action สาธารณะ (เช่น pin-reset status) · anonymous · เมธอดอื่น (มีถังของตัวเอง) · webhook LINE (POST)
+ */
+export const API_READ_RATE_LIMIT = { prefix: 'api:read', limit: 600, windowMs: 10 * MINUTE_MS } as const;
+
 // ───────── กลุ่มปัจจุบัน (คุกกี้ mm_group) — R6D G1 · ADR 0009 §5 ─────────
 /** PUT /api/me/current-group — 120 ครั้ง/10 นาที/ผู้ใช้ (เรียกเมื่อเปิดหน้ากลุ่ม/เปลี่ยนกลุ่ม) · เกิน → RATE_LIMITED + Retry-After */
 export const CURRENT_GROUP_RATE_LIMIT = { prefix: 'me:current-group', limit: 120, windowMs: 10 * MINUTE_MS } as const;

@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { PinPad } from "@/components/auth/PinPad";
 import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
+import { signalNavStart } from "@/components/shell/nav-start";
 import { Sheet } from "@/components/shell/Sheet";
 import { callApiRaw } from "./api";
 import { deleteOutcome, type GroupRef } from "./model";
@@ -31,6 +32,7 @@ export function DeleteAccountSheet({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   function toLogin() {
+    signalNavStart("/login"); // R16 U3: แถบ progress ขึ้นตอนลบบัญชี
     router.replace("/login");
     router.refresh();
   }

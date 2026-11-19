@@ -142,15 +142,30 @@ export async function createDirectInvite(actor: Actor, groupId: string, input: D
       // มีคำเชิญ active ถึงคนเดียวกันในกลุ่มนี้อยู่แล้ว (group_invite_direct_active_uq)
       throw constraintKind(e) === 'unique' ? new AppError('CONFLICT') : e;
     });
+    // R16 H7: ผู้รับถูกลบ/ระงับระหว่างทาง → รหัสเดียวกับผู้รับไม่พบตั้งแต่แรก (ไม่บอกว่าเพิ่งถูกลบ) · throw ใน tx = ไม่มีแจ้งเตือน/audit
+    if (created === 'invitee_gone') throw new AppError('USER_NOT_FOUND');
     if (created === 'invitee_full') throw new AppError('LIMIT_REACHED', { limit: 'pendingInvites', max: GROUP_LIMITS.pendingDirectInvitesPerInvitee });
     if (!created) {
       // ผู้ชวนไม่ถือ role เดิมแล้ว (ถูกลบ/เปลี่ยน role กลางทาง) หรือกลุ่มถูกลบ
       const again = await findGroupById(tx, groupId);
       throw new AppError(again && again.deletedAt === null ? 'CONFLICT' : 'NOT_FOUND');
     }
+    // R16 H4 (security R15b Info 3): super admin ที่ไม่ใช่สมาชิก (actorRole null หลังด่านสิทธิ์) → ไม่เก็บชื่อ · ธง actorSystemAdmin ให้ UI แสดง common.systemAdmin (แบบ R15b B7)
+    const inviterSystemAdmin = group.actorRole === null;
     await insertNotification(
       tx,
-      { id: newId(), userId: invitee.id, kind: NOTIFY_KIND.inviteReceived, params: { groupId, groupName: sanitizeDisplayText(groupRow.name), inviterName: sanitizeDisplayText(inviter.displayName), inviteId: id } },
+      {
+        id: newId(),
+        userId: invitee.id,
+        kind: NOTIFY_KIND.inviteReceived,
+        params: {
+          groupId,
+          groupName: sanitizeDisplayText(groupRow.name),
+          inviterName: inviterSystemAdmin ? '' : sanitizeDisplayText(inviter.displayName),
+          inviteId: id,
+          actorSystemAdmin: inviterSystemAdmin,
+        },
+      },
       now,
     );
     await audit(tx, me, allow, { action: 'invite.direct.create', targetType: 'invite', targetId: id, groupId, meta: { inviteId: id, inviteeUserId: invitee.id } }, now);
@@ -158,7 +173,8 @@ export async function createDirectInvite(actor: Actor, groupId: string, input: D
   });
 
   return {
-    invite: toInviteDto({ ...row, codeHash: null, creatorName: inviter.displayName, inviteeName: invitee.displayName }),
+    // R16 H4c: กติกาเดียวกับรายการคำเชิญ — SA ที่ไม่ใช่สมาชิก (actorRole null หลังด่านสิทธิ์) → creatorSystemAdmin
+    invite: toInviteDto({ ...row, codeHash: null, creatorName: inviter.displayName, inviteeName: invitee.displayName, creatorIsSuperAdmin: inviter.isAdmin, creatorIsMember: group.actorRole !== null }),
   };
 }
 

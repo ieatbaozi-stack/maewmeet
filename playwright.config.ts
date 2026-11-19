@@ -31,9 +31,10 @@ export default defineConfig({
   outputDir: 'test-results',
   fullyParallel: true,
   forbidOnly: isCI,
-  // 2 รอบ: DB ไฟล์ของ E2E ไม่มี busy timeout ฝั่งแอป (src/db/client.ts ไม่ส่ง `timeout` ให้ createClient) → การเขียนซ้อนกันของหลาย worker
-  // ตอบ 500 เป็นครั้งคราว (Handoff D1) · ลดเหลือ 1 (CI)/0 (เครื่อง) เมื่อ Platform แก้แล้ว
-  retries: 2,
+  // R16 (B2): retry 1 รอบบน CI · 0 ในเครื่อง · เหตุที่เคยใช้ 2 (SQLITE_BUSY ตอนหลาย worker เขียนไฟล์ DB เดียวกัน, Handoff D1)
+  // แก้แล้วที่ src/db/client.ts (busy timeout ของ `file:` — tests/platform/db-busy-timeout.test.ts)
+  // เทสต์ที่ผ่านเมื่อ retry = flaky: reporter list ระบุ "flaky" + reporter github (CI) annotate เตือนในหน้า run → ต้องรายงานทุกครั้ง ห้ามปล่อยเงียบ
+  retries: isCI ? 1 : 0,
   timeout: 60_000, // R1: signup/login hash argon2 + หลายหน้า/เครื่องต่อเทสต์ — runner 2 vCPU ที่ --workers=4 ช้ากว่า 30 วิ
   expect: { timeout: 10_000 },
   reporter: isCI
