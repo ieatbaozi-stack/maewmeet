@@ -1,6 +1,6 @@
 # ADR 0007 — การแจ้งเตือน: ชั้นส่งแบบเสียบช่องทาง + `notification_outbox`
 
-- **Status**: Accepted (2026-11-18 · บันทึกย้อนหลังในรอบ DOCS_SYNC — implement แล้วและใช้งานจริงถึง v0.13.0; ช่องทาง LINE ใช้จริงตั้งแต่ R10 ตาม [ADR 0011](0011-line-reminders.md)) · เสนอ Proposed 2026-10-15 (Architect) · แก้ R2 (2026-10-19): ชนิดคำเชิญเป็น `group.invite.received|accepted|declined` (เดิม `invite.direct.*`)
+- **Status**: Accepted (2026-11-18 · บันทึกย้อนหลังในรอบ DOCS_SYNC — implement แล้วและใช้งานจริงถึง v0.13.0; ช่องทาง LINE ใช้จริงตั้งแต่ R10 ตาม [ADR 0011](0011-line-reminders.md)) · เสนอ Proposed 2026-10-15 (Architect) · แก้ R2 (2026-10-19): ชนิดคำเชิญเป็น `group.invite.received|accepted|declined` (เดิม `invite.direct.*`) · แก้ R17 (2026-11-19, Architect): เพิ่มชนิด `group.restored` ([ADR 0015](0015-data-retention-group-restore-purge.md)) · กลุ่มที่ลบถาวร (cron) ลบ `notification`/`notification_outbox` ที่ `params.groupId` ตรงกลุ่มนั้นด้วย
 - **เกี่ยวข้อง**: [PRD D13, U2, U5, U10, §6](../prd/PRD.md) · [RESEARCH §2](../research/RESEARCH_REPORT.md) · [ADR 0008](0008-i18n-and-theme.md) · [ARCHITECTURE §3](../design/ARCHITECTURE.md)
 - **เจ้าของการ implement**: Platform (แกน `src/lib/data/notifications/**`) · Integrations (ช่องทาง LINE `src/lib/integrations/**`, v1.x)
 
@@ -19,7 +19,10 @@ type NotificationKind =
   | 'group.invite.declined'         // → ผู้เชิญ     params: { groupId, groupName, inviteeName, inviteId }
   | 'appointment.created'           // params: { groupId, groupName, appointmentId, title, startAt, tz }
   | 'pin_reset.approved'            // params: { expiresAt }
-  | 'pin_reset.cancelled_by_login'; // params: {}
+  | 'pin_reset.cancelled_by_login'  // params: {}
+  | 'group.restored';               // R17 G5 (B3, ADR 0015) → สมาชิกที่บัญชี active ทุกคน ยกเว้นผู้กระทำ  params: { groupId, groupName, actorSystemAdmin: true }
+                                    //   ผู้กู้เป็น super admin เสมอ (B4) → ไม่เก็บชื่อ SA · UI แสดง common.systemAdmin (แบบ R16 H4) · groupName = ชื่อ ณ เวลากู้ · กระดิ่งเท่านั้น (ไม่อยู่ใน LINE_KINDS → ไม่เข้า outbox)
+// union นี้เป็นตัวอย่างตอนออกแบบ — รายการจริงทั้งหมดอยู่ที่ NOTIFICATION_KINDS ใน src/lib/data/notifications/notify.ts
 // เพิ่มชนิดใหม่ = เพิ่มใน union + คีย์ข้อความ TH/EN (เทสต์คีย์ครบตรวจ)
 notify(tx, { userIds: string[], kind, params })   // เรียกภายใน transaction เดียวกับการเปลี่ยนข้อมูล
 ```
