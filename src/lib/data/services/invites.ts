@@ -1,6 +1,6 @@
 // services: คำเชิญ + โค้ดเชิญ — U5 · R2_CONTRACT §2/§3 · LEAD_DECISIONS Q4, Q5
 //  - โค้ด: สุ่ม 8 ตัว (invite-code.ts) เก็บเฉพาะ HMAC · โค้ดเต็มอยู่ในผลของ createCodeInvite ครั้งเดียว — ไม่มีที่อื่น (log/audit/notification/รายการ)
-//  - ใช้โค้ด: จองช่อง rate limit (IP แล้วผู้ใช้) "ก่อน" ตรวจโค้ด ด้วย UPSERT เดียวมีเพดาน (reserveBucket) — ไม่มี check-then-act ·
+//  - ใช้โค้ด: จองช่อง rate limit (IP แล้วผู้ใช้ แล้วรวมทั้งระบบ — R18 H3) "ก่อน" ตรวจโค้ด ด้วย UPSERT เดียวมีเพดาน (reserveBucket) — ไม่มี check-then-act ·
 //    ผิดทุกสาเหตุ (ไม่มี/หมดอายุ/เพิกถอน/กลุ่มถูกลบ/รูปผิด) ตอบ INVITE_INVALID ตัวเดียวกันทุกไบต์ · สำเร็จหรือเป็นสมาชิกอยู่แล้ว → คืนช่องที่จอง (นับเฉพาะที่ผิด)
 //  - ชวนตรง: USER_NOT_FOUND (Q4) + 30/ชม./ผู้ใช้ นับทุกครั้งที่ลอง
 //  - เข้ากลุ่ม (ใช้โค้ด/รับคำเชิญ): INSERT … SELECT เดียวที่ตรวจโค้ด/คำเชิญ + สมาชิก < 50 ในคำสั่งเดียวกัน
@@ -27,7 +27,7 @@ import { insertNotification } from '@/lib/data/repos/notification';
 import { refundBucket, reserveBucket } from '@/lib/data/repos/rate-limit-bucket';
 import { findUserById, findUserByUsernameNormalized } from '@/lib/data/repos/user';
 import { normalizeUsername, USERNAME_MAX_INPUT } from '@/lib/auth/pin-rules';
-import { ipHashOf, ipRateSpec, rateKey, type RateSpec } from '@/lib/auth/throttle';
+import { ipHashOf, ipRateSpec, precheckRates, rateKey, type RateSpec } from '@/lib/auth/throttle';
 import { authorize, can } from '@/lib/rbac/can';
 import { isPolicyError } from '@/lib/rbac/errors';
 import type { Actor, GroupCtx } from '@/lib/rbac/types';
@@ -50,12 +50,20 @@ export const INVITE_RATE_LIMITS = {
   redeemUser: { prefix: 'redeem:u', limit: 10, windowMs: 15 * MINUTE_MS },
   /** ใช้โค้ด: ต่อ IP (HMAC) */
   redeemIp: { prefix: 'redeem:ip', limit: 30, windowMs: 15 * MINUTE_MS },
+  /**
+   * H3 (R18): ใช้โค้ดผิดรวมทั้งระบบ (ถังเดียว คีย์ REDEEM_GLOBAL_KEY) — นับเฉพาะที่ผิด เหมือนถังอื่น · จองหลังผ่านถัง IP/ผู้ใช้แล้ว
+   * (ผู้ที่ติดลิมิตของตัวเองไม่กินช่องรวม) · 300 / 15 นาที ≈ 100 เท่าของการพิมพ์ผิดปกติทั้งระบบ · เหตุผลของตัวเลขอยู่ใน handoff R18 H3
+   */
+  redeemGlobal: { prefix: 'redeem:all', limit: 300, windowMs: 15 * MINUTE_MS },
   /** ชวนตรง: 30 ครั้ง/ชม./ผู้ใช้ (Q4) — นับทุกครั้งที่ลอง */
   directUser: { prefix: 'invite:direct:u', limit: 30, windowMs: HOUR_MS },
 } as const satisfies Record<string, RateSpec>;
 
 /** ผู้รับปฏิเสธแล้ว ผู้ชวนคนเดิมชวนซ้ำในกลุ่มเดิมไม่ได้ 24 ชม. (กันสแปมผู้รับ) */
 export const DIRECT_INVITE_COOLDOWN_MS = DAY_MS;
+
+/** คีย์ถังรวมทั้งระบบของการใช้โค้ด (ไม่มีข้อมูลผู้ใช้/โค้ด) */
+export const REDEEM_GLOBAL_KEY = rateKey(INVITE_RATE_LIMITS.redeemGlobal, 'global');
 
 const limited = (windowEnd: number, now: number): AppError =>
   new AppError('RATE_LIMITED', undefined, { retryAfterSec: Math.max(1, Math.ceil((windowEnd - now) / 1000)) });
@@ -227,11 +235,14 @@ export async function redeemInviteCode(actor: Actor, input: RedeemInput, ctx: Da
   const me = asUser(actor);
   const { db, now } = ctx;
 
-  // 1) จองช่อง: IP ก่อน แล้วผู้ใช้ (ผู้ใช้เต็ม → คืนช่อง IP) — ก่อนแตะโค้ดใด ๆ
+  // 1) จองช่อง: IP ก่อน แล้วผู้ใช้ แล้วถังรวมทั้งระบบ (H3) (ถังหลังเต็ม → คืนช่องถังก่อนหน้า) — ก่อนแตะโค้ดใด ๆ
   const ipSpec = ipRateSpec(INVITE_RATE_LIMITS.redeemIp, ctx.req);
   const ipKey = rateKey(ipSpec, ipHashOf(ctx.req, ctx.appSecret));
   const userSpec = INVITE_RATE_LIMITS.redeemUser;
   const userKey = rateKey(userSpec, me.id);
+  const globalSpec = INVITE_RATE_LIMITS.redeemGlobal;
+  // H2 (R18): ถังใดเต็มอยู่แล้ว → 429 ทันทีโดยไม่ต่อคิว serialized (อ่านอย่างเดียว · การจองข้างล่างยังเป็นด่านจริง)
+  await precheckRates(db, [{ spec: ipSpec, key: ipKey }, { spec: userSpec, key: userKey }, { spec: globalSpec, key: REDEEM_GLOBAL_KEY }], now);
   const ip = await serialized(db, () => reserveBucket(db, ipKey, ipSpec.windowMs, ipSpec.limit, now));
   if (!ip.admitted) throw limited(ip.windowEnd, now);
   const usr = await serialized(db, () => reserveBucket(db, userKey, userSpec.windowMs, userSpec.limit, now));
@@ -239,10 +250,19 @@ export async function redeemInviteCode(actor: Actor, input: RedeemInput, ctx: Da
     await serialized(db, () => refundBucket(db, ipKey, ipSpec.windowMs, now));
     throw limited(usr.windowEnd, now);
   }
+  const all = await serialized(db, () => reserveBucket(db, REDEEM_GLOBAL_KEY, globalSpec.windowMs, globalSpec.limit, now));
+  if (!all.admitted) {
+    await serialized(db, async () => {
+      await refundBucket(db, ipKey, ipSpec.windowMs, now);
+      await refundBucket(db, userKey, userSpec.windowMs, now);
+    });
+    throw limited(all.windowEnd, now);
+  }
   const refund = () =>
     serialized(db, async () => {
       await refundBucket(db, ipKey, ipSpec.windowMs, now);
       await refundBucket(db, userKey, userSpec.windowMs, now);
+      await refundBucket(db, REDEEM_GLOBAL_KEY, globalSpec.windowMs, now);
     });
 
   // 2) รูปผิด = ไม่ใช่โค้ด → INVITE_INVALID (ช่องที่จองไว้ไม่คืน)

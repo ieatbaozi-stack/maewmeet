@@ -4,7 +4,7 @@
 import { createHmac, hkdfSync } from 'node:crypto';
 import type { DbOrTx } from '@/db/client';
 import { lockRemainingSec, reserveLoginAttempt, resetLoginThrottle, type LoginThrottleRow } from '@/lib/data/repos/login-throttle';
-import { hitBucket, refundBucket, reserveBucket } from '@/lib/data/repos/rate-limit-bucket';
+import { hitBucket, peekBucket, refundBucket, reserveBucket } from '@/lib/data/repos/rate-limit-bucket';
 import { HOUR_MS, MINUTE_MS } from '@/lib/shared/clock';
 import { AppError } from '@/lib/shared/errors';
 import { callerId, clientIp } from './request';
@@ -65,6 +65,21 @@ const limited = (windowEnd: number, now: number): AppError =>
 /** spec ที่ปรับเพดานตามผู้เรียก: ระบุ IP ไม่ได้ → ถังร่วม 'unknown' เพดานสูงขึ้น (UNKNOWN_CALLER_LIMIT_FACTOR) */
 export function ipRateSpec(spec: RateSpec, req: Request): RateSpec {
   return callerId(clientIp(req)) === 'unknown' ? { ...spec, limit: spec.limit * UNKNOWN_CALLER_LIMIT_FACTOR } : spec;
+}
+
+/** ถังหนึ่งใบที่จะตรวจ: spec (เพดาน/หน้าต่าง) + คีย์เต็ม (ผ่าน rateKey แล้ว) */
+export type RateCheck = { readonly spec: RateSpec; readonly key: string };
+
+/**
+ * H2 (R18): pre-check ราคาถูก "ก่อน" เข้าคิว serialized — อ่านอย่างเดียว (SELECT ต่อถัง ไม่เขียน ไม่เข้าคิว)
+ * ถังใดเต็มแล้วในหน้าต่างปัจจุบัน → RATE_LIMITED ทันที (Retry-After ของถังแรกที่เต็ม ตามลำดับที่ส่งมา = ลำดับเดียวกับการจอง)
+ * ไม่ใช่ด่านความถูกต้อง: ผ่านด่านนี้แล้วยังต้องจองด้วย reserveBucket (UPSERT อะตอมมิกมีเพดาน) ตามเดิม · ด่านนี้ปฏิเสธเฉพาะเมื่อ count ≥ limit
+ * ซึ่งการจองก็จะปฏิเสธอยู่แล้ว (ยกเว้นมีการคืนช่องระหว่างนั้น → ผู้เรียกลองใหม่ได้) จึงไม่ทำให้ใครผ่านได้มากกว่าเดิม
+ */
+export async function precheckRates(db: DbOrTx, checks: readonly RateCheck[], now: number): Promise<void> {
+  const peeks = await Promise.all(checks.map((c) => peekBucket(db, c.key, c.spec.windowMs, now)));
+  const full = peeks.find((p, i) => p.count >= checks[i]!.spec.limit);
+  if (full) throw limited(full.windowEnd, now);
 }
 
 /** นับ 1 ครั้งแล้วคืนว่าเกินหรือไม่ (ครั้งที่ limit+1 เป็นต้นไปเกิน) — signup/reset (นับทุกครั้ง) */
