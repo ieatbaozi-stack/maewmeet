@@ -80,7 +80,8 @@ export function isNotificationKind(value: unknown): value is NotificationKind {
 }
 
 /** ตัวอ้างอิงภายใน (ใช้แทนที่ + ล้างชื่อตอนลบบัญชี) — ตัดออกก่อนส่งออกทาง API เสมอ */
-export const INTERNAL_PARAM_KEYS: readonly string[] = ['actorId', 'responderId', 'memberId'];
+/** R18 D1: inviterId / inviteeId ถูกประทับโดย cron ตอนลบคำเชิญเก่า (repos/invite-purge.ts) เพื่อให้ล้างชื่อตอนลบบัญชีได้ */
+export const INTERNAL_PARAM_KEYS: readonly string[] = ['actorId', 'responderId', 'memberId', 'inviterId', 'inviteeId'];
 
 /** params ที่ส่งออกไปหา client ได้ */
 export function publicParams(params: Record<string, unknown>): Record<string, unknown> {

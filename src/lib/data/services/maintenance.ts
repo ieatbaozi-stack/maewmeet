@@ -1,10 +1,13 @@
 // service: งานระบบ (cron) — ไม่ผ่าน RBAC เพราะไม่มี actor ผู้ใช้ · ด่านคือ CRON_SECRET ใน route wrapper (guard: 'cron')
 // ARCHITECTURE §8 · ADR 0001 §3.1
 import type { Db } from '@/db/client';
+import { addDaysAt, DEFAULT_TZ } from '@/lib/calendar';
 import { newId } from '@/lib/shared/id';
+import { INVITE_RETENTION_DAYS } from '@/lib/shared/limits';
 import { GROUP_PURGE_BATCH, purgeDeletedAtCutoff } from '../group-retention';
 import { insertAuditLog } from '../repos/audit-log';
 import { listGroupsDueForPurge, purgeGroupIfDue } from '../repos/group-purge';
+import { purgeDueInvitesBatch } from '../repos/invite-purge';
 import { maintenanceStatements, type MaintenanceTask } from '../repos/maintenance';
 import { upsertHeartbeat, type HeartbeatSource } from '../repos/system-heartbeat';
 import { heartbeatAgeHours, type HeartbeatAgeHours } from '../health';
@@ -36,7 +39,40 @@ export type DailyMaintenanceResult = {
   heartbeat: { source: 'vercel-cron'; lastAt: number };
   cleaned: Record<MaintenanceTask, number>;
   purgedGroups: GroupPurgeResult;
+  /** R18 D1: จำนวนแถว group_invite ที่ลบถาวรรอบนี้ */
+  purgedInvites: number;
 };
+
+/** R18 D1: แถวคำเชิญที่ลบต่อธุรกรรม 1 ชุด */
+export const INVITE_PURGE_BATCH = 200;
+/** R18 D1: จำนวนชุดสูงสุดต่อการรัน cron 1 ครั้ง (ที่เหลือไปรอบถัดไป) — เพดานรวม INVITE_PURGE_BATCH × ค่านี้ แถว/วัน */
+export const INVITE_PURGE_MAX_BATCHES = 10;
+
+/** R18 D1: เวลาสิ้นสุดล่าสุดที่ "เลยกำหนดเก็บแล้ว" = now − INVITE_RETENTION_DAYS วันปฏิทินใน DEFAULT_TZ (lib เวลากลาง — กฎ 9) */
+export function invitePurgeCutoff(now: number): number {
+  return addDaysAt(now, -INVITE_RETENTION_DAYS, DEFAULT_TZ);
+}
+
+/**
+ * R18 D1: ลบคำเชิญที่จบแล้ว (max(expires_at, revoked_at)) เกิน INVITE_RETENTION_DAYS วันถาวร — ชุดละ INVITE_PURGE_BATCH แถว แต่ละชุดเป็นธุรกรรมเขียนของตัวเอง
+ * ไม่แตะคำเชิญ active ที่ยังไม่หมดอายุ · audit_log ไม่ถูกลบ (อ้าง id เป็นข้อความเท่านั้น) · รันซ้ำได้
+ * ชุดใดล้ม → log รหัส error (ไม่มีข้อมูลคน) แล้วหยุดรอบนี้ คืนจำนวนที่ลบสำเร็จแล้ว (ไม่ให้ทั้ง cron ล้ม — ลองใหม่วันถัดไป)
+ */
+export async function purgeOldInvites(db: Db, now: number): Promise<number> {
+  const cutoff = invitePurgeCutoff(now);
+  let purged = 0;
+  for (let i = 0; i < INVITE_PURGE_MAX_BATCHES; i++) {
+    try {
+      const batch = await inTx(db, (tx) => purgeDueInvitesBatch(tx, cutoff, INVITE_PURGE_BATCH));
+      purged += batch.deleted;
+      if (!batch.more) break;
+    } catch (e) {
+      console.error(`[cron] invite.purge failed ${errorCodeOf(e)}`);
+      break;
+    }
+  }
+  return purged;
+}
 
 /**
  * R17 G2: ลบกลุ่มที่ลบ (soft) ครบ 30 วันแล้ว (นับตาม group-retention.ts รวม B2) ถาวร — ชุดละ GROUP_PURGE_BATCH กลุ่มต่อรอบ
@@ -76,6 +112,7 @@ export async function purgeExpiredGroups(db: Db, now: number): Promise<GroupPurg
 /**
  * งานรายวัน: 0) เขียน heartbeat ก่อน (แยก statement — ถ้าเก็บกวาดล้ม heartbeat ยังอยู่)
  * 1–3) เก็บกวาดใน batch เดียว (atomic) · 4) outbox = v1.x · 5) pepper fingerprint = R1 · 6) R17: ลบกลุ่มที่ครบ 30 วันถาวร
+ * 7) R18 D1: ลบคำเชิญที่จบเกิน 30 วันถาวร
  */
 export async function runDailyMaintenance(db: Db, now: number): Promise<DailyMaintenanceResult> {
   await upsertHeartbeat(db, 'vercel-cron', now);
@@ -92,7 +129,9 @@ export async function runDailyMaintenance(db: Db, now: number): Promise<DailyMai
   });
   // R17 G2: หลังเก็บกวาด (แยกธุรกรรมต่อกลุ่ม — ล้มกลางทางไม่ทำให้งานข้อ 1–3 หาย)
   const purgedGroups = await purgeExpiredGroups(db, now);
-  return { heartbeat: { source: 'vercel-cron', lastAt: now }, cleaned, purgedGroups };
+  // R18 D1: หลังเก็บกวาด (expiredInvites เปลี่ยนสถานะไปแล้ว) · แยกธุรกรรมต่อชุด
+  const purgedInvites = await purgeOldInvites(db, now);
+  return { heartbeat: { source: 'vercel-cron', lastAt: now }, cleaned, purgedGroups, purgedInvites };
 }
 
 export type HeartbeatResult = {

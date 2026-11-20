@@ -99,14 +99,17 @@ export async function purgeDeletedUserFootprint(
 ): Promise<PurgeCounts> {
   const { userId } = input;
   // แจ้งเตือนของคนอื่นที่อ้างชื่อผู้ใช้นี้ — ทำก่อนปิดคำเชิญ (อ้างด้วย inviteId ของคำเชิญที่ผู้ใช้สร้าง/ได้รับ)
+  // R18 D1: คำเชิญที่ cron ลบถาวรแล้วไม่มีแถวให้ join → ใช้ id ที่ cron ประทับไว้ใน params (inviterId / inviteeId) แทน แล้วลบ id ออกพร้อมล้างชื่อ
   await db.run(sql`
-    UPDATE notification SET params = json_set(params, '$.inviterName', '')
+    UPDATE notification SET params = json_set(json_remove(params, '$.inviterId'), '$.inviterName', '')
      WHERE kind = 'group.invite.received' AND user_id <> ${userId}
-       AND json_extract(params, '$.inviteId') IN (SELECT id FROM group_invite WHERE created_by = ${userId})`);
+       AND (json_extract(params, '$.inviteId') IN (SELECT id FROM group_invite WHERE created_by = ${userId})
+            OR json_extract(params, '$.inviterId') = ${userId})`);
   await db.run(sql`
-    UPDATE notification SET params = json_set(params, '$.inviteeName', '')
+    UPDATE notification SET params = json_set(json_remove(params, '$.inviteeId'), '$.inviteeName', '')
      WHERE kind IN ('group.invite.accepted', 'group.invite.declined') AND user_id <> ${userId}
-       AND json_extract(params, '$.inviteId') IN (SELECT id FROM group_invite WHERE invitee_user_id = ${userId})`);
+       AND (json_extract(params, '$.inviteId') IN (SELECT id FROM group_invite WHERE invitee_user_id = ${userId})
+            OR json_extract(params, '$.inviteeId') = ${userId})`);
   // R11-7: แจ้งเตือนเหตุการณ์นัด/สมาชิกของคนอื่นที่อ้างผู้ใช้นี้ — อ้างผ่าน id ภายในใน params · ล้างชื่อ + ลบ id ออก
   await db.run(sql`
     UPDATE notification SET params = json_set(json_remove(params, '$.actorId'), '$.actorName', '')

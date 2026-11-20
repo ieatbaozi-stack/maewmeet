@@ -48,6 +48,8 @@ export const FREE_TIME_MAX_ITEMS = 32_000;
 export const ME_BUSY_RANGE_MAX_ITEMS = 1000;
 /** แถว busy ที่จบนานกว่านี้ถูก cron รายวันลบถาวร (วัน) — ต้องมากกว่า BUSY_MAX_BACKDATE_DAYS มาก */
 export const BUSY_RETENTION_DAYS = 90;
+/** R18 D1 (boss B1 = (ก)): คำเชิญที่จบแล้ว (หมดอายุ/ยกเลิก/รับ/ปฏิเสธ) เก็บกี่วันปฏิทินนับจาก max(expires_at, revoked_at) ก่อน cron ลบถาวร */
+export const INVITE_RETENTION_DAYS = 30;
 /** R8 F1 §2.2: "ลงวันไม่ว่างแล้ว" = มี busy_block ทับช่วง [ตอนนี้, ตอนนี้ + N วันปฏิทินใน tz ของกลุ่ม) */
 export const UPCOMING_BUSY_LOOKAHEAD_DAYS = 30;
 /** ความยาวสูงสุดของ title / note (อักขระ = code point) */
