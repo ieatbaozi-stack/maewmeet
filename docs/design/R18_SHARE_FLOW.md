@@ -1,6 +1,6 @@
 # R18 §S — แชร์นัดให้คนนอกกลุ่ม: flow, wireframe, ถ้อยคำ (S9)
 
-> ผู้เขียน: ux · 2026-11-20 · ที่มา: [R18_CONTRACT.md](../contracts/R18_CONTRACT.md) §S (ต้นฉบับว่าแขกเห็นอะไร) · ADR 0016 (architect เขียนคู่กัน — ถ้าขัดกับเอกสารนี้ ให้ยึด contract §S แล้วแจ้ง ux)
+> ผู้เขียน: ux · 2026-11-20 · ที่มา: [R18_CONTRACT.md](../contracts/R18_CONTRACT.md) §S (ต้นฉบับว่าแขกเห็นอะไร) · [ADR 0016](../adr/0016-appointment-share-guests.md) (Accepted — ถ้าขัดกับเอกสารนี้ ให้ยึด contract §S/ADR · แก้ตาม ADR แล้วใน R18 follow-up)
 > ข้อความทั้งหมดอยู่ใน `messages/th.json` + `en.json` namespace `share` · `shareLanding` · `guest` · `guests` · `notifications.appointment.guest` · `privacy.guest` (รายการคีย์ท้ายเอกสาร) · ไม่มีสีใหม่ ใช้ token และคอมโพเนนต์เดิม (`Sheet`, `ConfirmDialog`, `btn-*`, `alert-*`, `Avatar`, ชิป)
 > ออกแบบมือถือ 375 ก่อน แล้วขยายเป็น 768 (iPad) · ทุกหน้าใช้ได้ทั้ง TH/EN และสว่าง/มืด
 
@@ -25,7 +25,7 @@
                                                                                          └─ ออกจากนัด (L1)
 สมาชิก (หน้านัด) ── ส่วน "แขกนอกกลุ่ม" ── นำออก (L1)
 ```
-สถานะพิเศษของลิงก์ที่หน้าเปิดต้องรับ: **ใช้ได้ · เต็ม · หมดอายุ · ถูกปิด · ไม่พบ · คุณเป็นสมาชิกกลุ่มอยู่แล้ว · คุณเป็นแขกอยู่แล้ว** (ตารางสถานะ §7)
+สถานะพิเศษของลิงก์ที่หน้าเปิดต้องรับ: **ใช้ได้ · เต็ม · หมดอายุ · ใช้ไม่ได้ (หน้าเดียว) · คุณเป็นสมาชิกกลุ่มอยู่แล้ว · คุณเป็นแขกอยู่แล้ว** (ตารางสถานะ §7)
 
 ## 2. ฝั่งสมาชิก: ปุ่มและ sheet "ชวนคนนอก"
 **จุดวางปุ่ม** (หน้านัด `AppointmentDetail`): ปุ่มรอง `btn btn-secondary` ไอคอน `user-plus` + `share.invite.button` อยู่ใต้ส่วน "ใครไปบ้าง" ก่อนส่วน "แขกนอกกลุ่ม" · `aria-label` = `share.invite.aria` · เห็นเฉพาะนัดที่ยังไม่ยกเลิก/ไม่จบ (ซ่อนนัดที่ยกเลิก/ผ่านแล้ว — เซิร์ฟเวอร์ตรวจเสมอ ข้อความผิดพลาด `share.error.cancelled/past`)
@@ -95,9 +95,8 @@
 | สถานะ | หัวข้อ | ข้อความ | เหตุ |
 |---|---|---|---|
 | เต็ม | `state.full.title` | `state.full.body` ({max}) | แขกครบ 10 · หน้านี้แสดงได้เฉพาะเมื่อลิงก์ยังใช้ได้ แต่ที่เต็ม (ยืนยันที่เซิร์ฟเวอร์ตอนกด "เพิ่ม" ด้วย — กันแข่ง) |
-| หมดอายุ | `state.expired.*` | นัดจบ/ถูกยกเลิก/กลุ่มถูกลบ รวมเป็นข้อความเดียว ไม่แยกเหตุผล | กันบอกว่านัดถูกยกเลิกหรือกลุ่มถูกลบ |
-| ถูกปิด | `state.revoked.*` | คนที่ส่งลิงก์ปิดไว้ · หรือคนชวนออกจากกลุ่ม | ขอลิงก์ใหม่ได้ |
-| ไม่พบ | `state.invalid.*` | token ผิด/ไม่มี | ข้อความต่างจาก "ถูกปิด" เล็กน้อยได้ แต่ไม่ยืนยันว่า token เคยมีอยู่ |
+| หมดอายุ (410 `SHARE_LINK_EXPIRED`) | `state.expired.*` | นัดจบ/ถูกยกเลิก/กลุ่มถูกลบ รวมเป็นข้อความเดียว **ไม่บอกเหตุผล** (ข้อความเป็นกลาง "ลิงก์นี้ใช้ไม่ได้แล้ว") | กันบอกว่านัดถูกยกเลิกหรือกลุ่มถูกลบ |
+| ใช้ไม่ได้ (404 `SHARE_LINK_INVALID`) | `state.invalid.*` — **หน้าเดียว** | ถูกปิด · token ผิด/ไม่มี · คนชวนออก/ถูกลบจากกลุ่ม · แขกที่ถูกนำออก (ตอน join) | เซิร์ฟเวอร์ตอบเหมือนกันทุกไบต์ จึงไม่แยกหน้า ไม่ยืนยันว่า token เคยมี · ข้อความ: "ลิงก์นี้ใช้ไม่ได้ ขอลิงก์ใหม่จากคนที่ชวนคุณ" |
 | เป็นสมาชิกอยู่แล้ว | `already.member.*` | ใช้สิทธิ์สมาชิกตามเดิม ไม่สร้างแถวแขก | ปุ่ม `already.member.cta` → หน้านัดในกลุ่ม |
 | เป็นแขกอยู่แล้ว | `already.guest.*` | — | ปุ่ม `already.guest.cta` → หน้านัด |
 
@@ -117,9 +116,12 @@
 | เพิ่มลงปฏิทินในเครื่อง (.ics) | เห็น | เห็น |
 | ออกจากนัด | — | ปุ่มรอง ข้อความแดงใต้ส่วนท้ายหน้า `guest.leave.cta` → L1 |
 
-**ออกจากนัด (L1):** ปุ่ม `guest.leave.confirm` สีแดง ("ออกจากนัด") · ยกเลิก = `common.cancel` โฟกัสเริ่มที่ยกเลิก · ข้อความ `guest.leave.body` บอกว่าหายจากหน้าหลัก/ปฏิทินและไม่ได้แจ้งเตือนอีก และกลับมาได้เมื่อเปิดลิงก์อีก (ถ้านัดไม่จบ/ไม่เต็ม) · สำเร็จ → toast `guest.leave.done` แล้วกลับหน้าหลัก
+**ออกจากนัด (L1):** ปุ่ม `guest.leave.confirm` สีแดง ("ออกจากนัด") · ยกเลิก = `common.cancel` โฟกัสเริ่มที่ยกเลิก · ข้อความ `guest.leave.body` บอกว่าหายจากหน้าหลัก/ปฏิทินและไม่ได้แจ้งเตือนอีก และกลับมาได้เมื่อเปิดลิงก์อีก (ถ้านัดไม่จบ/ไม่เต็ม) — ออกเอง ≠ ถูกนำออก (ถูกนำออกกลับไม่ได้) · สำเร็จ → toast `guest.leave.done` แล้วกลับหน้าหลัก
 
-**นัดที่แขกเห็นเมื่อถูกนำออก/ลิงก์ถูกยกเลิก:** เปิดหน้านัดเดิม → หน้า "ไม่พบนัดนี้" เดิม (`appointments.detail.gone`) ไม่บอกว่าถูกนำออก (รู้จากแจ้งเตือนแล้ว)
+**นัดที่แขกเห็นเมื่อถูกนำออก:** เปิดหน้านัดเดิม → หน้า "ไม่พบนัดนี้" เดิม (`appointments.detail.gone`) ไม่บอกว่าถูกนำออก (รู้จากแจ้งเตือนแล้ว)
+
+**ไม่ว่างในกลุ่มของแขก (ADR [A]):** แขกที่ตอบ "ไป" นัดนี้ จะนับเป็นช่วงไม่ว่างในกลุ่มของแขกเอง แบบเดียวกับนัดของกลุ่มอื่น (เพื่อนเห็นแค่ "ไม่ว่าง" ไม่เห็นชื่อนัด) — บอกไว้ที่ `privacy.guest.joined` · ในกลุ่มที่จัดนัด แขกไม่เข้าการหาวันว่าง
+**หน้าการ์ดลิงก์ไม่มีรายละเอียด (description) ของนัด** (ADR [A]) — เห็นเฉพาะชื่อ เวลา สถานที่ ชื่อกลุ่ม ชื่อคนชวน จำนวนไป/อาจไป · รายละเอียดเห็นได้หลังเพิ่มนัดแล้ว
 
 **หน้าหลักของแขก:** นัดของแขกแสดงในรายการ "นัดถัดไป" เดิมพร้อมชิป `guest.badge` · ปฏิทินแสดงนัดเหมือนนัดทั่วไป แต่ไม่มีข้อมูลกลุ่มอื่นเพิ่ม · บัญชีที่ไม่มีกลุ่มเลย ใช้หน้าหลักว่างเดิม (ไม่แสดงปุ่ม "สร้างนัด" ถ้าไม่มีกลุ่ม — ตามพฤติกรรมเดิม)
 
@@ -137,23 +139,21 @@
 - คำตอบใช้ `appointments.rsvp.answer.*` · ยังไม่ตอบ = `guests.noReply` · ความหมายไม่พึ่งสี (ข้อความเสมอ)
 - ไม่มีแขก → `guests.empty` ภายใต้หัวข้อ (ไม่ซ่อนส่วนทั้งส่วน ให้สมาชิกรู้ว่ามีฟีเจอร์นี้) · `aria-label` ของรายการ = `guests.listAria`
 - **นำออก:** แสดงเฉพาะผู้ที่มีสิทธิ์ (คนสร้างนัด · admin/mod · คนที่ชวนแขกคนนั้น) — เป็นการซ่อนปุ่มเพื่อ UX เท่านั้น เซิร์ฟเวอร์ตรวจสิทธิ์ทุกครั้ง · `aria-label` = `guests.removeAria`
-- กดแล้วเป็น **`ConfirmDialog` L1 หนึ่งขั้น** (`guests.removeConfirm.title/body/confirm`): ปุ่มแดง "นำออก" · ยกเลิก = `common.cancel` โฟกัสเริ่มที่ยกเลิก · สำเร็จ toast `guests.removed` ({name}) · ผิดพลาด `guests.removeError` ใน dialog
+- กดแล้วเป็น **`ConfirmDialog` L1 หนึ่งขั้น** (`guests.removeConfirm.title/body/confirm`) — body บอกชัดว่า **คนที่ถูกนำออกกลับเข้านัดนี้ไม่ได้อีกไม่ว่าลิงก์ไหน** (ADR 0016 §7.1): ปุ่มแดง "นำออก" · ยกเลิก = `common.cancel` โฟกัสเริ่มที่ยกเลิก · สำเร็จ toast `guests.removed` ({name}) · ผิดพลาด `guests.removeError` ใน dialog
 - ชื่อแขกใช้ชื่อที่แสดง (display name) ห่อด้วย `<bdi>`/`Name` ตามแพตเทิร์นเดิม
 - **768:** รายการสองคอลัมน์ได้เมื่อกว้าง ≥ 720 (เหมือนรายชื่อ RSVP) · ปุ่ม "นำออก" ชิดขวาแถวเดียวกับชื่อ
 
 ## 7. แจ้งเตือน (กระดิ่ง) — ข้อความ
 ไม่มีตัวแปรชื่อสมาชิกอื่นนอกจาก "คนที่ชวนเรา" และไม่มีชื่อผู้กระทำใน cancelled/updated (แขกไม่รู้จักสมาชิก ไม่ควรรั่วชื่อ) · ลิงก์ไปหน้านัด · แขกที่ถูกนำออกลิงก์ไป `/` (หน้าหลัก)
 
-| kind (เสนอ) | ผู้รับ | คีย์ | โทน/ไอคอน |
+| kind | ผู้รับ | คีย์ | โทน/ไอคอน |
 |---|---|---|---|
-| `appointment.guest.added` | แขก | `notifications.appointment.guest.added` {title, when, inviterName} | ok · `user-plus` |
-| `appointment.guest.joined` | คนที่ชวน | `….guest.joined` {guestName, title, when} | ok · `user-plus` |
-| `appointment.guest.removed` | แขก | `….guest.removed` {title, when} | warn · `user-minus` |
-| `appointment.guest.cancelled` | แขก | `….guest.cancelled` {title, when} | warn · `calendar-x` |
-| `appointment.guest.updated` | แขก | `….guest.updated` {changes: time\|place\|other, title, when} | neutral · `calendar-clock` |
+| `appointment.guest.removed` | แขกที่ถูกนำออก | `notifications.appointment.guest.removed` {title, when} — ไม่บอกผู้นำออก · ไม่มี appointmentId ลิงก์ไป `/` | warn · `user-minus` |
+| `appointment.guest.cancelled` | แขก (ที่ไม่ตอบ "ไม่ไป") | `….guest.cancelled` {title, when} — **ไม่มีชื่อผู้ยกเลิก** | warn · `calendar-x` |
+| `appointment.guest.updated` | แขกทุกคน | `….guest.updated` {changes: time\|place\|other, title, when} — ไม่มีชื่อผู้แก้ | neutral · `calendar-clock` |
 | เตือนก่อนนัด (กระดิ่ง/LINE) | แขก | ใช้ `notifications.appointment.reminder_1d/1h` เดิม (มีชื่อกลุ่ม ซึ่งแขกเห็นอยู่แล้วบนการ์ด) | เดิม |
 
-`guest.joined` เป็น **ข้อเสนอเสริม** (ไม่อยู่ใน contract §S) — frontend/platform จะใช้หรือไม่ก็ได้ ไม่ใช้ก็ไม่กระทบ (คีย์ค้างไว้ได้ เทสต์ i18n ไม่ห้าม)
+**ตัดออกใน 1.0 (ADR 0016 [A]):** `appointment.guest.added` / `appointment.guest.joined` — แขกเห็นผลทันทีที่กดเพิ่ม และผู้ชวนเห็นในรายชื่อแขก · ลบคีย์ข้อความทิ้งแล้ว (ถ้าเปิดใช้ภายหลังค่อยเพิ่มกลับ)
 
 ## 8. ความเป็นส่วนตัว (`/privacy`)
 เพิ่มส่วน "แขกที่ได้รับลิงก์ชวน" (`privacy.guest.title` + 4 ย่อหน้า: `preview`, `joined`, `members`, `retention`) ใต้ส่วน "ใครเห็นอะไร" · ใส่ `id="guest"` ให้ลิงก์จากหน้าลิงก์สาธารณะ (`shareLanding.privacyLink`) · frontend ทำ layout (นอกขอบเขต ux)
@@ -175,16 +175,16 @@
 
 ## 10. สิ่งที่ยังไม่ได้ทำ / ต้องให้คนอื่นตัดสิน
 - **ภาพหน้าจอ 375/390/768 สว่าง/มืด: ยังไม่มี** เพราะยังไม่มี UI (frontend ทำหลังเอกสารนี้) — ux จะถ่ายและตรวจใน V5 หลัง frontend เสร็จ · เอกสารนี้เป็น wireframe ข้อความ ไม่ใช่ภาพจริง
-- **เสนอ architect/platform (ADR 0016):** (1) แขกที่ถูกนำออกเปิดลิงก์เดิมกลับเข้ามาได้อีกหรือไม่ (ถ้าลิงก์ยังใช้ได้ = ได้) ถ้าต้องการกันให้ต้องมีรายการห้าม · ข้อความ `guests.removeConfirm.body` เขียนตามกรณี "เข้าได้อีกถ้าเปิดลิงก์ใหม่" (2) `shareLanding.state.invalid` กับ `revoked` ควรตอบ HTTP เหมือนกัน (404) เพื่อไม่ให้เดา token
+- **ตัดสินแล้ว (ADR 0016):** (1) แขกที่ถูกนำออกกลับเข้านัดนั้นไม่ได้ทุกลิงก์ — `guests.removeConfirm.body` ปรับตามแล้ว (2) ถูกปิด/ไม่พบ/คนชวนออก/แขกถูกนำออก = 404 เดียวกัน → รวมเป็น `shareLanding.state.invalid` หน้าเดียว (ลบ `state.revoked.*`) · หมดอายุ = 410 `state.expired.*`
 - **เสนอ frontend:** ใช้ `ConfirmDialog` ที่มีอยู่ทั้ง 3 จุดทำลาย (ไม่ต้องสร้างคอมโพเนนต์ใหม่) · หน้า `/i/[token]` ไม่ใช้ layout ที่มี bottom nav
-- **ErrorCode:** ไม่เพิ่ม `errors.*` — ข้อความผิดพลาดของ §S อยู่ใต้ `share.error.*` · ถ้า platform เพิ่ม ErrorCode ใหม่ (เช่น ลิงก์เต็ม) ต้องแจ้ง ux เพิ่ม `errors.<CODE>` TH/EN (เทสต์ R0-9 บังคับ) ห้ามเติมเอง
+- **ErrorCode:** platform เพิ่ม `SHARE_LINK_INVALID` / `SHARE_LINK_EXPIRED` / `SHARE_FULL` ตาม ADR → ux เพิ่ม `errors.<CODE>` TH/EN (เทสต์ R0-9 บังคับ) — ข้อความรอให้ ErrorCode มีใน `src/lib/shared/errors.ts` ก่อน commit (ดู handoff) · ข้อความ `errors.SHARE_*` ต้องไม่ยืนยันเหตุผล (INVALID ≈ `state.invalid`, EXPIRED ≈ `state.expired`, FULL ≈ `state.full` ที่มี `{max}`)
 
 ## 11. คีย์ข้อความที่เพิ่ม (messages/th.json + en.json — ทั้งสองภาษาตรงกัน ผ่าน `tests/i18n/messages.test.ts`)
 - `share.invite.{button,aria}` · `share.sheet.{title,lead,seesTitle,sees,hidesTitle,hides,mine,limit,valid,creating,done}` · `share.link.label` · `share.{copy,copied,copyFailed,share,shareTitle,shareText}` · `share.revoke.{cta,title,body,confirm,done}` · `share.links.{title,item,revokeAria}` · `share.error.{generic,cancelled,past,rate,revoke}`
-- `shareLanding.{invitedBy,inGroup,loginHint,note,privacyLink,added,addError}` · `shareLanding.counts.{going,maybe,none,aria}` · `shareLanding.cta.{add,adding,login,signup}` · `shareLanding.already.{member,guest}.{title,body,cta}` · `shareLanding.state.{full,expired,revoked,invalid}.{title,body}` · `shareLanding.state.home`
+- `shareLanding.{invitedBy,inGroup,loginHint,note,privacyLink,added,addError}` · `shareLanding.counts.{going,maybe,none,aria}` · `shareLanding.cta.{add,adding,login,signup}` · `shareLanding.already.{member,guest}.{title,body,cta}` · `shareLanding.state.{full,expired,invalid}.{title,body}` · `shareLanding.state.home`
 - `guest.{badge,banner,limits}` · `guest.counts.title` · `guest.leave.{cta,title,body,confirm,done,error}`
 - `guests.{title,listAria,limit,badge,with,noReply,empty,remove,removeAria,removed,removeError}` · `guests.removeConfirm.{title,body,confirm}`
-- `notifications.appointment.guest.{added,joined,removed,cancelled,updated}`
+- `notifications.appointment.guest.{removed,cancelled,updated}` (ตัด `added`/`joined` แล้ว)
 - `privacy.guest.{title,preview,joined,members,retention}`
 - D2: `adminGroup.restore.inviteNote` · `adminGroup.restore.confirm.inviteNote`
 - H4: `calendar.busyRateLimited.{title,body}` (ปุ่ม "ลองอีกครั้ง" ใช้ `common.retry` เดิม)

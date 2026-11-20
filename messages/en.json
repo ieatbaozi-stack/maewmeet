@@ -853,9 +853,7 @@
       "updated": "{changes, select, time {{actorName} changed the time: {title} is now {when} in “{groupName}”} place {{actorName} changed the place for {title} ({when}) in “{groupName}”} other {{actorName} changed the time and place: {title} is now {when} in “{groupName}”}}",
       "rsvp_changed": "{response, select, going {{responderName} is going to {title} ({when}) in “{groupName}”} maybe {{responderName} might go to {title} ({when}) in “{groupName}”} other {{responderName} can’t make {title} ({when}) in “{groupName}”}}",
       "guest": {
-        "added": "You’re on the plan: {title} ({when}), with {inviterName}",
-        "joined": "{guestName} joined {title} ({when}) with your link",
-        "removed": "You’re no longer on the plan {title} ({when})",
+        "removed": "You were removed from {title} ({when})",
         "cancelled": "{title} ({when}) was cancelled",
         "updated": "{changes, select, time {{title} is now {when}} place {Place changed for {title} ({when})} other {Time and place changed: {title} is now {when}}}"
       }
@@ -1954,7 +1952,7 @@
     "guest": {
       "title": "Guests with an invite link",
       "preview": "Anyone who opens an invite link sees only the plan’s title, date, time and place, the group’s name, who invited them, and how many people are going or might go.",
-      "joined": "A guest who has joined sees that one plan and the reply counts. They can’t see members’ names, who replied what, other plans, or anyone’s busy time, and a guest’s busy time is never used to find the group’s free days.",
+      "joined": "A guest who has joined sees that one plan and the reply counts. They can’t see members’ names, who replied what, other plans, or anyone’s busy time, and a guest’s busy time is never used to find free days for the group that made the plan. In a guest’s own groups, a plan they’re going to counts as busy, like a plan from another group (friends see only that they’re busy, not the plan’s name).",
       "members": "Group members see a guest’s display name, the “with …” tag and the guest’s reply.",
       "retention": "Invite links that expired or were turned off are deleted after 30 days. When a guest leaves a plan or deletes their account, that guest’s data is cleared too."
     }
@@ -2098,15 +2096,11 @@
       },
       "expired": {
         "title": "This link has expired",
-        "body": "The plan may have ended or been cancelled. Ask whoever sent it."
-      },
-      "revoked": {
-        "title": "This link doesn’t work anymore",
-        "body": "Whoever shared it turned it off. You can ask them for a new one."
+        "body": "This link doesn’t work anymore. Ask whoever sent it."
       },
       "invalid": {
-        "title": "We can’t find this link",
-        "body": "The link may be cut off. Try opening it again from the message, or ask for a new one."
+        "title": "This link doesn’t work",
+        "body": "Try opening it again from the message, or ask whoever invited you for a new link."
       },
       "home": "Go home"
     }
@@ -2139,7 +2133,7 @@
     "removeAria": "Remove {name} from this plan",
     "removeConfirm": {
       "title": "Remove {name} from this plan?",
-      "body": "{name} won’t see this plan anymore and will be told they were removed. You can’t undo this; to come back, they’d need to open an invite link again.",
+      "body": "{name} won’t see this plan anymore and will be told they were removed. They won’t be able to rejoin this plan, whichever link they use.",
       "confirm": "Remove"
     },
     "removed": "Removed {name} from the plan",
