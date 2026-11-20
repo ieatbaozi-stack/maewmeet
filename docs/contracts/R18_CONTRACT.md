@@ -71,6 +71,14 @@
 ## 7. agent ที่จะเรียก
 architect (ADR 0016 ก่อน §S, V1, §6) · platform (D1, H1, S1–S8) · auth (H2, H3, RBAC ของ §S) · frontend (D2, H4, C1, S3–S6, S9) · ux (D2, C1, C2, S9) · test (H5, H6, e2e §S) · ops (H7, §6, rollback S8) · secretary (V4, §6) · **ผู้ตรวจอิสระ:** qa (V2 + ตรวจ V1) · security (V3 — แตะ auth/rbac/api/schema/ข้อมูลคน · ตรวจ §S ละเอียด)
 
+### 7.1 ไฟล์ที่ไม่มีเจ้าของ / ข้ามขอบเขต (main มอบ 2026-11-20)
+- `next.config.ts` (header `X-Robots-Tag` ของ `/i/:path*`) → platform
+- `src/lib/shared/errors.ts` (`SHARE_LINK_INVALID`, `SHARE_LINK_EXPIRED`, `SHARE_FULL`) → platform · ux เพิ่ม `errors.<CODE>` TH/EN
+- `src/app/i/[token]/page.tsx` และ `src/lib/shared/safe-next.ts` → frontend (หน้า) · platform (API/loader) ตาม ADR 0016
+- H3 แก้ `src/lib/data/services/invites.ts` (ไฟล์ platform) โดย auth — main รับแล้ว
+- D1 ประทับ `inviterId`/`inviteeId` ลงแจ้งเตือนก่อนลบคำเชิญ (กันชื่อค้างหลังลบบัญชี) — main รับแล้ว · security ต้องตรวจ
+- ข้อ [A] ใน ADR 0016 (architect ตัดสินเอง) ใช้ตามนั้นสำหรับ 1.0
+
 ## 8. ลำดับและการออกรุ่น
 1. architect ADR 0016 → ทำ §S และ §1–§4 บน `feat/r18-v1` → qa + security ตรวจ → แก้
 2. §5 ตรวจรับ v1.0 (รวม §S และ impeccable) → §6 เอกสาร → **รัน migration กับ boss บน preview** → เปิด PR → **รัน migration บน prod** → boss merge
