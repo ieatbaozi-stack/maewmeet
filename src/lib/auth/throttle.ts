@@ -38,6 +38,29 @@ export const RATE_LIMITS = {
   resetUser: { prefix: 'reset:u', limit: 3, windowMs: 24 * HOUR_MS },
 } as const satisfies Record<string, RateSpec>;
 
+/**
+ * R18 §S — ลิงก์ชวนคนนอก + แขกของนัด (ADR 0016 §6 · auth ยืนยันค่าที่ architect เสนอ 2026-11-20 โดยไม่เปลี่ยนตัวเลข)
+ * ทุกถังใช้ `rate_limit_bucket` เดิม (fixed window) · เกิน → RATE_LIMITED + Retry-After · ทำ `precheckRates` ก่อน `serialized` (H2)
+ *  - createUser   `share:create:u`        30 / ชม. / ผู้ใช้ — นับทุกคำขอหลังด่านสิทธิ์ (รวมกรณีได้ลิงก์เดิม)
+ *  - revokeUser   `share:revoke:u`        60 / 10 นาที / ผู้ใช้ — นับทุกคำขอหลังด่านสิทธิ์
+ *  - joinUser     `share:join:u`          10 / 15 นาที / ผู้ใช้ ┐ จองก่อนแตะ token · คืนช่องเมื่อ สำเร็จ / เป็นสมาชิก / เป็นแขกอยู่แล้ว / เต็ม
+ *  - joinIp       `share:join:ip`         30 / 15 นาที / IP     ┘ (นับเฉพาะ token ใช้ไม่ได้ 404/410 — แบบ redeem) · IP ผ่าน `ipRateSpec` + `ipHashOf`
+ *  - guestUser    `share:guest:u`         30 / ชม. / ผู้ใช้ — เข้าเป็นแขกสำเร็จจริง + แขกออกเอง (ถังเดียว กันวนเข้า-ออก แบบ GROUP_MEMBERSHIP_RATE_LIMIT)
+ *  - viewIp       `share:view:ip`        120 / 15 นาที / IP — ทุกการเรนเดอร์ `/i/<token>` (หน้า RSC จองเอง) · เกิน → หน้า "ลองใหม่ภายหลัง" ไม่มีข้อมูลนัด
+ *  - guestRemoveUser `share:guest:remove:u` 60 / 10 นาที / ผู้ใช้ — สมาชิกนำแขกออก นับหลังด่านสิทธิ์
+ * แขกตอบ RSVP ใช้ `APPOINTMENT_WRITE_RATE_LIMITS.rsvp` เดิม (ถังเดียวกับสมาชิก — ไม่มีถังใหม่)
+ * ไม่มีถังรวมทั้งระบบแบบ H3 (`redeem:all`): token 128 บิต เดาออนไลน์ไม่ได้ ต่างจากโค้ดเชิญที่สั้น — ถัง IP/ผู้ใช้พอ
+ */
+export const SHARE_RATE_LIMITS = {
+  createUser: { prefix: 'share:create:u', limit: 30, windowMs: HOUR_MS },
+  revokeUser: { prefix: 'share:revoke:u', limit: 60, windowMs: 10 * MINUTE_MS },
+  joinUser: { prefix: 'share:join:u', limit: 10, windowMs: 15 * MINUTE_MS },
+  joinIp: { prefix: 'share:join:ip', limit: 30, windowMs: 15 * MINUTE_MS },
+  guestUser: { prefix: 'share:guest:u', limit: 30, windowMs: HOUR_MS },
+  viewIp: { prefix: 'share:view:ip', limit: 120, windowMs: 15 * MINUTE_MS },
+  guestRemoveUser: { prefix: 'share:guest:remove:u', limit: 60, windowMs: 10 * MINUTE_MS },
+} as const satisfies Record<string, RateSpec>;
+
 const subkeys = new Map<string, Buffer>();
 
 /** subkey สำหรับ HMAC ของ IP — HKDF-SHA256 จาก APP_SECRET (แยกจากการใช้งานอื่นด้วย info) */

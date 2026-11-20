@@ -56,6 +56,41 @@ export type BusyResource = { readonly type: 'busy'; readonly ownerId: string };
 /** ของที่ผูกผู้ใช้คนเดียว เช่น notification */
 export type OwnedByUserResource = { readonly type: 'ownedByUser'; readonly ownerId: string };
 
+// ───────── R18 §S (ADR 0016 §5.1) — แชร์นัดให้คนนอกกลุ่ม ─────────
+/**
+ * ลิงก์ชวนของนัด (`appointment_share_link`) — ใช้กับ `appointment.share.revoke` และกรองรายการลิงก์ในหน้านัด
+ * `group` = กลุ่มของนัด + role ของ actor · `appointmentCreatedBy` = `appointment.created_by` · `linkCreatedBy` = `link.created_by`
+ * ลิงก์ที่ไม่ใช่ของนัดใน path → policy-context ส่ง `goneGroupCtx` (NOT_FOUND เหมือนคนนอก)
+ */
+export type ShareLinkResource = {
+  readonly type: 'shareLink';
+  readonly group: GroupCtx;
+  readonly appointmentCreatedBy: string;
+  readonly linkCreatedBy: string;
+};
+/**
+ * สถานะของ **ผู้กระทำเอง** ต่อนัดนี้ในฐานะแขก — ใช้กับ `appointment.guest.view/rsvp/leave`
+ * `isGuest` = มีแถว `appointment_guest (appointment_id, actor.id)` ที่ `removed_at IS NULL` (ถูกนำออก/ไม่มีแถว = false)
+ * `group.actorRole` ต้องโหลดจริง (สมาชิก = ไม่ใช่ทางของแขก → NOT_FOUND) · `group.deleted` = กลุ่มของนัดถูกลบ
+ */
+export type AppointmentGuestResource = {
+  readonly type: 'appointmentGuest';
+  readonly group: GroupCtx;
+  readonly isGuest: boolean;
+};
+/**
+ * แขกเป้าหมายที่สมาชิกจะนำออก — ใช้กับ `appointment.guest.remove`
+ * ต้องเป็นแขกที่มีผล (`removed_at IS NULL`) ของนัดนี้ ไม่งั้น service ตอบ NOT_FOUND ก่อนถึง can (แบบ requireTargetMember)
+ * `invitedBy` = `appointment_guest.invited_by` (null เมื่อผู้ชวนถูก SET NULL)
+ */
+export type GuestTargetResource = {
+  readonly type: 'guestTarget';
+  readonly group: GroupCtx;
+  readonly appointmentCreatedBy: string;
+  readonly invitedBy: string | null;
+  readonly guestUserId: string;
+};
+
 export type Resource =
   | NoResource
   | SelfResource
@@ -65,7 +100,10 @@ export type Resource =
   | DirectInviteResource
   | AppointmentResource
   | BusyResource
-  | OwnedByUserResource;
+  | OwnedByUserResource
+  | ShareLinkResource
+  | AppointmentGuestResource
+  | GuestTargetResource;
 
 /** resource ที่ action `A` รับได้ (compile-time) */
 export type ResourceFor<A extends Action> = Extract<Resource, { type: (typeof ACTION_RESOURCE)[A][number] }>;

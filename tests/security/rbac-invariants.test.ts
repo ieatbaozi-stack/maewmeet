@@ -55,11 +55,25 @@ function resourceOf(type: string, g?: Partial<GroupCtx>): Resource {
       return { type: 'busy', ownerId: pick(IDS) };
     case 'ownedByUser':
       return { type: 'ownedByUser', ownerId: pick(IDS) };
+    // R18 §S (ADR 0016 §5.1)
+    case 'shareLink':
+      return { type: 'shareLink', group: groupCtx(g), appointmentCreatedBy: pick(IDS), linkCreatedBy: pick(IDS) };
+    case 'appointmentGuest':
+      return { type: 'appointmentGuest', group: groupCtx(g), isGuest: rand() < 0.5 };
+    case 'guestTarget':
+      return {
+        type: 'guestTarget',
+        group: groupCtx(g),
+        appointmentCreatedBy: pick(IDS),
+        invitedBy: rand() < 0.2 ? null : pick(IDS),
+        guestUserId: pick(IDS),
+      };
     default:
       throw new Error(type);
   }
 }
-const GROUP_TYPES = new Set(['group', 'member', 'invite', 'appointment']);
+/** resource ที่ผ่านด่านสมาชิก (inGroup) — R18 §S เพิ่ม shareLink/guestTarget · appointmentGuest (ทางแขก) ตรวจแยกด้านล่าง */
+const GROUP_TYPES = new Set(['group', 'member', 'invite', 'appointment', 'shareLink', 'guestTarget']);
 const decide = (actor: Actor, action: Action, r: Resource) => can(actor, action, r as never);
 
 const N = 300; // ต่อ action ต่อ invariant
@@ -125,6 +139,33 @@ describe('invariant: ขอบเขตกลุ่ม', () => {
       const d = decide(user({ isSuperAdmin: true }), action, resourceOf(type, { actorRole: null, deleted: false }));
       if (d.allow) expect(d.auditAsSuperAdmin, action).toBe(true);
     });
+  });
+});
+
+describe('invariant: ทางของแขก (R18 §S · ADR 0016 §5.2)', () => {
+  const GUEST_ACTIONS = ACTIONS.filter((a) => (ACTION_RESOURCE[a] as readonly string[]).includes('appointmentGuest'));
+
+  it('มี action ทางแขกครบ 3 ตัว (view/rsvp/leave)', () => {
+    expect([...GUEST_ACTIONS].sort()).toEqual(['appointment.guest.leave', 'appointment.guest.rsvp', 'appointment.guest.view']);
+  });
+
+  it('allow ⇔ กลุ่มไม่ลบ ∧ ไม่ใช่สมาชิก ∧ เป็นแขกที่มีผล · ไม่ allow = 404 เสมอ · ไม่มีข้อยกเว้น SA และไม่ติดธง audit', () => {
+    for (const action of GUEST_ACTIONS)
+      for (let i = 0; i < N; i++) {
+        const r = resourceOf('appointmentGuest') as Extract<Resource, { type: 'appointmentGuest' }>;
+        const d = decide(user(), action, r);
+        const expected = !r.group.deleted && r.group.actorRole === null && r.isGuest;
+        expect(d.allow, action).toBe(expected);
+        if (d.allow) expect(d.auditAsSuperAdmin, action).toBe(false);
+        else expect(d.code, action).toBe('NOT_FOUND');
+      }
+  });
+
+  it('action ของสมาชิก (appointment.view/rsvp/update/cancel/share.*) ไม่มีทางรับ resource ทางแขก', () => {
+    for (const a of ['appointment.view', 'appointment.rsvp', 'appointment.update', 'appointment.cancel', 'appointment.share.create', 'appointment.share.revoke'] as const) {
+      expect(ACTION_RESOURCE[a] as readonly string[], a).not.toContain('appointmentGuest');
+      expect(() => decide(user(), a, resourceOf('appointmentGuest')), a).toThrow();
+    }
   });
 });
 

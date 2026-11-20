@@ -22,16 +22,19 @@ import { POLICY_STATUS, PolicyError, RbacMisuseError } from './errors';
 import type {
   Actor,
   Allow,
+  AppointmentGuestResource,
   AppointmentResource,
   Decision,
   Deny,
   GroupCtx,
   GroupRole,
+  GuestTargetResource,
   InviteResource,
   MemberResource,
   PolicyErrorCode,
   Resource,
   ResourceFor,
+  ShareLinkResource,
   UserActor,
 } from './types';
 
@@ -163,6 +166,59 @@ const memberSetCurrentGroup: Rule<ResourceFor<'member.setCurrentGroup'>> = inGro
   role !== null ? ALLOW : deny('FORBIDDEN'),
 );
 
+// ───────── R18 §S — แชร์นัดให้คนนอกกลุ่ม (ADR 0016 §5.2) ─────────
+
+/**
+ * `appointment.share.create` — สมาชิกทุก role ✅ · SA ที่ไม่ใช่สมาชิก FORBIDDEN (ลิงก์ต้องมี "มากับ X" ที่เป็นสมาชิก — แบบ RSVP)
+ * คนนอก/กลุ่มลบ NOT_FOUND ที่ด่านกลุ่ม · นัดยกเลิก/จบแล้ว = กฎธุรกิจของ service (409) ไม่ใช่ของ can
+ */
+const shareCreate: Rule<AppointmentResource> = inGroup<AppointmentResource>(({ role }) =>
+  role !== null ? ALLOW : deny('FORBIDDEN'),
+);
+
+/**
+ * `appointment.share.revoke` — admin/moderator ทุกลิงก์ของนัด · สมาชิกอื่นเฉพาะลิงก์ที่ตัวเองสร้าง หรือเมื่อเป็นผู้สร้างนัด
+ * SA ✅ ติดธง audit เมื่อใช้สิทธิ์ที่ role ไม่มี · สมาชิกอื่น FORBIDDEN · คนนอก NOT_FOUND
+ * ใช้กรองรายการลิงก์ในหน้านัดด้วย (แบบ invite.list → invite.revoke)
+ */
+const shareRevoke: Rule<ShareLinkResource> = inGroup<ShareLinkResource>(({ actor, role, sa, resource }) =>
+  grant(
+    role === 'admin' ||
+      role === 'moderator' ||
+      (role !== null && (actor.id === resource.linkCreatedBy || actor.id === resource.appointmentCreatedBy)),
+    sa,
+  ),
+);
+
+/**
+ * `appointment.guest.view/rsvp/leave` — ทางของแขกเท่านั้น (ไม่ใช้ inGroup: แขกไม่ใช่สมาชิก)
+ * กลุ่มลบ → NOT_FOUND · เป็นสมาชิก (มี role) → NOT_FOUND (ใช้ทางสมาชิก) · ไม่ใช่แขกที่มีผล → NOT_FOUND · อื่น ✅
+ * ไม่มีข้อยกเว้น SA: SA ที่ไม่ใช่แขก = NOT_FOUND เหมือนคนนอก · SA ที่เป็นแขก = แขกธรรมดา (ไม่ติดธง audit)
+ */
+const guestSelf: Rule<AppointmentGuestResource> = (_actor, { group, isGuest }) => {
+  if (group.deleted) return deny('NOT_FOUND');
+  if (group.actorRole !== null) return deny('NOT_FOUND');
+  if (isGuest !== true) return deny('NOT_FOUND');
+  return ALLOW;
+};
+
+/**
+ * `appointment.guest.remove` — admin/moderator · ผู้สร้างนัด · ผู้ชวนแขกคนนั้น (ต้องยังเป็นสมาชิก) · SA ✅ (audit)
+ * สมาชิกอื่น FORBIDDEN · คนนอก/แขก NOT_FOUND · `invitedBy = null` (ผู้ชวนถูกลบ) ไม่ตรงใคร
+ * กันพลาด: เป้าหมายคือ actor เอง → FORBIDDEN ทุกคนรวม SA (แขกออกเองใช้ guest.leave — แบบ member.remove/self)
+ */
+const guestRemove: Rule<GuestTargetResource> = inGroup<GuestTargetResource>(({ actor, role, sa, resource }) => {
+  if (resource.guestUserId === actor.id) return deny('FORBIDDEN');
+  return grant(
+    role === 'admin' ||
+      role === 'moderator' ||
+      (role !== null &&
+        (actor.id === resource.appointmentCreatedBy ||
+          (resource.invitedBy !== null && actor.id === resource.invitedBy))),
+    sa,
+  );
+});
+
 type Rules = { readonly [A in Action]: Rule<ResourceFor<A>> };
 
 const RULES: Rules = {
@@ -216,6 +272,16 @@ const RULES: Rules = {
   'appointment.cancel': adminModOrCreator<AppointmentResource>(),
   'appointment.rsvp': appointmentRsvp,
   'appointment.list.mine': anyUser,
+
+  // R18 §S (ADR 0016 §5.2)
+  'appointment.share.preview': anyUser, // PUBLIC — ความสามารถอยู่ที่ token · ข้อมูลจำกัดที่ SharePreviewDto
+  'appointment.share.create': shareCreate,
+  'appointment.share.revoke': shareRevoke,
+  'appointment.guest.join': anyUser, // ล็อกอิน + active + ไม่ติดเปลี่ยน PIN · SA เข้าเป็นแขกได้เหมือนผู้ใช้ทั่วไป (ไม่ audit)
+  'appointment.guest.view': guestSelf,
+  'appointment.guest.rsvp': guestSelf,
+  'appointment.guest.leave': guestSelf,
+  'appointment.guest.remove': guestRemove,
 
   'member.remove': memberRemove,
   'group.update': adminOrModerator(),

@@ -27,6 +27,13 @@ export type Row = Readonly<Record<Column, Expect>>;
  *  target:<role>  — สมาชิกเป้าหมายที่เป็นคนอื่นและถือ role นั้น
  *  target:self    — เป้าหมายคือ actor เอง (role = role ของ actor)
  *  holdsGroupAdmin / noGroupAdmin — self.delete: ยังถือ role admin กลุ่มใดอยู่หรือไม่
+ *  R18 §S (ADR 0016 §5):
+ *  linkCreator    — shareLink: actor สร้างลิงก์ (นัดเป็นของคนอื่น)
+ *  apptCreator    — shareLink/guestTarget: actor สร้างนัด (ลิงก์/ผู้ชวนเป็นคนอื่น)
+ *  inviter        — guestTarget: actor เป็นผู้ชวนแขกคนนั้น (invitedBy = actor · นัดเป็นของคนอื่น)
+ *  other          — shareLink/guestTarget: ทั้งนัดและลิงก์/ผู้ชวนเป็นของคนอื่น
+ *  guest / notGuest — appointmentGuest: actor เป็นแขกที่มีผลของนัด / ไม่ใช่ (ไม่มีแถว หรือถูกนำออกแล้ว)
+ *  target:self    — guestTarget: เป้าหมายคือ actor เอง (กันพลาด — แขกออกเองใช้ guest.leave)
  */
 export type Scenario =
   | 'any'
@@ -37,7 +44,12 @@ export type Scenario =
   | 'target:admin'
   | 'target:self'
   | 'holdsGroupAdmin'
-  | 'noGroupAdmin';
+  | 'noGroupAdmin'
+  | 'linkCreator'
+  | 'apptCreator'
+  | 'inviter'
+  | 'guest'
+  | 'notGuest';
 
 export type MatrixEntry = {
   /** อ้างอิงแถวใน PRD §3 / ADR 0003 */
@@ -181,6 +193,67 @@ export const MATRIX = {
     cases: { any: r(FB, OK, OK, OK, OK, NF, AUTH) },
   },
   'appointment.list.mine': { ref: 'ADR0003 ผู้ใช้ทุกคน (U11)', resource: 'none', cases: { any: ANY_USER } },
+
+  // ───────── R18 §S แชร์นัดให้คนนอกกลุ่ม (ADR 0016 §5.2) ─────────
+  'appointment.share.preview': {
+    ref: 'ADR0016 §5.2 PUBLIC: หน้า /i/<token> ใครก็ได้ที่ถือ token (ข้อมูลจำกัดที่ DTO)',
+    resource: 'none',
+    cases: { any: PUBLIC },
+  },
+  'appointment.share.create': {
+    ref: 'ADR0016 §5.2: สมาชิกทุก role · SA นอกกลุ่ม 403 (ไม่มี "มากับ X" ที่เป็นสมาชิก) · NM 404',
+    resource: 'appointment',
+    cases: { any: r(FB, OK, OK, OK, OK, NF, AUTH) },
+  },
+  'appointment.share.revoke': {
+    ref: 'ADR0016 §5.2: admin/mod ทุกลิงก์ · สมาชิกเฉพาะลิงก์ตัวเองหรือเมื่อเป็นผู้สร้างนัด · SA ✅ (audit)',
+    resource: 'shareLink',
+    cases: {
+      linkCreator: r(OK, OK, OK, OK, OK, NF, AUTH),
+      apptCreator: r(OK, OK, OK, OK, OK, NF, AUTH),
+      other: r(OK, OK, OK, OK, FB, NF, AUTH),
+    },
+  },
+  'appointment.guest.join': {
+    ref: 'ADR0016 §5.2: ผู้ใช้ที่ล็อกอินทุกคน (ความสามารถอยู่ที่ token ใน service) · SA เข้าเป็นแขกได้เหมือนผู้ใช้ทั่วไป',
+    resource: 'none',
+    cases: { any: ANY_USER },
+  },
+  'appointment.guest.view': {
+    ref: 'ADR0016 §5.2: แขกที่มีผลเท่านั้น · สมาชิก 404 (ใช้ทางสมาชิก) · ไม่มีข้อยกเว้น SA',
+    resource: 'appointmentGuest',
+    cases: {
+      guest: r(OK, NF, NF, NF, NF, OK, AUTH),
+      notGuest: r(NF, NF, NF, NF, NF, NF, AUTH),
+    },
+  },
+  'appointment.guest.rsvp': {
+    ref: 'ADR0016 §5.2: เหมือน guest.view (นัดยกเลิก/จบ = กฎธุรกิจ 409 ของ service)',
+    resource: 'appointmentGuest',
+    cases: {
+      guest: r(OK, NF, NF, NF, NF, OK, AUTH),
+      notGuest: r(NF, NF, NF, NF, NF, NF, AUTH),
+    },
+  },
+  'appointment.guest.leave': {
+    ref: 'ADR0016 §5.2: เหมือน guest.view',
+    resource: 'appointmentGuest',
+    cases: {
+      guest: r(OK, NF, NF, NF, NF, OK, AUTH),
+      notGuest: r(NF, NF, NF, NF, NF, NF, AUTH),
+    },
+  },
+  'appointment.guest.remove': {
+    ref: 'ADR0016 §5.2: admin/mod · ผู้สร้างนัด · ผู้ชวน · SA ✅ (audit) · สมาชิกอื่น 403 · คนนอก/แขก 404',
+    resource: 'guestTarget',
+    cases: {
+      apptCreator: r(OK, OK, OK, OK, OK, NF, AUTH),
+      inviter: r(OK, OK, OK, OK, OK, NF, AUTH),
+      other: r(OK, OK, OK, OK, FB, NF, AUTH),
+      // กันพลาด (auth): นำตัวเองออกผ่าน guest.remove ไม่ได้ทุกคนรวม SA — แขกใช้ guest.leave
+      'target:self': r(FB, FB, FB, FB, FB, NF, AUTH),
+    },
+  },
 
   // ───────── §3 แถว 12–17 ─────────
   'member.remove': {
