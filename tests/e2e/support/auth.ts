@@ -78,15 +78,16 @@ function postSignup(request: APIRequestContext, username: string, displayName: s
   return request.post('/api/auth/signup', {
     headers: { origin: E2E_BASE_URL },
     data: { username, displayName: displayName ?? `E2E ${username}`, pin, pinConfirm: pin },
+    maxRetries: 3,
   });
 }
 
 export async function postJson(request: APIRequestContext, path: string, data: unknown = {}) {
   // 500 จาก SQLITE_BUSY (ดู Handoff D1) → ลองใหม่เฉพาะ endpoint ที่ซ้ำได้โดยไม่เปลี่ยนผล (pin-reset/approve ซ้ำ = 202/ผลเดิม)
-  let res = await request.post(path, { headers: { origin: E2E_BASE_URL }, data });
+  let res = await request.post(path, { headers: { origin: E2E_BASE_URL }, data, maxRetries: 3 });
   for (let i = 0; i < 4 && res.status() === 500; i++) {
     await new Promise((r) => setTimeout(r, 400 * (i + 1)));
-    res = await request.post(path, { headers: { origin: E2E_BASE_URL }, data });
+    res = await request.post(path, { headers: { origin: E2E_BASE_URL }, data, maxRetries: 3 });
   }
   return res;
 }

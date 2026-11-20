@@ -32,10 +32,11 @@ export type ApiJson = { data?: ApiData; error?: { code: string } };
 /** เรียก API ด้วย method ใดก็ได้ (Origin ถูกต้องตาม CSRF ของ route wrapper) — คืน status + json */
 export async function api(request: APIRequestContext, method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, data?: unknown) {
   // 500 จาก SQLITE_BUSY ของ DB ไฟล์ (Handoff D1) → ลองใหม่เฉพาะ GET (ซ้ำได้ไม่เปลี่ยนผล) · การเขียนที่ 500 ต้องล้มให้เห็น
-  let res = await request.fetch(path, { method, headers: { origin: E2E_BASE_URL }, data: method === 'GET' ? undefined : (data ?? {}) });
+  // ECONNRESET (keep-alive ที่เซิร์ฟเวอร์ปิดแล้ว) → Playwright ลองใหม่ให้ (maxRetries) · ไม่ลองตาม HTTP status
+  let res = await request.fetch(path, { method, headers: { origin: E2E_BASE_URL }, data: method === 'GET' ? undefined : (data ?? {}), maxRetries: 3 });
   for (let i = 0; method === 'GET' && i < 4 && res.status() === 500; i++) {
     await new Promise((r) => setTimeout(r, 400 * (i + 1)));
-    res = await request.fetch(path, { method, headers: { origin: E2E_BASE_URL } });
+    res = await request.fetch(path, { method, headers: { origin: E2E_BASE_URL }, maxRetries: 3 });
   }
   const text = await res.text();
   let json: unknown;

@@ -16,7 +16,8 @@ import { msg, type Locale } from './messages';
 export type Res<T = unknown> = { status: number; json: { data?: T; error?: { code: string; [k: string]: unknown } } | undefined; text: string };
 
 export async function call<T = Record<string, unknown>>(request: APIRequestContext, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, data?: unknown): Promise<Res<T>> {
-  const send = () => request.fetch(path, { method, headers: { origin: E2E_BASE_URL }, data: method === 'GET' ? undefined : (data ?? {}) });
+  // ECONNRESET = socket keep-alive ที่เซิร์ฟเวอร์ปิดไปแล้วตอนใช้ซ้ำ (R17 CI run 44459866120: PUT rsvp) — Playwright ลองใหม่ให้เฉพาะ ECONNRESET (ไม่ลองตาม HTTP status)
+  const send = () => request.fetch(path, { method, headers: { origin: E2E_BASE_URL }, data: method === 'GET' ? undefined : (data ?? {}), maxRetries: 3 });
   let res = await send();
   // SQLITE_BUSY ของ DB ไฟล์ (Handoff D1) → ลองใหม่เฉพาะ GET
   for (let i = 0; method === 'GET' && i < 4 && res.status() === 500; i++) {
