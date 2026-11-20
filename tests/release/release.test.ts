@@ -250,6 +250,15 @@ describe("checkPreconditions", () => {
     expect(failed({ packageVersion: null })).toEqual(["newer-than-package"]);
   });
 
+  it("MAJOR bump 0.15.0 -> 1.0.0 ผ่านเงื่อนไขทุกข้อ (R18 §6)", () => {
+    const major = { ...base, version: "1.0.0", tags: ["v0.9.0", "v0.15.0"], packageVersion: "0.15.0" };
+    expect(checkPreconditions(major).ok).toBe(true);
+    expect(failed({ ...major, version: "0.16.0", tags: ["v0.15.0", "v1.0.0"], packageVersion: "1.0.0" })).toEqual([
+      "newer-than-tag",
+      "newer-than-package",
+    ]);
+  });
+
   it("ข้อความ error บอกสิ่งที่ต้องแก้", () => {
     const r = checkPreconditions({ ...base, branch: "r0", dirty: [" M a.ts"] });
     const msgs = r.checks.filter((c) => !c.ok).map((c) => c.message).join("\n");

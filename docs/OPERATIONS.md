@@ -568,6 +568,20 @@ Schedule ชื่อ `reminders` อยู่ใน `vercel.json` ทุก 15 
 - **rate limit:** ถัง `admin:write` (60 ครั้ง/10 นาที/ผู้ใช้) ที่เดิมใช้กับการเขียนของหน้า admin ตอนนี้ **ครอบคลุมการกู้คืนด้วย** · ไม่มีถังใหม่
 - ไม่มีวิธีกู้ด้วย SQL ทางการ — ใช้ปุ่ม/API เท่านั้น (เงื่อนไข 30 วัน/มี admin ตรวจในคำสั่งเดียว ทำด้วยมือเสี่ยงข้ามเงื่อนไข) · ปัญหาที่กู้ไม่ได้และควรกู้ → แจ้ง Lead
 
+### K4 ข้อควรรู้หลังกู้คืน และเรื่องที่ตัดสินแล้วว่าไม่แก้ (R18 D2/D3)
+**ก่อนกดกู้คืน super admin ควรรู้ 2 ข้อ** (security-r17 Info 1–2):
+- **เพดานกลุ่มต่อผู้สร้างอาจเกินได้:** เพดาน `groupsCreatedPerUser` (และเพดานคำเชิญค้างต่อผู้ถูกเชิญ) นับเฉพาะกลุ่มที่ยังไม่ถูกลบ · ผู้ใช้ที่สร้างครบเพดาน ลบ 1 สร้างใหม่ 1 แล้ว super admin กู้กลุ่มเดิม จะมีกลุ่มเกินเพดาน 1 กลุ่ม · ทำได้เฉพาะ super admin ไม่ใช่ช่องยกระดับสิทธิ์ · ยอมรับได้ (ไม่ต้องทำอะไร ผู้ใช้แค่สร้างกลุ่มใหม่เพิ่มไม่ได้จนกว่าจะต่ำกว่าเพดาน)
+- **โค้ดเชิญที่ยังไม่หมดอายุใช้ได้อีก:** คำเชิญเดิมกลับมาพร้อมกลุ่มโดยตั้งใจ (R17 G1) · โค้ดอายุ 7 วัน จึงมีผลเมื่อกู้ภายใน 7 วันหลังสร้างโค้ด · **ถ้ากลุ่มถูกลบเพราะโค้ดเชิญรั่ว ให้ผู้ดูแลกลุ่มเพิกถอนโค้ดเองหลังกู้** (หน้าตั้งค่ากลุ่ม → คำเชิญ) · กล่องยืนยันกู้คืนของ super admin บอกข้อนี้แล้ว (R18 D2)
+
+**ตัดสินแล้ว ไม่แก้ (บันทึก 2026-11-20 ตาม R18 D3):**
+| ข้อ | เรื่อง | เหตุผลที่ไม่แก้ |
+|---|---|---|
+| security-r17 Info 3 | purge ลบแถว outbox ที่ส่งแล้ว ตัวนับ OA รายเดือนอาจลดได้ | เกิดได้เฉพาะเดือน 31 วันที่ลบกลุ่มวันที่ 1 แล้ว purge วันที่ 31 · คลาดได้ไม่กี่ข้อความ เพดาน 300 ยังเป็นเพดานนุ่ม · แก้ต้องเก็บแถวไว้นานขึ้น ซึ่งขัดนโยบายลบถาวร |
+| security-r17 Info 4 | `json_extract` สแกนทั้งตารางต่อกลุ่ม (ไม่มี index) | ≤ 25 กลุ่มต่อวัน บนข้อมูลขนาดปัจจุบันที่เล็ก · เพิ่ม index ต้องมี migration และ index บน JSON ไม่คุ้ม · ถ้าตารางโตจน cron ช้า ให้วัด `EXPLAIN` แล้วค่อยพิจารณา (ADR 0015) |
+| security-r16 Info 2 | rate limit `api:read` เป็น fixed window + ทางลัดไม่แชร์ข้าม instance | เป็นเรื่องโหลด ไม่ใช่สิทธิ์ · ช่วงรอยต่อหน้าต่างยิงได้ราว 2 เท่า (≈1,200 ใน 2 นาที) ไม่เกินเพดานที่ DB รับได้ · sliding window ซับซ้อนกว่าที่คุ้มกับผู้ใช้ระดับนี้ |
+| security-r16 Info 3 | หน้า Server Component อ่านข้อมูลโดยไม่นับ `api:read` | ตั้งใจและบันทึกใน ARCHITECTURE ข้อ 11 · หน้าเหล่านี้ต้องมี session และตรวจสิทธิ์ที่เซิร์ฟเวอร์เหมือนกัน · contract H3 กำหนดที่ `route.ts` เท่านั้น |
+| security-r16 Info 4 | ถอด `is_admin` ของ SA ด้วย SQL ขณะคำเชิญค้าง ชื่อใน `/api/me/invites` กลับเป็นชื่อจริง | เกิดได้เฉพาะงาน ops ด้วยมือ ภายใน 7 วัน ผลกระทบต่ำ · ถ้าจะถอด `is_admin` ให้รอคำเชิญของคนนั้นหมดอายุ หรือเพิกถอนก่อน |
+
 ## ภาคผนวก: ตารางสรุปตัวแปร env
 อ้างอิงเต็มใน `.env.example` (ARCHITECTURE §7) · ที่มาของกติกาเข้ม/ผ่อน: `src/lib/shared/env.ts`
 | ตัวแปร | ต้องมีเมื่อ | ถ้าขาด |
@@ -620,11 +634,13 @@ cron รายวัน (`/api/cron/daily`) ลบ `busy_block` ที่ `end_a
 |---|---|---|---|---|
 | `esbuild` 0.18.20 | GHSA-67mh-4wv8-2f99 (moderate · เว็บใดก็ส่งคำขอถึง dev server ของ esbuild ได้) แก้ใน 0.25.0 | `drizzle-kit` → `@esbuild-kit/esm-loader` → `@esbuild-kit/core-utils` | **ไม่** — เครื่องมือ dev/migration เท่านั้น (ไม่ได้อยู่ใน bundle ของ Next) และช่องโหว่ต้องรัน esbuild serve | `overrides`: `@esbuild-kit/core-utils` → `esbuild` `0.25.12` (รุ่นเดียวกับที่ drizzle-kit ใช้อยู่แล้ว) · `drizzle-kit check` ผ่าน |
 | `minimatch` 10.2.6 | GHSA-g3hv-75wg-m249 (moderate · DoS) แก้ใน 11.0.1 | `eslint-config-next` → `typescript-eslint` → `@typescript-eslint/typescript-estree` | **ไม่** — lint ตอนพัฒนา/CI เท่านั้น | `overrides`: `@typescript-eslint/typescript-estree` → `minimatch` `11.0.1` (ตัวอื่นของ eslint ยังใช้ 3.1.5 ซึ่งไม่อยู่ในช่วงที่ได้รับผลกระทบ 7.0.0–11.0.0) · lint ผ่าน |
-| `picomatch` (ทุกรุ่น) | GHSA-fc5q-39xc-vjpf (**high** · ReDoS ผ่าน extglob ซ้ำ) **ยังไม่มีรุ่นที่แก้** | `vite`/`vitest`/`tinyglobby`/`fdir` (เทสต์), `micromatch` → `fast-glob` → `@next/eslint-plugin-next` (lint), `@parcel/watcher` ← `next-intl` | **ไม่พบทางถึงคำขอผู้ใช้** — picomatch รับ "รูปแบบ glob" จากโค้ด/คอนฟิกของเรา ไม่เคยรับจากคำขอของผู้ใช้ · ส่วนใหญ่เป็น dev/test/lint · `@parcel/watcher` อยู่ใน dependencies ของ `next-intl` แต่ใช้เฝ้าไฟล์ตอน dev/extract เท่านั้น แอปเราไม่ได้เปิดใช้ | **ไม่แก้** (ไม่มีรุ่นแก้ · `npm audit fix --force` จะถอย vitest เป็น 3.1.4 ซึ่งผิดทาง) · ตรวจซ้ำเมื่อ picomatch ออกรุ่นแก้ แล้วเพิ่ม override |
+| `picomatch` (ทุกรุ่น) | GHSA-fc5q-39xc-vjpf (**high** · ReDoS ผ่าน extglob ซ้ำ) **ยังไม่มีรุ่นที่แก้** (ตรวจซ้ำ 2026-11-20: ดูด้านล่าง) | `vite`/`vitest`/`tinyglobby`/`fdir` (เทสต์), `micromatch` → `fast-glob` → `@next/eslint-plugin-next` (lint), `@parcel/watcher` ← `next-intl` | **ไม่พบทางถึงคำขอผู้ใช้** — picomatch รับ "รูปแบบ glob" จากโค้ด/คอนฟิกของเรา ไม่เคยรับจากคำขอของผู้ใช้ · ส่วนใหญ่เป็น dev/test/lint · `@parcel/watcher` อยู่ใน dependencies ของ `next-intl` แต่ใช้เฝ้าไฟล์ตอน dev/extract เท่านั้น แอปเราไม่ได้เปิดใช้ | **ไม่แก้** (ไม่มีรุ่นแก้ · `npm audit fix --force` จะถอย vitest เป็น 3.1.4 ซึ่งผิดทาง) · ตรวจซ้ำเมื่อ picomatch ออกรุ่นแก้ แล้วเพิ่ม override |
 
 หมายเหตุ: `npm audit --omit=dev` ยังรายงาน picomatch เพราะ `@parcel/watcher` นับเป็น production dependency ของ `next-intl` ตามไฟล์ package แต่ไม่ถูกเรียกในเส้นทางคำขอ
 
 **คำเตือน: ห้ามรัน `npm audit fix`** (แม้ไม่ใส่ `--force`) — dry-run แล้วจะถอย `vitest` เป็น 3.1.4 และ picomatch ก็ยังอยู่ · แก้ด้วย `overrides` ใน `package.json` เท่านั้น
+
+**ตรวจซ้ำ 2026-11-20 (R18 H7): ยังไม่มีรุ่นแก้ — คงสถานะยอมรับความเสี่ยง** · `npm view picomatch versions` รุ่นล่าสุด 4.0.7 · `gh api advisories/GHSA-fc5q-39xc-vjpf` ช่วงที่ได้รับผลกระทบ `<= 4.0.7` และ `first_patched_version` เป็น null · Dependabot alert ที่เปิดอยู่ = ไม่มี · `npm audit` รายงาน 0 vulnerabilities (ฐาน audit ของ npm ยังไม่รวมรายการนี้) · lockfile ใช้ picomatch 4.0.7 และ 2.3.2 (ผ่าน micromatch) · ตรวจซ้ำครั้งถัดไปเมื่อมี Dependabot alert ใหม่หรือก่อนรุ่นถัดไป
 
 **เงื่อนไขประเมิน picomatch ใหม่:**
 - ถ้าเปิดใช้ `extract` ของ next-intl (ใช้ `@parcel/watcher`) หรือตั้ง `images` patterns ใน `next.config.ts` ให้ประเมินใหม่ทันที เพราะ picomatch อาจรับ pattern ที่เกี่ยวกับ runtime
