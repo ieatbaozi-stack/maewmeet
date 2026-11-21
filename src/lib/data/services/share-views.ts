@@ -5,8 +5,8 @@
 import { overlapsRange } from '@/lib/calendar';
 import type { DbOrTx } from '@/db/client';
 import { myCommitmentsOverlapping, type AppointmentRow } from '@/lib/data/repos/appointment';
-import { findGuestView, goingMaybeCounts, listGuestsOfAppointment } from '@/lib/data/repos/appointment-guest';
-import { listShareLinksOfAppointment } from '@/lib/data/repos/share-link';
+import { findGuestView, goingMaybeCounts, listGuestsOfAppointment, type GuestListRow } from '@/lib/data/repos/appointment-guest';
+import { listShareLinksOfAppointment, type ShareLinkListRow } from '@/lib/data/repos/share-link';
 import { can } from '@/lib/rbac/can';
 import type { GroupCtx, UserActor } from '@/lib/rbac/types';
 import { configuredAppOrigin, getEnv } from '@/lib/shared/env';
@@ -68,13 +68,16 @@ export async function memberShareExtras(
   group: GroupCtx,
   /** สมาชิกปัจจุบันของกลุ่มนัด — รับเป็น Promise ได้ ให้คิวรีแขก/ลิงก์เริ่มพร้อมคิวรีสมาชิก (ไม่เพิ่มรอบรอ) */
   membersIn: ReadonlyMap<string, MemberLook> | Promise<ReadonlyMap<string, MemberLook>>,
+  /** แขก/ลิงก์ที่โหลดมากับ query สิทธิ์แล้ว (loadAppointmentCtx withShare) — มี = ไม่ query ซ้ำ */
+  preloaded?: { guests: GuestListRow[]; links: ShareLinkListRow[] },
 ): Promise<MemberShareExtras> {
   const open = row.status === 'active' && row.endAt > now;
-  const [guests, links, members] = await Promise.all([
-    listGuestsOfAppointment(db, row.id),
-    open ? listShareLinksOfAppointment(db, row.id) : Promise.resolve([]),
+  const [guests, allLinks, members] = await Promise.all([
+    preloaded ? preloaded.guests : listGuestsOfAppointment(db, row.id),
+    preloaded ? preloaded.links : open ? listShareLinksOfAppointment(db, row.id) : Promise.resolve([]),
     membersIn,
   ]);
+  const links = open ? allLinks : [];
   const person = (id: string | null): PersonDto | null => {
     if (id === null) return null;
     const m = members.get(id);

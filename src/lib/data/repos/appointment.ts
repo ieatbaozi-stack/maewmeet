@@ -89,15 +89,43 @@ export type AppointmentAccessRow = {
   creatorActive: boolean;
   /** R18 §S (ADR 0016 §5.1): ผู้ดูมีแถว appointment_guest ที่มีผล (removed_at IS NULL) ของนัดนี้ — มากับ query เดียวกัน (+0 query) */
   isGuest: boolean;
+  /**
+   * R18 §S perf (r7-baseline): แขกที่มีผล + ลิงก์ที่ยังไม่ถูกยกเลิก ของนัดนี้ — มากับ query เดียวกันเมื่อผู้เรียกขอ (`withShare`) · ไม่ขอ = undefined
+   * ใช้เฉพาะหลัง authorize ผ่านแล้ว (รายละเอียดนัดของสมาชิก) · ผู้เรียกเรียงเอง
+   */
+  share?: { guests: AccessGuestRow[]; links: AccessLinkRow[] };
+};
+
+export type AccessGuestRow = { userId: string; displayName: string; response: RsvpResponse | null; invitedBy: string | null; joinedAt: number };
+export type AccessLinkRow = { id: string; appointmentId: string; createdBy: string; createdAt: number; guestsJoined: number };
+
+const parseJsonArray = <T>(raw: unknown): T[] => {
+  if (typeof raw !== 'string') return [];
+  try {
+    const v = JSON.parse(raw) as unknown;
+    return Array.isArray(v) ? (v as T[]) : [];
+  } catch {
+    return [];
+  }
 };
 
 /** นัด + กลุ่ม + role ของ user ในกลุ่ม + ผู้สร้างยัง active (R15b) + ผู้ดูเป็นแขก (R18) ใน query เดียว (policy-context) · ไม่มีนัด = null */
-export async function findAppointmentAccess(db: DbOrTx, id: string, userId: string): Promise<AppointmentAccessRow | null> {
+export async function findAppointmentAccess(db: DbOrTx, id: string, userId: string, opts: { withShare?: boolean } = {}): Promise<AppointmentAccessRow | null> {
   const creatorActive = sql<number>`EXISTS (SELECT 1 FROM group_member cm JOIN user cu ON cu.id = cm.user_id
     WHERE cm.group_id = ${appointment.groupId} AND cm.user_id = ${appointment.createdBy} AND cu.status = 'active')`;
   const isGuest = sql<number>`EXISTS (SELECT 1 FROM appointment_guest ag WHERE ag.appointment_id = ${appointment.id} AND ag.user_id = ${userId} AND ag.removed_at IS NULL)`;
+  // R18 §S: แขก/ลิงก์เป็น JSON ใน query เดียวกัน (ไม่มี UNION — ไม่ปนกับตัวนับ R6D) · ไม่ขอ = NULL ไม่แตะตาราง
+  const guestsJson = opts.withShare
+    ? sql<string | null>`(SELECT json_group_array(json_object('userId', sg.user_id, 'displayName', su.display_name, 'response', sg.response, 'invitedBy', sg.invited_by, 'joinedAt', sg.joined_at))
+        FROM appointment_guest sg JOIN "user" su ON su.id = sg.user_id WHERE sg.appointment_id = ${appointment.id} AND sg.removed_at IS NULL)`
+    : sql<string | null>`NULL`;
+  const linksJson = opts.withShare
+    ? sql<string | null>`(SELECT json_group_array(json_object('id', sl.id, 'appointmentId', sl.appointment_id, 'createdBy', sl.created_by, 'createdAt', sl.created_at,
+          'guestsJoined', (SELECT count(*) FROM appointment_guest slg WHERE slg.link_id = sl.id AND slg.removed_at IS NULL)))
+        FROM appointment_share_link sl WHERE sl.appointment_id = ${appointment.id} AND sl.revoked_at IS NULL)`
+    : sql<string | null>`NULL`;
   const rows = await db
-    .select({ a: appointment, groupName: groups.name, groupIcon: groups.icon, deletedAt: groups.deletedAt, role: groupMember.role, creatorActive, isGuest })
+    .select({ a: appointment, groupName: groups.name, groupIcon: groups.icon, deletedAt: groups.deletedAt, role: groupMember.role, creatorActive, isGuest, guestsJson, linksJson })
     .from(appointment)
     .innerJoin(groups, eq(groups.id, appointment.groupId))
     .leftJoin(groupMember, and(eq(groupMember.groupId, appointment.groupId), eq(groupMember.userId, userId)))
@@ -113,6 +141,14 @@ export async function findAppointmentAccess(db: DbOrTx, id: string, userId: stri
         role: r.role,
         creatorActive: Number(r.creatorActive) === 1,
         isGuest: Number(r.isGuest) === 1,
+        ...(opts.withShare
+          ? {
+              share: {
+                guests: parseJsonArray<AccessGuestRow>(r.guestsJson).sort((x, y) => x.joinedAt - y.joinedAt || (x.userId < y.userId ? -1 : x.userId > y.userId ? 1 : 0)),
+                links: parseJsonArray<AccessLinkRow>(r.linksJson).sort((x, y) => x.createdAt - y.createdAt || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0)),
+              },
+            }
+          : {}),
       }
     : null;
 }
@@ -198,7 +234,7 @@ export type AppointmentScope = 'upcoming' | 'past' | 'all';
 export type AppointmentCursor = { startAt: number; id: string };
 
 /** แถวรายการ + "ผู้ดูตอบ going นัดนี้" (R7 B-4: ให้ service เริ่มคิวรีคำมั่นของฉันได้โดยไม่รอ listCurrentRsvps) */
-export type ListedAppointment = { row: AppointmentRow; viewerGoing: boolean };
+export type ListedAppointment = { row: AppointmentRow; viewerGoing: boolean; /** R18 §S perf: ผู้ดูมีแถวแขกที่มีผลอย่างน้อย 1 แถว (เฉพาะ listMyUpcomingAppointmentRows) */ viewerHasGuestRows?: boolean };
 
 /**
  * ผู้ดูตอบ going นัดแถวนี้ ตามกติกาเดียวกับ listCurrentRsvps (ADR 0009 §1): เป็นสมาชิกปัจจุบันของกลุ่มของนัด และ updated_at >= joined_at
@@ -245,15 +281,17 @@ export async function listMyUpcomingAppointmentRows(db: DbOrTx, userId: string, 
   if (opts.onlyGoing) {
     conds.push(sql`EXISTS (SELECT 1 FROM appointment_rsvp r WHERE r.appointment_id = ${appointment.id} AND r.user_id = ${userId} AND r.response = 'going' AND r.updated_at >= ${groupMember.joinedAt})`);
   }
+  // R18 §S perf: ธงราคาถูก (index appointment_guest_user_idx) — ไม่มีแถวแขก → service ไม่ต้องยิงคิวรีนัดแขก
+  const hasGuest = sql<number>`EXISTS (SELECT 1 FROM appointment_guest hg WHERE hg.user_id = ${userId} AND hg.removed_at IS NULL)`;
   const rows = await db
-    .select({ a: appointment, going: viewerGoing(userId) })
+    .select({ a: appointment, going: viewerGoing(userId), hasGuest })
     .from(groupMember)
     .innerJoin(groups, and(eq(groups.id, groupMember.groupId), sql`${groups.deletedAt} IS NULL`))
     .innerJoin(appointment, eq(appointment.groupId, groupMember.groupId))
     .where(and(...conds))
     .orderBy(asc(appointment.startAt), asc(appointment.id))
     .limit(limit);
-  return rows.map((r) => ({ row: r.a, viewerGoing: Number(r.going) === 1 }));
+  return rows.map((r) => ({ row: r.a, viewerGoing: Number(r.going) === 1, viewerHasGuestRows: Number(r.hasGuest) === 1 }));
 }
 
 export type GroupNameCount = { name: string; icon: string | null; memberCount: number };

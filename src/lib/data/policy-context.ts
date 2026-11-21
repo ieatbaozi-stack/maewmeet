@@ -5,7 +5,7 @@
 // (แม้ super admin — ด่านกลุ่มตัดก่อนกฎของ action) จึงแยก "ไม่มี" ออกจาก "ไม่ใช่สมาชิก" ไม่ได้จากภายนอก
 // actor ที่ไม่ใช่ user (anonymous) → ไม่แตะ DB; can() ปฏิเสธ AUTH_REQUIRED ที่ด่านแรกอยู่แล้ว
 import type { DbOrTx } from '@/db/client';
-import { findAppointmentAccess, type AppointmentRow } from '@/lib/data/repos/appointment';
+import { findAppointmentAccess, type AppointmentAccessRow, type AppointmentRow } from '@/lib/data/repos/appointment';
 import { findActiveGuest } from '@/lib/data/repos/appointment-guest';
 import { findShareLinkAccess, type ShareLinkRow } from '@/lib/data/repos/share-link';
 import type { GroupRow } from '@/lib/data/repos/group';
@@ -45,16 +45,18 @@ export type AppointmentCtx = {
   creatorActive: boolean;
   /** R18 §S (ADR 0016 §5.1): ผู้ดูเป็นแขกที่มีผลของนัดนี้ (มากับ query เดียวกัน) — ใช้สร้าง AppointmentGuestResource */
   isGuest: boolean;
+  /** R18 §S perf: แขก/ลิงก์ของนัด มากับ query เดียวกันเมื่อขอ withShare — อ่านหลัง authorize เท่านั้น */
+  share?: AppointmentAccessRow['share'];
 };
 
 /**
  * โหลดนัด + GroupCtx ของกลุ่มที่นัดสังกัด + role ของ actor ใน query เดียว (ใช้กับ appointment.* ที่รับ :id)
  * นัดไม่มีอยู่ = กลุ่มที่ถูกลบ = `{deleted: true, actorRole: null}` → can() ตอบ NOT_FOUND เหมือนคนนอกกลุ่มทุกไบต์ (กัน IDOR / oracle)
  */
-export async function loadAppointmentCtx(db: DbOrTx, actor: Actor, appointmentId: string): Promise<AppointmentCtx> {
+export async function loadAppointmentCtx(db: DbOrTx, actor: Actor, appointmentId: string, opts: { withShare?: boolean } = {}): Promise<AppointmentCtx> {
   const gone: AppointmentCtx = { appointment: null, group: goneGroupCtx(appointmentId), groupName: '', groupIcon: null, creatorActive: false, isGuest: false };
   if (actor.kind !== 'user') return gone;
-  const row = await findAppointmentAccess(db, appointmentId, actor.id);
+  const row = await findAppointmentAccess(db, appointmentId, actor.id, opts);
   if (!row) return gone;
   return {
     appointment: row.appointment,
@@ -63,6 +65,7 @@ export async function loadAppointmentCtx(db: DbOrTx, actor: Actor, appointmentId
     groupIcon: row.groupIcon,
     creatorActive: row.creatorActive,
     isGuest: row.isGuest,
+    ...(row.share ? { share: row.share } : {}),
   };
 }
 

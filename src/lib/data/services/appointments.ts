@@ -279,8 +279,8 @@ const apptRes = (c: AppointmentCtx) => ({ type: 'appointment', group: c.group, c
 const guestRes = (c: AppointmentCtx) => ({ type: 'appointmentGuest', group: c.group, isGuest: c.isGuest }) as const;
 
 /** โหลดนัด + บริบทกลุ่ม/role ให้ can() (ADR 0003 §1) — อ่านอย่างเดียว ยังไม่คืนข้อมูลใด ๆ ก่อน authorize */
-async function appointmentFor(actor: Actor, id: string, ctx: DataCtx): Promise<AppointmentCtx> {
-  return loadAppointmentCtx(ctx.db, actor, id);
+async function appointmentFor(actor: Actor, id: string, ctx: DataCtx, opts: { withShare?: boolean } = {}): Promise<AppointmentCtx> {
+  return loadAppointmentCtx(ctx.db, actor, id, opts);
 }
 
 type Reader = Parameters<typeof listMembers>[0];
@@ -367,6 +367,7 @@ async function toDetailDto(
   groupName: string,
   groupIcon: string | null,
   withConflicts = false,
+  preloaded?: AppointmentCtx['share'],
 ): Promise<AppointmentDetailDto> {
   const db = ctx.db;
   const membersP = listMembersWithRsvps(db, row.groupId, row.id);
@@ -375,7 +376,7 @@ async function toDetailDto(
   const [{ members, rsvps }, conflicts, share, memberMap] = await Promise.all([
     membersP,
     withConflicts ? myConflictsFor(db, actor, now, row, group) : Promise.resolve(NO_CONFLICTS),
-    memberShareExtras(db, actor, ctx, now, row, group, memberMapP),
+    memberShareExtras(db, actor, ctx, now, row, group, memberMapP, preloaded),
     memberMapP,
   ]);
   const res = { type: 'appointment', group, createdBy: row.createdBy } as const;
@@ -599,13 +600,13 @@ async function groupAppointmentsAfterAuth(actor: Actor, allow: Allow, groupId: s
 }
 
 export async function getAppointment(actor: Actor, id: string, ctx: DataCtx): Promise<{ appointment: AppointmentDetailDto }> {
-  const c = await appointmentFor(actor, id, ctx);
+  const c = await appointmentFor(actor, id, ctx, { withShare: true });
   const allow = authorize(actor, 'appointment.view', apptRes(c));
   const me = asUser(actor);
   const row = c.appointment!;
   const { db, now } = ctx;
   await auditRead(db, me, allow, { action: 'appointment.view', targetType: 'appointment', targetId: id, groupId: row.groupId }, now);
-  return { appointment: await toDetailDto(ctx, me, now, row, c.group, c.groupName, c.groupIcon, true) };
+  return { appointment: await toDetailDto(ctx, me, now, row, c.group, c.groupName, c.groupIcon, true, c.share) };
 }
 
 /**
@@ -662,10 +663,10 @@ export async function listMyAppointments(actor: Actor, query: MyAppointmentsQuer
   const limit = parseLimit(query.limit, APPOINTMENT_LIST_DEFAULT, APPOINTMENT_LIST_MAX);
   if (query.rsvp !== undefined && query.rsvp !== 'going') throw new AppError('VALIDATION', { fields: { rsvp: 'INVALID' } });
   const onlyGoing = query.rsvp === 'going';
-  const [memberRows, guestRows] = await Promise.all([
-    listMyUpcomingAppointmentRows(db, me.id, now, limit, { onlyGoing }),
-    listMyGuestAppointmentRows(db, me.id, now, limit, { onlyGoing }),
-  ]);
+  // R18 §S perf: คิวรีนัดแขกเฉพาะเมื่อผู้ใช้มีแถวแขก (ธงมากับคิวรีนัดสมาชิก) หรือไม่มีนัดสมาชิกเลย (ไม่มีแถวให้ถือธง) — สมาชิกทั่วไป +0 query
+  const memberRows = await listMyUpcomingAppointmentRows(db, me.id, now, limit, { onlyGoing });
+  const needGuest = memberRows.length === 0 || memberRows[0]!.viewerHasGuestRows === true;
+  const guestRows = needGuest ? await listMyGuestAppointmentRows(db, me.id, now, limit, { onlyGoing }) : [];
   if (guestRows.length === 0) {
     return { appointments: (await toListDtos(db, me.id, now, memberRows)).map((d) => ({ ...d, viewerKind: 'member' as const })) };
   }
@@ -702,7 +703,7 @@ export async function listMyAppointments(actor: Actor, query: MyAppointmentsQuer
 export type AppointmentViewDto = { viewerKind: 'member'; appointment: AppointmentDetailDto } | { viewerKind: 'guest'; appointment: GuestAppointmentDto };
 
 export async function getAppointmentForViewer(actor: Actor, id: string, ctx: DataCtx): Promise<AppointmentViewDto> {
-  const c = await appointmentFor(actor, id, ctx);
+  const c = await appointmentFor(actor, id, ctx, { withShare: true });
   if (can(actor, 'appointment.guest.view', guestRes(c)).allow) {
     authorize(actor, 'appointment.guest.view', guestRes(c));
     return { viewerKind: 'guest', appointment: await guestDetailDto(ctx.db, asUser(actor).id, ctx.now, c) };
@@ -712,7 +713,7 @@ export async function getAppointmentForViewer(actor: Actor, id: string, ctx: Dat
   const row = c.appointment!;
   const { db, now } = ctx;
   await auditRead(db, me, allow, { action: 'appointment.view', targetType: 'appointment', targetId: id, groupId: row.groupId }, now);
-  return { viewerKind: 'member', appointment: await toDetailDto(ctx, me, now, row, c.group, c.groupName, c.groupIcon, true) };
+  return { viewerKind: 'member', appointment: await toDetailDto(ctx, me, now, row, c.group, c.groupName, c.groupIcon, true, c.share) };
 }
 
 // ───────── แก้ / ยกเลิก ─────────
@@ -824,7 +825,7 @@ export async function cancelAppointment(actor: Actor, id: string, ctx: DataCtx):
 
 // ───────── RSVP ─────────
 export async function setRsvp(actor: Actor, id: string, input: RsvpInput, ctx: DataCtx): Promise<{ appointment: AppointmentDetailDto }> {
-  const c = await appointmentFor(actor, id, ctx);
+  const c = await appointmentFor(actor, id, ctx, { withShare: true }); // R18 §S perf: แขก/ลิงก์มากับ query สิทธิ์ — RSVP ของสมาชิกไม่แตะแถวแขก/ลิงก์
   authorize(actor, 'appointment.rsvp', apptRes(c));
   const me = asUser(actor);
   const current = c.appointment!;
@@ -853,7 +854,7 @@ export async function setRsvp(actor: Actor, id: string, input: RsvpInput, ctx: D
   });
   // R7 B-4: ไม่อ่าน access ซ้ำหลัง commit — upsert สำเร็จ ⇒ ในคำสั่งเดียวกันนัดยัง active/ยังไม่จบ · กลุ่มยังอยู่ · ฉันยังเป็นสมาชิก
   // RSVP ไม่แตะแถวนัด จึงใช้แถว/บริบทที่อ่านไว้ก่อนเขียนได้ · คำตอบของทุกคน (รวมที่เพิ่งเข้ามา) + สมาชิก + myConflicts ยังอ่านใหม่ใน toDetailDto
-  return { appointment: await toDetailDto(ctx, me, now, current, c.group, c.groupName, c.groupIcon, true) };
+  return { appointment: await toDetailDto(ctx, me, now, current, c.group, c.groupName, c.groupIcon, true, c.share) };
 }
 
 async function whyRsvpRejected(db: Reader, actor: UserActor, id: string, now: number): Promise<AppError> {
