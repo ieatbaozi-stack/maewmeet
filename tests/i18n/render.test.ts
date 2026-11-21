@@ -392,14 +392,14 @@ const CASES: Case[] = [
   {
     name: 'login',
     Component: LoginForm as never,
-    props: [{ reset: null }, { reset: { status: 'pending' } }, { reset: { status: 'approved', expiresAt: NOW + HOUR } }],
+    props: [{ reset: null }, { reset: { status: 'pending' } }, { reset: { status: 'approved', expiresAt: NOW + HOUR } }, { reset: null, next: '/i/Xk3_a-B9zQ1mN2pR4sT6uV' }], // R18 §S3: ?next ของลิงก์ชวน
   },
   {
     name: 'login prefs',
     Component: LoginPrefs as never,
     props: [{ current: { locale: 'th', theme: 'system' } }, { current: { locale: 'en', theme: 'dark' } }],
   },
-  { name: 'signup', Component: SignupForm as never, props: [{}] },
+  { name: 'signup', Component: SignupForm as never, props: [{}, { next: '/i/Xk3_a-B9zQ1mN2pR4sT6uV' }] },
   {
     name: 'forgot',
     Component: ForgotView as never,
@@ -463,6 +463,30 @@ const CASES: Case[] = [
         apptDetail({
           rsvp: noRsvp as never,
           permissions: { canEdit: false, canCancel: false, canRsvp: true },
+        }),
+        person(2, 'Ben'),
+      ),
+      // R18 §S: สมาชิกเห็นปุ่มชวนคนนอก + ส่วนแขก ("มากับ X" / นำออก) — แขกเต็มเพดาน และไม่มีแขก
+      detailProps(
+        apptDetail({
+          permissions: { canEdit: true, canCancel: true, canRsvp: true, canShare: true },
+          guests: {
+            items: [
+              { userId: 'g0', displayName: 'แขกหนึ่ง', response: 'going', invitedBy: { userId: 'u1', displayName: 'Ann', colorIndex: 1, shapeIndex: 1 }, canRemove: true },
+              { userId: 'g1', displayName: 'แขกสอง', response: null, invitedBy: null, canRemove: false },
+            ],
+            counts: { going: 1, maybe: 0, not_going: 0, noResponse: 1 },
+            max: 10,
+          },
+          shareLinks: [{ id: 'l1', createdBy: person(1, 'Ann'), createdAt: NOW - HOUR, guestsJoined: 1, mine: true, url: 'https://example.test/i/Xk3_a-B9zQ1mN2pR4sT6uV' }],
+        }),
+        person(1, 'Ann'),
+      ),
+      detailProps(
+        apptDetail({
+          permissions: { canEdit: false, canCancel: false, canRsvp: true, canShare: true },
+          guests: { items: [], counts: { going: 0, maybe: 0, not_going: 0, noResponse: 0 }, max: 10 },
+          shareLinks: [],
         }),
         person(2, 'Ben'),
       ),
