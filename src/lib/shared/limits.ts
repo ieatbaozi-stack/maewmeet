@@ -146,6 +146,12 @@ export const APPOINTMENT_WRITE_RATE_LIMITS = {
   rsvp: { prefix: 'appt:rsvp', limit: 120, windowMs: 10 * MINUTE_MS },
 } as const;
 
+// ───────── R18 §S แชร์นัดให้คนนอกกลุ่ม (ADR 0016 §6) — ค่า rate limit อยู่ที่ SHARE_RATE_LIMITS (src/lib/auth/throttle.ts) ─────────
+/** แขก (ที่มีผล: removed_at IS NULL) ต่อนัด — ตรวจในคำสั่ง INSERT เดียวกับการเพิ่ม (S5) · เต็ม → 409 SHARE_FULL { max } */
+export const APPOINTMENT_GUESTS_MAX = 10;
+/** ลิงก์ชวนที่สิ้นสุดแล้วเก็บกี่วันก่อนลบถาวร — ค่าเดียวกับคำเชิญ (D1/B1 · ADR 0016 §7.5) */
+export const SHARE_LINK_RETENTION_DAYS = INVITE_RETENTION_DAYS;
+
 // ───────── บัญชีของฉัน / หน้า super admin — R5_CONTRACT §2 ─────────
 /** limiter ต่อผู้ใช้ (fixed window ผ่าน rate_limit_bucket) · เกิน → RATE_LIMITED + Retry-After */
 export const ACCOUNT_RATE_LIMITS = {

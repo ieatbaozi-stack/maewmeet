@@ -88,16 +88,24 @@ export async function deleteUnreadEventRows(
  * แจ้งเตือนที่ผู้ใช้ "ควรเห็น": ชนิดที่เกี่ยวกับนัด (appointment.*) และกิจกรรมสมาชิก (group.member.joined/left/role_changed — R11) เห็นได้เฉพาะเมื่อยังเป็นสมาชิกของกลุ่มนั้นและกลุ่มยังไม่ถูกลบ
  * (ถูกลบออก/ออกเอง → ไม่เห็นความเคลื่อนไหวของกลุ่มเดิมอีก · เกิดก่อน joined_at ปัจจุบัน = ของสมาชิกภาพรอบก่อน ซ่อนแม้กลับเข้ากลุ่มแล้ว)
  * ชนิดอื่นเห็นเสมอ รวม group.member.removed ที่มีไว้บอกคนที่ถูกนำออกโดยเฉพาะ · ใช้ร่วมกันระหว่างรายการและจำนวนที่ยังไม่อ่าน
+ * R18 §S (ADR 0016 §7.2): appointment.* ของ "แขก" เห็นได้เมื่อยังเป็นแขกที่มีผลของนัดนั้น (removed_at IS NULL) + กลุ่มนัดไม่ลบ + เกิดหลัง joined_at ของแถวแขก
+ *   (ออก/ถูกนำออก/กลุ่มลบ → หายเหมือนสมาชิกที่ออก · กู้กลุ่ม → กลับมา) · appointment.guest.removed เห็นเสมอ (แบบ group.member.removed)
  */
-const visibleToOwner: SQL = sql`((${notification.kind} NOT LIKE 'appointment.%' AND ${notification.kind} NOT IN ('group.member.joined', 'group.member.left', 'group.member.role_changed')) OR EXISTS (
+const visibleToOwner: SQL = sql`((${notification.kind} NOT LIKE 'appointment.%' AND ${notification.kind} NOT IN ('group.member.joined', 'group.member.left', 'group.member.role_changed'))
+  OR ${notification.kind} = 'appointment.guest.removed'
+  OR EXISTS (
   SELECT 1 FROM group_member gm INNER JOIN groups g ON g.id = gm.group_id
   WHERE gm.user_id = ${notification.userId} AND g.deleted_at IS NULL AND gm.group_id = json_extract(${notification.params}, '$.groupId')
-    AND ${notification.createdAt} >= gm.joined_at))`;
+    AND ${notification.createdAt} >= gm.joined_at)
+  OR (${notification.kind} LIKE 'appointment.%' AND EXISTS (
+  SELECT 1 FROM appointment_guest vag INNER JOIN appointment va ON va.id = vag.appointment_id INNER JOIN groups vg ON vg.id = va.group_id AND vg.deleted_at IS NULL
+  WHERE vag.user_id = ${notification.userId} AND vag.removed_at IS NULL AND vag.appointment_id = json_extract(${notification.params}, '$.appointmentId')
+    AND ${notification.createdAt} >= vag.joined_at)))`;
 
 export type NotificationCursor = { createdAt: number; id: string };
 
 /** ชนิดที่มีเพดาน unread ต่อกลุ่มต่อผู้รับ นับแยกชนิด (SEC M1 · R11 §1, security R11 M1/L1) — group.member.removed ไม่มีเพดาน */
-export type UnreadCappedKind = 'appointment.created' | 'appointment.cancelled' | 'group.member.joined' | 'group.member.left' | 'group.member.role_changed';
+export type UnreadCappedKind = 'appointment.created' | 'appointment.cancelled' | 'appointment.guest.cancelled' | 'group.member.joined' | 'group.member.left' | 'group.member.role_changed';
 
 /** ใหม่สุดก่อน keyset (created_at, id) · ขอ limit+1 เพื่อรู้ว่ามีหน้าถัดไป */
 export async function listVisibleNotifications(

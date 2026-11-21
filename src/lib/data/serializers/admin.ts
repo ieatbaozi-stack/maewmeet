@@ -117,11 +117,11 @@ export const AUDIT_META_WHITELIST: Readonly<Record<string, readonly string[]>> =
   'group.view': ['asSuperAdmin'],
   'group.update': ['fields', 'asSuperAdmin'],
   'group.delete': ['asSuperAdmin'],
-  'group.leave': ['asSuperAdmin'],
+  'group.leave': ['shareLinksRevoked', 'asSuperAdmin'],
   'group.transferAdmin': ['fromUserId', 'toUserId', 'asSuperAdmin'],
   'group.calendar.view': ['from', 'to', 'asSuperAdmin'],
   'group.availability.view': ['from', 'to', 'asSuperAdmin'],
-  'member.remove': ['targetUserId', 'targetRole', 'asSuperAdmin'],
+  'member.remove': ['targetUserId', 'targetRole', 'shareLinksRevoked', 'asSuperAdmin'],
   'member.setRole': ['targetUserId', 'from', 'to', 'asSuperAdmin'],
   'invite.code.create': ['inviteId', 'asSuperAdmin'],
   'invite.direct.create': ['inviteId', 'inviteeUserId', 'asSuperAdmin'],
@@ -143,7 +143,13 @@ export const AUDIT_META_WHITELIST: Readonly<Record<string, readonly string[]>> =
   // R17
   'group.restore': ['asSuperAdmin'],
   /** ระบบ (cron) ลบกลุ่มถาวร — จำนวนแถวเท่านั้น (ไม่มีชื่อกลุ่ม) */
-  'group.purge': ['members', 'invites', 'appointments', 'rsvps', 'reminders', 'notifications', 'outbox'],
+  'group.purge': ['members', 'invites', 'appointments', 'rsvps', 'reminders', 'notifications', 'outbox', 'guests', 'shareLinks'],
+  // R18 §S (ADR 0016 §8.1) — ไม่มี token/hash/URL ใน meta · targetId = id นัด
+  'appointment.share.create': ['linkId', 'asSuperAdmin'],
+  'appointment.share.revoke': ['linkId', 'reason', 'asSuperAdmin'],
+  'appointment.guest.join': ['linkId', 'invitedBy', 'asSuperAdmin'],
+  'appointment.guest.leave': ['asSuperAdmin'],
+  'appointment.guest.remove': ['guestUserId', 'asSuperAdmin'],
 };
 
 const META_STRING_MAX = 64;

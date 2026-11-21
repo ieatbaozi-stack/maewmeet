@@ -44,11 +44,11 @@ export type LineDispatchResult = {
 };
 
 /** ชนิดที่ส่งทาง LINE ได้ — เพิ่มชนิดต้องตัดสินใจเรื่องการตรวจซ้ำใน stillSendable ด้วย */
-type LineOutboxKind = LineReminderKind | 'appointment.cancelled';
+type LineOutboxKind = LineReminderKind | 'appointment.cancelled' | 'appointment.guest.cancelled';
 type OutboxPayload = { kind: LineOutboxKind; appointmentId: string; startAt: number; tz: string; title: string; groupName: string };
 
 const isLineOutboxKind = (kind: unknown): kind is LineOutboxKind =>
-  kind === 'appointment.reminder_1d' || kind === 'appointment.reminder_1h' || kind === 'appointment.cancelled';
+  kind === 'appointment.reminder_1d' || kind === 'appointment.reminder_1h' || kind === 'appointment.cancelled' || kind === 'appointment.guest.cancelled';
 
 function parsePayload(raw: unknown): OutboxPayload | null {
   if (raw === null || typeof raw !== 'object') return null;
@@ -64,7 +64,8 @@ type RowResult = 'sent' | 'retried' | 'dead' | 'stale' | 'capped' | 'oa_capped' 
 
 /** เงื่อนไขเฉพาะชนิด: reminder คงเดิมทุกข้อ (นัด active + เหลือเวลา ≥ minLead) · ยกเลิกนัด (นัด cancelled + ยังไม่ถึงเวลาเริ่ม) */
 function stillSendable(payload: OutboxPayload, apptStatus: string | null, now: number): boolean {
-  if (payload.kind === 'appointment.cancelled') return apptStatus === 'cancelled' && payload.startAt > now;
+  // R18 §S: ยกเลิกนัดถึงแขก — กติกาเดียวกับของสมาชิก (ข้อความ LINE ไม่มีชื่อผู้กระทำอยู่แล้ว)
+  if (payload.kind === 'appointment.cancelled' || payload.kind === 'appointment.guest.cancelled') return apptStatus === 'cancelled' && payload.startAt > now;
   return apptStatus === 'active' && reminderStillSendable(payload.kind, payload.startAt, now);
 }
 
@@ -101,7 +102,7 @@ async function processRow(db: Db, config: LineConfig, row: OutboxRow, now: numbe
   }
 
   const text =
-    payload.kind === 'appointment.cancelled'
+    payload.kind === 'appointment.cancelled' || payload.kind === 'appointment.guest.cancelled'
       ? renderLineCancelled(ctx.locale, { ...payload, appOrigin: config.appOrigin })
       : renderLineReminder(ctx.locale, payload.kind, { ...payload, appOrigin: config.appOrigin });
   const res = await pushText(config, { to: ctx.lineUserId, text, retryKey: row.id });

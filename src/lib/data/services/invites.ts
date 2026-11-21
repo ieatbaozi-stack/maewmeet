@@ -23,6 +23,7 @@ import {
   revokeInvite as revokeInviteRow,
 } from '@/lib/data/repos/group-invite';
 import { findMember, insertMemberIfRoom, listActiveMemberIds } from '@/lib/data/repos/group-member';
+import { convertGuestRowsToMember } from '@/lib/data/repos/appointment-guest';
 import { insertNotification } from '@/lib/data/repos/notification';
 import { refundBucket, reserveBucket } from '@/lib/data/repos/rate-limit-bucket';
 import { findUserById, findUserByUsernameNormalized } from '@/lib/data/repos/user';
@@ -287,6 +288,8 @@ export async function redeemInviteCode(actor: Actor, input: RedeemInput, ctx: Da
     const usable = await findUsableCodeInvite(tx, codeHash, now);
     if (joinedGroupId) {
       if (usable) await bumpCodeUses(tx, usable.id);
+      // R18 §S (ADR 0016 §8.4): แขกของนัดในกลุ่มนี้ → คำตอบย้ายเป็น RSVP สมาชิก + ลบแถวแขก (tx เดียวกับการเข้ากลุ่ม)
+      await convertGuestRowsToMember(tx, me.id, joinedGroupId, now);
       const g = await findGroupById(tx, joinedGroupId);
       // R11 §1: เข้าใหม่จริงเท่านั้น (สาขานี้) → admin + moderator · ผู้เข้าเองไม่ได้รับ
       const joiner = await findUserById(tx, me.id);
@@ -365,6 +368,8 @@ export async function respondToDirectInvite(
       if (joined === 'gone') throw new AppError('NOT_FOUND');
       alreadyMember = joined === 'already';
       // R11 §1: เป็นสมาชิกใหม่จริงเท่านั้น · admin + moderator ยกเว้นผู้เชิญ (ได้ group.invite.accepted แล้ว) และตัวผู้เข้าเอง
+      // R18 §S (ADR 0016 §8.4): แขก → สมาชิก ใน tx เดียวกัน
+      if (joined === 'inserted') await convertGuestRowsToMember(tx, me.id, closed.groupId, now);
       if (joined === 'inserted') {
         await notify(
           tx,

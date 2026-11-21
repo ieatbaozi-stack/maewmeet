@@ -9,6 +9,7 @@ import { normalizeGroupIcon, type GroupIconKey } from '@/lib/shared/group-icons'
 import { memberAppearance, type AppearanceSlots, type MemberAppearance } from '@/lib/shared/member-color';
 import { sanitizeDisplayText } from '@/lib/shared/name-rules';
 import type { MemberBusyView } from './busy';
+import type { GuestAppointmentListItemDto, GuestsBlockDto, ShareLinkDto } from './share';
 
 export const RSVP_RESPONSES = ['going', 'maybe', 'not_going'] as const satisfies readonly RsvpResponse[];
 
@@ -72,6 +73,8 @@ export type AppointmentPermissionsDto = {
   canEdit: boolean;
   canCancel: boolean;
   canRsvp: boolean;
+  /** R18 §S: ปุ่ม "ชวนคนนอก" — สมาชิกทุก role ที่นัดยังเปิด (SA นอกกลุ่ม false) · เซิร์ฟเวอร์ส่งเสมอ (optional ในชนิดเพื่อไม่ให้ fixture ของ UI เดิมพัง) */
+  canShare?: boolean;
 };
 
 /**
@@ -99,7 +102,18 @@ export type AppointmentDetailDto = Omit<AppointmentDto, 'rsvp' | 'myConflict'> &
   myConflicts: MyConflictDto[];
   /** true = มีรายการชนมากกว่า 5 */
   myConflictsTruncated: boolean;
+  /**
+   * R18 §S (ADR 0016 §5.4): แขกของนัด (ที่มีผล) พร้อม "มากับ X" + คำตอบ · counts เป็นของแขกเท่านั้น (rsvp.counts คงเป็นของสมาชิก)
+   * ชื่อแขกเห็นได้โดยสมาชิก (S6)
+   */
+  guests?: GuestsBlockDto;
+  /** (เซิร์ฟเวอร์ส่ง guests/shareLinks เสมอ — optional ในชนิดเพื่อไม่ให้ fixture ของ UI เดิมพัง) ลิงก์ชวนที่ผู้ดูยกเลิกได้ (สมาชิกธรรมดา = ของตัวเอง · admin/mod/ผู้สร้างนัด/SA = ทุกลิงก์) · url เฉพาะของตัวเอง · นัดยกเลิก/จบแล้ว = [] */
+  shareLinks?: ShareLinkDto[];
 };
+
+/** R18 §S: รายการ "นัดของฉัน" รวมนัดที่ฉันเป็นแขก — แยกด้วย viewerKind */
+export type MemberAppointmentListItemDto = AppointmentDto & { viewerKind: 'member' };
+export type AppointmentListItemDto = MemberAppointmentListItemDto | GuestAppointmentListItemDto;
 
 export type OverlapBlockedDto = {
   userId: string;
@@ -228,7 +242,8 @@ export function toAppointmentDetailDto(
   row: AppointmentRow,
   c: AppointmentContext,
   permissions: AppointmentPermissionsDto,
-  conflicts: MyConflictsDto = NO_CONFLICTS,
+  conflicts: MyConflictsDto,
+  share: { guests: GuestsBlockDto; shareLinks: ShareLinkDto[] },
 ): AppointmentDetailDto {
   const mine = c.members.get(c.viewerId);
   return {
@@ -238,6 +253,8 @@ export function toAppointmentDetailDto(
     myAppearance: mine === undefined ? null : memberAppearance(row.groupId, c.viewerId, mine),
     myConflicts: [...conflicts.myConflicts],
     myConflictsTruncated: conflicts.myConflictsTruncated,
+    guests: share.guests,
+    shareLinks: share.shareLinks,
   };
 }
 

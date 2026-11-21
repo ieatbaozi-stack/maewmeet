@@ -230,13 +230,17 @@ describe('3. params ของ notification มีเฉพาะคีย์ใ�
     // R11 (R11_CONTRACT §1 params) — เขียนมือจากสัญญา · actorId/responderId/memberId = คีย์ภายในใน DB ที่ไม่ส่งออก API/LINE
     'appointment.cancelled': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz', 'actorName', 'actorId', 'actorSystemAdmin'],
     'appointment.updated': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz', 'actorName', 'actorId', 'actorSystemAdmin', 'changes'],
-    'appointment.rsvp_changed': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz', 'responderName', 'responderId', 'response'],
+    'appointment.rsvp_changed': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz', 'responderName', 'responderId', 'response', 'responderGuest'],
     'group.member.joined': ['groupId', 'groupName', 'memberName', 'memberId'],
     'group.member.left': ['groupId', 'groupName', 'memberName', 'memberId'],
     'group.member.removed': ['groupId', 'groupName'],
     'group.member.role_changed': ['groupId', 'groupName', 'role'],
     // R17 G5 (contract R17 §1 G5 · B3): ไม่มีชื่อ super admin — ธง actorSystemAdmin แทน (แบบ R16 H4)
     'group.restored': ['groupId', 'groupName', 'actorSystemAdmin'],
+    // R18 §S (ADR 0016 §7.2): ถึงแขก — ไม่มีชื่อ/id ผู้กระทำ · removed ไม่มี appointmentId
+    'appointment.guest.updated': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz', 'changes'],
+    'appointment.guest.cancelled': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz'],
+    'appointment.guest.removed': ['groupId', 'groupName', 'title', 'startAt', 'tz'],
     'pin_reset.approved': ['expiresAt'],
     'pin_reset.cancelled_by_login': [],
   };

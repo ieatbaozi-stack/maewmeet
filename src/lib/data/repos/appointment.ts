@@ -87,14 +87,17 @@ export type AppointmentAccessRow = {
    * อ่านพร้อมด่านสิทธิ์ (ก่อน transaction ของ RSVP) · ผู้สร้างออกจากกลุ่มระหว่างนั้น → แถวแจ้งเตือนที่เขียนไปถูกซ่อนตอนอ่านอยู่แล้ว (visibleToOwner)
    */
   creatorActive: boolean;
+  /** R18 §S (ADR 0016 §5.1): ผู้ดูมีแถว appointment_guest ที่มีผล (removed_at IS NULL) ของนัดนี้ — มากับ query เดียวกัน (+0 query) */
+  isGuest: boolean;
 };
 
-/** นัด + กลุ่ม + role ของ user ในกลุ่ม + ผู้สร้างยัง active (R15b) ใน query เดียว (policy-context) · ไม่มีนัด = null */
+/** นัด + กลุ่ม + role ของ user ในกลุ่ม + ผู้สร้างยัง active (R15b) + ผู้ดูเป็นแขก (R18) ใน query เดียว (policy-context) · ไม่มีนัด = null */
 export async function findAppointmentAccess(db: DbOrTx, id: string, userId: string): Promise<AppointmentAccessRow | null> {
   const creatorActive = sql<number>`EXISTS (SELECT 1 FROM group_member cm JOIN user cu ON cu.id = cm.user_id
     WHERE cm.group_id = ${appointment.groupId} AND cm.user_id = ${appointment.createdBy} AND cu.status = 'active')`;
+  const isGuest = sql<number>`EXISTS (SELECT 1 FROM appointment_guest ag WHERE ag.appointment_id = ${appointment.id} AND ag.user_id = ${userId} AND ag.removed_at IS NULL)`;
   const rows = await db
-    .select({ a: appointment, groupName: groups.name, groupIcon: groups.icon, deletedAt: groups.deletedAt, role: groupMember.role, creatorActive })
+    .select({ a: appointment, groupName: groups.name, groupIcon: groups.icon, deletedAt: groups.deletedAt, role: groupMember.role, creatorActive, isGuest })
     .from(appointment)
     .innerJoin(groups, eq(groups.id, appointment.groupId))
     .leftJoin(groupMember, and(eq(groupMember.groupId, appointment.groupId), eq(groupMember.userId, userId)))
@@ -102,7 +105,15 @@ export async function findAppointmentAccess(db: DbOrTx, id: string, userId: stri
     .limit(1);
   const r = rows[0];
   return r
-    ? { appointment: r.a, groupName: r.groupName, groupIcon: r.groupIcon, groupDeleted: r.deletedAt !== null, role: r.role, creatorActive: Number(r.creatorActive) === 1 }
+    ? {
+        appointment: r.a,
+        groupName: r.groupName,
+        groupIcon: r.groupIcon,
+        groupDeleted: r.deletedAt !== null,
+        role: r.role,
+        creatorActive: Number(r.creatorActive) === 1,
+        isGuest: Number(r.isGuest) === 1,
+      }
     : null;
 }
 
@@ -380,6 +391,7 @@ export type MyCommitmentRow =
  * SQL ของ myCommitmentsOverlapping (แยกออกมาให้เทสต์ตรวจว่าไม่มี `note`) — UNION ALL คำสั่งเดียว:
  *  (ก) rsvp going ของฉัน ตามกติกา ADR 0009 §1 (นัด active · กลุ่มไม่ถูกลบ · ยังเป็นสมาชิก · updated_at >= joined_at) ยกเว้น excludeAppointmentId
  *  (ข) busy_block ของฉัน (start_at/end_at ที่เก็บ — ทั้งวัน = เที่ยงคืนใน tz เจ้าของ)
+ *  (ค) R18 §S (ADR 0016 §5.3): นัดที่ฉันเป็นแขก (แถวที่มีผล) และตอบ going · นัด active · กลุ่มไม่ถูกลบ · ยกเว้น excludeAppointmentId — ของฉันเองจึงมีชื่อนัด/กลุ่มได้
  * ทับ = start_at < :endAt AND end_at > :startAt (ครึ่งเปิด ชนขอบไม่นับ)
  */
 export function myCommitmentsSql(userId: string, startAt: number, endAt: number, excludeAppointmentId: string | null, limit: number): SQL {
@@ -393,6 +405,13 @@ export function myCommitmentsSql(userId: string, startAt: number, endAt: number,
       JOIN groups g ON g.id = a.group_id AND g.deleted_at IS NULL
       JOIN group_member am ON am.group_id = a.group_id AND am.user_id = r.user_id AND r.updated_at >= am.joined_at
       WHERE r.user_id = ${userId} AND r.response = 'going'${exclude}
+      UNION ALL
+      SELECT 'appointment' AS kind, a.id AS id, a.title AS title, a.group_id AS group_id, g.name AS group_name, 0 AS all_day,
+             a.start_at AS start_at, a.end_at AS end_at, NULL AS local_start_date, NULL AS local_end_date, a.tz AS tz
+      FROM appointment_guest ag
+      JOIN appointment a ON a.id = ag.appointment_id AND a.status = 'active' AND a.start_at < ${endAt} AND a.end_at > ${startAt}
+      JOIN groups g ON g.id = a.group_id AND g.deleted_at IS NULL
+      WHERE ag.user_id = ${userId} AND ag.removed_at IS NULL AND ag.response = 'going'${exclude}
       UNION ALL
       SELECT 'busy' AS kind, b.id AS id, b.title AS title, NULL AS group_id, NULL AS group_name, b.all_day AS all_day,
              b.start_at AS start_at, b.end_at AS end_at, b.local_start_date AS local_start_date, b.local_end_date AS local_end_date, b.tz AS tz

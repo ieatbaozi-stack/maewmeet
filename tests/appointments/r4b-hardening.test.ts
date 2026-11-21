@@ -344,7 +344,7 @@ describe('QA L1: นัดที่จบแล้วแต่ยัง active',
   it('แก้ → 409 APPOINTMENT_PAST · ยกเลิก → 409 APPOINTMENT_PAST · permissions.canEdit/canCancel/canRsvp = false · ก่อนจบยังแก้/ยกเลิกได้', async () => {
     const live = await mustCreate(w.a, w.gid, short);
     const ap = await mustCreate(w.a, w.gid, short);
-    expect((await detail(w.a, ap.id)).data.appointment.permissions).toEqual({ canEdit: true, canCancel: true, canRsvp: true });
+    expect((await detail(w.a, ap.id)).data.appointment.permissions).toEqual({ canEdit: true, canCancel: true, canRsvp: true, canShare: true });
     expect((await patch(w.a.c, `/api/appointments/${live.id}`, { title: 'ก่อนจบ' })).status).toBe(200);
     h.clock.advance(2 * HOUR);
     const e = await patch(w.a.c, `/api/appointments/${ap.id}`, { title: 'หลังจบ' });
@@ -357,7 +357,7 @@ describe('QA L1: นัดที่จบแล้วแต่ยัง active',
     const d = (await detail(w.a, ap.id)).data.appointment;
     expect(d.status).toBe('active');
     expect(d.title).toBe('กินข้าว');
-    expect(d.permissions).toEqual({ canEdit: false, canCancel: false, canRsvp: false });
+    expect(d.permissions).toEqual({ canEdit: false, canCancel: false, canRsvp: false, canShare: false });
     expect(await h.count("audit_log WHERE action IN ('appointment.update','appointment.cancel') AND target_id = ?", [ap.id])).toBe(0);
   });
 

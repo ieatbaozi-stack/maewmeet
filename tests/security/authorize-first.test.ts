@@ -214,7 +214,7 @@ describe('C. route ของ busy / ปฏิทิน ผูก action ที�
     expect(e!.action).toBe('group.icon.update');
   });
   it('ไม่มี route ใดเปิดให้ระบุ user id ของคนอื่นเพื่ออ่าน busy (/api/users/:id/busy ฯลฯ)', () => {
-    const bad = ROUTE_MANIFEST.filter((e) => /busy|calendar/.test(e.path) && !/^\/api\/me\/busy|^\/api\/groups\/:gid\/calendar|^\/api\/appointments\/:id\/calendar\.ics$/.test(e.path));
+    const bad = ROUTE_MANIFEST.filter((e) => /busy|calendar/.test(e.path) && !/^\/api\/me\/busy|^\/api\/groups\/:gid\/calendar|^\/api\/appointments\/:id\/(?:guest\/)?calendar\.ics$/.test(e.path)); // R18 §S: .ics ของแขก
     expect(bad.map((e) => `${e.method} ${e.path}`)).toEqual([]);
   });
 });
@@ -339,6 +339,34 @@ const R4B_EXPECTED: ExpectedRoute[] = [
         action: "notification.markRead.own",
       },
     ],
+  },
+  // R18 §S (ADR 0016 §4) — แชร์นัด/แขก
+  {
+    file: /^src\/app\/api\/appointments\/\[[^/]+\]\/share-link\/route\.ts$/,
+    routes: [{ method: "POST", path: "/api/appointments/:id/share-link", action: "appointment.share.create" }],
+  },
+  {
+    file: /^src\/app\/api\/appointments\/\[[^/]+\]\/share-links\/\[[^/]+\]\/route\.ts$/,
+    routes: [{ method: "DELETE", path: "/api/appointments/:id/share-links/:lid", action: "appointment.share.revoke" }],
+  },
+  {
+    file: /^src\/app\/api\/appointments\/\[[^/]+\]\/guest\/route\.ts$/,
+    routes: [
+      { method: "GET", path: "/api/appointments/:id/guest", action: "appointment.guest.view" },
+      { method: "DELETE", path: "/api/appointments/:id/guest", action: "appointment.guest.leave" },
+    ],
+  },
+  {
+    file: /^src\/app\/api\/appointments\/\[[^/]+\]\/guest\/rsvp\/route\.ts$/,
+    routes: [{ method: "PUT", path: "/api/appointments/:id/guest/rsvp", action: "appointment.guest.rsvp" }],
+  },
+  {
+    file: /^src\/app\/api\/appointments\/\[[^/]+\]\/guest\/calendar\.ics\/route\.ts$/,
+    routes: [{ method: "GET", path: "/api/appointments/:id/guest/calendar.ics", action: "appointment.guest.view" }],
+  },
+  {
+    file: /^src\/app\/api\/appointments\/\[[^/]+\]\/guests\/\[[^/]+\]\/route\.ts$/,
+    routes: [{ method: "DELETE", path: "/api/appointments/:id/guests/:uid", action: "appointment.guest.remove" }],
   },
   // R13 §1.3: GET /api/places/search ถูกลบแล้ว — ตระกูล /api/places ยังอยู่ใน R4B_PATH_FAMILY เพื่อให้ route สถานที่ใดที่โผล่มาใหม่ล้มเป็น "นอกสเปก"
 ];

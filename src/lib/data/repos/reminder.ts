@@ -70,15 +70,26 @@ export async function claimReminder(db: DbOrTx, input: { appointmentId: string; 
   return rows.length === 1;
 }
 
-export type ReminderAudienceRow = { userId: string; response: RsvpResponse | null };
+/** guest = แขกของนัด (R18 §S) — ผู้เรียกที่แจ้งเหตุการณ์ของสมาชิก (เช่น ยกเลิกนัด) ต้องแยกแขกไปใช้ชนิดของแขก */
+export type ReminderAudienceRow = { userId: string; response: RsvpResponse | null; guest: boolean };
 
-/** สมาชิกปัจจุบัน (บัญชี active) + คำตอบตามกติกา ADR 0009 §1 (คำตอบก่อน joined_at ปัจจุบันถือว่ายังไม่ตอบ) */
+/**
+ * สมาชิกปัจจุบัน (บัญชี active) + คำตอบตามกติกา ADR 0009 §1 (คำตอบก่อน joined_at ปัจจุบันถือว่ายังไม่ตอบ)
+ * R18 §S (ADR 0016 §5.3): UNION ALL แขกที่มีผล (removed_at IS NULL · บัญชี active) + คำตอบในแถวแขก → reminderRecipients ใช้ได้ทันที
+ * (แขกไม่มีแถว group_member ของกลุ่มนัด — ADR 0016 §2.4 — จึงไม่ซ้ำกับฝั่งสมาชิก)
+ */
 export async function listReminderAudience(db: DbOrTx, appointmentId: string, groupId: string): Promise<ReminderAudienceRow[]> {
-  const rows = await db.all<{ user_id: string; response: RsvpResponse | null }>(sql`
-    SELECT gm.user_id AS user_id, r.response AS response
+  const rows = await db.all<{ user_id: string; response: RsvpResponse | null; guest: number }>(sql`
+    SELECT gm.user_id AS user_id, r.response AS response, 0 AS guest
     FROM group_member gm
     JOIN user u ON u.id = gm.user_id AND u.status = 'active'
     LEFT JOIN appointment_rsvp r ON r.appointment_id = ${appointmentId} AND r.user_id = gm.user_id AND r.updated_at >= gm.joined_at
-    WHERE gm.group_id = ${groupId}`);
-  return rows.map((r) => ({ userId: r.user_id, response: r.response }));
+    WHERE gm.group_id = ${groupId}
+    UNION ALL
+    SELECT ag.user_id AS user_id, ag.response AS response, 1 AS guest
+    FROM appointment_guest ag
+    JOIN user gu ON gu.id = ag.user_id AND gu.status = 'active'
+    WHERE ag.appointment_id = ${appointmentId} AND ag.removed_at IS NULL
+      AND NOT EXISTS (SELECT 1 FROM group_member xm WHERE xm.group_id = ${groupId} AND xm.user_id = ag.user_id)`);
+  return rows.map((r) => ({ userId: r.user_id, response: r.response, guest: Number(r.guest) === 1 }));
 }

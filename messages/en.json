@@ -895,7 +895,10 @@
     "INVALID_MAP_URL": "We can’t read a location from that link. Try copying it from the Share button in your maps app.",
     "INVALID_COORDINATES": "Those coordinates don’t look right. Check the latitude and longitude.",
     "APPOINTMENT_CANCELLED": "This plan was cancelled, so it can’t be changed.",
-    "APPOINTMENT_PAST": "This plan is over, so answers are closed."
+    "APPOINTMENT_PAST": "This plan is over, so answers are closed.",
+    "SHARE_LINK_INVALID": "This link doesn’t work. Try opening it again from the message, or ask whoever invited you for a new one.",
+    "SHARE_LINK_EXPIRED": "This link has expired. Ask whoever sent it.",
+    "SHARE_FULL": "This plan already has {max} guests. Ask whoever invited you if there’s still room."
   },
   "busy": {
     "add": "Add busy time",

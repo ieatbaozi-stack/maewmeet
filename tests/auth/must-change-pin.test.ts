@@ -29,6 +29,8 @@ const SAMPLE_BODY: Record<string, unknown> = {
   'POST /api/prefs': { theme: 'dark' },
   'PATCH /api/groups/:gid/members/me/appearance': { color: 1, shape: 1 }, // R6C
   'PUT /api/groups/:gid/icon': { icon: 'cat' }, // R15 §1.2
+  'POST /api/share/join': { token: 'abcdefghijklmnopqrstuv' }, // R18 §S
+  'PUT /api/appointments/:id/guest/rsvp': { response: 'going' }, // R18 §S
   'PUT /api/me/current-group': { gid: '00000000-0000-4000-8000-000000000001' }, // R6D G1
   'POST /api/auth/signup': { username: 'new_person', displayName: 'N', pin: '482915', pinConfirm: '482915' },
   'POST /api/auth/login': { username: 'someone', pin: '482915' },

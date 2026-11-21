@@ -66,7 +66,9 @@ describe('ADR 0009 ข้อ 3 — SQL', () => {
     expect(s.sql).toMatch(/a\.start_at < \? AND a\.end_at > \?/);
     expect(s.sql).toMatch(/b\.start_at < \? AND b\.end_at > \?/);
     expect(s.sql).toContain('r.updated_at >= am.joined_at');
-    expect(s.params.filter((p) => p === U)).toHaveLength(2);
+    // R18 §S: + สาขานัดที่ฉันเป็นแขก (ag.user_id = ฉัน)
+    expect(s.sql).toMatch(/ag\.user_id = \? AND ag\.removed_at IS NULL AND ag\.response = 'going'/);
+    expect(s.params.filter((p) => p === U)).toHaveLength(3);
     const ex = new SQLiteSyncDialect().sqlToQuery(myCommitmentsSql(U, 10, 20, G2, 6));
     expect(ex.sql).toContain('a.id <> ?');
   });

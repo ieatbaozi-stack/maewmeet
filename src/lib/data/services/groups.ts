@@ -17,6 +17,7 @@ import {
   updateOwnAppearance,
 } from '@/lib/data/repos/group-member';
 import { revokeActiveInvitesCreatedBy } from '@/lib/data/repos/group-invite';
+import { revokeActiveShareLinksCreatedBy } from '@/lib/data/repos/share-link';
 import { findUserById } from '@/lib/data/repos/user';
 import { constraintKind } from '@/lib/data/repos/errors';
 import { addDaysAt } from '@/lib/calendar';
@@ -267,6 +268,8 @@ export async function removeMember(actor: Actor, groupId: string, targetUserId: 
     if (!ok) throw new AppError((await findMember(tx, groupId, targetUserId)) ? 'CONFLICT' : 'NOT_FOUND');
     // โค้ด/คำเชิญที่คนนี้สร้างไว้และยัง active ใช้ต่อไม่ได้ (กันคนที่ถูกลบแจกทางเข้า)
     await revokeActiveInvitesCreatedBy(tx, groupId, targetUserId, me.id, now);
+    // R18 §S (ADR 0016 §7.1): ลิงก์ชวนนัดที่คนนี้สร้างในกลุ่มนี้ใช้ไม่ได้ทันที (แขกที่เข้ามาแล้วอยู่ต่อ)
+    const shareLinksRevoked = await revokeActiveShareLinksCreatedBy(tx, groupId, targetUserId, me.id, now);
     // R11 §1: แจ้งคนที่ถูกนำออก (ไม่ใช่สมาชิกแล้ว แต่บัญชีต้อง active) · ไม่บอกชื่อผู้นำออก
     const removed = await findUserById(tx, targetUserId);
     await notify(
@@ -278,7 +281,7 @@ export async function removeMember(actor: Actor, groupId: string, targetUserId: 
       tx,
       me,
       allow,
-      { action: 'member.remove', targetType: 'member', targetId: targetUserId, groupId, meta: { targetUserId, targetRole: target.role } },
+      { action: 'member.remove', targetType: 'member', targetId: targetUserId, groupId, meta: { targetUserId, targetRole: target.role, shareLinksRevoked } },
       now,
     );
   });
@@ -375,6 +378,7 @@ export async function leaveGroup(actor: Actor, groupId: string, ctx: DataCtx): P
       throw new AppError(still ? 'ADMIN_TRANSFER_REQUIRED' : 'NOT_FOUND');
     }
     await revokeActiveInvitesCreatedBy(tx, groupId, me.id, me.id, now);
+    const shareLinksRevoked = await revokeActiveShareLinksCreatedBy(tx, groupId, me.id, me.id, now); // R18 §S (ADR 0016 §7.1)
     // R11 §1: admin + moderator ที่ยังอยู่ · ผู้ออกเองไม่ได้รับ
     const leaver = await findUserById(tx, me.id);
     await notify(
@@ -386,7 +390,7 @@ export async function leaveGroup(actor: Actor, groupId: string, ctx: DataCtx): P
       },
       now,
     );
-    await audit(tx, me, allow, { action: 'group.leave', targetType: 'member', targetId: me.id, groupId }, now);
+    await audit(tx, me, allow, { action: 'group.leave', targetType: 'member', targetId: me.id, groupId, meta: { shareLinksRevoked } }, now);
   });
   return { left: true };
 }

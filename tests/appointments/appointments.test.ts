@@ -34,6 +34,14 @@ describe('manifest', () => {
         'POST /api/groups/:gid/appointments/check',
         'POST /api/me/notifications/read',
         'PUT /api/appointments/:id/rsvp',
+        // R18 §S (ADR 0016 §4)
+        'POST /api/appointments/:id/share-link',
+        'DELETE /api/appointments/:id/share-links/:lid',
+        'GET /api/appointments/:id/guest',
+        'DELETE /api/appointments/:id/guest',
+        'PUT /api/appointments/:id/guest/rsvp',
+        'GET /api/appointments/:id/guest/calendar.ics',
+        'DELETE /api/appointments/:id/guests/:uid',
       ].sort(),
     );
     for (const e of mine) expect(e.auth, e.path).toBe('actor');
@@ -86,10 +94,11 @@ describe('สร้างนัด — happy path', () => {
   it('GET รายละเอียด: สมาชิกทุก role เห็น · permissions ตาม role', async () => {
     const ap = await mustCreate(w.b, w.gid);
     const perms = async (p: typeof w.a) => (await get<One>(p.c, `/api/appointments/${ap.id}`)).data.appointment.permissions;
-    expect(await perms(w.b)).toEqual({ canEdit: true, canCancel: true, canRsvp: true });
-    expect(await perms(w.a)).toEqual({ canEdit: true, canCancel: true, canRsvp: true });
-    expect(await perms(w.m)).toEqual({ canEdit: true, canCancel: true, canRsvp: true });
-    expect(await perms(w.c)).toEqual({ canEdit: false, canCancel: false, canRsvp: true });
+    // R18 §S: canShare = สมาชิกทุก role ขณะนัดยังเปิด
+    expect(await perms(w.b)).toEqual({ canEdit: true, canCancel: true, canRsvp: true, canShare: true });
+    expect(await perms(w.a)).toEqual({ canEdit: true, canCancel: true, canRsvp: true, canShare: true });
+    expect(await perms(w.m)).toEqual({ canEdit: true, canCancel: true, canRsvp: true, canShare: true });
+    expect(await perms(w.c)).toEqual({ canEdit: false, canCancel: false, canRsvp: true, canShare: true });
   });
 });
 

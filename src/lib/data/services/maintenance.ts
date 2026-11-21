@@ -3,11 +3,12 @@
 import type { Db } from '@/db/client';
 import { addDaysAt, DEFAULT_TZ } from '@/lib/calendar';
 import { newId } from '@/lib/shared/id';
-import { INVITE_RETENTION_DAYS } from '@/lib/shared/limits';
+import { INVITE_RETENTION_DAYS, SHARE_LINK_RETENTION_DAYS } from '@/lib/shared/limits';
 import { GROUP_PURGE_BATCH, purgeDeletedAtCutoff } from '../group-retention';
 import { insertAuditLog } from '../repos/audit-log';
 import { listGroupsDueForPurge, purgeGroupIfDue } from '../repos/group-purge';
 import { purgeDueInvitesBatch } from '../repos/invite-purge';
+import { purgeEndedShareLinksBatch } from '../repos/share-link';
 import { maintenanceStatements, type MaintenanceTask } from '../repos/maintenance';
 import { upsertHeartbeat, type HeartbeatSource } from '../repos/system-heartbeat';
 import { heartbeatAgeHours, type HeartbeatAgeHours } from '../health';
@@ -41,6 +42,8 @@ export type DailyMaintenanceResult = {
   purgedGroups: GroupPurgeResult;
   /** R18 D1: จำนวนแถว group_invite ที่ลบถาวรรอบนี้ */
   purgedInvites: number;
+  /** R18 §S7 (ADR 0016 §7.5): จำนวนลิงก์ชวนนัดที่สิ้นสุดเกิน 30 วันที่ลบถาวรรอบนี้ */
+  purgedShareLinks: number;
 };
 
 /** R18 D1: แถวคำเชิญที่ลบต่อธุรกรรม 1 ชุด */
@@ -68,6 +71,31 @@ export async function purgeOldInvites(db: Db, now: number): Promise<number> {
       if (!batch.more) break;
     } catch (e) {
       console.error(`[cron] invite.purge failed ${errorCodeOf(e)}`);
+      break;
+    }
+  }
+  return purged;
+}
+
+/** R18 §S7: เวลาสิ้นสุดล่าสุดของลิงก์ที่ "เลยกำหนดเก็บ" = now − SHARE_LINK_RETENTION_DAYS วันปฏิทินใน DEFAULT_TZ (กฎ 9) */
+export function shareLinkPurgeCutoff(now: number): number {
+  return addDaysAt(now, -SHARE_LINK_RETENTION_DAYS, DEFAULT_TZ);
+}
+
+/**
+ * R18 §S7 (ADR 0016 §7.5): ลบลิงก์ชวนที่สิ้นสุด (ยกเลิก/นัดยกเลิก/นัดจบ) เกินกำหนดเก็บ — ชุด/เพดานเดียวกับ D1 · ไม่แตะลิงก์ active ของนัดที่ยังไม่จบ
+ * ชุดใดล้ม → log รหัส error แล้วหยุดรอบนี้
+ */
+export async function purgeOldShareLinks(db: Db, now: number): Promise<number> {
+  const cutoff = shareLinkPurgeCutoff(now);
+  let purged = 0;
+  for (let i = 0; i < INVITE_PURGE_MAX_BATCHES; i++) {
+    try {
+      const batch = await inTx(db, (tx) => purgeEndedShareLinksBatch(tx, cutoff, INVITE_PURGE_BATCH));
+      purged += batch.deleted;
+      if (!batch.more) break;
+    } catch (e) {
+      console.error(`[cron] share-link.purge failed ${errorCodeOf(e)}`);
       break;
     }
   }
@@ -131,7 +159,9 @@ export async function runDailyMaintenance(db: Db, now: number): Promise<DailyMai
   const purgedGroups = await purgeExpiredGroups(db, now);
   // R18 D1: หลังเก็บกวาด (expiredInvites เปลี่ยนสถานะไปแล้ว) · แยกธุรกรรมต่อชุด
   const purgedInvites = await purgeOldInvites(db, now);
-  return { heartbeat: { source: 'vercel-cron', lastAt: now }, cleaned, purgedGroups, purgedInvites };
+  // R18 §S7: ลิงก์ชวนนัดที่สิ้นสุดเกิน 30 วัน (หลังลบกลุ่มถาวร — ลิงก์ของกลุ่มเหล่านั้นหายไปแล้ว)
+  const purgedShareLinks = await purgeOldShareLinks(db, now);
+  return { heartbeat: { source: 'vercel-cron', lastAt: now }, cleaned, purgedGroups, purgedInvites, purgedShareLinks };
 }
 
 export type HeartbeatResult = {

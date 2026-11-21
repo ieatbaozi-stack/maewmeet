@@ -2,7 +2,7 @@
 //
 // สิ่งที่อ้างกลุ่ม (สำรวจ schema 2026-11-19):
 //   มี FK → groups (ON DELETE CASCADE): group_member, group_invite, appointment
-//     └ appointment → appointment_rsvp, appointment_reminder (เตือนนัด/LINE กันซ้ำ) (CASCADE)
+//     └ appointment → appointment_rsvp, appointment_reminder (เตือนนัด/LINE กันซ้ำ), appointment_guest, appointment_share_link (R18) (CASCADE)
 //   ไม่มี FK (อ้างผ่าน JSON): notification.params.groupId (ทุกชนิดของกลุ่ม/นัด) · notification_outbox.payload.params.groupId (คิว LINE)
 //   ไม่ลบ: audit_log.group_id — บันทึกความปลอดภัย (retention เดิม R17 §6) มีแค่ id/enum ไม่มีชื่อกลุ่ม
 //          rate_limit_bucket (คีย์อาจมี id กลุ่ม) — cron ลบเองภายใน 2 วัน (RETENTION.rateLimitBucketMs)
@@ -19,6 +19,9 @@ export type GroupPurgeCounts = {
   reminders: number;
   notifications: number;
   outbox: number;
+  /** R18 §S (ADR 0016 §7.3) */
+  guests: number;
+  shareLinks: number;
 };
 
 /** id กลุ่มที่ถึงกำหนดลบถาวร (deleted_at <= cutoff) เก่าสุดก่อน · ไม่เกิน limit */
@@ -47,6 +50,11 @@ export async function purgeGroupIfDue(db: DbOrTx, groupId: string, deletedAtCuto
   const notifications = await changes(db, sql`
     DELETE FROM notification
      WHERE CASE WHEN json_valid(params) THEN json_extract(params, '$.groupId') END = ${groupId}`);
+  // R18 §S (ADR 0016 §7.3): หลังแจ้งเตือน ก่อน reminder · แขกก่อนลิงก์ (FK link_id)
+  const guests = await changes(db, sql`
+    DELETE FROM appointment_guest WHERE appointment_id IN (SELECT id FROM appointment WHERE group_id = ${groupId})`);
+  const shareLinks = await changes(db, sql`
+    DELETE FROM appointment_share_link WHERE appointment_id IN (SELECT id FROM appointment WHERE group_id = ${groupId})`);
   const reminders = await changes(db, sql`
     DELETE FROM appointment_reminder WHERE appointment_id IN (SELECT id FROM appointment WHERE group_id = ${groupId})`);
   const rsvps = await changes(db, sql`
@@ -57,5 +65,5 @@ export async function purgeGroupIfDue(db: DbOrTx, groupId: string, deletedAtCuto
   const gone = await changes(db, sql`DELETE FROM groups WHERE id = ${groupId} AND deleted_at IS NOT NULL AND deleted_at <= ${deletedAtCutoff}`);
   // คำสั่งแรกยืนยันแล้วในธุรกรรมเดียวกัน — ไม่ได้ 1 แถว = ผิดคาด → โยนให้ rollback ทั้งก้อน
   if (gone !== 1) throw new Error('group purge: row vanished inside transaction');
-  return { members, invites, appointments, rsvps, reminders, notifications, outbox };
+  return { members, invites, appointments, rsvps, reminders, notifications, outbox, guests, shareLinks };
 }

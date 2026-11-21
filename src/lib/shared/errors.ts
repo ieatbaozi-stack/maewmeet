@@ -44,6 +44,10 @@ export const ERROR_CODES = [
   'INVALID_COORDINATES',
   'APPOINTMENT_CANCELLED',
   'APPOINTMENT_PAST',
+  // R18 §S แชร์นัด (ADR 0016 §5.4 · §8.2)
+  'SHARE_LINK_INVALID',
+  'SHARE_LINK_EXPIRED',
+  'SHARE_FULL',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -95,6 +99,11 @@ export const ERROR_HTTP_STATUS = {
   INVALID_COORDINATES: 400,
   APPOINTMENT_CANCELLED: 409, // แก้/ตอบนัดที่ยกเลิกแล้ว
   APPOINTMENT_PAST: 409, // ตอบ (RSVP) นัดที่จบไปแล้ว
+
+  // R18 §S: ลิงก์ชวน — body ไม่มี params (INVALID ตัวเดียวกันทุกไบต์: ไม่มี/ผิดรูป/ยกเลิก/ผู้สร้างออก/แขกที่ถูกนำออก · EXPIRED ไม่บอกเหตุผล)
+  SHARE_LINK_INVALID: 404,
+  SHARE_LINK_EXPIRED: 410,
+  SHARE_FULL: 409, // params: { max: 10 }
 } as const satisfies Record<ErrorCode, number>;
 
 export function httpStatusOf(code: ErrorCode): number {
