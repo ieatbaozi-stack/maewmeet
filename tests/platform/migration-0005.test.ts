@@ -114,7 +114,9 @@ describe('migration 0005 บนฐานที่มีข้อมูลรู�
     const after = (await exec("select name from pragma_table_info('busy_block') order by cid")).rows.map((r) => String(r.name));
     expect(after).toEqual([...colsBefore, 'routine_id']);
     // R15: 0006 (apply ต่อในชุดเดียวกัน) ลบ place_search_cache — ADR 0013
-    expect(await tableNames()).toEqual([...tablesBefore, 'busy_routine', 'busy_routine_skip'].filter((n) => n !== 'place_search_cache').sort());
+    // ตารางของ migration หลังจากนี้ (0007 R18) ไม่นับ — เทสต์นี้ apply ทั้งโฟลเดอร์
+    const LATER = new Set(['appointment_guest', 'appointment_share_link']);
+    expect((await tableNames()).filter((n) => !LATER.has(n))).toEqual([...tablesBefore, 'busy_routine', 'busy_routine_skip'].filter((n) => n !== 'place_search_cache').sort());
     const rs = await exec('select count(*) as n from __drizzle_migrations');
     expect(Number(rs.rows[0]?.n)).toBe(journalOf().entries.length);
   });
