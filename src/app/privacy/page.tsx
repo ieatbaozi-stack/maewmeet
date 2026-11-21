@@ -17,6 +17,8 @@ export async function generateMetadata(): Promise<Metadata> {
 const SECTIONS = [
   { key: "collect", items: ["account", "busy", "groups", "security", "cookies"] },
   { key: "see", items: ["owner", "members", "busyStatus", "note", "outsiders", "groups", "superAdmin"] },
+  // R18 §S: แขกที่ได้รับลิงก์ชวน — หน้าลิงก์สาธารณะลิงก์มาที่ /privacy#guest (shareLanding.privacyLink)
+  { key: "guest", items: ["preview", "joined", "members", "retention"] },
   { key: "places", items: ["links", "noTracking"] },
   { key: "line", items: ["body"] },
   { key: "calendar", items: ["body"] },
@@ -63,7 +65,7 @@ export default async function PrivacyPage() {
       </div>
       <p className="legal-intro">{t("intro")}</p>
       {SECTIONS.map((s) => (
-        <section className="legal-sec" key={s.key} aria-labelledby={`privacy-${s.key}`}>
+        <section className="legal-sec" key={s.key} id={s.key === "guest" ? "guest" : undefined} aria-labelledby={`privacy-${s.key}`}>
           <h2 id={`privacy-${s.key}`}>{t(`${s.key}.title`)}</h2>
           {s.items.length === 1 ? (
             <p>{t(`${s.key}.${s.items[0]}`)}</p>

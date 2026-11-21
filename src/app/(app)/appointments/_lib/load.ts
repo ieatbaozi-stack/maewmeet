@@ -4,7 +4,7 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { dataCtx } from "@/lib/data/context";
-import { getAppointment, listGroupAppointments } from "@/lib/data/services/appointments";
+import { getAppointment, getAppointmentForViewer, listGroupAppointments, type AppointmentViewDto } from "@/lib/data/services/appointments";
 import type { AppointmentDetailDto } from "@/lib/data/serializers/appointments";
 import type { AppointmentListDto } from "@/lib/data/services/appointments";
 import { getRequestSession } from "@/lib/auth/page-session";
@@ -33,6 +33,17 @@ export const loadAppointment = cache(async (id: string): Promise<AppointmentDeta
   if (!parsed.success) notFound();
   const { actor, ctx } = await scope();
   return (await orNotFound(() => getAppointment(actor, parsed.data, ctx))).appointment;
+});
+
+/**
+ * R18 §S (ADR 0016 §4): มุมมองตามผู้ดู — สมาชิก = รายละเอียดเดิม · แขกที่มีผล = GuestAppointmentDto (ไม่มี groupId/รายชื่อ)
+ * ไม่ใช่ทั้งสองแบบ → notFound() เหมือนเดิม · cache ต่อ request (generateMetadata + page อ่านครั้งเดียว)
+ */
+export const loadAppointmentView = cache(async (id: string): Promise<AppointmentViewDto> => {
+  const parsed = idSchema.safeParse(id);
+  if (!parsed.success) notFound();
+  const { actor, ctx } = await scope();
+  return orNotFound(() => getAppointmentForViewer(actor, parsed.data, ctx));
 });
 
 /** หน้าแรกของ "กำลังจะถึง" ของกลุ่ม (หน้ารายการ) */

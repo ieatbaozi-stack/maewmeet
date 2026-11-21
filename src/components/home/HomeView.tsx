@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { FlashNotice } from "@/components/groups/Notice";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { IntroCard } from "./IntroCard";
 import { GroupIcon } from "@/components/icons/GroupIcon";
@@ -21,6 +22,7 @@ import {
   countdownKind,
   dateBox,
   displayRsvp,
+  isGuestItem,
   isCurrentRequest,
   longDateLabel,
   maybeTruncated,
@@ -139,7 +141,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
       rsvpSeq.current += 1;
       const seq = rsvpSeq.current;
       dispatch({ type: "choose", id: a.id, base: a.rsvp, choice, seq });
-      const r = await putRsvp(a.id, choice);
+      const r = await putRsvp(a.id, choice, isGuestItem(a));
       if (!alive.current) return false;
       if (r.ok) {
         dispatch({ type: "saved", id: a.id, seq, summary: r.data });
@@ -171,7 +173,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
       let truncated = false;
       if (direction === "to") {
         opening.current = true;
-        const r = await callApiFull<{ appointment: AppointmentDetailDto }>(`/api/appointments/${encodeURIComponent(a.id)}`, { method: "GET" });
+        const r = await callApiFull<{ appointment: AppointmentDetailDto }>(`/api/appointments/${encodeURIComponent(a.id)}${isGuestItem(a) ? "/guest" : ""}`, { method: "GET" });
         opening.current = false;
         if (!alive.current) return;
         // ดึงรายละเอียดไม่ได้ = ยังถามยืนยันได้ แค่ไม่มีรายการที่ชน (เซิร์ฟเวอร์ไม่บล็อกอยู่แล้ว)
@@ -201,6 +203,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
     return (
       <main className="main home-main" id="main">
         <IntroCard />
+        <FlashNotice />
         <div className="alert" role="alert" style={{ marginTop: "var(--space-4)" }} data-testid="home-error">
           <Icon name="circle-alert" />
           <div>
@@ -220,6 +223,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
     return (
       <main className="main home-main" id="main">
         <IntroCard />
+        <FlashNotice />
         <div data-testid="home-nogroup">
           <EmptyState
             pose="tea"
@@ -243,6 +247,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
     return (
       <main className="main home-main" id="main">
         <IntroCard />
+        <FlashNotice />
         <div data-testid="home-empty">
           <EmptyState
             pose="tea"
@@ -259,6 +264,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
   return (
     <main className="main home-main" id="main">
       <IntroCard />
+        <FlashNotice />
       <h1 className="h-section home-h">{t("home.nextUp")}</h1>
       <NextCard a={next} rsvp={rsvp} nowMs={nowMs} locale={locale} onChoose={request} />
       {later.length > 0 ? (
@@ -299,6 +305,19 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
         />
       ) : null}
     </main>
+  );
+}
+
+/** ป้ายแขก (R18 §S) — ข้อความเสมอ ไม่พึ่งสีอย่างเดียว */
+function GuestChip() {
+  const t = useTranslations();
+  return (
+    <>
+      {" "}
+      <span className="tag tag-wait" data-testid="home-guest-badge">
+        {t("guest.badge")}
+      </span>
+    </>
   );
 }
 
@@ -375,6 +394,7 @@ function NextCard({
       <div className="appt-body">
         <h2 className="appt-title" id="home-next-t">
           <bdi>{a.title}</bdi>
+          {isGuestItem(a) ? <GuestChip /> : null}
         </h2>
         {a.myConflict === true && summary.mine === "going" ? (
           <p className="appt-conflict">
@@ -516,6 +536,7 @@ function Row({ a, rsvp, nowMs, locale }: { a: HomeAppointment; rsvp: RsvpState; 
             <GroupIcon icon={a.groupIcon} variant="glyph" className="sm" />
             <bdi>{a.groupName}</bdi>
           </span>
+          {isGuestItem(a) ? <GuestChip /> : null}
           <span className="rsvp-pill" data-answer={state}>
             <Icon name={ANSWER_ICON[state]} size="sm" />
             <span>{t(`appointments.rsvp.mine.${state}`)}</span>

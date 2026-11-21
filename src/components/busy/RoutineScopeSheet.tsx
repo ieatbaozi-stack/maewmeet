@@ -50,7 +50,7 @@ export function RoutineScopeSheet({ action, target, onClose, onEdit, onDone, onS
   const [today] = useState(() => todayIn(DEFAULT_TZ, clock.now()));
   const { choices, periodStart } = useMemo(() => scopeChoices(target, today), [target, today]);
   const [busyChoice, setBusyChoice] = useState<ScopeChoice | null>(null);
-  const [confirming, setConfirming] = useState<null | "from" | "all">(null);
+  const [confirming, setConfirming] = useState<null | ScopeChoice>(null);
   const [problem, setProblem] = useState<RoutineProblem | null>(null);
   const r = target.routine;
   const text = (ref: { key: string; values: Record<string, string | number> }) => t(ref.key, ref.values);
@@ -99,11 +99,25 @@ export function RoutineScopeSheet({ action, target, onClose, onEdit, onDone, onS
       onEdit(c, periodStart);
       return;
     }
-    if (c === "all" || c === "from") {
-      setConfirming(c);
-      return;
-    }
-    void runDelete(c);
+    // R18 C1: ลบ "วันนี้วันเดียว" ก็ยืนยันอีกชั้น — ทุกตัวเลือกของการลบต้องผ่าน ConfirmDialog
+    setConfirming(c);
+  }
+
+  if (confirming === "one") {
+    return (
+      <ConfirmDialog
+        title={t("busy.routine.scope.confirmOne.title")}
+        body={t("busy.routine.scope.confirmOne.body")}
+        confirmLabel={t("busy.routine.scope.confirmOne.confirm")}
+        busy={busyChoice === "one"}
+        error={problem ? problem.refs.map(text).join(" ") : null}
+        onConfirm={() => void runDelete("one")}
+        onClose={() => {
+          setConfirming(null);
+          setProblem(null);
+        }}
+      />
+    );
   }
 
   if (confirming === "from") {

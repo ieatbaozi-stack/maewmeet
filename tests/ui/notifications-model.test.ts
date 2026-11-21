@@ -153,6 +153,10 @@ describe('notificationView — ข้อความ ปลายทาง ไ�
       'group.member.role_changed': { groupId: gid, groupName: 'ก๊วน', role: 'moderator' },
       // R17 G5
       'group.restored': { groupId: gid, groupName: 'ก๊วน', actorSystemAdmin: true },
+      // R18 §S (แขก): ไม่มีชื่อผู้กระทำ · removed ไม่มี appointmentId
+      'appointment.guest.updated': { groupId: gid, groupName: 'ก๊วน', appointmentId: 'ap1', title: 'หมูกระทะ', startAt: at('2026-10-24', '18:00'), tz: TZ, changes: 'both' },
+      'appointment.guest.cancelled': { groupId: gid, groupName: 'ก๊วน', appointmentId: 'ap1', title: 'หมูกระทะ', startAt: at('2026-10-24', '18:00'), tz: TZ },
+      'appointment.guest.removed': { groupId: gid, groupName: 'ก๊วน', title: 'หมูกระทะ', startAt: at('2026-10-24', '18:00'), tz: TZ },
       'pin_reset.approved': { expiresAt: at('2026-10-21', '17:42') },
       'pin_reset.cancelled_by_login': {},
     };
@@ -171,6 +175,27 @@ describe('notificationView — ข้อความ ปลายทาง ไ�
     expect(notificationView('group.restored', { groupId: gid }, 'th').known).toBe(false);
     expect(notificationView('group.restored', { groupName: 'G' }, 'th').known).toBe(false);
     expect(notificationView('group.restored', { groupId: 'a/b', groupName: 'G' }, 'th').known).toBe(false);
+  });
+  it('R18 §S: appointment.guest.* → ข้อความแขกไม่มีชื่อผู้กระทำ · ลิงก์ไปนัด (removed → หน้าหลัก) · params ไม่ครบ → unknown', () => {
+    const base = { groupId: gid, groupName: 'ก๊วน', title: 'หมูกระทะ', startAt: at('2026-10-24', '18:00'), tz: TZ };
+    const upd = notificationView('appointment.guest.updated', { ...base, appointmentId: 'ap1', changes: 'time', actorName: 'ลับ' }, 'en');
+    expect(upd).toMatchObject({ known: true, messageKey: 'notifications.appointment.guest.updated', icon: 'calendar', tone: 'appt', href: '/appointments/ap1' });
+    expect(upd.values.changes).toBe('time'); // select ส่งดิบ ห้าม isolate
+    expect(Object.keys(upd.values).sort()).toEqual(['changes', 'title', 'when']);
+    const can = notificationView('appointment.guest.cancelled', { ...base, appointmentId: 'ap1', actorName: 'ลับ' }, 'th');
+    expect(can).toMatchObject({ known: true, icon: 'calendar-x', href: '/appointments/ap1' });
+    expect(Object.keys(can.values).sort()).toEqual(['title', 'when']);
+    const rem = notificationView('appointment.guest.removed', base, 'th');
+    expect(rem).toMatchObject({ known: true, icon: 'user-minus', href: '/' });
+    expect(Object.keys(rem.values).sort()).toEqual(['title', 'when']);
+    expect(notificationView('appointment.guest.updated', { ...base, appointmentId: 'ap1', changes: 'x' }, 'th').known).toBe(false);
+    expect(notificationView('appointment.guest.updated', { ...base, changes: 'time' }, 'th').known).toBe(false);
+    expect(notificationView('appointment.guest.cancelled', { ...base, appointmentId: '../x' }, 'th').known).toBe(false);
+    expect(notificationView('appointment.guest.removed', { groupId: gid }, 'th').known).toBe(false);
+  });
+  it('R18 §S: rsvp_changed ที่แขกตอบ (responderGuest) ใช้ข้อความ/ลิงก์เดิม', () => {
+    const v = notificationView('appointment.rsvp_changed', { groupId: gid, groupName: 'ก๊วน', appointmentId: 'ap1', title: 'T', startAt: at('2026-10-24', '18:00'), tz: TZ, responderName: 'นุ่น', responderId: 'u1', response: 'going', responderGuest: true }, 'th');
+    expect(v).toMatchObject({ known: true, messageKey: 'notifications.appointment.rsvp_changed', href: '/appointments/ap1', icon: 'circle-check' });
   });
   it('notifications.unknown มีทั้ง th/en', () => {
     expect(fmt('th', 'notifications.unknown', {})).toBeTruthy();

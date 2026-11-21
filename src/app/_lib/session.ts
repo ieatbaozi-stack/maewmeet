@@ -9,6 +9,7 @@ import { getPageRequest, getRequestSession } from "@/lib/auth/page-session";
 import type { UserRow } from "@/lib/data/repos/user";
 import { clock } from "@/lib/shared/clock";
 import { sanitizeDisplayText } from "@/lib/shared/name-rules";
+import { safeNext } from "@/lib/shared/safe-next";
 
 export type PageUser = Pick<UserRow, "id" | "username" | "displayName" | "isAdmin" | "mustChangePin">;
 
@@ -67,10 +68,13 @@ export async function requireMustChangePin(): Promise<PageUser> {
   return user;
 }
 
-/** หน้าสาธารณะ (login/signup/forgot): ล็อกอินอยู่แล้วไม่ต้องเห็น */
-export async function redirectIfSignedIn(): Promise<void> {
+/**
+ * หน้าสาธารณะ (login/signup/forgot): ล็อกอินอยู่แล้วไม่ต้องเห็น
+ * R18 §S3: `next` (ผ่าน safeNext แล้ว หรือ "/" ถ้าไม่มี) = ปลายทางหลังเข้าสู่ระบบ — ต้องเปลี่ยน PIN ก่อนเสมอ · ผ่าน allowlist ซ้ำที่นี่อีกชั้น
+ */
+export async function redirectIfSignedIn(next: string = "/"): Promise<void> {
   const user = await getPageUser();
-  if (user) redirect(user.mustChangePin ? "/set-pin" : "/");
+  if (user) redirect(user.mustChangePin ? "/set-pin" : safeNext(next));
 }
 
 /** สถานะคำขอ reset ของเครื่องนี้ (cookie mm_reset) — ใช้แสดงแบนเนอร์ที่ /login และสถานะเริ่มต้นที่ /forgot */

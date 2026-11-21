@@ -230,6 +230,9 @@ export function AdminGroupDetail({ groupId }: { groupId: string }) {
         <section className="set-sec" aria-labelledby={`${id}-r`}>
           <h2 id={`${id}-r`}>{t("adminGroup.restore.title")}</h2>
           <p className="lead">{t("adminGroup.restore.body")}</p>
+          <p className="muted small" data-testid="restore-invite-note-card">
+            {t("adminGroup.restore.inviteNote")}
+          </p>
           <button type="button" className="btn btn-primary" onClick={() => setDialog({ kind: "restore" })} data-testid="admin-restore-group">
             <Icon name="rotate-ccw" />
             <span>{t("adminGroup.restore.cta")}</span>

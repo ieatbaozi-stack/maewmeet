@@ -12,9 +12,14 @@ import { Name, withNames } from "@/components/Name";
 import { shownName } from "@/components/account/model";
 import { MapAppLinks, OpenInMaps } from "@/components/places/MapAppLinks";
 import { mapOpenLink } from "@/components/places/map-model";
+import { Notice } from "@/components/groups/Notice";
+import { isolate } from "@/components/notifications/model";
+import { GuestsSection } from "@/components/share/GuestsSection";
+import { ShareSheet } from "@/components/share/ShareSheet";
 import { Sheet } from "@/components/shell/Sheet";
 import { format, type CalendarLocale } from "@/lib/calendar";
 import type { AppointmentDetailDto, PersonDto } from "@/lib/data/serializers/appointments";
+import { APPOINTMENT_GUESTS_MAX } from "@/lib/shared/limits";
 import { callApiFull } from "./api";
 import { AddToCalendarSheet } from "./AddToCalendarSheet";
 import { AppointmentFormSheet } from "./AppointmentFormSheet";
@@ -47,6 +52,8 @@ export function AppointmentDetail({ initial, me, nowMs, appOrigin }: Appointment
   const [saved, setSaved] = useState<Rsvp | null>(null);
   const [editing, setEditing] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
@@ -294,6 +301,35 @@ export function AppointmentDetail({ initial, me, nowMs, appOrigin }: Appointment
           </div>
         </section>
 
+        {/* R18 §S1: ชวนคนนอก (ปุ่มรอง ใต้ "ใครไปบ้าง") — canShare จากเซิร์ฟเวอร์ใช้ซ่อนปุ่มเท่านั้น (POST ตรวจสิทธิ์ที่เซิร์ฟเวอร์) */}
+        {a.permissions.canShare === true && !cancelled ? (
+          <div className="appt-wide">
+            <button type="button" className="btn btn-secondary share-invite-btn" aria-label={t("share.invite.aria", { title: a.title })} onClick={() => setSharing(true)} data-testid="share-invite">
+              <Icon name="user-plus" />
+              <span>{t("share.invite.button")}</span>
+            </button>
+          </div>
+        ) : null}
+
+        {a.guests ? (
+          <div className="appt-wide">
+            <GuestsSection
+              appointmentId={a.id}
+              guests={a.guests}
+              onRemoved={(userId, name) => {
+                setA((cur) => (cur.guests ? { ...cur, guests: { ...cur.guests, items: cur.guests.items.filter((g) => g.userId !== userId) } } : cur));
+                setNotice(t("guests.removed", { name: isolate(name) }));
+              }}
+            />
+          </div>
+        ) : null}
+
+        {notice ? (
+          <div className="appt-wide" data-testid="appt-notice">
+            <Notice kind="ok">{notice}</Notice>
+          </div>
+        ) : null}
+
         {canEdit || canCancel ? (
           <section className="appt-section appt-wide" aria-labelledby={`${uid}-mg`} data-testid="appt-manage">
             <h2 id={`${uid}-mg`}>{t("appointments.detail.manage")}</h2>
@@ -343,6 +379,24 @@ export function AppointmentDetail({ initial, me, nowMs, appOrigin }: Appointment
             void reloadConflicts();
           }}
           onGone={() => router.replace("/")}
+        />
+      ) : null}
+
+      {sharing ? (
+        <ShareSheet
+          appointmentId={a.id}
+          title={a.title}
+          startAt={a.startAt}
+          tz={a.tz}
+          myName={me.displayName}
+          guestCount={a.guests?.items.length ?? 0}
+          guestMax={a.guests?.max ?? APPOINTMENT_GUESTS_MAX}
+          links={a.shareLinks ?? []}
+          onClose={() => setSharing(false)}
+          onRevoked={(linkId) => {
+            setA((cur) => ({ ...cur, shareLinks: (cur.shareLinks ?? []).filter((l) => l.id !== linkId) }));
+            setNotice(t("share.revoke.done"));
+          }}
         />
       ) : null}
 
@@ -414,7 +468,8 @@ const hostOf = (u: string): string => {
   }
 };
 
-function Band({ a, phase, locale }: { a: AppointmentDetailDto; phase: ReturnType<typeof apptPhase>; locale: CalendarLocale }) {
+/** แถบวันที่/นับถอยหลังของการ์ดนัด — ใช้ร่วมกับมุมมองแขก (R18 §S) */
+export function Band({ a, phase, locale }: { a: { localDate: string; daysUntil: number }; phase: ReturnType<typeof apptPhase>; locale: CalendarLocale }) {
   const t = useTranslations();
   // ICU ของ Node (server) กับเบราว์เซอร์อาจต่างกันเล็กน้อย (เช่น จุลภาคหลังวันในสัปดาห์ของ en) → ยอมรับความต่างของข้อความวันที่ตอน hydrate
   const date = <p className="appt-date" suppressHydrationWarning>{format(a.localDate, { locale, style: "date-full" })}</p>;
@@ -450,7 +505,7 @@ function Band({ a, phase, locale }: { a: AppointmentDetailDto; phase: ReturnType
   );
 }
 
-function BackButton({ label }: { label: string }) {
+export function BackButton({ label }: { label: string }) {
   const router = useRouter();
   return (
     <button type="button" className="icon-btn" aria-label={label} data-testid="appt-back" onClick={() => {

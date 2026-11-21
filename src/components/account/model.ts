@@ -143,11 +143,19 @@ export const AUDIT_META_KEYS = [
   "reminders",
   "notifications",
   "outbox",
+  // R18 §S (แชร์นัด/แขก · D1): ไม่มี token/hash — id ลิงก์ · เหตุผลปิดลิงก์ · ผู้ชวน · แขก · จำนวนที่ถูกปิด/ลบพร้อมกัน
+  "linkId",
+  "reason",
+  "invitedBy",
+  "guestUserId",
+  "shareLinksRevoked",
+  "guests",
+  "shareLinks",
 ] as const;
 export type AuditMetaKey = (typeof AUDIT_META_KEYS)[number];
 
 /** คีย์ที่ค่าเป็น id → แสดงแบบย่อ */
-export const AUDIT_ID_KEYS: ReadonlySet<AuditMetaKey> = new Set(["targetUserId", "fromUserId", "toUserId", "inviteeUserId", "inviteId", "appointmentId"]);
+export const AUDIT_ID_KEYS: ReadonlySet<AuditMetaKey> = new Set(["targetUserId", "fromUserId", "toUserId", "inviteeUserId", "inviteId", "appointmentId", "linkId", "invitedBy", "guestUserId"]);
 
 export function visibleMeta(meta: unknown): { key: AuditMetaKey; value: AuditMetaValue }[] {
   if (typeof meta !== "object" || meta === null || Array.isArray(meta)) return [];

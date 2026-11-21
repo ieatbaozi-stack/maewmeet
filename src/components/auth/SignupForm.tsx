@@ -10,6 +10,8 @@ import { callApi } from "./api";
 import { failureText } from "./errors";
 import { signalNavStart } from "@/components/shell/nav-start";
 import { PinPad } from "./PinPad";
+import { withNext } from "@/components/share/model";
+import { safeNext } from "@/lib/shared/safe-next";
 
 type Step = 1 | 2 | 3;
 const TOTAL = 3;
@@ -18,7 +20,7 @@ const TOTAL = 3;
  * สมัครบัญชี (UX W2) — 3 ขั้น: ข้อมูล → ตั้ง PIN → ใส่ PIN อีกครั้ง · POST /api/auth/signup (สร้าง session ทันที)
  * ตรวจรูปแบบเบื้องต้นฝั่ง client เพื่อความเร็ว แต่ผลจริงตัดสินที่เซิร์ฟเวอร์เสมอ (ชื่อซ้ำ ฯลฯ)
  */
-export function SignupForm() {
+export function SignupForm({ next: nextDest = "/" }: { /** R18 §S3: ปลายทางหลังสมัคร (ผ่าน safeNext จากหน้าแล้ว) */ next?: string }) {
   const t = useTranslations();
   const router = useRouter();
   const id = useId();
@@ -65,8 +67,9 @@ export function SignupForm() {
       body: { username: username.trim(), displayName: displayName.trim(), pin, pinConfirm: c },
     });
     if (res.ok) {
-      signalNavStart("/");
-      router.replace("/");
+      const dest = safeNext(nextDest);
+      signalNavStart(dest);
+      router.replace(dest);
       router.refresh();
       return;
     }
@@ -207,7 +210,7 @@ export function SignupForm() {
       </section>
 
       <p className="link-row">
-        <span>{t("signup.haveAccount")}</span> <Link href="/login">{t("signup.signIn")}</Link>
+        <span>{t("signup.haveAccount")}</span> <Link href={withNext("/login", nextDest)}>{t("signup.signIn")}</Link>
       </p>
     </>
   );

@@ -44,7 +44,34 @@ export interface HomeAppointment {
   rsvp: RsvpSummary;
   /** R6D: ตอบ "ไป" และทับนัด/ช่วงไม่ว่างอื่นของฉัน — ค่าของผู้ขอเท่านั้น (เซิร์ฟเวอร์ไม่ส่งให้คนอื่น) */
   myConflict?: boolean;
+  /** R18 §S: guest = นัดที่ฉันเป็นแขก (ไม่มี groupId/รายชื่อ · ตอบผ่าน /guest/rsvp · แสดงป้ายแขก) · ไม่มี = member (แถวเก่า/ fixture) */
+  viewerKind?: "member" | "guest";
 }
+
+/** การ์ดแขกจาก GET /api/me/appointments (GuestAppointmentListItemDto) — เฉพาะฟิลด์ที่ใช้ */
+interface GuestListItem extends Omit<HomeAppointment, "rsvp" | "groupId"> {
+  viewerKind: "guest";
+  myRsvp: RsvpAnswer | null;
+  counts: { going: number; maybe: number };
+}
+
+/**
+ * รายการจาก API → HomeAppointment (การ์ดแขกไม่มี rsvp/groupId: ใช้ myRsvp + counts ไป/อาจไป · ตัวเลขอื่นเป็น 0 จึงไม่ถูกแสดง)
+ * กรอกค่าไม่ครบ (null/ไม่ใช่อ็อบเจกต์) → ข้าม
+ */
+export function normalizeHomeItem(raw: unknown): HomeAppointment | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  if (r.viewerKind !== "guest") return raw as HomeAppointment;
+  const g = raw as unknown as GuestListItem;
+  const n = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.trunc(v) : 0);
+  const { myRsvp, counts, ...rest } = g;
+  return { ...rest, groupId: "", rsvp: { counts: { going: n(counts?.going), maybe: n(counts?.maybe), not_going: 0, noResponse: 0 }, mine: isRsvpAnswer(myRsvp) ? myRsvp : null } };
+}
+
+export const normalizeHomeItems = (list: readonly unknown[]): HomeAppointment[] => list.flatMap((x) => normalizeHomeItem(x) ?? []);
+
+export const isGuestItem = (a: Pick<HomeAppointment, "viewerKind">): boolean => a.viewerKind === "guest";
 
 // ───────── การ์ดถัดไป / รายการ ─────────
 /**
