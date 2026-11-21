@@ -1851,6 +1851,11 @@
       "appointment_cancel": "ยกเลิกนัด",
       "appointment_view": "เปิดดูนัด",
       "appointment_check": "ตรวจนัดทับ",
+      "appointment_share_create": "สร้างลิงก์ชวนแขก",
+      "appointment_share_revoke": "ปิดลิงก์ชวนแขก",
+      "appointment_guest_join": "แขกเข้าร่วมนัด",
+      "appointment_guest_leave": "แขกออกจากนัด",
+      "appointment_guest_remove": "เอาแขกออกจากนัด",
       "user_delete": "ลบบัญชีตัวเอง",
       "admin_user_suspend": "ระงับ/ยกเลิกระงับบัญชี",
       "admin_user_unlock": "ปลดล็อกบัญชี",
@@ -1889,9 +1894,16 @@
       "rsvps": "การตอบรับที่ถูกลบ",
       "reminders": "การเตือนที่ถูกลบ",
       "notifications": "การแจ้งเตือนที่ถูกลบ",
-      "outbox": "ข้อความในคิวที่ถูกลบ"
+      "outbox": "ข้อความในคิวที่ถูกลบ",
+      "linkId": "ลิงก์ชวน",
+      "reason": "เหตุผล",
+      "invitedBy": "ผู้ชวน",
+      "guestUserId": "แขก",
+      "shareLinksRevoked": "ลิงก์ชวนแขกที่ถูกปิด",
+      "guests": "แขกที่ถูกลบ",
+      "shareLinks": "ลิงก์ชวนแขกที่ถูกลบ"
     },
-    "value": "{value, select, true {ใช่} false {ไม่ใช่} approved {อนุมัติ} approve {อนุมัติ} rejected {ปฏิเสธ} reject {ปฏิเสธ} accepted {ตอบรับ} declined {ปฏิเสธ} active {ใช้งานได้} suspended {ระงับ} admin {ผู้ดูแล} moderator {ผู้ช่วยดูแล} member {สมาชิก} code {โค้ด} direct {ชวนตรง} other {{value}}}"
+    "value": "{value, select, true {ใช่} false {ไม่ใช่} manual {ปิดเอง}approved {อนุมัติ} approve {อนุมัติ} rejected {ปฏิเสธ} reject {ปฏิเสธ} accepted {ตอบรับ} declined {ปฏิเสธ} active {ใช้งานได้} suspended {ระงับ} admin {ผู้ดูแล} moderator {ผู้ช่วยดูแล} member {สมาชิก} code {โค้ด} direct {ชวนตรง} other {{value}}}"
   },
   "privacy": {
     "eyebrow": "maewmeet",

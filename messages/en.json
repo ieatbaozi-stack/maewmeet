@@ -1851,6 +1851,11 @@
       "appointment_cancel": "Cancelled a plan",
       "appointment_view": "Viewed plans",
       "appointment_check": "Checked for overlapping plans",
+      "appointment_share_create": "Created a guest invite link",
+      "appointment_share_revoke": "Turned off a guest invite link",
+      "appointment_guest_join": "A guest joined a plan",
+      "appointment_guest_leave": "A guest left a plan",
+      "appointment_guest_remove": "Removed a guest from a plan",
       "user_delete": "Deleted their account",
       "admin_user_suspend": "Suspended or unsuspended an account",
       "admin_user_unlock": "Unlocked an account",
@@ -1889,9 +1894,16 @@
       "rsvps": "Replies removed",
       "reminders": "Reminders removed",
       "notifications": "Notifications removed",
-      "outbox": "Queued messages removed"
+      "outbox": "Queued messages removed",
+      "linkId": "Invite link",
+      "reason": "Reason",
+      "invitedBy": "Invited by",
+      "guestUserId": "Guest",
+      "shareLinksRevoked": "Guest links turned off",
+      "guests": "Guests removed",
+      "shareLinks": "Guest links removed"
     },
-    "value": "{value, select, true {Yes} false {No} approved {Approved} approve {Approved} rejected {Rejected} reject {Rejected} accepted {Accepted} declined {Declined} active {Active} suspended {Suspended} admin {Group admin} moderator {Moderator} member {Member} code {Code} direct {Direct} other {{value}}}"
+    "value": "{value, select, true {Yes} false {No} manual {Turned off by hand}approved {Approved} approve {Approved} rejected {Rejected} reject {Rejected} accepted {Accepted} declined {Declined} active {Active} suspended {Suspended} admin {Group admin} moderator {Moderator} member {Member} code {Code} direct {Direct} other {{value}}}"
   },
   "privacy": {
     "eyebrow": "maewmeet",
