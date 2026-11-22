@@ -1,50 +1,51 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-20 (เวลาไทย) · **v0.15.0 ออกแล้ว 2026-11-20** (tag `v0.15.0` → `17918b8` `chore(release): v0.15.0` · `git tag --points-at` ตรวจแล้ว · หัวข้อ `[0.15.0] - 2026-11-20` ใน CHANGELOG · production `/api/health` = 0.15.0 (main รายงาน ตรวจ 2026-11-20 · เลขาไม่ได้ตรวจเอง)) · **R17 ปิดรอบและออกรุ่นแล้วใน v0.15.0** (PR #40 merge `c3e5c9f` · ไม่มี migration · ดูหัวข้อ "R17" ด้านล่าง) · **งานถัดไป: ยังไม่มี contract รอบใหม่** (ดูหัวข้อ "เหลือ" ข้อ 0) · **v0.14.0 ออกแล้ว 2026-11-19** (tag `v0.14.0` → `7eaff23` · R16 PR #38 merge `1ae70a6` · ไม่มี migration) · **v0.13.0 ออกแล้ว 2026-11-18** (tag `v0.13.0` → `964a6f5`) · **PR #37** (docs sync) merge แล้ว 2026-11-18 (`9db2c08`) · รวม R15a (PR #34, `a29ba40`) + R15b (PR #35, `7e9a12d`) · migration `0006` boss รันบน preview และ prod แล้ว · Next.js 16.4.5 · **R15 ปิดแล้ว** (`docs/contracts/R15_CONTRACT.md` หัวข้อ "ปิดรอบ R15") · รายการที่เหลือทั้งหมดอยู่ในหัวข้อ "เหลือ" ด้านล่าง
+> อัปเดตล่าสุด: 2026-11-22 (เวลาไทย) · **v0.15.0 ยังเป็นรุ่นล่าสุดที่ออกแล้ว** (ออก 2026-11-20 · tag `v0.15.0` → `17918b8`) · **R18 อยู่ระหว่างทำ** (เป้า 1.0 · ยังไม่ออกรุ่น · branch `feat/r18-v1`)
 
-> **วิธีอ่านไฟล์นี้:** สถานะจริงอยู่ที่หัวข้อ **สถานะปัจจุบัน** และ **เหลือ** (ตรวจกับ git log, tag, CHANGELOG, `docs/reports/` เมื่อ 2026-11-20) · หัวข้อที่ติดป้าย **[ประวัติ]** เป็นบันทึกของรอบเดิม ข้อความอย่าง "รอ boss" / "ค้างต่อ" / "ยังไม่ยืนยัน" ในหัวข้อนั้นอาจล้าสมัย ให้ดูสถานะล่าสุดที่ "เหลือ"
-> ประวัติหัวข้อ `[ประวัติ]` (คำต่อคำ) ย้ายไปไฟล์ [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md) แล้ว
+> **วิธีอ่านไฟล์นี้:** สถานะจริงอยู่ที่หัวข้อ **สถานะปัจจุบัน** และ **เหลือ** (ตรวจกับ git log, โค้ด, CHANGELOG, `docs/reports/` เมื่อ 2026-11-22) · ประวัติรอบเดิมทั้งหมดอยู่ใน [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md) (คำต่อคำ)
 
-## สถานะปัจจุบัน — 2026-11-20 (ปิดรอบ R17 · ออกรุ่น v0.15.0)
-- **v0.15.0 ออกแล้ว** (2026-11-20, tag `v0.15.0` → `17918b8` `chore(release): v0.15.0` · ตรวจด้วย `git tag --points-at 17918b8` แล้ว · หัวข้อ `[0.15.0] - 2026-11-20` ใน CHANGELOG · ต้นทางคือ PR #40 merge `c3e5c9f` · production `/api/health` = 0.15.0 (main รายงาน ยังไม่ได้ตรวจโดยเลขา))
-- **R17 ปิดรอบ** (`docs/contracts/R17_CONTRACT.md` หัวข้อ "ปิดรอบ") · ไม่มี migration · `GROUP_RETENTION_START_DATE` = 2026-12-01 ออกรุ่นก่อนวันนั้น จึงไม่ต้องเลื่อนค่า
-- **ผลตรวจอิสระ:** qa `docs/reports/qa-r17.md` **ผ่านแบบมีข้อสังเกต** (ข้อ 1 แก้แล้ว · ข้อ 2–3 เป็นข้อมูล) · security `docs/reports/security-r17.md` **ผ่านแบบมีข้อสังเกต** (Low 1 แก้แล้วใน `777ae9e` · Info 1–5 ดูข้อ 0 ใน "เหลือ")
-- **หลักฐานอื่นที่ตรวจแล้ว:** `docs/guides/quickstart-th.html` ท้ายหน้า `app v0.15.0` และข้อความลบกลุ่ม/ลบบัญชี/หยุดประจำตรงกับพฤติกรรมที่ออก · `npx vitest run tests/ops/docs-sync.test.ts` = 8 passed (ดู `docs/reports/2026-11-20.md`)
-- **v0.14.0 ออกแล้ว 2026-11-19** (tag `v0.14.0` → `7eaff23`) · รวม R16 (PR #38, `1ae70a6`) · ดูหัวข้อ "R16" ด้านล่าง
+## สถานะปัจจุบัน — 2026-11-22 (R18 ระหว่างทำ · เป้าปิดโปรเจกต์ที่ 1.0)
+- **contract:** [docs/contracts/R18_CONTRACT.md](../contracts/R18_CONTRACT.md) (boss เห็นชอบ 2026-11-20 · ตัดสิน §11 2026-11-22) · branch `feat/r18-v1` จาก `main` `d6f413a` · ยังไม่มี PR
+- **ทำแล้วในโค้ด/เอกสาร** (ตรวจจาก `git log main..feat/r18-v1` และไฟล์ที่อ้าง · ยังไม่ผ่าน qa รอบ R18):
+  - **§S แชร์นัดให้คนนอกกลุ่ม:** ADR 0016 Accepted (`02f4fa8`) · S1–S8 (`13ee066` rbac, `3c5ea5b` migration 0007, `eccfb96` platform, `88721bf` frontend, `26043f8` e2e, `091a2d4` ceiling perf) · S9 ux (`e9ca44e`, `338cc5b`, `32c422a`)
+  - **§1 ข้อมูล:** D1 purge คำเชิญเก่า 30 วัน (`d5c4562`) · D2 บันทึก/ถ้อยคำ (`86ab22b`, `32c422a`, `88721bf`) · D3 ตัดสินไม่แก้ บันทึกแล้ว (`86ab22b`)
+  - **§2 hardening:** H1 (`193ba97`) · H2+H3 (`82db023`) · H4 ข้อความ 429 ปฏิทิน (`88721bf`) · H5 e2e `retries: 0` + H6 i18n render test (`16a67d7`) · H7 picomatch ตรวจซ้ำ 2026-11-20 ยังไม่มีรุ่นแก้ คงยอมรับความเสี่ยง (`86ab22b`)
+  - **§3 ยืนยันการลบ:** C1 ยืนยันลบวันนี้ / ยกเลิกคำเชิญตรง (`88721bf` + e2e `26043f8`) · C2 ตรวจแล้ว 16 แถว (`docs/design/R17_DELETE_CONFIRM.md` §8.2)
+  - **§4 ข้อเสนอ PRD:** ตัดสินแล้ว ไม่ทำ (`8c195d7`)
+  - **§5 ตรวจรับ:** V1 `docs/reports/v1-readiness.md` (`8c6badc`) · V3 `docs/reports/security-v1.md` ผลแบบมีข้อสังเกต (`eac8f95`) · Low 1 แก้ (`bb7a282`) · Info 1 แก้ (`9818d50`) · V5 audit `docs/design/V1_UI_AUDIT.md` (`6a7f437`)
+  - **§10 ลด token:** T1 กติกาเทสต์ใน agent (`b155b09`) · T2 ย้าย [ประวัติ] ไป PROGRESS_ARCHIVE (`9a3ce92`) · ข้อเสนอ (`43fe045`)
+  - **§11:** G3 e2e EN (`e50d5fc`) · G1 spec แบนเนอร์ iOS (`6a7f437` · ดู "เหลือ" ข้อ 1.1) · G4 ไม่ทำใน 1.0 และ G5 ติ๊ก PRD (`8c195d7`)
+  - **§6 เอกสาร (เลขา รอบนี้):** README (สถานะ, ชวนคนนอก, ยืนยันการลบ, แจ้งเตือนแขก) · quickstart (หัวข้อ "ชวนคนนอกกลุ่มมาร่วมนัด", ยืนยันลบแบบประจำ) · NEXT_PHASE · รายการนี้ · V4 checklist (`docs/reports/r18-boss-device-checklist.md`) — ยังไม่ commit ณ เวลาเขียนรายการนี้
+- **เลขรุ่น:** ไม่เปลี่ยน (ยัง v0.15.0 ใน `package.json`) — release.ts จะเปลี่ยนเมื่อ boss ออกรุ่น
 
-## เหลือ (รายการเดียวที่ใช้ต่อ · ตรวจกับ git log, โค้ด, CHANGELOG, `docs/reports/` เมื่อ 2026-11-20)
+## เหลือ (รายการเดียวที่ใช้ต่อ · ตรวจ 2026-11-22)
 
-### 0. รอบถัดไป — ยังไม่มี contract (R17 ปิดแล้ว)
-- ยังไม่มี contract รอบใหม่ (ตรวจ 2026-11-20: ไม่มี `docs/contracts/R18_CONTRACT.md`) · main เสนอเมื่อ boss เลือกงาน
-- **ค้างจาก R17 (ไม่บล็อก · ยังไม่ทำ):**
-  - **เก็บคำเชิญเก่า (old invite retention) ยังไม่ทำ** — R17 ทำนโยบาย 30 วันเฉพาะกลุ่ม ไม่รวมคำเชิญที่ลบ/หมดอายุ · ต้องเปิดเป็นรอบแยกและ boss ตัดสินนโยบายก่อน
-  - **ยืนยันให้หนักขึ้นอีก (ถ้า boss ต้องการ):** "ลบวันนี้ (วันเดียว)" ของ busy/routine และ "ยกเลิกคำเชิญตรง" — ux ตัดสินไว้เป็น L1 แล้ว (`docs/design/R17_DELETE_CONFIRM.md` แถว 6, 8, 15–16) · ทำได้โดยใช้รูปแบบ `confirmFrom` เดิม · รอ boss สั่ง
-  - **security-r17 Info 1–4** (`docs/reports/security-r17.md`, ไม่บล็อก): Info 1 กู้คืนอาจข้ามเพดานที่นับเฉพาะกลุ่มที่ยังอยู่ · Info 2 โค้ดเชิญที่ยังไม่หมดอายุกลับมาใช้ได้หลังกู้คืน · Info 3 purge ลบ outbox ที่ส่งแล้ว ทำให้ตัวนับ LINE OA รายเดือนลดลงได้ (แทบไม่เกิด) · Info 4 สแกนทั้งตารางต่อกลุ่มตอน purge ไม่มี index
-- **picomatch GHSA-fc5q-39xc-vjpf** ยังอยู่ที่ข้อ 3 (ไม่ได้ตรวจรุ่นแก้ซ้ำในรอบนี้)
+### 1. ต้องทำก่อนออก 1.0 (เปิดอยู่)
+1. **G1 แบนเนอร์สอนติดตั้ง iOS** — spec เสร็จ (`docs/design/V1_UI_AUDIT.md` §6) · โค้ดกำลังทำอยู่ใน worktree แต่**ยังไม่ commit** (ตรวจ 2026-11-22: `src/components/home/InstallHint.tsx`, `install-hint.ts`, `tests/ui/install-hint.test.ts` ค้างเป็น untracked และ `HomeView.tsx` แก้แล้ว) · ยังไม่ผ่านเทสต์/qa · ผู้ทำยังไม่ยืนยันในรายงาน
+2. **V5 แก้ตาม audit** — `V1_UI_AUDIT.md` §3 มี 20 ข้อ (P2 14 · P3 6) · ยังไม่มี commit แก้ฝั่ง frontend · ถ้อยคำ/copy ที่ ux แก้แล้ว (`6a7f437`) · qa ตรวจว่าไม่ถอยหลัง
+3. **G2 Lighthouse** (มือถือ Performance ≥ 85 · Accessibility ≥ 95) — ยังไม่มีผลวัด · qa วัดบน Vercel preview แล้วบันทึกใน `docs/reports/qa-r18.md` · ต่ำกว่าเกณฑ์ = แก้ก่อน merge
+4. **V2 qa ถดถอยเต็ม** — ยังไม่เริ่ม (ยังไม่มี `qa-r18.md`) · รวม flow ชวนคนนอก และ C1 · รวม e2e ที่ G3 เพิ่ม
+5. **security re-check รอบ R18** — ยังไม่มีรายงาน · ต้องดู: (ก) bb7a282 / 9818d50 (ข) security-v1 **Info 2** แขกที่ถูกนำออกเข้าเป็นสมาชิกแล้วออก อาจกลับมาเป็นแขกนัดเดิมได้ — **ขัดกับคำตัดสิน main ใน ADR 0016 หัวข้อสถานะ** (แขกที่ถูกนำออกกลับเข้านัดนั้นไม่ได้) · main/security ต้องตัดสินว่าแก้โค้ดหรือบันทึกยอมรับ (ค) security-v1 **Info 3** Cache-Control ของ `/i/*` บน build จริง ยังไม่ยืนยัน (ง) **Info 4** docs-sync แถว route §S — ตรวจซ้ำหลัง PR เอกสารนี้
+6. **งาน ops (นอกเลขา):** เขียนแล้วใน `d45abce` — `CHANGELOG.md` `[Unreleased]` · `docs/OPERATIONS.md` หัวข้อ "ดูแลหลังปิดโปรเจกต์ (v1.0 · R18 §6)" · `docs/VERSIONING.md` · ยังไม่ผ่าน qa/ตรวจอิสระ · `scripts/release.ts 1.0.0 --dry-run` ยังไม่รัน
+7. **งาน main:** PRD สถานะ 1.0 + ติ๊กทุกข้อ · บรรทัดปิดรอบ R18 ใน contract · ADR 0016 ตาม architect
+8. **migration 0007** (`appointment_share_link` + `appointment_guest`) — boss รันบน **preview** ก่อนเปิด PR และบน **prod** ก่อน merge · ขั้น rollback อยู่ใน `docs/OPERATIONS.md` (ส่วน S8) · ยังไม่รันที่ไหนเลย
+9. **PR → merge → release** — CI 2 รอบติดด้วย `retries: 0` (H5) ยังไม่มี · boss merge · boss รัน `npx tsx scripts/release.ts 1.0.0` และ push tag · หลังออกรุ่นต้องทำ DOCS_SYNC §3 ตาม
 
-### 1. ค้างจาก qa/security R16 (ไม่บล็อก · ไม่แก้ในรอบนี้)
-- security-r16 Info 1–5 (`docs/reports/security-r16.md`): `api:read` เกินโควตาแล้ว handler ยังทำงาน (Info 1) · ถังเป็นหน้าต่างคงที่ + ทางลัดต่อ instance (Info 2) · หน้า RSC ไม่นับถัง (Info 3) · ถอด `is_admin` ของ SA ด้วย SQL ขณะคำเชิญยังค้าง (≤ 7 วัน) ทำให้ชื่อ SA กลับมา (Info 4) · หน้า not-found ระหว่าง stream ตอบ 200 (Info 5) · Info 6 (รอยไฟล์ชั่วคราว) ลบแล้วตามรายงาน
-- qa-r16 Info 1: ปฏิทินกลืนข้อผิดพลาด 429 ของ `GET /api/me/busy` (`CalendarView.tsx`, ออกแบบเดิม R14) — ผู้ใช้ไม่เห็นข้อความ
-- render test สำหรับ i18n namespace — เทสต์ grep ของ R16 จับ namespace ผิดไม่ได้ (บั๊ก H4c ที่ qa เจอ) ควรมีเทสต์ render จริง
+### 2. เครื่องจริงของ boss (ไม่บล็อก merge · ต้องจดผล)
+- checklist: [docs/reports/r18-boss-device-checklist.md](../reports/r18-boss-device-checklist.md) — ลิงก์ในชื่อนัดบน LINE · ป้าย "ผู้ดูแลระบบ" ในกระดิ่ง · เปิดเต็มจอบน iOS · ปุ่ม Apple Maps ที่ 768 · ใหม่: เปิดลิงก์ชวนใน LINE, เพิ่มเป็นแขก, แบนเนอร์ iOS (ยังไม่มีในแอป) · iPad 1 เครื่อง (PRD §8 ข้อ 5)
 
-### 2. ตัดสินแล้ว — ไม่ทำ (ไม่ใช่งานค้าง)
-- CSP แบบ nonce — boss ยอมรับความเสี่ยง (R16 B3 · ADR 0014 · `docs/OPERATIONS.md`)
-- H5 หน้า auth ตอบ 200 ระหว่าง stream · H6 Server-Timing บนหน้า RSC · DST day strip (ไม่จำเป็น) (R16 §6)
-- เพดาน LINE OA แยกต่อกลุ่ม — ไม่ทำ เป็นผลของ R15 B6 (เพดานรวมทั้งระบบ) · ถ้าจะเปลี่ยนต้องให้ boss เปลี่ยนนโยบาย
-- แถวแจ้งเตือนเก่าและรายการเก่าที่แสดงชื่อ SA — ไม่มี backfill (ไม่มี migration · R16 §6)
+### 3. เครื่องของ boss (ระดับเครื่อง ไม่ใช่ repo)
+- ติดตั้ง Node 24 (เครื่องเป็น v26 ทำให้เทสต์ health ล้ม)
+- เทสต์ที่ล้มเฉพาะเครื่อง Windows: `release.test` (`.bin/tsx` ENOENT) · `config-hygiene` ข้อ permissions (CRLF) · เทสต์ที่ต้องใช้ Python · `npm test` ทั้งชุดมี EPERM/timeout ในเครื่องนี้ · ผลจริงดูจาก CI
 
-### 3. ค้างด้านห่วงโซ่ dependency
-- **picomatch GHSA-fc5q-39xc-vjpf** — ยังไม่มีรุ่นแก้ (Dependabot alert #5 · `first_patched_version` = none ตรวจ 2026-11-19) · npm audit ตาม `docs/reports/security-docs-sync.md`: high 18 ทั้งหมดมาจาก picomatch ตัวเดียว · security Low 1 ยอมรับความเสี่ยงและติดตาม · ops เพิ่ม override/อัปเดต lockfile ทันทีเมื่อมีรุ่นแก้
-
-### 4. boss ลองบนเครื่องจริง (ไม่บล็อก)
-- ลิงก์ในชื่อนัดบนแอป LINE กดไม่ได้จริงหรือไม่ (R15b) — ยังไม่ทดสอบ · ตอนนี้ระบบทำให้ลิงก์ไม่เป็นลิงก์ตั้งแต่ฝั่งข้อความ (ดู README/quickstart)
-- ป้าย "ผู้ดูแลระบบ" ในกระดิ่งของกลุ่ม — ไม่มี e2e เบราว์เซอร์ที่เห็นข้อความจริง (qa R15b Info 2)
-- iOS เวอร์ชันเก่า: Next ปล่อย `mobile-web-app-capable` แต่ไม่ปล่อย `apple-mobile-web-app-capable` · iOS 16.4+ ใช้ manifest จึงน่าจะเปิดเต็มจอได้ · เวอร์ชันเก่ากว่าอาจไม่เต็มจอ (qa R15a ข้อ 4)
-- ปุ่ม Apple Maps ที่ 768 (ขึ้นเฉพาะ iOS) ยังไม่เห็นด้วยตา อาศัย CSS (qa R15a)
-
-### 5. เครื่องของ boss
-- ติดตั้ง Node 24 (เครื่องเป็น v26 ทำให้เทสต์ health ล้มในเครื่อง · R15 §8)
-- เทสต์ที่ล้มเฉพาะในเครื่อง Windows: `release.test` (`.bin/tsx` ENOENT) และเทสต์ที่ต้องใช้ Python (qa R15b) · ผลจริงดูจาก CI
-
-
+### 4. ตัดสินแล้ว — ไม่ทำ (ไม่ใช่งานค้าง)
+- นำเข้า ICS (PRD v1.x) — ไม่ทำใน 1.0 (G4 · boss) · งานหลัง 1.0
+- ข้อเสนอ PRD ที่ไม่มีคนขอ: deny list ผู้ถูกลบ · ผู้รับปิดรับคำเชิญตรง · ชื่อกลุ่มคล้ายกัน — ไม่ทำใน 1.0 (R18 §4 · B3)
+- guard ตอบ 200 ก่อน redirect (R16 H5) · Server-Timing บนหน้า RSC (R16 H6) · DST day strip
+- CSP แบบ nonce — ยอมรับความเสี่ยง (ADR 0014)
+- security-r16 Info 2–4 · security-r17 Info 3–4 — ไม่แก้ บันทึกเหตุผลใน ADR 0015 / OPERATIONS (R18 D3)
+- security-r17 Info 1–2 — ไม่แก้โค้ด จดใน OPERATIONS §K (R18 D2)
+- security-v1 Info 5 (access log ของ Vercel มี path `/i/<token>`) — ยอมรับตาม ADR 0016 §3 (จดใน OPERATIONS)
+- picomatch GHSA-fc5q-39xc-vjpf — ยังไม่มีรุ่นแก้ (ตรวจซ้ำ 2026-11-20) คงยอมรับความเสี่ยงใน OPERATIONS · ตรวจใหม่เมื่อมีรุ่นแก้
+- แถวแจ้งเตือนเก่าที่แสดงชื่อ SA — ไม่มี backfill (ไม่มี migration)
