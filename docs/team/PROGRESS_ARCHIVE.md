@@ -1,0 +1,312 @@
+# PROGRESS_ARCHIVE — หัวข้อประวัติที่ย้ายจาก PROGRESS.md (คำต่อคำ ตามลำดับเดิม)
+## เสร็จแล้ว [ประวัติ]
+- R0–R5: foundation, บัญชี PIN, กลุ่ม, ปฏิทิน + busy, วันว่างร่วม + สร้างนัด, หน้า super admin + audit log (ดู CHANGELOG)
+- ออก **v0.7.0** (2026-10-28) · ออก **v0.7.1** (2026-11-01) รวม R6A + R6B
+- CI-1: artifact Playwright อัปโหลดเฉพาะตอนเทสต์ล้ม (PR #10) · R6A (PR #11) · R6B (PR #13)
+- ทีม agent v2: 10 บทบาทใน `.claude/agents/` (PR #14)
+- **R6C merge แล้ว** (PR #15, merge commit `4990f3e`, 2026-11-01) — F3ก ตั้งสี/รูปทรงของตัวเองต่อกลุ่ม · migration `0002` (`color_slot`/`shape_slot`) · qa ผ่าน (`docs/reports/qa-r6c.md`) · security ผ่านแบบมีข้อสังเกต (`docs/reports/security-r6c.md`)
+- **migration `0002` รันแล้ว** (boss ยืนยัน 2026-11-02 ตามที่ main แจ้ง — เลขาไม่ได้ตรวจฐาน Turso เอง)
+- **R6D merge แล้ว** (PR #16, merge commit `44dad19`, 2026-11-02) — G1 จำกลุ่มที่เลือกไว้ต่อเครื่อง · G2 ตอบ "ไป" = ไม่ว่างทุกกลุ่ม + popup ยืนยัน/เตือนนัดชน (ไม่บล็อก) · ไม่มี migration · ADR `docs/adr/0009-going-counts-as-busy.md`
+  - ผลตรวจอิสระ: qa ผ่านแบบมีข้อสังเกต (`docs/reports/qa-r6d.md`, 0H/0M/4L) · security ผ่านแบบมีข้อสังเกต (`docs/reports/security-r6d.md`, 0C/0H/0M/2L/5I)
+- **ออก v0.8.0 แล้ว** (2026-11-02, tag `v0.8.0`, commit `37271af` `chore(release): v0.8.0`) รวม R6C + R6D
+- **R6E merge แล้ว** (PR #17, merge commit `b1daec1`, 2026-11-02 23:52 เวลาไทย) — E1–E12 ตาม `R6E_CONTRACT.md`
+  - ผลตรวจอิสระ: qa **ผ่านแบบมีข้อสังเกต** (`docs/reports/qa-r6e.md`, 0H/0M/4L) · security **ผ่าน** (`docs/reports/security-r6e.md`, 0C/0H/0M/0L, Info 4)
+  - **R6D L1/L2 ปิดแล้ว** · **F5 ปิดแล้ว** (boss เลือกคงข้อความ `privacy.draft` 2026-11-02 — ไม่แก้โค้ด)
+- **ออก v0.8.1 แล้ว** (tag `v0.8.1` → commit `72d7881` `chore(release): v0.8.1`, 2026-11-03 03:10 เวลาไทย) รวม R6E · รอบนี้ไม่มี migration
+- **ออก v0.10.0 แล้ว** (2026-11-09, tag `v0.10.0` → commit `d670fcc` `chore(release): v0.10.0`) รวม R8 · **repo เปลี่ยนเป็น public** (2026-11-08) · รายละเอียดหัวข้อ "v0.10.0 + repo public" ด้านล่าง
+- **ออก v0.11.0 แล้ว** (2026-11-10, tag `v0.11.0` → commit `a77fc50` `chore(release): v0.11.0`) รวม **R10** (F6 เตือนก่อนนัดทาง LINE OA + กระดิ่ง, เชื่อม LINE, ปุ่มขั้น 2) · migration `0004` (รันหลัง merge — ดูหัวข้อ R10) · รายละเอียดด้านล่าง
+
+## สถานะก่อนหน้า — 2026-11-19 (ปิดรอบ R16 · ออกรุ่น v0.14.0) [ประวัติ]
+- **v0.14.0 ออกแล้ว** (2026-11-19, tag → `7eaff23` `chore(release): v0.14.0`) · รวม R16 (PR #38, `1ae70a6`) · ไม่มี migration ใน R16 · หัวข้อ `[0.14.0] - 2026-11-19` ใน CHANGELOG
+- **v0.13.0 ออกแล้ว** (2026-11-18) · รวม R15a + R15b · ไม่มี migration ใน R15b · บันทึกปิดรอบอยู่ใน `docs/contracts/R15_CONTRACT.md` หัวข้อ "ปิดรอบ R15"
+- **v0.12.0 ออกแล้ว** (2026-11-15, tag `v0.12.0` → `4c5681b` `chore(release): v0.12.0`) รวม R11–R14 (PR #28–#33) · มี migration `0005` (R14a) · หัวข้อ `[0.12.0] - 2026-11-15` ใน CHANGELOG
+- **PR #36** (`8af88ee`, merge 2026-11-18) ปิดรอบ R15 + เพิ่ม `docs/contracts/DOCS_SYNC_CONTRACT.md` + แก้ CI (`321a060`, `7d5ed24`) · งานเอกสารที่เหลือตาม DOCS_SYNC §5–§6 อยู่ที่หัวข้อ "เหลือ" ข้อ 0
+- **R15a** merge แล้ว (PR #34) · ผลตรวจอิสระ: qa `docs/reports/qa-r15a.md` ผ่านแบบมีข้อสังเกต · security `docs/reports/security-r15a.md` ผ่านแบบมีข้อสังเกต (Low 1, Info 4) · boss ทดสอบ T1–T3 ผ่าน (2026-11-17)
+- **R15b** merge แล้ว (PR #35) · ผลตรวจอิสระ: qa `docs/reports/qa-r15b.md` **ผ่าน** (ไม่มี Critical/High/Medium; Low 1, Info 3) · security `docs/reports/security-r15b.md` **ผ่านแบบมีข้อสังเกต** (Low 1, Info 6)
+  - ลดจำนวน query โดย JSON เท่าเดิม (ล็อกใน `tests/perf/r7-baseline.test.ts` และ `tests/platform/r15b-golden.test.ts`): RSVP 10→9 · RSVP ทางแจ้งเตือน 14→11 · รายละเอียดนัด 5→4 · หน้า `/groups/[gid]` 11→10 (ตามข้อความ commit `ac6e99e` · ค่าเหล่านี้เป็นเพดานในเทสต์ ไม่ใช่ผลวัดใหม่โดยเลขา)
+  - hardening: rate limit (PATCH busy/routine นับ 404, ออก/เข้ากลุ่ม, ไอคอนกลุ่ม) · `?scope=` ซ้ำ → 400 · `/api/prefs` บันทึก locale · LINE: ลิงก์ในชื่อนัด/กลุ่มทำให้กดไม่ได้ (ยกเว้นกรณีใน "เหลือ" B) · เพดาน LINE OA 300 ข้อความ/เดือน (B6) · ป้าย "ผู้ดูแลระบบ" (B7)
+- **หลักฐานอื่นที่ตรวจแล้ว:** `docs/reports/` มี qa/security R15a และ R15b · `gh api` ruleset `main` active มี required checks 9 ตัว · `gh repo view` = PUBLIC
+- **ข้อมูลที่ boss รายงาน (เลขาไม่ได้ตรวจเอง):** production `/api/health` = 0.13.0 · boss ลบ env เก่าใน Vercel แล้ว (เฉพาะตัวที่มีอยู่) · LINE เตือน 1 วันผ่านแล้ว · T1–T3 ของ R15a ผ่าน
+
+## R14 — busy แบบ routine (ชุดทางลัด) — R14a merge แล้ว (PR #32) · R14b merge แล้ว (PR #33) · ออกรุ่นใน v0.12.0 ✅ [ประวัติ]
+- contract `docs/contracts/R14_CONTRACT.md` (main) · **boss เห็นชอบ 2026-11-11** ("เห็นชอบ เริ่มเลย") · B1–B8 ใช้ค่าแนะนำทั้งหมด · B9 แบ่งสอง PR (R14a เซิร์ฟเวอร์ · R14b หน้าจอ) · B11/B12 ตัดสินหลังผลวัด perf (§9) · ADR `docs/adr/0012-busy-routines.md` (Accepted)
+- branch `feat/r14-busy-routine` แตกจาก `main` ที่ `98186ef` · **PR #32 merge แล้ว** (merge commit `b121958`, 2026-11-11 04:55 UTC · ตรวจด้วย `gh pr view 32`) · HEAD ของ branch ก่อน merge `c408572`
+- **migration `0005`** (`drizzle/0005_r14_busy_routine.sql`) เพิ่มอย่างเดียว: ตาราง `busy_routine`, `busy_routine_skip`, คอลัมน์ `busy_block.routine_id` (ไม่ rebuild ตาราง, ไม่ backfill) · ลำดับตาม `docs/OPERATIONS.md` (บรรทัด ~107): preview → prod ก่อน merge · rollback: ย้ายแอปอย่างเดียวพอ (OPERATIONS บรรทัด ~116)
+  - boss รัน `0005` บน preview และ prod แล้ว (ตามที่ main แจ้ง 2026-11-11 · เลขาไม่ได้ตรวจฐาน Turso เอง)
+- เนื้อหาฝั่งเซิร์ฟเวอร์ (ยังไม่มีหน้าจอ): `/api/me/busy-routines` สร้าง/แก้/ลบ · ลบ/แยกทีละวันของ busy ที่มาจาก routine · เพดาน: สร้างใหม่ ≤ 10 ชุดที่ยังไม่จบ · แยกจาก "ตั้งแต่…ไป" ไม่นับ 10 (B12) แต่ hard cap 20 (main §10 M1 — main รายงานว่า boss ทราบแล้ว; เลขาไม่เห็นบันทึกการตัดสินของ boss ในรีโป) · ≤ 1,500 วันของ routine ต่อคน · ช่วง ≤ 26 สัปดาห์/6 เดือน · วันจบ ≤ วันนี้ + 12 เดือน · rate limit `busy:routine` 20 คำขอ/10 นาที · cron ลบชุดที่จบเกิน 93 วัน (§9)
+- availability (§10 M2 / B11): คำนวณวันว่างจาก `FREE_TIME_MAX_ITEMS` 32,000 แถว · `busy[]` ส่งไม่เกิน 5,000 ชิ้น + ธง `detailTruncated` · วันว่างไม่ถูกตัด
+- **ผลตรวจอิสระ (คนละ agent กับผู้ทำ):**
+  - qa: รอบแรก `docs/reports/qa-r14a.md` (`902bb2d`) ผ่านแบบมีข้อสังเกต · รอบซ้ำหลัง §10 (`c408572`) **ผ่าน** · ข้อสังเกตที่เหลือ: ข้อ 2 (รายการ/`truncated`), ข้อ 5 (ศัพท์) → ดูหัวข้อ R14b
+  - security: รอบแรก `docs/reports/security-r14a.md` (`e38b1f6`) ผ่านแบบมีข้อสังเกต (M1 เพดาน 10 ถูกเลี่ยงด้วยวงแยก, M2 ขนาด availability, L1, Info 5) · รอบซ้ำ (`205c874`) **ผ่าน** · Critical/High/Medium/Low 0 · Info 6 → ดูหัวข้อ R14b
+  - โค้ดที่ตรวจซ้ำ = `7b9d21e` · commit หลังจากนั้นแตะเฉพาะ `docs/reports/qa-r14a.md` และ `security-r14a.md` (ตรวจด้วย `git diff --stat 7b9d21e..HEAD`)
+- **ผลเทสต์ (ตามรายงาน qa ไม่ใช่เลขาที่รันเอง):** รอบซ้ำ qa: `tsc` 0 · `lint` 0 · `build` 0 · `vitest` ทั้งชุด 5510 ผ่าน / 17 ล้ม / 19 skip — 17 ล้มเป็นเรื่องเครื่อง Windows ทั้งหมด (7 ไฟล์เดิม ไม่มีไฟล์ใหม่ล้ม) · e2e 969 ผ่าน / 126 skip / 0 ล้ม รันก่อนแก้ตาม §10 (รอบซ้ำไม่ได้รัน e2e ชุดเต็ม)
+- ตัวตรวจ security รอบซ้ำรัน probe ที่ M1 (`race19`) ได้ `active: 20` และ 409 `LIMIT_REACHED max 20` ตามที่รายงาน
+- ยังไม่ทำใน R14a: README และ quickstart (ไม่มี UI ใน R14a — ทำใน R14b ตาม R14 §3) · CI และ Vercel ของ PR #32 (ยังไม่ยืนยัน) · ทดสอบ migration บนฐาน Turso จริง (เลขาไม่ได้ทำ)
+- agent ที่ทำงานใน R14a (ตามที่ main รายงาน): architect, auth, ux, platform, test, ops, qa, security, secretary
+- **ยังไม่ยืนยัน:** CI/Vercel ของ R14a · ตัวเลขขนาด response 4.5 MB บน Vercel จริง (วัดในเครื่อง libSQL เท่านั้น) · ผลเทสต์ที่เลขาไม่ได้รันเอง
+
+### R14b — สถานะ (2026-11-11)
+- **เสร็จแล้ว (ตาม git log ของ branch `feat/r14b-busy-routine-ui`):** frontend ตาม design note (`867e4e4`, `065593b`, `bf43797`, `3f005b8`) · ฝั่งเซิร์ฟเวอร์ `remaining` แก้ให้ไม่เป็น 0 เสมอ (`afc1bd9`, platform) · e2e `tests/e2e/r14b-busy-routine.spec.ts` (`335b5bc`) · README และ quickstart รอบนี้
+- **ผลเทสต์ e2e 24/24:** เป็นตัวเลขที่ main แจ้ง เลขาไม่ได้รันเอง · ยังไม่มีรายงาน qa-r14b / security-r14b ในรีโป
+- **ค้างต่อ (ปิดแล้ว 2026-11-18):** `docs/reports/qa-r14b.md` ผ่านแบบมีข้อสังเกต · `docs/reports/security-r14b.md` ผ่าน · PR #33 merge แล้ว (`d928a9d`) · ออกรุ่นใน v0.12.0
+- **รายการด้านล่างเป็นข้อที่ main ระบุตอนเริ่ม R14b** สถานะรายข้อยังไม่ยืนยันโดยเลขา ให้ดูผล qa-r14b / security-r14b
+- **ศัพท์ (ปิดแล้ว 2026-11-18):** ไม่พบคำว่า "กิจวัตร" ใน `docs/OPERATIONS.md` และ `CHANGELOG.md` (ตรวจด้วย grep) · UI และเอกสารใช้ "แบบประจำ" (หมายเหตุใน `docs/design/R14_BUSY_ROUTINE.md` บรรทัด 152)
+- **frontend รองรับ `availability.detailTruncated`:** สมาชิกอาจหายจาก `blockers` ของวันนั้นแต่ยังอยู่ใน `notFreeUserIds` (security Info 7) · ต้องไม่สื่อว่า "ไม่มีใครติด" เมื่อรายละเอียดถูกตัด · ใช้ถ้อยคำ `availability.detailTruncated` (TH/EN ยืนยันแล้วโดย qa)
+- **ใช้ `noOccurrenceEdit` เฉพาะโหมดแก้ไข** (ข้อความ `VALIDATION weekdays NO_OCCURRENCE` ตอนแก้ในที่) · โหมดสร้างใช้ `noOccurrence` · ระบุใน design note แล้ว
+- **รายการ routine และ `truncated`:** GET คืนชุดที่ยังไม่จบครบ · `truncated` = เฉพาะชุดที่จบแล้วเกิน 50 (`BUSY_ROUTINE_LIST_MAX`) · qa ข้อ 2 ขอให้ UI รับรู้ธงนี้
+- **ข้อความ error ของการแยกชุด** (`busy.routine.error.routinesEdit`, เพดาน 20) และ "ทั้งหมดที่ยังไม่ถึง" ที่ชี้ไปทางออก · ตรวจว่า frontend เรียกคีย์ตรงสถานการณ์
+- **qa ข้อ 3 (ยอมรับ):** "หยุดตั้งแต่วันนี้" ลบแถววันนี้ที่จบไปแล้ว · ข้อความ `scope.delete.fromHelp` บอกแล้วทั้ง TH/EN
+- **security Info ที่เปิดอยู่ (ไม่บล็อก):** Info 1 PATCH 404 ไม่กิน rate limit · Info 3 รูปแบบเวลาเดาได้ (ยอมรับตาม ADR 0012 §7) · Info 4 `busy_block.routine_id` ไม่มี FK (ยอมรับตาม ADR 0012 §5) · Info 5 `manual-delete-sql` ล้ม 4/4 บน CRLF ของ Windows (ปัญหาเครื่อง) · Info 6 tz ของชุดที่กำลังแก้นับเพดาน 20/10 ได้หลวม ~1 วันที่ขอบ tz · Info 7 = `detailTruncated` ข้อแรก
+- **เทส R14b (ตาม R14 §4 R14-8/R14-9/R14-10):** e2e 375/390/768 · TH/EN · สว่าง/มืด · ปุ่ม ≥ 44px · flow: ปุ่มทางลัด → อีกบัญชีเห็นวันว่าง → ลบวันเดียว → แก้ตั้งแต่สัปดาห์ที่ 3 → ลบทั้งหมด
+- **README และ `docs/guides/quickstart-th.html`** (secretary, R14b) · ทำแล้วในรอบนี้ · `CHANGELOG` และ OPERATIONS ยังไม่แก้โดยเลขา
+- **ทดสอบเครื่องจริง** R14 §6 (boss 2026-11-11): T1–T3 ผ่าน · T4 ผ่านหลังพบวิธีลบทีละวัน (ข้อ "เว้นบางวัน" ไป R15a) · บันทึกใน `docs/contracts/R14_CONTRACT.md` บรรทัด ~100–107
+
+## R13 — สถานที่แบบวางลิงก์ + ลิงก์ปฏิทินที่อ่านง่าย — merge แล้ว (PR #31, `98186ef`) · boss ทดสอบ T1–T4 ผ่าน ✅ [ประวัติ]
+- contract `docs/contracts/R13_CONTRACT.md` (main) · **boss เห็นชอบ 2026-11-11** ("เห็นชอบ เริ่มเลย") · **ไม่มี migration** · branch `feat/r13-location-simplify` แตกจาก `main` ที่ `bc0eef8` (ตาม contract)
+- เนื้อหา: เอาการค้นหาสถานที่และภาพแผนที่ OpenStreetMap ออก · ช่องวางลิงก์แผนที่ + ปุ่ม Google Maps / Apple Maps · ลิงก์ในปฏิทิน (`URL` = ลิงก์แผนที่ ป้าย "แผนที่:" / "ดูนัดในแมวเจอกัน:") · แก้ปุ่มตัดบรรทัดที่ 375 (backlog qa R12.1) · ลบ env และ route ค้นหา
+- ใครทำอะไร (ตรวจด้วย `git log` ของ branch):
+  - ux `29fa1e7` ถ้อยคำ TH/EN ช่องลิงก์ ปุ่ม ป้ายปฏิทิน
+  - platform `f09c2ab` `ics.ts` (ป้าย, `URL`) · ลบ route/service ค้นหา · `5d99338` ป้าย .ics ตามคุกกี้ `mm_locale` → `user.locale` → th
+  - architect `f4e89a8` หมายเหตุ ADR ว่าค้นหาสถานที่และภาพแผนที่ถูกเอาออก
+  - ops `44be010` env, CSP, docs, CHANGELOG Unreleased
+  - auth `e17ea2a` ลบ action `place.search`
+  - frontend `dcdc5c3` PlaceField, การ์ดสถานที่, ปุ่มแผนที่, ลบ PlaceMap
+  - test `c469617` e2e `r13-location.spec.ts` และปรับ e2e เดิม · ตามรายงาน main: e2e ทั้งชุด 968 passed / 126 skipped / 0 failed (เลขาไม่ได้รันซ้ำ)
+  - main `dd40700`, `d62020a` contract, PRD D11/U10 (ตาม commit message)
+- **ตรวจอิสระ (คนละ agent กับผู้ทำ):**
+  - qa `a6632f7` + `98818aa` รายงาน `docs/reports/qa-r13.md` · **ผ่านแบบมีข้อสังเกต** · แก้ e2e r12 ป้ายตามภาษา (`a6632f7`) · ไม่พบบั๊กโค้ด · ของ qa: vitest ทั้งชุด 5180 ผ่าน / 21 ล้ม (เรื่องเครื่อง Windows: config-hygiene, release CLI, pepper/admin-reset) · R13-1..5 ผ่าน
+  - security `ac0d22c` รายงาน `docs/reports/security-r13.md` · **ผ่าน** · Critical–Low 0 · Info 5
+  - backlog ใหม่จากการตรวจ (ไม่บล็อก): ปุ่ม Apple/Google ที่ 768 กรณีมีแต่ชื่อซ้อนแนวตั้งกว้างไม่เท่ากัน (ความสวยงาม) · `/api/prefs` ไม่บันทึก `user.locale` ตอนสลับภาษา (ของเดิม) · security Info 1: จำกัดโฮสต์ลิงก์แผนที่ถ้าต้องการ
+- **merge แล้ว:** PR #31 (`feat/r13-location-simplify`) merge เป็น `98186ef` (ตรวจด้วย `git log origin/main` — `Merge pull request #31`)
+- **boss ทดสอบ T1–T4 ผ่าน** (บันทึกใน `docs/contracts/R13_CONTRACT.md` §5 บรรทัด ~105–106: T1–T3 iPhone ผ่าน · ภาพหน้าจอ T3 Location แสดง Google Maps พร้อมปุ่ม Open · T4 Android ผ่านจากเพื่อนของ boss "โอเค เหมือนเดิม") · main แจ้งว่าทดสอบบน production
+- **ยังไม่ยืนยัน:** ผลเทสต์ของ R13 ที่เลขาไม่ได้รันเอง (ใช้ตัวเลขจาก main/qa ตามที่ระบุ) · CI และ Vercel ของ `98186ef` (เลขาไม่ได้ตรวจเอง)
+
+## R11 — แจ้งเตือนเหตุการณ์นัดและสมาชิก + LINE ยกเลิกนัด — merge แล้ว (PR #28) · ออกใน v0.12.0 (2026-11-15) ✅ [ประวัติ]
+- contract `docs/contracts/R11_CONTRACT.md` (main) · boss เห็นชอบขอบเขต 2026-11-10 · **ไม่มี migration**
+- เนื้อหา: กระดิ่งเพิ่มเหตุการณ์นัด (ยกเลิก, เปลี่ยนเวลา/สถานที่, คำตอบนัดถึงผู้สร้าง), คำเชิญ (รับ/ปฏิเสธ), สมาชิกเข้า/ออก, ถูกนำออก, เปลี่ยนสิทธิ์, ผลรีเซ็ต PIN · LINE ส่งการยกเลิกนัดเฉพาะคนที่ตอบ "ไป" · การเลื่อนนัดไม่ส่ง LINE
+- เอกสาร README และ quickstart อัปเดตแล้ว (commit `ee35fb8` บน branch เดียวกัน)
+- ผลตรวจอิสระ: **qa ผ่านแบบมีข้อสังเกต** (`docs/reports/qa-r11.md`, ตรวจซ้ำที่ `0e0861c`, qa commit `63e6945`) · **security ผ่านแบบมีข้อสังเกต** (`docs/reports/security-r11.md`) · ไม่มี Critical/High/Medium เปิดอยู่ · M1 และ L1 แก้แล้ว
+- ผลเทสต์ที่ qa รายงาน (รันในเครื่องท้องถิ่น ยังไม่ใช่ CI): tsc และ eslint exit 0 · Vitest ชุดที่เกี่ยว R11: pass 773 · EPERM-only 524 · assertion fail 0 · ที่เหลือ 3 รายการ = CRLF ของเครื่อง Windows 2 และ skip ตั้งใจ 1 · Playwright ชุดกระดิ่ง: 121 passed · 26 skipped · 0 failed · e2e เต็มชุดก่อนแก้เพดาน: 796 passed · 126 skipped · 2 failed (qa แก้แล้ว รันซ้ำผ่าน)
+- สถานะ: **merge แล้ว** (PR #28, merge commit `348bd86` 2026-11-10 07:24 เวลาไทย · ตรวจด้วย `git log origin/main`) · **ยังไม่มี tag v0.12.x** (ตรวจด้วย `git ls-remote --tags origin` รอบ R12 ไม่มีรายการนี้) · เลขเวอร์ชันที่เสนอ **v0.12.0** · boss เป็นคนออกรุ่นเอง
+- **ยังไม่ยืนยัน:** CI, Vercel preview, `after()` และการส่ง LINE จริง (R11-12 หลัง merge โดย boss และ main)
+- backlog จาก security (ไม่บล็อก): Low 2 ชื่อ super admin ที่ไม่ได้เป็นสมาชิกปรากฏในกระดิ่งของกลุ่ม · Low 3 ไม่มีเพดานรวมของ LINE OA · Low 4 ชื่อนัด/ชื่อกลุ่มเป็นข้อความอิสระที่ออกทาง OA · Info 7 ไม่มี limiter การเข้า/ออกกลุ่มซ้ำ (เพดานจำกัดแถวกระดิ่ง ไม่ได้จำกัดการกระทำ)
+- ต่อจากนี้ดูหัวข้อ R12 ด้านล่าง
+
+## R12 — เพิ่มนัดลงปฏิทินในเครื่อง (.ics + Google Calendar) — merge แล้ว (PR #29, `bef0b73`, 2026-11-10 11:00 เวลาไทย) · ออกใน v0.12.0 (2026-11-15) ✅ [ประวัติ]
+- contract `docs/contracts/R12_CONTRACT.md` (main) · **boss เห็นชอบ 2026-11-10** ("เห็นชอบ เริ่มเลย") · **ไม่มี migration**
+- ที่มา: boss ถามว่าคนที่ตอบ "ไป" เอานัดลงปฏิทิน iOS/Android ได้ไหม · ได้นัดเป็นการคัดลอกครั้งเดียว ไม่ซิงก์ ถ้านัดเปลี่ยนต้องแก้เอง
+- การตัดสินของ boss (contract §11): **B1** ไม่ส่งรายละเอียดนัดไป Google (ตามแนะนำ) · **B2** คนที่ boss ให้ช่วยทดสอบ Android จริงตาม §9 (ถ้า Android ไม่ผ่าน = ไม่ merge) · **B3** เห็นชอบ contract
+- ส่งงานแล้ว (ตรวจด้วย `git log` ของ branch `feat/r12-add-to-calendar`):
+  - ux: `c74a792` wireframe และถ้อยคำ TH/EN
+  - platform: `a7402e1` route `calendar.ics` และลิงก์ Google Calendar
+  - frontend: `8cd31a4` ปุ่ม "เพิ่มลงปฏิทิน" และ sheet ในหน้านัด
+  - ops: CHANGELOG ส่วน Unreleased `09bd083`
+  - secretary: README และ quickstart `1afa729` · PROGRESS (commit นี้)
+  - test: `1336803` route lock ยอม `calendar.ics` + e2e R12 (รายงานจาก main: 120 passed ยังไม่ได้รันซ้ำโดยเลขา)
+  - platform แก้ Low 2 ข้อ: `0dab604` audit ก่อนตรวจสถานะ และบล็อก cross-site `.ics` navigation
+  - ux: `b4488df` เติมเนื้อหา `/privacy` หัวข้อ calendar (§6)
+- **ตรวจอิสระ (รอบนี้ ผู้ตรวจคนละตัวกับผู้ทำ):**
+  - qa: รายงาน `docs/reports/qa-r12.md` · ตรวจครั้งแรกผ่านแบบมีข้อสังเกต · ตรวจซ้ำหลังแก้ `9466d5f` ผ่าน (verdict ตามรายงาน)
+  - security: รายงาน `docs/reports/security-r12.md` · ตรวจซ้ำการแก้ Low 1/Low 2 ที่ `0dab604` (รายงาน `c025f8f`) · Low 0 ตามรายงาน
+  - **ข้อจำกัดของผลเทสต์ในเครื่องท้องถิ่น:** qa ใช้ Vitest กับ shim ที่กลืน EPERM ของ `fs.rmSync` เท่านั้น (อยู่นอก repo) · เทสต์ DB ในเครื่อง Windows จึงไม่ใช่หลักฐานแทน CI · ยังไม่มีผล CI
+- **ผลทดสอบเครื่องจริง (ตาม `docs/contracts/R12_1_CONTRACT.md` §5 บันทึกผลทดสอบ R12 ที่ผ่านมา · คัดตามนั้น):**
+  - iPhone Safari (I1): ผ่าน — boss ทดสอบบน production และส่งภาพหน้าจอ · ไม่พบไฟล์ `.ics` ค้างใน Downloads
+  - Android: boss ถือว่าผ่านจากคำตอบ "โอเค" ของเพื่อน 2026-11-10 **ไม่มีรายละเอียดผลทดสอบ A1–A6 จึงยังไม่ได้ยืนยันรายข้อ**
+  - ข้ออื่นใน R12 §9 (I3–I9) ยังไม่ได้ทดสอบ · ไม่บล็อกตามเกณฑ์เดิม
+  - รายงานจาก main: preview ของ Vercel ติดล็อกอิน Vercel (ยังไม่ได้ตรวจเอง)
+- **ห้ามอ้างว่าเครื่องจริงผ่านเกินกว่าที่บันทึกข้างบน**
+- **ยังไม่มีผล CI และ Vercel preview ของ `bef0b73` ในบันทึกนี้** (เลขาไม่ได้ตรวจ)
+- **ยังไม่ยืนยัน (contract §3):** Safari เปิด `.ics` บน iPhone · `calendar/render` ของ Google บน Android (ไม่มีเอกสารทางการ) · Android เปิด `.ics` · การดาวน์โหลดใน LINE in-app browser (สมมติว่าใช้ไม่ได้ ตาม §4.4)
+- เลขเวอร์ชันเสนอ **v0.13.0** ถ้า boss ออก v0.12.0 (R11) ก่อน R12 merge · ถ้ายังไม่ออก R11 จะรวมในรุ่นเดียวกับ R12 (boss เลือกตอนออกรุ่น)
+- ผลทดสอบเครื่องจริงรอบ R12 ไม่ได้ปิดเกณฑ์ R12-18 ของ Android ให้ชัด (ดูรายการด้านบน)
+
+## R12.1 — เก็บงานหลังทดสอบ iPhone (ชื่อปุ่ม + ลิงก์แผนที่ + เวลา TZID) — merge แล้ว (PR #30, `bc0eef8`) · ทดสอบ iPhone บางส่วน · ออกใน v0.12.0 (2026-11-15) ✅ [ประวัติ]
+- contract `docs/contracts/R12_1_CONTRACT.md` (main) · **boss เห็นชอบ 2026-11-10** ("เห็นชอบ เริ่มเลย") · **ไม่มี migration** · แตกจาก `bef0b73` · branch `feat/r12-1-calendar-polish`
+- boss ตัดสิน B1 (§6): แก้บรรทัด GMT บน iPhone (ใช้ TZID) · ถ้าเทสแล้วไม่หายก็ไม่ต้องสนใจ · ถ้าเวลาผิดให้กลับไปใช้ UTC
+- ส่งงานแล้ว (ตรวจด้วย `git log` ของ branch):
+  - ux: `173d590` ถ้อยคำปุ่มและหัว sheet ตาม §1.1 · `googleNote` และ `privacy.calendar.body` ตาม §1.3
+  - platform: `adcbf7e` ลิงก์แผนที่และ tz ใน `.ics` (ตามชื่อ commit · เลขายังไม่ได้ตรวจโค้ด)
+  - main: `8be2f51` contract แก้ให้ frontend ส่ง `mapUrl` ไป Google link
+  - frontend: `241260f` ส่ง `mapUrl` ไป Google link และทำ `GoogleCalendarInput.mapUrl` เป็น required
+  - test: `0c843fa` เทสต์ TZID, e2e ลิงก์แผนที่ และแก้ typecheck (รายงานจาก main: e2e R12 132 passed · เลขาไม่ได้รันซ้ำ)
+  - ops: `cc0458a` CHANGELOG Unreleased
+  - secretary: `b10a02a` README และ quickstart (ชื่อปุ่มและลิงก์แผนที่) · PROGRESS (commit นี้)
+- **ตรวจอิสระ (ผู้ตรวจคนละตัวกับผู้ทำ):**
+  - qa: `b093046` รายงานต่อท้าย `docs/reports/qa-r12.md` · **ผ่านแบบมีข้อสังเกต** · ไม่มีคอมมิตแก้โค้ด · R12.1-3..6 ผ่าน และ R12.1-8 ยังรอเครื่องจริง
+  - security: `e99523f` รายงานต่อท้าย `docs/reports/security-r12.md` · **ผ่าน** · Low 0 · มี Info ไม่บล็อก
+  - **ข้อจำกัดของผลเทสต์ในเครื่องท้องถิ่น:** รันผ่าน shim นอก repo ที่กลืน EPERM · ยังไม่มีผล CI
+- **backlog นอกขอบเขต R12.1 (จาก qa, ต่ำ):** ปุ่ม "เปิดลิงก์แผนที่ (www.openstreetmap.org)" ในการ์ดสถานที่ที่ 375px ตัดบรรทัดสอง และตัวอักษรบรรทัดแรกชิดขอบบนของปุ่ม
+- **ผลทดสอบ iPhone (boss 2026-11-11 บน production หลัง merge PR #30):**
+  - T1 ผ่าน: ปุ่ม "เพิ่มลงปฏิทินในเครื่อง" บรรทัดเดียว ไม่ล้น
+  - T2 ผ่านบางส่วน: ลิงก์แผนที่ (`maps.app.goo.gl`) อยู่ใน Details บรรทัดแรก ตามด้วยลิงก์นัด · **ยังไม่ยืนยันว่ากดแล้วเปิดแผนที่**
+  - T3 ผ่าน: เวลา 18:00–21:00 ตรงกับนัด ไม่เห็นบรรทัด `(GMT)` แล้ว
+  - feedback: ลิงก์สองอันใน Details ไม่มีป้ายกำกับ · ช่อง Location แสดงลิงก์แอป (`URL`) แทนลิงก์แผนที่ → ส่งต่อเป็น R13 (§1.4)
+- **ยังไม่ยืนยัน:** CI และ Vercel ของ `bc0eef8` (เลขาไม่ได้ตรวจเอง) · ผลบน Android ไม่มีรายละเอียด (ดูหัวข้อ R12)ว่าผ่าน
+- เลขเวอร์ชันให้ boss เลือกตอนออกรุ่น (R11, R12 ออกแล้วใน v0.12.0 วันที่ 2026-11-15)
+
+## R10 — F6 เตือนก่อนนัด (LINE OA + กระดิ่ง) + ปุ่มขั้น 2 — merge แล้ว (PR #26) · ออก v0.11.0 แล้ว (2026-11-10) ✅ [ประวัติ]
+- **merge แล้ว:** PR #26 (`feat/r10-line-reminders`) merge เป็น `dd6ff8e` เมื่อ 2026-11-09 23:39 เวลาไทย (รายงานโดย boss/main)
+- **ออก v0.11.0 แล้ว:** tag `v0.11.0` → commit `a77fc50` `chore(release): v0.11.0` (ตรวจด้วย `git rev-list -n1 v0.11.0`) · หัวข้อ `[0.11.0] - 2026-11-10` ใน CHANGELOG · `/api/health` ตอบ `0.11.0` (boss รายงาน)
+- **เหตุการณ์หลัง merge (boss รายงาน · ไม่มีข้อมูลหาย เพราะ migration เป็นการเพิ่มอย่างเดียว):**
+  - migration `0004` **ยังไม่ได้รันก่อน merge** (ลำดับที่ OPERATIONS กำหนดคือรันก่อน merge) → หลัง merge production โหลดนัดไม่สำเร็จ ("โหลดนัดไม่สำเร็จ") จน boss รัน `0004` บน prod แล้วจึงรันบน preview
+  - Schedule `reminders` รอบ 23:50 และ 00:05 ล้ม (รอบ 00:05 บันทึก HTTP 500 · ยังไม่ได้อ่านข้อความ error ที่แน่ชัด) · รอบ 00:20 และ 00:35 Completed
+  - **บทเรียน:** ลำดับ "migration ก่อน merge" ถูกบังคับด้วยคำสั่งอย่างเดียว · process หรือ CI guard ที่ตรวจ migration ที่ยังไม่รันเป็นรายการ backlog ที่ควรพิจารณา
+- **การตั้งค่า LINE (boss รายงาน):** long-lived token และ Channel secret เก็บใน Bitwarden · ตั้งใน Vercel Production แล้วและ redeploy · Webhook Verify Success · Use webhook เปิด · Webhook redelivery ปิด (ไม่มี webhookEventId dedupe) · Error statistics aggregation เปิดตามที่แนะนำ · หน้า Schedules ของ Vercel: เปิดด้วยการต่อ `/schedules` ท้าย URL โปรเจกต์ (boss หาเมนูไม่เจอ)
+- **ทดสอบ LINE จริง R10-11 (boss รายงาน ผ่าน):** รหัสเชื่อมในแชท OA · ข้อความยืนยันการเชื่อม · `/me` แสดงว่าเชื่อมแล้ว · คำค้น `วิธีใช้งาน` ยังได้การ์ด · `สวัสดี` ไม่ได้รับการตอบ · เตือน 1 ชม. ของนัดเวลา 02:00 วันที่ 10 พ.ย. ถึง LINE เวลา 01:05 และถึงกระดิ่ง · เห็นแต่ละช่องทางหนึ่งครั้ง ไม่พบข้อความซ้ำ
+- **ยังไม่ได้ทดสอบบน LINE จริง:** เตือน 1 วัน และ `rsvp_nudge`
+- contract `docs/contracts/R10_CONTRACT.md` (`b529819`, main) · **boss เห็นชอบ 2026-11-09** ("เพิ่ม แล้วเริ่มเลย") · แก้ตามผลรีวิว: `4ca32a2`, `767d6cc` (เพดาน LINE จาก security M1)
+- branch `feat/r10-line-reminders` · HEAD `87018b3` ตอนรีวิว (ก่อน merge ที่ `dd6ff8e`) · แตกจาก main · 21 commit · `git diff --stat main..HEAD`: 64 ไฟล์ +5901 / −34
+- เนื้อหา: เตือน 1 วัน + 1 ชม. ในกระดิ่งและ LINE เฉพาะคนตอบ "ไป" · `rsvp_nudge` กระดิ่งอย่างเดียวสำหรับ "อาจไป"/ยังไม่ตอบ · เชื่อม LINE ที่แท็บ "ฉัน" (webhook, ยกเลิก) · เพดาน LINE (นัด+ชนิด+ผู้รับ ≤ 2 ใน 24 ชม. · ผู้รับ ≤ 6 ใน 24 ชม.) · ปุ่มขั้น 2 เปิดฟอร์มลงวันไม่ว่าง · migration `0004_r10_line_reminders.sql` (เพิ่มอย่างเดียว)
+- **ผลตรวจอิสระ:**
+  - qa **ผ่าน** (`docs/reports/qa-r10.md`) · รอบแรกผ่านแบบมีข้อสังเกต (M1 ถ้อยคำ "อีกวันเดียว" ตายตัว) → แก้แล้ว `999b471`/`a75d7e8` · ตรวจซ้ำ `87018b3`: M1 ปิด · e2e `tests/e2e/r10-reminders.spec.ts` 60 passed (ตามรายงาน qa)
+  - security **ผ่านแบบมีข้อสังเกต** (`docs/reports/security-r10.md`) · Critical 0 · High 0 · Medium 0 (M1 เพดาน LINE แก้แล้ว `73d85ac`) · Low ที่เปิดเป็น backlog: L1 ลิงก์ในชื่อนัด/ชื่อกลุ่มที่ LINE ทำให้กดได้ · L3 เพดานเป็นต่อผู้รับ ยังไม่มีเพดานรวมของ OA · L2 แก้แล้ว
+- ตัวเลขเทสต์ (ของ qa ไม่ใช่เลขาที่รันเอง): tsc/eslint/build ผ่าน · vitest ทั้งชุดหลังกลืน EPERM 4980 ผ่าน 4945 ล้ม 17 (ปัญหาเครื่อง Windows เดิม ไม่เกี่ยวกับ R10)
+- ผู้ทำ (ตาม `git log main..HEAD`): platform 4 · main 3 · ops 3 · ux 3 · architect 2 · qa 2 · security 2 · frontend 1 · test 1
+- **ยังไม่ยืนยัน:** CI ของ `a77fc50` (ตอนตรวจล่าสุดยังรันอยู่) · เตือน 1 วันและ `rsvp_nudge` บน LINE จริง · ผลเทสต์ในรอบนี้ของเลขา (เลขาไม่ได้รันเอง)
+- ข้อสังเกตนอกขอบเขต (ไม่บล็อก): qa L2 Hobby Schedules มี jitter ~15 นาที (`reminder_1h` ยังทันถ้าพลาดไม่เกิน ~45 นาที) · qa L3 ภาพ fullPage ของ `/me` (อาการของเดิม) · security Info 5 แถว outbox `pending` ไม่ถูกลบตาม retention ถ้าเอา env LINE ออกหลังเข้าคิว · security Info 8 event ที่ล้มกลางทางตอบ 200 ไม่ retry
+- **ขั้นของ boss (contract §8) ตามที่รายงาน:** migration `0004` รันแล้ว (prod ก่อน แล้ว preview · หลัง merge ตามเหตุการณ์ด้านบน) · token/env/webhook ตั้งแล้ว · ทดสอบ R10-11 ผ่านตามที่ระบุ · **ยังไม่มีข้อมูลว่าชวนเพื่อนแล้วหรือยัง**
+- Backlog R10 (ไม่บล็อก): security L1 (ลิงก์ในชื่อนัด/ชื่อกลุ่มที่ LINE ทำให้กดได้ · เสนอกรองข้อความที่ออก LINE) · L3 (เพดานเป็นต่อผู้รับ ยังไม่มีเพดานรวมของ OA หรือการแจ้งเตือนโควตา) · ถ้า repo กลับเป็น private ต้องลด CI
+- ข้อเสนอ backlog จากเหตุการณ์ migration: process หรือ CI guard ตรวจ migration ที่ยังไม่รันบนฐานก่อน merge (ยังไม่ตัดสิน)
+
+## v0.10.0 ออกแล้ว + repo เป็น public — 2026-11-09 ✅ [ประวัติ]
+- **R8 merge แล้ว** (PR #21, merge commit `e41f9d2`, 2026-11-08) — `gh pr view 21`: MERGED, mergedAt 2026-11-08T02:58:10Z · F1 onboarding + แก้ข้อความ `/privacy` · **ไม่มี migration** · ผลตรวจอิสระ: qa ผ่านแบบมีข้อสังเกต (`docs/reports/qa-r8.md`) · security ผ่าน (`docs/reports/security-r8.md`)
+- **ออก v0.10.0 แล้ว** (2026-11-09): tag `v0.10.0` → commit `d670fcc` `chore(release): v0.10.0` (`git rev-list -n1 v0.10.0` = `d670fcc`; `git ls-remote --tags origin v0.10.0` เห็น tag · หัวข้อ `[0.10.0] - 2026-11-09` ใน CHANGELOG) · boss รันคำสั่งเอง ด้วย `--skip-gates` หลัง CI บน main เขียว
+  - การ push ครั้งแรกถูก GitHub ปฏิเสธ (GH007 อีเมลส่วนตัวใน commit) boss จึงย้อน commit ออกรุ่นแล้วทำใหม่ด้วยอีเมล noreply (`git config user.email` ระดับ repo) · author ของ `d670fcc` ตรวจแล้วเป็น noreply
+- **repo เปลี่ยนเป็น public** (2026-11-08) — `gh repo view`: visibility `PUBLIC` (ตรวจ 2026-11-09)
+  - เหตุผล: โควตา GitHub Actions เดือน พ.ย. ($12) หมดใน 8 วัน ทำให้ CI ไม่เริ่ม · boss ตั้งใจเปิดชั่วคราว
+  - ผลสแกนก่อนเปิด: `docs/reports/security-public-scan.md` (PR #22, merge `8fc15e6`) สรุป "เปิด public ได้"
+- **การตั้งค่าหลังเปิด public:**
+  - ตรวจด้วย `gh api` แล้ว: Secret scanning `enabled` + Push protection `enabled` · Dependabot alerts เปิด (`vulnerability-alerts` ตอบ 204) · Private vulnerability reporting `true` · PR จาก fork ต้องอนุมัติ `all_external_contributors`
+  - ruleset `main` `active`: ต้องผ่าน PR (approvals 0) · status checks 9 ตัว (lint, typecheck, test + migration, build, contrast, e2e (Playwright) 1–4) · ห้าม force push / ลบ · bypass ได้เฉพาะ repository admin
+  - ตามภาพหน้าจอของ boss (เลขาไม่ได้ตรวจผ่าน API): Vercel Git Fork Protection เปิด · boss ตั้ง "Keep my email addresses private" แล้ว
+- **ยังไม่ยืนยัน:**
+  - CI ของ commit `d670fcc` (`gh run list`: `chore(release): v0.10.0` status `in_progress`) ตอนบันทึก — ยังไม่เสร็จ
+  - Deploy: ตอนที่ main ตรวจ `/api/health` ตอบ `0.9.1` (เพิ่ง push) · **เลขาตรวจซ้ำ 2026-11-09 04:38 เวลาไทย** `https://maewmeet.vercel.app/api/health` ตอบ `"version":"0.10.0"` (node v24.22.2) — เป็นหลักฐานระดับ endpoint ว่า prod รุ่นนี้ขึ้นแล้ว · ยังไม่ได้ตรวจหน้า Vercel dashboard หรือ CI ของ `d670fcc` จบ · **main ควรยืนยันอีกครั้ง** (ผลสองครั้งไม่ตรงกัน)
+- **ข้อสังเกตจาก security-public-scan (L1, L2):** อีเมลส่วนตัวของ boss อยู่ใน metadata commit/tag เก่า (เห็นได้จาก `git log` ตอนนี้ที่ repo public) · ไม่ได้แก้ประวัติ · ยังไม่ทราบว่า boss เลือกทางใด (ดู `docs/reports/security-public-scan.md`) · username ตัวอย่าง `boss` ใน `docs/OPERATIONS.md` (L2) ยังไม่แก้
+
+## R6F — merge + ออก v0.9.0 แล้ว (2026-11-03) ✅ [ประวัติ]
+- **PR #18** (branch `feat/r6f-daily-busy`) merge เข้า `main` ด้วย merge commit `3aaab63` · `gh pr view 18`: state MERGED, mergedAt 2026-11-02T22:06:07Z (= 05:06 เวลาไทย 2026-11-03)
+- busy หลายวันเฉพาะช่วงเวลา (ทั้งวัน/เฉพาะช่วงเวลา) + ลบวันนี้/ลบทั้งชุด · `R6F_CONTRACT.md` · ADR `docs/adr/0010-daily-busy-series.md` (commit `a7f66c0` `docs(adr): 0010 accepted`)
+- ผลตรวจอิสระ: qa **ผ่านแบบมีข้อสังเกต** (`docs/reports/qa-r6f.md`, 0H/0M/3L) · security **ผ่าน** (`docs/reports/security-r6f.md`, 0C/0H/0M/0L, Info 5)
+- migration `0003` (`busy_block.series_id` + partial index): **boss รันแล้วทั้ง preview และ prod** (boss ยืนยัน 2026-11-03) — เลขาไม่ได้ตรวจฐาน Turso เอง
+- **ออก v0.9.0 แล้ว** (2026-11-03, tag `v0.9.0` → commit `ea1bf5f` `chore(release): v0.9.0`; `git rev-parse v0.9.0^{commit}` ยืนยันแล้ว) รวม R6F · หัวข้อ `[0.9.0] - 2026-11-03` ใน CHANGELOG · `[Unreleased]` ว่างหลังออก
+- ผู้ทำ R6F ตาม commit author: architect (`258334a`, `a7f66c0`) · main (`3123a0f`, `87264dd`, `313e016`, `7aabdf4`) · platform (`8bed164`, `d125181`, `a93ba6f`) · ux (`7d97edd`) · test (`3a9bd73`) · frontend (`f903665`, `8391d79`) · ops (`438beab`, `ca104a0`) · qa (`2a33843`) · security (`286bee8`)
+- **ยังไม่ยืนยัน:** CI และ Vercel ของ `main` หลัง merge (เลขาไม่ได้ตรวจ) · ผล `npm test` ในเครื่องเลขาไม่มี (เลขาไม่ได้รัน)
+
+## R7 — merge + ออก v0.9.1 แล้ว (2026-11-08) ✅ [ประวัติ]
+- **PR #19** (branch `perf/r7-speed`, HEAD `603f21c`) merge เข้า `main` ด้วย merge commit `c896b92` (`Merge pull request #19`, 2026-11-08 06:02 เวลาไทย)
+- **ออก v0.9.1 แล้ว** (2026-11-08, tag `v0.9.1` → commit `628175d` `chore(release): v0.9.1`; `git rev-parse v0.9.1^{commit}` = `628175d` · `git ls-remote --tags origin v0.9.1` เห็น tag บน GitHub แล้ว · หัวข้อ `[0.9.1] - 2026-11-08` ใน CHANGELOG) รวม R7 · `[Unreleased]` ว่างหลังออก
+- **PR #20** (`docs/v0.9.1-progress`) merge แล้ว (merge commit `9a53f1c`, ตรวจด้วย `git log origin/main` · รวม `d9e7950` `docs(progress): v0.9.1 released`)
+- **ไม่มี migration** รอบนี้ → ไม่ต้องรันฐาน Turso
+- contract: `R7_CONTRACT.md` (`f44551a`, main) · branch แตกจาก `ea1bf5f` (v0.9.0)
+- เนื้อหา: **G1** กลุ่มใหม่ "ว่างอย่างน้อย" 240 นาที (`73bd68d`, `14a7f2c`) · **F2 ความเร็ว** วัดก่อน (`b721a22` baseline) → เฟส B ตาม §3.1 (`2c4167e` `896720c` `6c3ef87` `5361858` `6c64caa` `45660c2` `a18cd83`) → วัดหลัง (`cb15b59`) · Server-Timing + env `SERVER_TIMING_ENABLED` (`ecc91dd`, `7c5b2f9`) · CHANGELOG `[Unreleased]` (`ef3026a`)
+- **ตัวเลขหลัก** (จาก `perf-r7-after.md` · จำนวน query, ในเครื่อง libSQL ไฟล์):
+  - home `/` 13 → 9 (−31%) · waves 7 → 3 · **ผ่าน**
+  - ปฏิทินเดือน `/calendar?v=month` 15 → 8 (−47%) · **ผ่าน**
+  - ว่างตรงกัน `?v=free` 15 → 8 (−47%) · **ผ่าน**
+  - แท็บของฉัน `?v=mine` 3 HTTP → 1 HTTP (24 → 11 query)
+  - เพิ่ม busy 3 คำขอต่อกัน → 2 คำขอ (14 → 7 query)
+  - RSVP `PUT rsvp` 10 → 9 (−10%) · **ไม่ถึงเกณฑ์ 30%** (ตั้งใจคงไว้: ด่านสิทธิ์, rate limit นอกธุรกรรม, BEGIN/upsert/COMMIT, session, DTO) — ต้องให้ boss ตัดสิน
+- **ผลตรวจอิสระ:**
+  - qa **ผ่านแบบมีข้อสังเกต** (`docs/reports/qa-r7.md`, 0H/0M/3L · รันที่ HEAD `cb15b59`) — L1 RSVP ไม่ถึงเกณฑ์ · L2 `/groups/[gid]` ผ่านด่านกลุ่ม 2 ครั้ง · L3 e2e บน Windows 15 ล้มจาก ENOENT ของ path ยาว + server หลุด 1 ครั้ง (รันซ้ำด้วย path สั้น 329 passed / 0 failed)
+  - security **ผ่าน** (`docs/reports/security-r7.md`) — Low 1 (Server-Timing เป็น oracle "username active" ผ่าน pin-reset เมื่อผู้เรียกล็อกอิน) **แก้แล้ว `c563097`** (platform) และตรวจซ้ำผ่าน `4eb3f15` · Info 5
+  - ⚠️ qa รันที่ `cb15b59` ก่อน fix `c563097` — การแก้ครั้งนั้น security ตรวจซ้ำแล้ว แต่ qa ยังไม่ได้รันซ้ำ (ไม่ใช่ข้อบกพร่อง แค่ข้อสังเกต)
+- **เกณฑ์ contract:** R7-1 / R7-2 / R7-3 / R7-5 ผ่าน (ตามรายงาน qa/security) · R7-4 ผ่าน 3 เส้นทางหลัก · RSVP ไม่ผ่าน · R7-6 ข้าม (optimistic ไม่ทำตาม contract §3.1) · R7-7 **ยังไม่ยืนยัน** (CI / Vercel preview ยังไม่ได้ตรวจ)
+- **ยังไม่ยืนยัน:** เวลาจริงบน Turso ญี่ปุ่น (ยังไม่ได้วัด) · CI และ Vercel preview ของ branch (ตอนนี้ merge/release แล้ว แต่เลขาไม่ได้ตรวจ CI ของ `main` หลัง v0.9.1) · ผลเทสต์ทั้งชุดบน Windows (ยังมี EPERM/timeout/ENOENT ตามปกติ)
+
+### การตัดสินของ boss (R7)
+1. **RSVP ลด 10 → 9 query (ไม่ถึงเกณฑ์ 30%)** — ยอมรับตามที่ main เสนอ รอ boss ยืนยัน (ยังไม่พบคำตอบของ boss ในรีโป) · การลดต่อต้องเปลี่ยนการออกแบบ (ย้าย rate limit เข้าธุรกรรม / คืน DTO แบบย่อจาก PUT ซึ่งเปลี่ยนรูป API) → เก็บไว้ใน backlog
+2. **merge PR #19** — เสร็จแล้ว (merge commit `c896b92`)
+3. **ออก v0.9.1** — เสร็จแล้ว (`628175d`, tag `v0.9.1`, 2026-11-08)
+
+### backlog ใหม่จาก R7 (ไม่บล็อก)
+- RSVP ลดได้อีกถ้าออกแบบใหม่ (ดูข้อ 1 ด้านบน) · หน้า RSVP จากหน้าหลักยังเป็น 2 คำขอ (GET detail → PUT) เพราะ popup นัดชนของ R6D ต้องใช้ `myConflicts` ก่อนยืนยัน
+- `/groups/[gid]` ผ่านด่านกลุ่ม 2 ครั้ง (`getGroup` + `listGroupAppointments`) ราว −1 query (qa-r7 L2)
+- Server-Timing บนหน้า RSC ยังไม่มี (ใช้ harness วัดแทน) · วัดเวลาจริงบน Turso ญี่ปุ่นยังไม่ได้ทำ
+- security-r7 Info 1–5: Info 1 หน้าต่างหลัง commit ของ RSVP (ยอมรับได้) · Info 2 `resolvedUsers` ระวังถ้ามีผู้เรียกใหม่หลังเขียน · Info 3 audit super admin บนหน้า `/calendar` (ยอมรับได้) · Info 4 ค่าเริ่มต้น Server-Timing "เปิด" เมื่อไม่มี `VERCEL_ENV` · Info 5 `total;dur` เป็นเวลาจริง (oracle หลักคือจำนวน query ซึ่งแก้แล้วใน Low 1)
+- ข้อสังเกตเครื่อง Windows (R7): **Node v26.13.0** ในเครื่อง (เทสต์ `ops/health` คาด v24 → ล้ม) · path ยาวของ Playwright `--output` ทำ ENOENT · config Vitest ชั่วคราวข้าม EPERM (เสนอทำถาวร — ข้อเสนอเดิมจาก R6F)
+
+## R9 — README สำหรับคนนอก + จัด root — merge แล้ว (PR #23, merge commit `8b60634`, 2026-11-09 02:07 เวลาไทย) ✅ [ประวัติ]
+- contract: `docs/contracts/R9_CONTRACT.md` (`3c720ae`, main) · **boss เห็นชอบ 2026-11-09** ("เห็นชอบ ไม่ใส่ License") · branch แตกจาก main `8fc15e6`
+- **ไม่แตะโค้ดแอป · ไม่มี migration · ไม่ออกรุ่น** (`git diff --name-only main..HEAD` ไม่มี `src/`, `drizzle/`, `CHANGELOG.md`) · เวอร์ชันปัจจุบัน **v0.9.1** (tag 2026-11-08) · `[Unreleased]` ยังเป็นของ R8 (ไม่เปลี่ยนในรอบนี้)
+- เนื้อหา (ตาม contract §1–§5):
+  - **จัด root** (`f04a191`, ops): ย้าย `R*_CONTRACT.md` ไป `docs/contracts/` และ `TEAM/PROCESS/SECRETARY/PROGRESS.md` ไป `docs/team/` ด้วย `git mv` (ประวัติคงอยู่) · root เหลือ README, CHANGELOG, CLAUDE และ config
+  - **README ใหม่สำหรับคนนอก** (`4572f84`, secretary; แก้ตาม qa `d51646c`) · วิธีใช้, Features, Tech Stack, Getting Started, ตาราง env, สคริปต์, โครงสร้าง, ลิงก์ docs
+  - **ภาพหน้าจอมือถือ 2 ภาพ** `docs/images/screenshot-home.png`, `screenshot-free-days.png` (ข้อมูลสมมติ, DB ในเครื่อง) (`eb904c0`, test)
+  - **Quickguide ไทย** `docs/guides/quickstart-th.html` ไฟล์เดียว ไม่แก้เนื้อหา (`4572f84`, secretary)
+  - **โลโก้ README สองธีม** `docs/images/logo-light.svg`, `logo-dark.svg` สีตายตัว ผ่าน `<picture>` · ไม่แตะ `public/brand/` ที่แอปใช้ (`1c014e4`, ux; `d51646c`, secretary)
+  - **License: ไม่ใส่** (ค่าเริ่มต้นของ contract §5 — boss เลือก)
+- commit (`git log --format='%h|%an' main..HEAD`): main `3c720ae`, `b3a1b1b` · ops `f04a191` · test `eb904c0` · secretary `4572f84`, `d51646c` · qa `1880695`, `36ff749` · ux `1c014e4`
+- **ผลตรวจอิสระ:** qa **ผ่าน** (`docs/reports/qa-r9.md`)
+  - รอบแรก (`1880695`) ผ่านแบบมีข้อสังเกต: M1 โลโก้ตัวอักษรหายบนธีมมืด → แก้แล้ว · L ข้อ 4–5 (ตาราง APP_ORIGIN, ขั้นตอน TURSO_AUTH_TOKEN) → แก้แล้วใน `d51646c` · L ข้อ 2 (TEAM.md แถว #1), ข้อ 3 (ลิงก์ contract เก่า 37 ลิงก์ — ยอมรับตาม contract §2), ข้อ 6 (quickguide "app v0.9.0" และรายการแจ้งเตือนใน README ไม่ครบ) → ค้าง ไม่บล็อก (ดู `docs/reports/2026-11-09.md`)
+  - ตรวจซ้ำ `36ff749` ผ่าน (ขอบเขต diff, โลโก้, APP_ORIGIN ตรงโค้ด `env.ts`, Getting Started ฉบับใหม่ ได้ `migrations applied successfully` และ `GET /login` 200 และ `POST /api/auth/signup` 201, ลิงก์/รูปไม่เสีย)
+  - ไม่มีรอบ security (contract §7 ไม่กำหนด) · qa ตรวจความลับ/ข้อมูลคนใน README, ภาพ และ quickguide แล้ว ไม่พบ
+- **ตัวเลขเทสต์ (ตาม qa-r9 ไม่ใช่เลขาที่รัน):** lint exit 0, typecheck exit 0 · `vitest` branch ที่ `4572f84`: 3831 ผ่าน / 984 ล้ม (974 EPERM/EBUSY ตอนลบ temp) · main `8fc15e6`: 3833 ผ่าน / 982 ล้ม · ต่างกันไฟล์เดียว (`availability-perf`, รันเดี่ยวผ่านทั้งสอง) · ไม่มีอะไรล้มเพราะงาน R9
+- **ยังไม่ยืนยัน:**
+  - หน้า README บน github.com จริงทั้งธีมสว่าง/มืด (qa render ด้วย Playwright ในเครื่องแทน)
+  - Node 24 (qa รันด้วย Node v26.13.0 ในเครื่อง)
+  - PowerShell จริง (qa ใช้ bash; คำสั่งใน README บอกว่าใช้ได้ทั้งสองเชลล์ แต่ยังไม่ได้รันบน PowerShell)
+  - ตัวเลขลิงก์เสีย 37 ลิงก์ เป็นของ qa (เลขาไม่ได้นับซ้ำ)
+- **สถานะ:** merge แล้ว · PR #23 (`docs/r9-readme` → `main`) · `gh pr view 23`: state MERGED, mergedAt 2026-11-08T19:07:04Z (= 2026-11-09 02:07 เวลาไทย), merge commit `8b60634` · `gh pr checks 23`: 11 checks ผ่าน (Vercel, Vercel Preview Comments, build, contrast, e2e (Playwright) 1–4, lint, test + migration, typecheck)
+
+## R8 — F1 onboarding + P1 privacy — merge แล้ว (PR #21, merge commit `e41f9d2`) ✅ [ประวัติ]
+- contract: `R8_CONTRACT.md` (`59661af`, main) · **boss อนุมัติ 2026-11-08** ("อนุมัติ เริ่มเลย") · branch แตกจาก main `628175d` (v0.9.1) · **ไม่มี migration** (`git diff main..HEAD -- drizzle` = ว่าง) · ออกแล้วเป็น **v0.10.0** (2026-11-09, `d670fcc`)
+- เนื้อหา:
+  - **P1** `/privacy`: ตัดข้อความ "เจ้าของแอปต้องรับรอง" · "ร่างล่าสุด" → "อัปเดตล่าสุด / Last updated" (`bd54b1c`, `d3c34db`)
+  - **F1 แถบ 4 ขั้น** บนหน้ากลุ่ม: ชวนเพื่อน → ลงวันไม่ว่าง → ดูวันว่างตรงกัน → สร้างนัด · ปุ่มสร้างนัดมีปุ่มเดียว (`d3c34db`, `c31f702`)
+  - **F1 ป้ายสมาชิก** "ยังไม่ได้ลงวันไม่ว่าง": ส่งเป็น boolean `hasUpcomingBusy` ใน query สมาชิกเดิม (EXISTS, ช่วง 30 วัน, นับเฉพาะ busy ที่ลงเอง ไม่นับ "ไป") · **+0 query** — `/groups/[gid]` ยังเป็น 11 query, API ยังเป็น 3 (`e3f0961`, ตาม qa R8-4 และ `r7-baseline` เทสต์ผ่าน)
+  - **การ์ดแนะนำหน้าหลัก** + ลิงก์ "วิธีใช้งาน" ในแท็บ "ฉัน" รีเซ็ตการ์ดได้ · จำการปิดด้วย localStorage key `mm_intro_seen` ค่า `"1"` (`d3c34db`, `792f203`)
+  - CHANGELOG `[Unreleased]` (`93ca6e0`, `a20aa31`) · เทสต์: platform 7 ข้อ, steps-model, e2e `r8-onboarding` (`4e7a29b`)
+- ขนาดรอบ (`git diff --stat main..HEAD`): 33 ไฟล์ · +1359 / −38 (รวม contract และรายงาน)
+- commit ตามผู้เขียน (13 commit ใน `git log main..HEAD`):
+  - main `59661af` contract · ux `bd54b1c` ถ้อยคำ TH/EN + wireframe `docs/design/R8_ONBOARDING.md` · platform `e3f0961` hasUpcomingBusy
+  - ops `93ca6e0`, `a20aa31` CHANGELOG · frontend `d3c34db`, `c31f702` UI · test `4e7a29b`, `a0f63d6` e2e
+  - security `863ee2a` รีวิว · qa `792f203`, `4fc403d`, `9294994` แก้ CSS/รายงาน/รีเช็ก
+- ผลตรวจอิสระ:
+  - **security ผ่าน** (`docs/reports/security-r8.md`) 0C/0H/0M/0L, **Info 3** · รีวิวถึง HEAD `4e7a29b` — commit หลังจากนั้นที่แตะ `src/` (`792f203` CSS, `c31f702` UI) **ยังไม่ได้รับรีวิว security**
+  - **qa ผ่านแบบมีข้อสังเกต** (`docs/reports/qa-r8.md`) · พบ M (การ์ดแนะนำ `<ol>` ไม่มีเลข 1–4) แก้แล้ว `792f203` · L (ปุ่มสร้างนัดซ้ำ) แก้แล้ว `c31f702` · รีเช็ก `c31f702` (`9294994`) พบ `groups-story` ล้ม 3 ข้อ จาก `memberRow` ที่ใช้ exact match กับ aria-label ที่มีประโยคต่อท้าย → **แก้แล้ว `a0f63d6`** (test)
+  - ⚠️ **qa ไม่ได้รันซ้ำหลัง `a0f63d6`** · ผล `167 passed / 10 skipped / 0 failed` บน 3 project เป็นรายงานของ test ตามที่ main แจ้ง — เลขาไม่ได้รันซ้ำ ยังไม่ยืนยัน
+- **backlog R8 (ไม่บล็อก):**
+  1. ขั้น 2 ปุ่ม "ลงวันไม่ว่าง" พาไปปฏิทิน ไม่ได้เปิดฟอร์มลง busy ตรง (qa L3) — ทำรอบหน้า
+  2. ขั้น 3 ค้าง "ถัดไป" จนกว่าจะมีนัด — ผู้ใช้ที่ดูวันว่างแล้วไม่ได้รับสัญญาณตอบกลับ (qa L4)
+  3. `/privacy` เพิ่มประโยคว่าสมาชิกในกลุ่มเห็นว่าลงวันไม่ว่างแล้วหรือยัง (security Info 1 · ข้อเสนอ — boss ตัดสิน)
+- **ยังไม่ยืนยัน:** CI และ Vercel preview ของ branch · ผลเทสต์หลัง `a0f63d6` (ดูข้อ qa ด้านบน)
+- **PR #21** (`feat/r8-onboarding` → `main`): https://github.com/ieatbaozi-stack/maewmeet/pull/21 · **merge แล้ว** — ตรวจด้วย `git log main`: merge commit `e41f9d2` อยู่ใน history ของ `main` (เลขาไม่ได้ตรวจด้วย `gh pr view 21` รอบนี้) · เดิมเขียนว่า OPEN ซึ่งล้าสมัย
+
+### รอ boss (R8)
+1. ~~merge PR #21~~ — merge แล้ว (`e41f9d2`)
+2. ~~ออก v0.10.0~~ — ออกแล้ว (`d670fcc`, 2026-11-09 · ดูหัวข้อ "v0.10.0 ออกแล้ว + repo เป็น public")
+
+## R17 — ลบแล้วเก็บ 30 วัน กู้คืนกลุ่ม + ยืนยันลบหนักขึ้น — ออกรุ่นแล้ว v0.15.0 (PR #40 merge `c3e5c9f` · 2026-11-20) · ไม่มี migration [ประวัติ]
+- contract `docs/contracts/R17_CONTRACT.md` (boss เห็นชอบ 2026-11-19) · B1 = (ก) บัญชียังล้างข้อมูลทันที กู้ไม่ได้ · B2 = นับ 30 วันจากวันออกรุ่น · B3 = แจ้งในกระดิ่ง · B4 = super admin เท่านั้น
+- ทำแล้ว: กู้กลุ่ม `POST /api/admin/groups/:gid/restore` (SA เท่านั้น ตรวจที่เซิร์ฟเวอร์) · ลบกลุ่มถาวรอัตโนมัติใน cron รายวันเดิม ชุดละไม่เกิน 25 กลุ่ม · ลบบัญชีต้องพิมพ์ชื่อผู้ใช้ + PIN · ลบกลุ่มต้องพิมพ์ชื่อกลุ่ม · "หยุดตั้งแต่…" ของประจำต้องยืนยัน
+- เอกสาร: ADR 0015 (Accepted) · ADR 0007 (`group.restored`) · ARCHITECTURE (route/cron) · OPERATIONS ส่วน K · CHANGELOG `[0.15.0]` · quickstart/README · `docs/design/R17_DELETE_CONFIRM.md` (ux)
+- ยังไม่ทำ: นโยบายเก็บคำเชิญเก่า (R17 ทำเฉพาะกลุ่ม) — ดู "เหลือ" ข้อ 0
+
+## R16 — เก็บงานค้าง — ออกรุ่นแล้ว v0.14.0 (PR #38 merge `1ae70a6` · 2026-11-19) · ไม่มี migration [ประวัติ]
+- contract `docs/contracts/R16_CONTRACT.md` (main `3edee80`) · **boss เห็นชอบ 2026-11-18** ("มาทำที่เหลือให้จบครับ" + ค่าแนะนำ B1–B4) · **ไม่มี migration** · branch `feat/r16-cleanup` จาก `main` `9db2c08` · PR #38 เดียว · **boss ออกรุ่น v0.14.0 แล้ว** (`7eaff23`)
+- **CI หลังออกรุ่น:** `7eaff23` (`chore(release): v0.14.0`) run `44459866120` ล้มที่ job `test + migration` เฉพาะ `tests/ops/docs-sync.test.ts` (quickstart / PRD / PROGRESS ยังเป็น 0.13.0 · commit `7eaff23` แก้แค่ CHANGELOG, package.json, package-lock.json ตาม `git show --stat`) · แก้ด้วยเอกสารใน branch `docs/release-0.14.0` (DOCS_SYNC §7) และ ops แก้ต้นเหตุใน `scripts/release.ts` (ตาม DOCS_SYNC §7 · ยังไม่ยืนยันจาก branch นี้) · รัน `1ae70a6` (PR #38 merge) = success (run `44450342288`) · ตรวจด้วย `gh run list`
+- **ทำแล้วใน PR #38 (ตาม git log · ผลตรวจอิสระดูด้านล่าง):**
+  - platform H1 `group:settings` 30/10 นาที (`PATCH /api/groups/:gid`) · H2 `prefs:update` 60/10 นาที (`POST /api/prefs` ตอนล็อกอิน) · H3 `api:read` 600/10 นาที (GET ที่ต้องล็อกอิน) — `d7de916`
+  - platform + frontend H4/H4b คำเชิญที่ super admin นอกกลุ่มเป็นคนเชิญ แสดง "ผู้ดูแลระบบ" (แถวใหม่เท่านั้น) — `d7de916`, `0b1d17e`, `37f6aee`
+  - platform H7 `1f9670d` คำเชิญตรง: เงื่อนไข invitee active อยู่ในคำสั่ง INSERT เดียว (ปิด security-r5 Info 1) · เทสต์ `tests/groups/r16-direct-invite-race.test.ts`
+  - platform + frontend H4c `d196cc5`, `2972a17` รายการคำเชิญของกลุ่มแสดง SA ผู้สร้างเป็นป้าย "ผู้ดูแลระบบ" (ปิด security-r16 Low 1) · qa แก้ namespace `97779b0`
+  - ops `f98b265` CHANGELOG H7/H4c · architect `4ead0d0` ARCHITECTURE H4c
+  - frontend U1–U4 (เยื้องขั้น, legend "เอากลับ", NavProgress ตอนออกจากระบบ/ลบบัญชี, skeleton ขั้นต่ำ 250 ms) — `5d009fb`
+  - test T1 e2e retries 1 บน CI (0 ในเครื่อง) และ T2 config-hygiene (`runBlocks` ตามการเยื้อง) — `5ced8bb`
+  - เทสต์ R16 (`tests/platform/r16-hardening.test.ts`, `tests/ui/r16-ui.test.ts`) อยู่ในไฟล์ของคอมมิต platform/frontend (ตาม `git diff --stat 9db2c08..HEAD`) · `2c46335` allowlist `actorSystemAdmin` ใน test
+  - main contract H5/H6 ใน §6 — `1ae0737` · ops CHANGELOG Unreleased + OPERATIONS (bucket, B3, H5) — `7f370ab`
+- **ไม่ทำ (เหตุผลใน R16 §6):** H5 หน้า auth ตอบ 200 ระหว่าง stream (loading boundary ของ root ครอบทุกหน้า) · H6 Server-Timing บนหน้า RSC · B3 CSP nonce (boss ยอมรับความเสี่ยง) · DST day strip
+- **ย้ายไป R17:** retention 30 วัน + กู้กลุ่ม/บัญชีที่ลบ (B4 ข้อ ก, สุดท้ายไม่มี migration) · R17 ทำแล้ว ออกรุ่น v0.15.0 (ดูหัวข้อ R17 ด้านล่าง)
+- **ผลตรวจอิสระ (2026-11-19):** qa `docs/reports/qa-r16.md` **ผ่านแบบมีข้อสังเกต** — ไม่มีบั๊กที่ต้องแก้ก่อน merge · พบบั๊ก 1 ข้อใน H4c (`InviteSection.tsx` ใช้ namespace i18n ผิด → MISSING_MESSAGE) แก้แล้ว `97779b0` และตรวจซ้ำผ่าน `2f0527c` · Info: ปฏิทินกลืน 429 (ออกแบบเดิม R14) · security `docs/reports/security-r16.md` **ผ่านแบบมีข้อสังเกต** (Critical/High/Medium 0 · Low 1 = ชื่อ SA นอกกลุ่มยังออกทาง `GET /api/groups/:gid/invites` → แก้แล้วเป็น H4c · Info 6 ข้อ ดู "เหลือ") · **ยืนยันแล้ว (2026-11-19):** PR #38 MERGED (`1ae70a6`) · CI ของ `1ae70a6` = success (`gh run list`) · **ยังไม่ยืนยัน:** ผลเทสต์ของ branch ที่เลขาไม่ได้รัน · Vercel prod (ยกเว้นที่ boss รายงาน) · ARCHITECTURE ทำแล้ว `10b01f5` (architect · rate limit R16 + ADR 0014 CSP unsafe-inline accepted) · H2 ใน contract §1 เขียน `PUT /api/prefs` แต่ endpoint จริงคือ `POST /api/prefs` (contract §6 บันทึกไว้แล้ว)
+
+## ข้อสังเกต [ประวัติ]
+- **ลำดับ migration `0003` (ปิดแล้ว):** commit `ca104a0` (ops) แก้ `docs/OPERATIONS.md` ให้ตรงกับลำดับที่ main สั่ง (preview ก่อน PR, prod ก่อน merge) — ปิดตาม commit message
+- **ADR 0010 (ปิดแล้ว):** commit `a7f66c0` `docs(adr): 0010 accepted` — ไม่ใช่ *Proposed* อีกต่อไป (ตรวจจาก commit message)
+- **ความจริงที่ไม่ตรงกับ PROGRESS รอบก่อน (แก้แล้ว):** รอบก่อนเขียนว่า R6F "รอ migration/PR" และ "ยังไม่ push" — ปัจจุบัน merge + ออก v0.9.0 แล้ว (ตรวจด้วย `gh pr view 18` และ `git tag`)
+- **vitest ทั้งชุดบน Windows ล้มหลายร้อยข้อ เป็นปัญหาเดิม** — qa รันเทียบ main แล้ว (main `37271af` ล้ม 908, branch R6E ล้ม 907) · รายงาน qa เป็นตัวเลขของ qa ไม่ใช่ของเลขา
+- `npm run lint` จาก root ไปสแกน worktree ที่ซ้อนใน `.claude/worktrees/` → ใช้ `npx eslint . --ignore-pattern ".claude/**"` แทน (qa รันแล้ว 0 problems) — ปัญหาการตั้งค่า
+- เครื่อง Windows ของ boss: เทสต์ฐานข้อมูลบางไฟล์ล้มด้วย EPERM ตอนลบโฟลเดอร์ชั่วคราว, `config-hygiene` ข้อ permissions ล้มบน CRLF, `tests/release` CLI ล้มเพราะ `.bin/tsx` ENOENT — เป็นปัญหาเดิม (ดูผลจริงจาก CI)
+- ยังไม่ยืนยัน: CI และ Vercel preview ของ R6E, R6F และ `main` หลัง v0.9.0 / v0.9.1 (เลขาไม่ได้ตรวจ) · ใบรับรอง Handoff ของแต่ละบทบาทไม่มีไฟล์ในรีโป (มีเฉพาะรายงาน qa/security)
+- ช่องวันในปฏิทินจอ 360px กว้างประมาณ 43px (เป็นแบบนี้มาเดิม)
+- ย้ายมาจาก "เหลือ" เมื่อ 2026-11-19 (รายการเสร็จตามหลักฐานก่อน R16): ข้อสังเกต qa-r5 / security-r5 ปิดแล้ว (ตรวจ 2026-11-19 · commit อยู่ใน main ตาม `git merge-base --is-ancestor`): qa M1 `52b9547` · qa L1–L4 `9afb6d2` · qa L5 `86cc578`, `58c1565` · qa L6 `c6c3e4e` · qa L7 `17b2bcf` (งบ 120 วินาที) · sec L1/L2 `c2958ef` · sec L3 `a32f43d`, `2a8f00d` · sec L4 `79325b7` · sec L5 `089a1ef` · sec L6 `02d51ab` · sec Info 2 `24d7f57` · sec Info 3 และ 5 ยอมรับตามสัญญา · sec Info 4 (admin กลุ่มที่ถูกระงับ) ยอมรับตาม R5 §7.2 · sec Info 6 ครอบด้วย R16 H3 เมื่อ merge · required check ที่ข้ามใน docs-only PR (PR #36/#37 e2e 1–4 SUCCESS) · RSVP 10→9 รอตัดสิน (แก้แล้ว R15b `ac6e99e`) · ลบ `place_search_cache` (migration `0006`, boss รันแล้วตามที่ PROGRESS ระบุ) · เตือน 1 วัน LINE (boss ยืนยัน) · env เก่าใน Vercel (boss ลบแล้ว) · repo private/public (repo PUBLIC ตาม `gh repo view`) · ไฟล์ตัวอย่าง `appt-*` (แก้แล้ว) · ปุ่ม Maps 768 (CSS ตาม qa R15a) · แถบล่างแบบประจำที่ 375 (qa R15a) · ขั้น 3 ของแถบ (`f612b0b` + StepBar) · /api/prefs locale (`0ff2e6f`) · ลิงก์ LINE ในชื่อนัด/ชื่อกลุ่มไม่เป็นลิงก์ (`e9eb18f` แก้ neutralizeLinks ให้ครอบโดเมน Unicode, IPv4 และจุดแบบอื่น ตาม security R15b Low 1 — ยังไม่มีรายงานตรวจซ้ำจาก security) · เพดาน LINE OA 300/เดือน (`0ff2e6f`, เหลือข้อ per-group ในข้อ 2) · B7 ป้าย "ผู้ดูแลระบบ" (แก้แล้ว เหลือข้อ Info ในข้อ 2/3) · EPERM helper (`a1f6ccb`, qa ยืนยัน) · CI ข้าม build/e2e เมื่อแก้เอกสาร (`ddbe57e`, ปรับต่อที่ `321a060` และ `7d5ed24` ใน PR #36) · `/privacy` B4 (ข้อความ `busyStatus` มีแล้ว) · ป้ายชุดใน MineList (`sr-only` ใน `MineList.tsx`) · required checks บน main (ตั้งไว้แล้ว 9 ตัว ตาม PROGRESS เดิม) · R14 ทดสอบ T1–T4 (boss) · qa-r14b และ security-r14b มีในรีโปแล้ว (ผ่าน/ผ่านแบบมีข้อสังเกต) · ศัพท์ "กิจวัตร" ไม่พบใน OPERATIONS/CHANGELOG แล้ว
