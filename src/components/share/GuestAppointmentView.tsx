@@ -157,14 +157,14 @@ export function GuestAppointmentView({ initial, nowMs, appOrigin }: GuestAppoint
             <ul className="appt-facts">
               <li className="appt-fact">
                 <Icon name="clock" />
-                <span className="num" data-testid="appt-when">
+                <span className="num nowrap" data-testid="appt-when">
                   {t(whenRef.key, whenRef.values)}
                 </span>
               </li>
               <li className="appt-fact">
                 <Icon name="users" />
                 {/* ข้อความล้วน ไม่เป็นลิงก์ — แขกเข้าหน้ากลุ่มไม่ได้ */}
-                <span data-testid="appt-group-text">{withNames((n) => t("appointments.detail.inGroup", { group: n.group }), { group: a.groupName })}</span>
+                <span data-testid="appt-group-text">{withNames((n) => t("guest.fromGroup", { group: n.group }), { group: a.groupName })}</span>
               </li>
             </ul>
           </div>

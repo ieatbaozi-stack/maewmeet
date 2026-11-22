@@ -4,8 +4,12 @@ import { Fragment, type ReactNode } from "react";
 
 /** <bdi> = unicode-bidi: isolate โดยกำเนิด · ใช้ครอบชื่อใน JSX */
 export function Name({ children }: { children: ReactNode }) {
-  return <bdi>{children}</bdi>;
+  return <bdi className={shortClass(children)}>{children}</bdi>;
 }
+
+/** R18 F15: ชื่อสั้น (≤ 24 ตัวอักษร) ไม่ตัดบรรทัดกลางชื่อ (เช่น "แมว/ส้ม") · ชื่อยาวห่อได้ตามปกติ */
+export const SHORT_NAME_MAX = 24;
+export const shortClass = (name: ReactNode): string | undefined => (typeof name === "string" && [...name].length <= SHORT_NAME_MAX ? "nm-short" : undefined);
 
 const OPEN = "\uE000";
 const CLOSE = "\uE001";
@@ -24,6 +28,6 @@ export function withNames<K extends string>(
   const parts = format(placeholders).split(new RegExp(`${OPEN}(.*?)${CLOSE}`, "u"));
   // split ด้วย capture group: ดัชนีคี่ = ชื่อคีย์
   return parts.map((part, i) =>
-    i % 2 === 1 ? <bdi key={i}>{names[part as K] ?? ""}</bdi> : <Fragment key={i}>{part}</Fragment>,
+    i % 2 === 1 ? <bdi key={i} className={shortClass(names[part as K])}>{names[part as K] ?? ""}</bdi> : <Fragment key={i}>{part}</Fragment>,
   );
 }

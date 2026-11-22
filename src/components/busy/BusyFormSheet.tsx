@@ -458,7 +458,8 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, ro
                 {titleCount}/{TITLE_MAX}
               </span>
             </div>
-            <p className="field-hint" id={`${uid}-what-h`}>
+            {/* R18 F14: เพดานตัวอักษรซ้ำกับตัวนับ → เหลือให้โปรแกรมอ่านจอ (describedby) ไม่แสดงซ้ำบนจอ */}
+            <p className="sr-only" id={`${uid}-what-h`}>
               {t("busy.form.what.hint", { max: TITLE_MAX })}
             </p>
           </div>

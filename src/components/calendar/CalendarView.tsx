@@ -34,6 +34,7 @@ import { clock } from "@/lib/shared/clock";
 import { DayPanel } from "./DayPanel";
 import { GroupSwitchSheet, type GroupOption } from "./GroupSwitchSheet";
 import { KindLegend, MemberLegend, MonthGrid } from "./MonthGrid";
+import { InstallHint } from "@/components/home/InstallHint";
 import { MineList } from "./MineList";
 import { classifyDay, isSelectable, planFromDate, urlDayParam } from "@/components/availability/model";
 import { addCreatedBusy, buildMonth, busyUsersByDate, fetchRange, monthStart, shiftMonth, spanOf, toSharedBusy, ymOf, type OwnBusy } from "./model";
@@ -499,6 +500,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       onPrev={() => moveDay(-1)}
       onNext={() => moveDay(1)}
       onToday={goToday}
+      showToday={view === "day"}
       onAdd={() => openForm(null)}
       {...(ownDays?.key === ownKey && ownDays.map.size > 0
         ? { routineDays: ownDays.map, onRoutineEdit: (own: OwnBusy) => void openDayScope("edit", own), onRoutineDelete: (own: OwnBusy) => void openDayScope("delete", own) }
@@ -707,6 +709,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       </header>
       <main className="main wide cal-main" id="main" data-view={view}>
         <h1 className="sr-only">{t("nav.calendar")}</h1>
+        <InstallHint />
         <div className="segmented cols-4 cal-views" role="group" aria-label={t("calendar.view.label")}>
           {VIEWS.map((v) => (
             <button type="button" key={v} aria-pressed={view === v} data-testid={`cal-view-${v}`} data-emphasis={v === "free" ? "true" : undefined} onClick={() => changeView(v)}>

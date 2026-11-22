@@ -12,7 +12,12 @@
 .share-facts { display: grid; gap: var(--space-2); list-style: none; padding: 0; margin: 0; }
 .share-facts > li { display: flex; align-items: flex-start; gap: var(--space-2); min-width: 0; overflow-wrap: anywhere; }
 .share-facts > li > .icon { flex: none; margin-top: var(--space-1); }
-.share-facts .appt-place { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+/* R18 F02: แถวสถานที่เริ่มซ้ายตรงกับแถววันที่/กลุ่ม (ปุ่มแผนที่ไม่กึ่งกลาง/เต็มกว้าง) */
+.share-facts .appt-place { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); text-align: start; }
+.share-facts .map-open { width: auto; margin-top: 0; }
+.share-facts .map-apps { margin-top: 0; }
+/* R18 F03: ช่วงเวลาไม่ถูกตัดกลางตัวเลข */
+.nowrap { white-space: nowrap; }
 .share-counts { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); margin: 0; }
 .share-cta { display: grid; gap: var(--space-2); }
 .share-cta .btn { width: 100%; min-height: var(--tap-lg); }
@@ -25,7 +30,7 @@
 .share-status p { max-width: 36ch; overflow-wrap: anywhere; }
 
 /* ---------- sheet ชวนคนนอก ---------- */
-.share-sheet { display: grid; gap: var(--space-3); min-width: 0; }
+.share-sheet { display: grid; gap: var(--space-3); min-width: 0; padding-bottom: var(--space-4); } /* R18 F05: ปุ่มท้ายไม่ชนแถบ "เสร็จแล้ว" */
 .share-sheet > * { min-width: 0; }
 .share-lead { color: var(--ink-muted); }
 .share-link-label { font-size: var(--text-sm); font-weight: var(--weight-semibold); }
@@ -53,7 +58,8 @@
 
 /* ---------- รายชื่อแขก (ฝั่งสมาชิก) ---------- */
 .guests-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-1) var(--space-3); margin-bottom: var(--space-2); }
-.guests-head h2 { margin-bottom: 0; }
+.guests-head h2 { margin-bottom: 0; font-size: var(--text-lg); font-weight: var(--weight-semibold); line-height: var(--leading-heading); } /* R18 F13: หัวข้อเท่าการ์ดอื่น */
+.nm-short { white-space: nowrap; }
 .guests-limit { font-size: var(--text-sm); color: var(--ink-muted); }
 .guests-limit.is-full { color: var(--warn-ink); font-weight: var(--weight-medium); }
 .guest-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; }
@@ -64,7 +70,7 @@
 .guest-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); overflow-wrap: anywhere; }
 .guest-with { font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
 .guest-answer { font-size: var(--text-sm); color: var(--ink); }
-.guest-remove { flex: none; align-self: center; }
+.guest-remove { flex: none; align-self: center; display: inline-flex; flex-direction: row; align-items: center; gap: var(--space-1); } /* R18 F13: ไอคอนซ้ายข้อความ */
 @media (min-width: 720px) {
   .guest-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-5); }
   .guest-row:nth-child(2) { border-top: 0; }
@@ -77,3 +83,12 @@
 .guest-limits { display: flex; align-items: flex-start; gap: var(--space-2); font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
 .guest-limits > .icon { flex: none; margin-top: var(--space-1); }
 .guest-counts { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); margin: 0; }
+
+/* ---------- R18 G1: แถบ "เพิ่มไปหน้าจอโฮม" (iOS Safari) — ในกระแสเนื้อหา ไม่ fixed ---------- */
+.install-hint { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-4); margin-top: var(--space-3); background: var(--surface); }
+.install-hint > .icon { flex: none; margin-top: var(--space-1); }
+.install-hint-body { display: grid; gap: var(--space-2); min-width: 0; overflow-wrap: anywhere; }
+.install-hint h2 { font-size: var(--text-lg); font-weight: var(--weight-semibold); line-height: var(--leading-heading); }
+.install-hint p { color: var(--ink-muted); }
+.install-hint ol { margin: 0; padding-inline-start: var(--space-5); display: grid; gap: var(--space-1); }
+.install-hint .btn { justify-self: start; }

@@ -7,14 +7,18 @@ import { Name, withNames } from '@/components/Name';
 
 describe('<Name> / withNames', () => {
   it('ครอบด้วย <bdi> และ escape ข้อความ', () => {
-    expect(renderToStaticMarkup(createElement(Name, null, 'ab‮cd'))).toBe('<bdi>ab‮cd</bdi>');
-    expect(renderToStaticMarkup(createElement(Name, null, '<b>'))).toBe('<bdi>&lt;b&gt;</bdi>');
+    expect(renderToStaticMarkup(createElement(Name, null, 'ab‮cd'))).toBe('<bdi class="nm-short">ab‮cd</bdi>');
+    expect(renderToStaticMarkup(createElement(Name, null, '<b>'))).toBe('<bdi class="nm-short">&lt;b&gt;</bdi>');
   });
   it('withNames: ข้อความเหมือนเดิมทุกตัวอักษร แต่ชื่อแต่ละตัวถูกครอบ <bdi> (ในประโยค)', () => {
     const fmt = (n: { a: string; b: string }) => `ก ${n.a} ชวนเข้า ${n.b} จบ`;
     const html = renderToStaticMarkup(createElement('p', null, withNames(fmt, { a: 'x\u202Ey', b: 'กลุ่ม <1>' })));
-    expect(html).toBe('<p>ก <bdi>x\u202Ey</bdi> ชวนเข้า <bdi>กลุ่ม &lt;1&gt;</bdi> จบ</p>');
-    expect(html.replace(/<\/?bdi>/g, '').replace(/<\/?p>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>')).toBe(fmt({ a: 'x\u202Ey', b: 'กลุ่ม <1>' }));
+    expect(html).toBe('<p>ก <bdi class="nm-short">x\u202Ey</bdi> ชวนเข้า <bdi class="nm-short">กลุ่ม &lt;1&gt;</bdi> จบ</p>');
+    expect(html.replace(/<\/?bdi( class="nm-short")?>/g, '').replace(/<\/?p>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>')).toBe(fmt({ a: 'x\u202Ey', b: 'กลุ่ม <1>' }));
+  });
+  it('R18 F15: ชื่อสั้น (≤ 24) ไม่ตัดบรรทัดกลางชื่อ · ชื่อยาวห่อได้', () => {
+    expect(renderToStaticMarkup(createElement(Name, null, 'แมวส้ม Own'))).toContain('nm-short');
+    expect(renderToStaticMarkup(createElement(Name, null, 'ก'.repeat(25)))).not.toContain('nm-short');
   });
   it('withNames: ชื่อว่าง/ไม่มีตัวแทนในข้อความ ก็ไม่พัง', () => {
     expect(renderToStaticMarkup(createElement('p', null, withNames(() => 'ไม่มีชื่อ', { a: '' })))).toBe('<p>ไม่มีชื่อ</p>');

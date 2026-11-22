@@ -82,7 +82,7 @@ export function ShareLanding({ token, preview, signedIn }: { token: string; prev
         <li>
           <Icon name="calendar" />
           <span className="num" data-testid="share-when">
-            {longDateLabel(preview, locale)} · {whenText}
+            {longDateLabel(preview, locale)} · <span className="nowrap">{whenText}</span>
           </span>
         </li>
         {place || preview.placeName ? (

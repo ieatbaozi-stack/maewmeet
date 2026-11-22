@@ -270,7 +270,7 @@ export function AppointmentFormSheet({ mode, groupId, groupName, memberCount, tz
               <span>{err("title")}</span>
             </p>
           ) : null}
-          <p className="field-hint" id={`${uid}-title-h`}>
+          <p className="sr-only" id={`${uid}-title-h`}>
             {t("appointments.form.title.hint", { max: TITLE_MAX })}
           </p>
         </div>

@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t("name"),
     description: t("description"),
-    robots: { index: false, follow: false },
+    robots: { index: false, follow: false, nocache: true }, // security-v1 Info 3
     referrer: "no-referrer",
     openGraph: { title: t("name"), description: t("description"), type: "website" },
   };

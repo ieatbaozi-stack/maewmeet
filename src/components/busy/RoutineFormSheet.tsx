@@ -284,7 +284,8 @@ export function RoutineFormSheet({ mode, groupCount, onClose, onDone, onStale }:
           </div>
           {s.weekdays.length === 0 ? (
             <p className={deselected ? "field-error" : "field-hint rt-required-muted"} role={deselected ? "alert" : undefined} data-testid="routine-weekdays-required">
-              <Icon name="circle-alert" size="sm" />
+              {/* R18 F17: ไอคอนเตือนเฉพาะหลังผู้ใช้เอาวันออกเอง · ตอนเปิดฟอร์มเป็นข้อความช่วยล้วน */}
+              {deselected ? <Icon name="circle-alert" size="sm" /> : null}
               <span>{t("busy.routine.weekdays.required")}</span>
             </p>
           ) : null}

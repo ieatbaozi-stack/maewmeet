@@ -17,7 +17,6 @@ export default async function AdminPinResetsPage() {
     <>
       <TopBar />
       <div className="admin-head">
-        <p className="eyebrow">{t("eyebrow")}</p>
         <h1>{t("title")}</h1>
       </div>
       <main className="main admin-main" id="main">

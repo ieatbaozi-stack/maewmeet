@@ -228,9 +228,10 @@ export function ShareSheet({ appointmentId, title, startAt, tz, myName, guestCou
         <p className="share-note">{withNames((n) => t("share.sheet.mine", { name: n.name }), { name: myName })}</p>
         <p className={limit.full ? "share-limit is-full" : "share-limit"} data-testid="share-limit">
           {limit.full ? <Icon name="triangle-alert" size="sm" /> : null}
-          <span>{t("share.sheet.limit", { max: limit.max, count: limit.count })}</span>
+          <span>
+            {t("share.sheet.limit", { max: limit.max, count: limit.count })} · {t("share.sheet.valid")}
+          </span>
         </p>
-        <p className="share-note">{t("share.sheet.valid")}</p>
 
         {others.length > 0 ? (
           <div className="share-links" data-testid="share-links">

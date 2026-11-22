@@ -84,6 +84,13 @@ export function LoginForm({ reset, next = "/" }: { reset: ResetBanner; /** R18 �
       ) : null}
 
       <section className="panel login-card" aria-labelledby={`${id}-pin`} aria-busy={busy}>
+        {locked ? (
+          <div className="lock-box lock-box-top" role="alert" data-testid="login-locked">
+            <p className="lock-title">{t("login.locked.title")}</p>
+            <p>{t(lockRef.key, lockRef.values)}</p>
+            <p className="muted">{t("login.locked.hint")}</p>
+          </div>
+        ) : null}
         <div className="field field-first">
           <label htmlFor={`${id}-u`}>{t("login.username")}</label>
           <input
@@ -122,11 +129,8 @@ export function LoginForm({ reset, next = "/" }: { reset: ResetBanner; /** R18 �
           }
         >
           {locked ? (
-            <div className="lock-box" role="alert">
-              <p className="lock-title">{t("login.locked.title")}</p>
-              <p>{t(lockRef.key, lockRef.values)}</p>
-              <p className="muted">{t("login.locked.hint")}</p>
-            </div>
+            // R18 F01: กล่องล็อกอยู่เหนือช่องชื่อผู้ใช้ (ไม่ดันแป้น) — ตรงนี้คงความสูงบรรทัดข้อความไว้
+            <p className="pin-msg" aria-hidden="true" />
           ) : error ? (
             <p className="pin-msg err" role="alert">
               {error}

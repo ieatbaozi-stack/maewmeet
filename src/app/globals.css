@@ -333,6 +333,7 @@
   .banner p { flex: 1; min-width: 0; }
   .lock-box { margin-top: var(--space-3); display: grid; gap: var(--space-1); padding: var(--space-3); background: var(--danger-soft); color: var(--danger-ink); border-radius: var(--radius-sm); font-size: var(--text-sm); }
   .lock-box .muted { color: var(--danger-ink); }
+  .lock-box-top { margin-top: 0; margin-bottom: var(--space-3); }
   .lock-title { font-weight: var(--weight-semibold); }
 
   /* ---------- แท็บ ฉัน ---------- */
@@ -384,7 +385,9 @@
 
   /* ---------- iPad (≥ 48em) ---------- */
   @media (min-width: 48em) {
-    .topbar { padding-right: var(--gutter); }
+    /* R18 F09: หัวหน้าตรงคอลัมน์เนื้อหา (.main กว้าง content-max กึ่งกลาง) */
+    .topbar { padding-left: max(var(--gutter), calc((100% - var(--content-max)) / 2)); padding-right: max(var(--gutter), calc((100% - var(--content-max)) / 2)); }
+    .topbar:has(~ .main.wide) { padding-left: var(--gutter); padding-right: var(--gutter); } /* ปฏิทินกว้างเต็มจอ */
     .tabbar { padding-left: calc((100% - var(--content-max)) / 2); padding-right: calc((100% - var(--content-max)) / 2); }
   }
 

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { FlashNotice } from "@/components/groups/Notice";
 import { EmptyState } from "@/components/shell/EmptyState";
+import { InstallHint } from "./InstallHint";
 import { IntroCard } from "./IntroCard";
 import { GroupIcon } from "@/components/icons/GroupIcon";
 import { Icon, type IconName } from "@/components/icons/Icon";
@@ -204,6 +205,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
       <main className="main home-main" id="main">
         <IntroCard />
         <FlashNotice />
+        <InstallHint />
         <div className="alert" role="alert" style={{ marginTop: "var(--space-4)" }} data-testid="home-error">
           <Icon name="circle-alert" />
           <div>
@@ -224,6 +226,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
       <main className="main home-main" id="main">
         <IntroCard />
         <FlashNotice />
+        <InstallHint />
         <div data-testid="home-nogroup">
           <EmptyState
             pose="tea"
@@ -248,6 +251,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
       <main className="main home-main" id="main">
         <IntroCard />
         <FlashNotice />
+        <InstallHint />
         <div data-testid="home-empty">
           <EmptyState
             pose="tea"
@@ -265,6 +269,7 @@ export function HomeView({ initial, initialNowMs }: HomeViewProps) {
     <main className="main home-main" id="main">
       <IntroCard />
         <FlashNotice />
+        <InstallHint />
       <h1 className="h-section home-h">{t("home.nextUp")}</h1>
       <NextCard a={next} rsvp={rsvp} nowMs={nowMs} locale={locale} onChoose={request} />
       {later.length > 0 ? (
