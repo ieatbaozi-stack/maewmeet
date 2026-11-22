@@ -71,7 +71,7 @@
 .guest-with { font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
 .guest-answer { font-size: var(--text-sm); color: var(--ink); }
 .guest-remove { flex: none; align-self: center; display: inline-flex; flex-direction: row; align-items: center; gap: var(--space-1); } /* R18 F13: ไอคอนซ้ายข้อความ */
-@media (min-width: 720px) {
+@media (min-width: 48em) {
   .guest-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-5); }
   .guest-row:nth-child(2) { border-top: 0; }
 }
