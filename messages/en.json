@@ -949,7 +949,7 @@
         "label": "Type",
         "allDay": "All day",
         "timed": "Time range",
-        "multi": "Several days",
+        "multi": "Multi-day",
         "help": {
           "allDay": "One whole day",
           "timed": "Pick a start and end time. It can run past midnight.",
@@ -1658,7 +1658,7 @@
   },
   "admin": {
     "eyebrow": "System admin",
-    "title": "System admin console",
+    "title": "Admin console",
     "lead": "Everything a system admin does to someone else’s account or group is recorded in the audit log.",
     "resets": "PIN reset requests",
     "resetsHint": "Approve or reject requests from people who forgot their PIN",
@@ -2122,6 +2122,7 @@
   },
   "guest": {
     "badge": "Guest",
+    "fromGroup": "From {group}",
     "banner": "You’re here as a guest, with {name}",
     "limits": "Guests only see this plan. You can reply going, maybe or can’t go, but you can’t edit or cancel the plan, or invite anyone else.",
     "counts": {
@@ -2153,5 +2154,13 @@
     },
     "removed": "Removed {name} from the plan",
     "removeError": "Couldn’t remove them. Try again."
+  },
+  "installHint": {
+    "title": "Add maewmeet to your Home Screen",
+    "body": "Open it in one tap, like any other app.",
+    "step1": "Tap the Share button in Safari (the square with an arrow pointing up).",
+    "step2": "Scroll down and tap “Add to Home Screen”.",
+    "dismiss": "Got it, don’t show again",
+    "region": "Install tip for iPhone"
   }
 }
