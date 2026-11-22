@@ -95,7 +95,9 @@ export async function listActiveGuestAudience(db: DbOrTx, appointmentId: string)
 
 /**
  * ADR 0016 §8.4: แขกเข้าเป็นสมาชิกของกลุ่มนัด (โค้ด/คำเชิญตรง) — เรียกใน tx เดียวกับการได้แถวสมาชิก
- * ย้ายคำตอบที่มีของแถวที่มีผลไปเป็น RSVP สมาชิก (updated_at = now >= joined_at จึงนับ) แล้วลบแถวแขกทั้งหมดของผู้ใช้ในนัดของกลุ่มนั้น (รวมแถวที่ถูกนำออก)
+ * ย้ายคำตอบที่มีของแถวที่มีผลไปเป็น RSVP สมาชิก (updated_at = now >= joined_at จึงนับ) แล้วลบเฉพาะแถวแขกที่มีผล (removed_at IS NULL)
+ * แถวที่ถูกนำออก **คงไว้** (security-v1 Info 2 · main 2026-11-2x): ตัวกันกลับเข้านัดนั้นต้องอยู่รอด แม้เข้ากลุ่มแล้วออกภายหลัง
+ *   ระหว่างเป็นสมาชิก แถวนี้ไม่มีผล (ทุกคิวรีฝั่งแขกกรอง removed_at IS NULL · join ตอบ 'member' ก่อนดูแถวนี้) · ลบเมื่อลบบัญชี/ลบกลุ่มถาวร/นัดถูกลบ
  * คืนจำนวนแถวแขกที่ลบ
  */
 export async function convertGuestRowsToMember(db: DbOrTx, userId: string, groupId: string, now: number): Promise<number> {
@@ -106,7 +108,7 @@ export async function convertGuestRowsToMember(db: DbOrTx, userId: string, group
      WHERE ag.user_id = ${userId} AND a.group_id = ${groupId} AND ag.removed_at IS NULL AND ag.response IS NOT NULL
     ON CONFLICT (appointment_id, user_id) DO UPDATE SET response = excluded.response, updated_at = excluded.updated_at`);
   const res = await db.run(sql`
-    DELETE FROM appointment_guest WHERE user_id = ${userId} AND appointment_id IN (SELECT id FROM appointment WHERE group_id = ${groupId})`);
+    DELETE FROM appointment_guest WHERE user_id = ${userId} AND removed_at IS NULL AND appointment_id IN (SELECT id FROM appointment WHERE group_id = ${groupId})`);
   return res.rowsAffected;
 }
 

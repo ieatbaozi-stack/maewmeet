@@ -536,7 +536,7 @@ describe('S7 วงจรข้อมูล', () => {
     expect(await guestRow(ap.id, y.id)).toBeNull();
   });
 
-  it('แขกเข้าเป็นสมาชิกกลุ่มภายหลัง → คำตอบย้ายเป็น RSVP สมาชิก + แถวแขกหาย (รวมแถวที่ถูกนำออก)', async () => {
+  it('แขกเข้าเป็นสมาชิกกลุ่มภายหลัง → คำตอบย้ายเป็น RSVP สมาชิก + แถวแขกที่มีผลหาย · แถวที่ถูกนำออกคงไว้ (security-v1 Info 2)', async () => {
     const ap = await mustCreate(w.a, w.gid);
     const ap2 = await mustCreate(w.a, w.gid);
     const l = await shareLink(w.a, ap.id);
@@ -548,9 +548,33 @@ describe('S7 วงจรข้อมูล', () => {
     await del(w.a.c, `/api/appointments/${ap2.id}/guests/${x.id}`);
     const code = await makeCode(w.a, w.gid);
     expect((await post(x.c, '/api/invites/redeem', { code })).status).toBe(200);
-    expect(await h.count('appointment_guest WHERE user_id = ?', [x.id])).toBe(0);
+    expect(await h.count('appointment_guest WHERE user_id = ? AND removed_at IS NULL', [x.id])).toBe(0);
+    expect(await h.count('appointment_guest WHERE user_id = ? AND removed_at IS NOT NULL', [x.id])).toBe(1);
     const d = await get<{ appointment: { rsvp: { mine: string | null } } }>(x.c, `/api/appointments/${ap.id}`);
     expect(d.data.appointment.rsvp.mine).toBe('maybe');
+    // เป็นสมาชิกอยู่: นัดที่เคยถูกนำออกเห็นตามสิทธิ์สมาชิก · join → member ไม่สร้างแถว · แถวที่ถูกนำออกไม่อยู่ในรายชื่อแขก/ไม่นับเพดาน
+    expect((await get(x.c, `/api/appointments/${ap2.id}`)).status).toBe(200);
+    expect((await joinTok(x, l2.token)).data).toEqual({ status: 'member', appointmentId: ap2.id, joined: false });
+    expect((await memberDetail(w.a, ap2.id)).data.appointment.guests.items.map((i) => i.userId)).not.toContain(x.id);
+  });
+
+  it('security-v1 Info 2: แขกที่ถูกนำออก → เข้ากลุ่ม → ออกจากกลุ่ม → เปิดลิงก์ = 404 SHARE_LINK_INVALID เดิมทุกไบต์ (ตัวกันกลับเข้ายังอยู่)', async () => {
+    const ap = await mustCreate(w.a, w.gid);
+    const l = await shareLink(w.a, ap.id);
+    const x = await person(h, `back${Date.now() % 100000}`);
+    expect((await joinTok(x, l.token)).status).toBe(200);
+    expect((await del(w.a.c, `/api/appointments/${ap.id}/guests/${x.id}`)).status).toBe(200);
+    const before = await joinTok(x, l.token);
+    expect(before.text).toBe('{"error":{"code":"SHARE_LINK_INVALID"}}');
+    await join(w.a, x, w.gid);
+    expect((await joinTok(x, l.token)).data).toMatchObject({ status: 'member', joined: false });
+    h.clock.advance(MIN);
+    expect((await post(x.c, `/api/groups/${w.gid}/leave`)).status).toBe(200);
+    const after = await joinTok(x, l.token);
+    expect([after.status, after.text]).toEqual([404, before.text]);
+    expect(await page(x, l.token)).toEqual({ kind: 'invalid' });
+    expect((await guestView(x, ap.id)).status).toBe(404);
+    expect(await h.count('appointment_guest WHERE appointment_id = ? AND user_id = ? AND removed_at IS NULL', [ap.id, x.id])).toBe(0);
   });
 
   it('cron: ลบลิงก์ที่สิ้นสุดเกิน 30 วัน (revoked/นัดจบ) · ไม่แตะลิงก์ active · purgedShareLinks', async () => {
