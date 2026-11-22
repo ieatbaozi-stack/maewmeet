@@ -104,3 +104,13 @@ architect (ADR 0016 ก่อน §S, V1, §6) · platform (D1, H1, S1–S8) · 
 | T3 | main: เปิดเซสชันใหม่ทุกรอบ R (ความต่อเนื่องอยู่ใน contract/PROGRESS/memory อยู่แล้ว) · ส่งงานเป็นก้อน ใช้ agent เดิมผ่าน SendMessage เมื่อมีบริบทอยู่แล้ว | main | — |
 - **ไม่ทำ (อาจกระทบทางลบ):** ลด model ของ agent · แบ่งไฟล์ ARCHITECTURE/OPERATIONS (เทสต์ docs-sync อ่านอยู่) · ข้ามชุดเทสต์ก่อนส่งงาน · แก้ CLAUDE.md ลำดับการอ่าน
 - **boss ตัดสินเอง (ระดับเครื่อง ไม่ใช่ repo):** ปิด skill/MCP ที่ไม่ใช้ (อาจใช้ใน repo อื่น) · ติดตั้ง Node 24 + Python ให้เทสต์เดิมหยุดล้ม
+
+## 11. ช่องว่างจากตรวจรับ V1 (`docs/reports/v1-readiness.md`) — ตัดสิน 2026-11-22
+| # | เรื่อง | คำตัดสิน | ผู้ทำ |
+|---|---|---|---|
+| G1 | PRD §6 แบนเนอร์สอนติดตั้งบน iOS | **ทำใน R18** (boss): แถบเล็กเฉพาะ Safari บน iPhone/iPad ที่ยังไม่เปิดแบบแอป (standalone) บอก "แชร์ → เพิ่มไปยังหน้าจอโฮม" · ปิดแล้วไม่ขึ้นอีก (เก็บในเครื่อง) · ไม่มี migration | ux ถ้อยคำ → frontend · qa |
+| G2 | PRD §7 Lighthouse ≥85/≥95 | วัดบน Vercel preview ของ PR (หน้า login, หน้าหลัก, ปฏิทิน) บันทึกผลใน `docs/reports/qa-r18.md` · ต่ำกว่าเกณฑ์ = แก้ก่อน merge | qa วัด · frontend แก้ |
+| G3 | PRD §8 ข้อ 4.1 flow ทั้ง TH/EN | ขยาย `free-story`/`appt-story` ให้รัน EN ด้วย | test |
+| G4 | นำเข้า ICS (v1.x) | **ไม่ทำใน 1.0** (boss) · งานหลัง 1.0 | main (PRD) |
+| G5 | checkbox PRD backlog | main ติ๊กแล้ว | main |
+
