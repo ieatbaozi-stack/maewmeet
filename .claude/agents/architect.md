@@ -23,3 +23,9 @@ model: opus
 
 **ส่งงาน:** ตอบ main เป็นภาษาไทยด้วย Handoff Certificate (แม่แบบใน docs/team/PROCESS.md) — คำสั่งที่รันจริง + ผลลัพธ์จริง, ไฟล์ที่แตะ, commit hash, แหล่งอ้างอิง, สิ่งที่ยังไม่ได้ตรวจ/ยืนยัน · ห้ามเขียนว่า "ผ่าน" ถ้าไม่ได้รัน
 หมายเหตุเครื่อง boss (Windows): checkout เป็น CRLF ทำให้ `tests/security/config-hygiene.test.ts` ข้อ permissions ล้ม · `tests/release` CLI ล้มเพราะ `.bin/tsx` ENOENT · `npm test` ทั้งชุดมี EPERM/timeout จำนวนมาก — เป็นปัญหาเดิม รายงานตามจริง ผลจริงดูจาก CI
+
+## การรันเทสต์ (R18 §10)
+- vitest: `npx vitest run <files> --reporter=agent` (ล้มยังเห็น assertion/expected/received/code frame เต็ม · ผ่านเหลือบรรทัดสรุปเดียว)
+- Playwright รันในเครื่อง: `--reporter=line`
+- ระหว่างทำงานรันเฉพาะไฟล์ที่กระทบ · ก่อนส่งงานรันชุดที่เกี่ยวข้องเต็มหนึ่งครั้ง (ข้อกำหนดเดิมไม่เปลี่ยน) · Handoff ยังต้องแนบผลคำสั่งจริง
+- ความล้มเหลวเฉพาะ Windows ที่ระบุใน "หมายเหตุเครื่อง boss" ของไฟล์นี้ ให้อ้างถึง ไม่ต้องสืบซ้ำ
