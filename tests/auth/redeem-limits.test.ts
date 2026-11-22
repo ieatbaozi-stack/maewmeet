@@ -2,6 +2,8 @@
 //  H2: pre-check ราคาถูกก่อนเข้าคิว serialized → ผู้ที่ติดลิมิตอยู่แล้ว (ถังผู้ใช้/IP/รวมทั้งระบบ) ได้ 429 ทันที ไม่ต้องรอคิว
 //      ผู้ที่ยังไม่ติดลิมิตยังผ่านคิวเหมือนเดิม (การจองแบบอะตอมมิกยังเป็นด่านจริง)
 //  H3: ถังรวมทั้งระบบสำหรับการใช้โค้ดผิด (redeem:all) นอกเหนือจากต่อผู้ใช้/ต่อ IP — เกินเพดาน → 429 ข้อความเดิม · ผู้ใช้ปกติไม่โดน · ไม่มีโค้ดใน log/ฐาน
+//  security-v1 Low 1: ถังรวมเต็มบล็อกเฉพาะผู้เรียกที่ "ไม่สะอาด" (มีครั้งผิด/คำขอค้างในถัง IP หรือผู้ใช้ของตัวเอง) — ผู้ที่สะอาดยังได้ตรวจโค้ด
+//      → ผู้โจมตีที่เติมถังรวมจนเต็มปิดการใช้โค้ดถูกของคนอื่นไม่ได้ · คู่ (IP, บัญชี) ใหม่ได้เดาเพิ่มอย่างมาก 1 ครั้ง/หน้าต่าง
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getDb } from '@/db/client';
 import { windowStartOf } from '@/lib/data/repos/rate-limit-bucket';
@@ -103,9 +105,10 @@ describe('H2 — pre-check ก่อนเข้าคิว serialized', () => 
     }
   });
 
-  it('ถังรวมทั้งระบบเต็มอยู่แล้ว → 429 ทันทีขณะคิวถูกยึด', async () => {
-    await setBucket(REDEEM_GLOBAL_KEY, G.windowMs, G.limit);
+  it('ถังรวมทั้งระบบเต็มอยู่แล้ว + ผู้เรียกเคยผิดในหน้าต่างนี้ → 429 ทันทีขณะคิวถูกยึด', async () => {
     const b = await fresh('glob');
+    expect((await redeem(b, wrongCode())).code).toBe('INVITE_INVALID');
+    await setBucket(REDEEM_GLOBAL_KEY, G.windowMs, G.limit);
     const q = blockQueue();
     await q.entered;
     try {
@@ -157,7 +160,7 @@ describe('H3 — ลิมิตการใช้โค้ดผิดรวม
     expect(await bucket(REDEEM_GLOBAL_KEY)).toBe(3);
   });
 
-  it('เกินเพดานรวม → 429 ข้อความเดิม (เหมือนลิมิตต่อผู้ใช้ทุกไบต์) แม้โค้ดถูกและผู้ใช้/IP ใหม่ · คืนช่องผู้ใช้/IP · ครบหน้าต่างใช้ได้อีก', async () => {
+  it('เกินเพดานรวม + ผู้เรียกเคยผิด → 429 ข้อความเดิม (เหมือนลิมิตต่อผู้ใช้ทุกไบต์) ทั้งโค้ดถูกและผิด · คืนช่องผู้ใช้/IP ของครั้งนี้ · ครบหน้าต่างใช้ได้อีก', async () => {
     const code = await makeCode(a, gid);
     // อ้างอิง: 429 จากลิมิตต่อผู้ใช้ (ข้อความเดิมที่มีอยู่แล้ว)
     const ref = await fresh('ref');
@@ -165,37 +168,94 @@ describe('H3 — ลิมิตการใช้โค้ดผิดรวม
     const perUser429 = await redeem(ref, wrongCode());
     expect(perUser429.status).toBe(429);
 
+    const b = await fresh('blocked');
+    expect((await redeem(b, wrongCode())).code).toBe('INVITE_INVALID'); // b ไม่สะอาดแล้ว
     await setBucket(REDEEM_GLOBAL_KEY, G.windowMs, G.limit - 1);
     const last = await fresh('last');
     expect((await redeem(last, wrongCode())).code).toBe('INVITE_INVALID'); // ช่องสุดท้าย
     expect(await bucket(REDEEM_GLOBAL_KEY)).toBe(G.limit);
 
-    const b = await fresh('blocked');
     const ipBefore = await bucketsLike('redeem:ip:%');
     const right = await redeem(b, code);
     const wrong = await redeem(b, wrongCode());
     expect([right.status, right.code]).toEqual([429, 'RATE_LIMITED']);
     sameResponse(right, wrong); // โค้ดถูก/ผิดตอบเหมือนกัน (ไม่เป็น oracle)
     sameResponse(right, perUser429); // ข้อความ/รูปแบบเดิมของ RATE_LIMITED
-    expect(await bucket(`redeem:u:${b.id}`)).toBe(0);
-    expect(await bucketsLike('redeem:ip:%')).toEqual(ipBefore); // ช่อง IP ที่จองไว้ถูกคืน
+    expect(await bucket(`redeem:u:${b.id}`)).toBe(1); // เหลือแค่ครั้งที่ผิดก่อนหน้า
+    expect(await bucketsLike('redeem:ip:%')).toEqual(ipBefore); // ไม่เพิ่ม
     expect(await h.count('group_member WHERE group_id = ? AND user_id = ?', [gid, b.id])).toBe(0);
 
     h.clock.advance(G.windowMs);
     expect((await redeem(b, code)).status).toBe(200);
   });
 
-  it('หลายบัญชีหลาย IP เดาพร้อมกันที่ช่องสุดท้าย 5 ช่อง → ตรวจโค้ดได้พอดี 5 · ถังรวมไม่เกินเพดาน · ถังผู้ใช้/IP ของผู้ถูกปฏิเสธถูกคืน', async () => {
+  it('Low 1 (การโจมตี): 30 บัญชี × 10 IP เดาผิดจนถังรวมเต็ม → ผู้ใช้จริงที่ถือโค้ดถูกยังเข้ากลุ่มได้ · การเดาผิดต่อยัง 429', async () => {
+    const code = await makeCode(a, gid);
+    // ผู้โจมตี: 10 IP × 3 บัญชี × 10 ครั้ง = 300 (พอดีเพดานต่อผู้ใช้ 10 / ต่อ IP 30 / รวม 300)
+    const attackers: Person[] = [];
+    for (let ip = 0; ip < 10; ip++) {
+      for (let k = 0; k < 3; k++) {
+        const u = await fresh('atk');
+        u.c.ip = `198.51.100.${ip + 1}`;
+        attackers.push(u);
+      }
+    }
+    for (const u of attackers) {
+      for (let i = 0; i < INVITE_RATE_LIMITS.redeemUser.limit; i++) expect((await redeem(u, wrongCode())).code).toBe('INVITE_INVALID');
+    }
+    expect(await bucket(REDEEM_GLOBAL_KEY)).toBe(G.limit);
+
+    // ผู้ใช้จริง (บัญชีใหม่ IP ของตัวเอง) ใช้โค้ดถูก → 200 · ไม่กินถังรวม · ถังของตัวเองคืนครบ
+    const legit = await fresh('legit');
+    const ok = await redeem(legit, code);
+    expect(ok.status).toBe(200);
+    expect(ok.data.groupId).toBe(gid);
+    expect(await bucket(REDEEM_GLOBAL_KEY)).toBe(G.limit);
+    expect(await bucket(`redeem:u:${legit.id}`)).toBe(0);
+    // คนถัดไปก็ยังใช้โค้ดถูกได้ (ทั้งระบบยังใช้ได้ ไม่ใช่แค่คนแรก)
+    const legit2 = await fresh('legit');
+    expect((await redeem(legit2, await makeCode(a, gid))).status).toBe(200);
+
+    // ผู้โจมตี: บัญชีใหม่บน IP ใหม่ได้เดาอย่างมาก 1 ครั้ง แล้ว 429 — ทั้งโค้ดถูกและผิดตอบเหมือนกัน
+    const fresh1 = await fresh('atk2');
+    fresh1.c.ip = '198.51.100.200';
+    expect((await redeem(fresh1, wrongCode())).code).toBe('INVITE_INVALID');
+    const w = await redeem(fresh1, wrongCode());
+    const r = await redeem(fresh1, code);
+    expect([w.status, w.code]).toEqual([429, 'RATE_LIMITED']);
+    sameResponse(w, r);
+    expect(await h.count('group_member WHERE group_id = ? AND user_id = ?', [gid, fresh1.id])).toBe(0);
+    // บัญชีใหม่บน IP เดิมที่เคยผิด → 429 (IP ไม่สะอาด) · บัญชีเดิมย้าย IP ใหม่ → 429 (บัญชีไม่สะอาด)
+    const sameIp = await fresh('atk3');
+    sameIp.c.ip = '198.51.100.200';
+    expect((await redeem(sameIp, wrongCode())).code).toBe('RATE_LIMITED');
+    fresh1.c.ip = '198.51.100.201';
+    expect((await redeem(fresh1, wrongCode())).code).toBe('RATE_LIMITED');
+    expect(await bucket(REDEEM_GLOBAL_KEY)).toBe(G.limit); // ไม่เกินเพดาน
+  }, 60_000); // 30 ล็อกอิน + 300 คำขอจริง
+
+  it('Low 1: ผู้ที่สะอาดส่งเดาพร้อมกัน 5 ครั้งขณะถังรวมเต็ม → ตรวจโค้ดได้ 1 ครั้ง ที่เหลือ 429', async () => {
+    await setBucket(REDEEM_GLOBAL_KEY, G.windowMs, G.limit);
+    const b = await fresh('par');
+    const rs = await Promise.all(Array.from({ length: 5 }, () => redeem(b, wrongCode())));
+    expect(rs.filter((r) => r.code === 'INVITE_INVALID')).toHaveLength(1);
+    expect(rs.filter((r) => r.code === 'RATE_LIMITED')).toHaveLength(4);
+    expect(await bucket(`redeem:u:${b.id}`)).toBe(1);
+  });
+
+  it('หลายบัญชีหลาย IP เดาพร้อมกันที่ช่องสุดท้าย 5 ช่อง → ถังรวมไม่เกินเพดาน · คู่ (IP, บัญชี) ใหม่ได้คนละ 1 ครั้งเท่านั้น · รอบสองโดน 429 ทั้งหมด', async () => {
     await setBucket(REDEEM_GLOBAL_KEY, G.windowMs, G.limit - 5);
     const users = await Promise.all(Array.from({ length: 20 }, () => fresh('dist')));
     const rs = await Promise.all(users.map((u) => redeem(u, wrongCode())));
-    expect(rs.filter((r) => r.code === 'INVITE_INVALID')).toHaveLength(5);
-    expect(rs.filter((r) => r.code === 'RATE_LIMITED')).toHaveLength(15);
+    expect(rs.filter((r) => r.code === 'INVITE_INVALID')).toHaveLength(20); // 5 ใช้ช่องรวม + 15 สะอาด
     expect(await bucket(REDEEM_GLOBAL_KEY)).toBe(G.limit);
+    const again = await Promise.all(users.map((u) => redeem(u, wrongCode())));
+    expect(again.filter((r) => r.code === 'RATE_LIMITED')).toHaveLength(20);
     const userCounts = (await bucketsLike('redeem:u:%')).map((x) => x.count);
-    expect(userCounts.reduce((s, n) => s + n, 0)).toBe(5);
+    expect(userCounts.reduce((s, n) => s + n, 0)).toBe(20);
     const ipCounts = (await bucketsLike('redeem:ip:%')).map((x) => x.count);
-    expect(ipCounts.reduce((s, n) => s + n, 0)).toBe(5);
+    expect(ipCounts.reduce((s, n) => s + n, 0)).toBe(20);
+    expect(await bucket(REDEEM_GLOBAL_KEY)).toBe(G.limit);
   });
 
   it('ถูกปฏิเสธด้วยถังเข้า/ออกกลุ่ม (หลังจองถัง redeem แล้ว) → คืนช่องรวมด้วย ไม่นับเป็นการเดาผิด', async () => {
@@ -208,12 +268,16 @@ describe('H3 — ลิมิตการใช้โค้ดผิดรวม
     expect(await bucket(`redeem:u:${b.id}`)).toBe(0);
   });
 
-  it('ไม่มีข้อยกเว้นตามบทบาท: super admin ก็ถูกจำกัดเมื่อถังรวมเต็ม · ไม่ได้ล็อกอิน → 401 ไม่แตะถัง', async () => {
-    await setBucket(REDEEM_GLOBAL_KEY, G.windowMs, G.limit);
+  it('ไม่มีข้อยกเว้นตามบทบาท: super admin/admin กลุ่มที่เคยผิดก็ถูกจำกัดเมื่อถังรวมเต็ม (ผู้สะอาดผ่านทุกบทบาท) · ไม่ได้ล็อกอิน → 401 ไม่แตะถัง', async () => {
     const sa = await person(h, `root${seq++}`, { admin: true });
+    expect((await redeem(sa, wrongCode())).code).toBe('INVITE_INVALID');
+    expect((await redeem(a, wrongCode())).code).toBe('INVITE_INVALID');
+    await setBucket(REDEEM_GLOBAL_KEY, G.windowMs, G.limit);
     expect((await redeem(sa, await makeCode(a, gid))).code).toBe('RATE_LIMITED');
     // admin ของกลุ่มใช้โค้ดของกลุ่มตัวเองก็ถูกจำกัดเหมือนกัน (ไม่รู้ว่าโค้ดเป็นของใครจนกว่าจะตรวจ)
     expect((await redeem(a, await makeCode(a, gid))).code).toBe('RATE_LIMITED');
+    const sa2 = await person(h, `root${seq++}`, { admin: true });
+    expect((await redeem(sa2, await makeCode(a, gid))).status).toBe(200); // super admin ที่สะอาด = เหมือนผู้ใช้สะอาดทั่วไป
     const anon = new Client();
     const r = await anon.call('POST', '/api/invites/redeem', { code: 'AAAA-BBBB' });
     expect(r.status).toBe(401);
