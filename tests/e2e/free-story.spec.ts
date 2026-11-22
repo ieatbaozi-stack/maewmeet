@@ -11,14 +11,15 @@ import { addDays, canary, createBusyApi, monthOf, recordResponses } from './supp
 import { pageDump } from './support/calendar-ui';
 import { watchConsole, setPrefs } from './support/fixtures';
 import { api, createGroupApi, joinViaApiCode, membersApi, person, signup } from './support/groups';
-import { msg } from './support/messages';
+import { LOCALES, msg } from './support/messages';
 import { availabilityApi, freeCell, freeCreate, freeDay, freeMonth, freeSolo, mondayAhead, openFree, pickDay, closeSheet } from './support/free-ui';
 
 test.beforeEach(({}, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-390', 'เรื่องเล่าเต็มรันที่ mobile-390 ตัวเดียว');
 });
 
-const locale = 'th' as const;
+// R18 G3: เรื่องเล่าเดียวกัน รันทั้ง th และ en (assertion เดิม · ข้อความดึงจาก messages ตาม locale)
+for (const locale of LOCALES) {
 const T = (k: string, v?: Record<string, string | number>) => msg(locale, k, v);
 /** PATCH หน้าต่าง (idempotent) — ลองใหม่ถ้า keep-alive socket ถูกตัด (ECONNRESET เป็นครั้งคราวหลังเงียบนาน) */
 async function patchWindow(req: Parameters<typeof api>[0], gid: string, body: object, tries = 3) {
@@ -35,7 +36,7 @@ const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const stateTail = (state: 'all' | 'nocommon' | 'none' | 'partial', free: number, total: number) =>
   new RegExp(`${esc(T('availability.cell.aria', { date: '', today: 'no', outside: 'no', state, free, total }).replace(/^, /, ', '))}$`);
 
-test('th: A,B,C → ว่างร่วม/2 จาก 3/ซ่อน/T24 · เปลี่ยนหน้าต่าง · C ออก · คนเดียว · สิทธิ์ลิงก์ · สร้างนัดเปิดใช้งาน', async ({ newDevice, baseURL }) => {
+test(`${locale}: A,B,C → ว่างร่วม/2 จาก 3/ซ่อน/T24 · เปลี่ยนหน้าต่าง · C ออก · คนเดียว · สิทธิ์ลิงก์ · สร้างนัดเปิดใช้งาน`, async ({ newDevice, baseURL }) => {
   test.setTimeout(240_000);
   const [a, b, c] = await Promise.all([newDevice(), newDevice(), newDevice()]);
   for (const x of [a, b, c]) await setPrefs(x.context, baseURL!, { locale });
@@ -101,7 +102,7 @@ test('th: A,B,C → ว่างร่วม/2 จาก 3/ซ่อน/T24 · �
   await pickDay(b.page, Y);
   await expect(freeDay(b.page)).toContainText(T('availability.day.status.partial', { free: 2, total: 3 }));
   await expect(freeDay(b.page)).toContainText(pb.displayName);
-  await expect(freeDay(b.page)).not.toContainText(T('availability.day.status.all'));
+  await expect(freeDay(b.page)).toHaveAttribute('data-status', 'partial'); // en: ข้อความ 'all' เป็นส่วนหนึ่งของ 'nocommon' จึงเช็กจาก data-status
   await pickDay(b.page, W);
   await expect(freeDay(b.page)).toContainText(T('calendar.day.busyPlain'));
   await expect(freeDay(b.page)).not.toContainText(CT);
@@ -109,7 +110,7 @@ test('th: A,B,C → ว่างร่วม/2 จาก 3/ซ่อน/T24 · �
   // ───── 4) T24: 3/3 แต่ไม่ใช่ว่างร่วม ─────
   await pickDay(b.page, Z);
   await expect(freeDay(b.page)).toContainText(T('availability.day.status.nocommon'));
-  await expect(freeDay(b.page)).not.toContainText(T('availability.day.status.all'));
+  await expect(freeDay(b.page)).toHaveAttribute('data-status', 'nocommon'); // en: ข้อความ 'all' เป็นส่วนหนึ่งของ 'nocommon' จึงเช็กจาก data-status
   await expect(freeDay(b.page).getByText(seg('08:00', '10:00'))).toHaveCount(0); // ไม่มีช่วงว่างร่วม
 
   // ───── 5) canary: ไม่มี note / title ของรายการซ่อน ใน DOM หรือ response ใดๆ ที่ B ได้รับ ─────
@@ -181,3 +182,4 @@ test('th: A,B,C → ว่างร่วม/2 จาก 3/ซ่อน/T24 · �
 
   for (const [i, p] of problems.entries()) expect(p, `console ของเครื่อง ${i}`).toEqual([]);
 });
+}

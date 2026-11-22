@@ -10,7 +10,7 @@ import { canary, createBusyApi, recordResponses, todayBkk, buddhistYear } from '
 import { pageDump } from './support/calendar-ui';
 import { watchConsole } from './support/fixtures';
 import { go } from './support/groups';
-import { msg } from './support/messages';
+import { LOCALES, msg } from './support/messages';
 import { freeCreate, mondayAhead, openFree, pickDay } from './support/free-ui';
 import { isHydration, apptIdFromUrl, bell, bellBadge, call, daysBetween, makeScene, type ApptApi } from './support/appt';
 import { signupViaApi, uniqueUsername } from './support/auth';
@@ -19,10 +19,13 @@ test.beforeEach(({}, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-390', 'เรื่องเล่าเต็มรันที่ mobile-390 ตัวเดียว');
 });
 
-const locale = 'th' as const;
+// R18 G3: เรื่องเล่าเดียวกัน รันทั้ง th และ en (assertion เดิม · ข้อความดึงจาก messages ตาม locale)
+for (const locale of LOCALES) {
+/** th แสดง พ.ศ. · en แสดง ค.ศ. */
+const yearOf = (d: string): number => (locale === 'th' ? buddhistYear(d.slice(0, 7)) : Number(d.slice(0, 4)));
 const T = (k: string, v?: Record<string, string | number>) => msg(locale, k, v);
 
-test('th: A สร้างนัดจากวันว่างร่วม → B,C ได้แจ้งเตือน → RSVP → หน้าหลัก → แก้/ยกเลิก → C ออกกลุ่ม', async ({ newDevice, baseURL }) => {
+test(`${locale}: A สร้างนัดจากวันว่างร่วม → B,C ได้แจ้งเตือน → RSVP → หน้าหลัก → แก้/ยกเลิก → C ออกกลุ่ม`, async ({ newDevice, baseURL }) => {
   test.setTimeout(240_000);
   const scene = await makeScene(newDevice, baseURL!, { locale, labels: ['Ann', 'Ben', 'Cat'] });
   const [a, b, c] = scene.members as [typeof scene.members[0], typeof scene.members[0], typeof scene.members[0]];
@@ -79,7 +82,7 @@ test('th: A สร้างนัดจากวันว่างร่วม �
   await expect(a.page.getByTestId('appt-place-name')).toContainText('ร้านหมูกระทะป้าแดง');
   await expect(a.page.getByTestId('place-map')).toHaveCount(0); // R13: ไม่มีภาพแผนที่
   await expect(a.page.getByTestId('place-open')).toHaveAttribute('data-kind', 'geo'); // พิกัดอย่างเดียว = geo:
-  await expect(a.page.getByTestId('appt-band')).toContainText(String(buddhistYear(X.slice(0, 7)))); // พ.ศ.
+  await expect(a.page.getByTestId('appt-band')).toContainText(String(yearOf(X))); // th = พ.ศ. · en = ค.ศ.
   await expect(a.page.getByTestId('appt-when')).toContainText('08:00');
   await expect(a.page.getByTestId('appt-edit')).toBeVisible();
   await expect(a.page.getByTestId('appt-cancel')).toBeVisible();
@@ -153,7 +156,7 @@ test('th: A สร้างนัดจากวันว่างร่วม �
   await expect(card).toContainText(scene.groupName);
   await expect(b.page.getByTestId('home-countdown')).toContainText(T('home.countdown.aria', { days: N }));
   await expect(b.page.getByTestId('home-countdown')).toContainText(String(N));
-  await expect(card).toContainText(String(buddhistYear(X.slice(0, 7))));
+  await expect(card).toContainText(String(yearOf(X)));
   await expect(b.page.getByTestId('home-count-going')).toContainText(T('appointments.rsvp.summary.going', { count: 1 }));
   await expect(b.page.getByTestId('home-rsvp-going')).toHaveAttribute('aria-pressed', 'true');
   await expect(bellBadge(b.page)).toHaveCount(0); // อ่านแล้วตอนเปิดแถว
@@ -238,3 +241,4 @@ test('th: A สร้างนัดจากวันว่างร่วม �
 
   for (const [i, p] of problems.entries()) expect(p.filter((x) => !isHydration(x)), `console ของเครื่อง ${i} · ${errUrls.join(' | ')}`).toEqual([]);
 });
+}
