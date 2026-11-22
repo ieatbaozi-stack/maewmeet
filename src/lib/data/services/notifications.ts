@@ -50,7 +50,7 @@ const ownerRes = (actor: Actor) => ({ type: 'ownedByUser', ownerId: actor.kind =
 const toDto = (r: NotificationRow): NotificationDto => ({
   id: r.id,
   kind: r.kind,
-  params: r.params !== null && typeof r.params === 'object' && !Array.isArray(r.params) ? publicParams(r.params as Record<string, unknown>) : {},
+  params: r.params !== null && typeof r.params === 'object' && !Array.isArray(r.params) ? publicParams(r.params as Record<string, unknown>, r.kind) : {},
   createdAt: r.createdAt,
   readAt: r.readAt,
 });

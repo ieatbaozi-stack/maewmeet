@@ -96,9 +96,20 @@ export function isNotificationKind(value: unknown): value is NotificationKind {
 /** R18 D1: inviterId / inviteeId ถูกประทับโดย cron ตอนลบคำเชิญเก่า (repos/invite-purge.ts) เพื่อให้ล้างชื่อตอนลบบัญชีได้ */
 export const INTERNAL_PARAM_KEYS: readonly string[] = ['actorId', 'responderId', 'memberId', 'inviterId', 'inviteeId'];
 
-/** params ที่ส่งออกไปหา client ได้ */
-export function publicParams(params: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(params).filter(([k]) => !INTERNAL_PARAM_KEYS.includes(k)));
+/**
+ * R18 §S (security-v1 Info 1 · ADR 0016 §5.4 "ไม่มี groupId"): คีย์ภายในเฉพาะชนิดของแขก — groupId อยู่ในฐานเพื่อ purge กลุ่มตาม JSON
+ * และเพดาน unread ต่อกลุ่ม แต่ไม่ส่งออกทาง API (แขกไม่ควรเห็น id กลุ่ม · UI ของชนิดแขกไม่ใช้)
+ */
+const INTERNAL_PARAM_KEYS_BY_KIND: Readonly<Record<string, readonly string[]>> = {
+  'appointment.guest.updated': ['groupId'],
+  'appointment.guest.cancelled': ['groupId'],
+  'appointment.guest.removed': ['groupId'],
+};
+
+/** params ที่ส่งออกไปหา client ได้ · kind = ชนิดของแถว (ตัดคีย์ภายในเฉพาะชนิดด้วย) */
+export function publicParams(params: Record<string, unknown>, kind?: string): Record<string, unknown> {
+  const perKind = kind !== undefined && Object.prototype.hasOwnProperty.call(INTERNAL_PARAM_KEYS_BY_KIND, kind) ? INTERNAL_PARAM_KEYS_BY_KIND[kind]! : [];
+  return Object.fromEntries(Object.entries(params).filter(([k]) => !INTERNAL_PARAM_KEYS.includes(k) && !perKind.includes(k)));
 }
 
 /**

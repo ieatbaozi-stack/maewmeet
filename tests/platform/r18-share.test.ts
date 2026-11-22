@@ -433,7 +433,10 @@ describe('S2/S6 ยกเลิกลิงก์ / นำแขกออก —
     const removed = await kindsOf(guests[0]!);
     expect(removed.map((n) => n.kind)).toContain('appointment.guest.removed');
     const rp = removed.find((n) => n.kind === 'appointment.guest.removed')!.params;
-    expect(Object.keys(rp).sort()).toEqual(['groupId', 'groupName', 'startAt', 'title', 'tz']);
+    // security-v1 Info 1: groupId อยู่ในฐาน (purge กลุ่ม) แต่ไม่ออกทาง API ของชนิดแขก
+    expect(Object.keys(rp).sort()).toEqual(['groupName', 'startAt', 'title', 'tz']);
+    const stored = await h.rows<{ params: string }>("SELECT params FROM notification WHERE user_id = ? AND kind = 'appointment.guest.removed'", [guests[0]!.id]);
+    expect(JSON.parse(stored[0]!.params).groupId).toBe(w.gid);
     // ถูกนำออกแล้วไม่เห็นนัด
     expect((await guestView(guests[0]!, ap.id)).status).toBe(404);
   });
@@ -449,13 +452,14 @@ describe('S4 แจ้งเตือน/เตือนก่อนนัดถ
     let ns = await kindsOf(x);
     const upd = ns.find((n) => n.kind === 'appointment.guest.updated')!;
     expect(upd.params).toMatchObject({ appointmentId: ap.id, changes: 'time' });
-    expect(Object.keys(upd.params).sort()).toEqual(['appointmentId', 'changes', 'groupId', 'groupName', 'startAt', 'title', 'tz']);
+    expect(Object.keys(upd.params).sort()).toEqual(['appointmentId', 'changes', 'groupName', 'startAt', 'title', 'tz']); // ไม่มี groupId (security-v1 Info 1)
     expect(await kindsOf(x).then((a) => a.some((n) => n.kind === 'appointment.updated'))).toBe(false);
     expect((await post(w.a.c, `/api/appointments/${ap.id}/cancel`)).status).toBe(200);
     ns = await kindsOf(x);
     const can = ns.find((n) => n.kind === 'appointment.guest.cancelled')!;
     expect(JSON.stringify(can.params)).not.toContain(w.a.displayName);
-    expect(Object.keys(can.params).sort()).toEqual(['appointmentId', 'groupId', 'groupName', 'startAt', 'title', 'tz']);
+    expect(Object.keys(can.params).sort()).toEqual(['appointmentId', 'groupName', 'startAt', 'title', 'tz']); // ไม่มี groupId (security-v1 Info 1)
+    expect(JSON.stringify(await kindsOf(x))).not.toContain(w.gid);
     // ออกจากนัด → หาย
     expect((await call(x.c, 'DELETE', `/api/appointments/${ap.id}/guest`)).status).toBe(200);
     expect((await kindsOf(x)).filter((n) => n.params.appointmentId === ap.id)).toEqual([]);
