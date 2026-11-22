@@ -87,3 +87,23 @@
 - ❓ แข่งช่องสุดท้ายของเพดาน 10 / แขก→สมาชิกพร้อมกัน ข้าม instance บน Turso จริง (เทสต์ในเครื่องเป็น process เดียว) — ตรวจจากเหตุผลของ `BEGIN IMMEDIATE` + คำสั่งเดียวมีเงื่อนไข
 - ❓ header `Cache-Control` ของ `/i/<token>` บน production build (Info 3)
 - ❓ การดึงตัวอย่างลิงก์ของ LINE จริง (ควรเห็นแค่ชื่อแอป/คำอธิบายทั่วไป ตาม `generateMetadata`)
+
+## ตรวจซ้ำ 2026-11-22
+- ช่วง `git diff eac8f95..HEAD -- src` (HEAD `dcafebc`) · commit ที่แก้: `bb7a282` (auth, Low 1) · `9818d50` (platform, Info 1) · `dcafebc` (platform, Info 2) · `a2438b0` (frontend, Info 3 + ปรับ UI + แบนเนอร์ติดตั้งบน iOS) · ที่เหลือเป็นเอกสาร
+
+| ข้อพบ | สถานะ | หลักฐาน |
+|---|---|---|
+| **Low 1** ถังรวม H3 ทำให้ทั้งระบบใช้โค้ดไม่ได้ | **ปิดแล้ว** (เหลือความเสี่ยงที่ยอมรับได้) | 📖 `services/invites.ts:250-279`: ถัง IP/ผู้ใช้เต็ม → 429 ตามเดิม · ถังรวมเต็ม → ปฏิเสธเฉพาะผู้เรียกที่ "ไม่สะอาด" (precheck: ถัง IP หรือผู้ใช้ > 0) · ตัดสินซ้ำ **หลังจอง** ใน `serialized` (`ipNow.count === 1 && userNow.count === 1`) → คำขอพร้อมกันของคนเดียวกันเห็น ≥ 2 และถูกปฏิเสธ (ข้าม instance ก็ fail-closed เพราะการจองเป็น UPSERT อะตอมมิก) · ผู้สะอาดที่ผ่านไม่ถือช่องรวม (`holdsGlobal=false`) แต่ครั้งที่ผิดค้างอยู่ในถัง IP/ผู้ใช้ → แต่ละคู่ (IP, บัญชี) ใหม่ได้เดาเพิ่มได้อย่างมาก 1 ครั้งต่อหน้าต่าง (ตรงกับที่อธิบายไว้ใน `:58-62`) · ความเสี่ยงที่เหลือ: ผู้ใช้จริงที่ใช้ IP ร่วมกับผู้โจมตี (CGNAT) หรือเพิ่งพิมพ์ผิด 1 ครั้งระหว่างถูกโจมตีจะได้ 429 — ยอมรับได้ · คู่มือรับมืออยู่ใน `docs/OPERATIONS.md:359-368` แล้ว (ห้ามลบถังด้วยมือระหว่างถูกโจมตี) · ✅ `tests/auth/redeem-limits.test.ts` (30 บัญชี × 10 IP → ผู้ถือโค้ดถูกยังเข้าได้ · ผู้สะอาดยิงพร้อมกัน 5 ครั้ง → ตรวจโค้ดได้ 1 ครั้ง · ถังรวมไม่เกินเพดานเมื่อแย่งช่องสุดท้าย) |
+| **Info 1** แจ้งเตือนแขกมี `groupId` | **ปิดแล้ว** | 📖 `notify.ts:103-113` `publicParams(params, kind)` ตัด `groupId` ออกเฉพาะ `appointment.guest.*` · `services/notifications.ts:53` ส่ง `r.kind` (เป็นทางเดียวที่ params ออก API) · ในฐานยังเก็บ `groupId` ไว้ใช้ purge กลุ่ม/เพดาน unread · ชนิดของสมาชิกไม่เปลี่ยน · ✅ `tests/security/appointment-input-isolation.test.ts` |
+| **Info 2** แขกที่ถูกนำออกกลับเข้าได้หลังเข้า-ออกกลุ่ม | **ปิดแล้ว** | 📖 `repos/appointment-guest.ts:111` DELETE เฉพาะ `removed_at IS NULL` · ไล่คิวรีที่อาจเจอแถวที่ถูกนำออกระหว่างเป็นสมาชิก: `isGuest`/`findActiveGuest`/รายชื่อแขก/นับเพดาน/`visibleToOwner`/busy/เตือน/LINE ล้วนกรอง `removed_at IS NULL` (คำตอบของแถวนั้นถูกล้างตอนนำออกแล้ว) · `findShareByTokenHash`/join ดู `viewerIsMember` ก่อนแถวที่ถูกนำออก → สมาชิกได้ 'member' · ลบบัญชี/purge กลุ่ม/ลบนัด ลบแถวนี้ไปด้วย · ✅ `tests/platform/r18-share.test.ts` (ถูกนำออก → เข้ากลุ่ม → ออก → เปิดลิงก์ = 404) |
+| **Info 3** `/i/[token]` ไม่มี `nocache` | **ปิดแล้ว (ส่วนโค้ด)** | 📖 `src/app/i/[token]/page.tsx:18` `nocache: true` · ❓ ยังไม่ได้ยืนยัน header `Cache-Control` บน production build (ให้ ops/qa ตรวจบน preview ตามเดิม) |
+| **Info 4** docs-sync ล้ม | **ปิดแล้ว** | ✅ `tests/ops/docs-sync.test.ts` ผ่านในรอบนี้ |
+| **Info 5** access log มี `/i/<token>` | ยอมรับแล้ว (ไม่ต้องแก้) | ตามเดิม |
+
+**ข้อพบใหม่: ไม่มี** — ไล่ diff ส่วนอื่นใน `src/` แล้ว: แบนเนอร์ติดตั้ง iOS (`components/home/install-hint.ts`) เก็บแค่ธง `"1"` ใน localStorage ไม่มีข้อมูลบัญชี/token และอ่าน UA เฉพาะฝั่ง client · ที่เหลือ (`LoginForm` ย้ายกล่องล็อก, `Name.tsx` class, `guest.fromGroup`, admin hub badge, CSS) เป็นการแสดงผลอย่างเดียว ไม่แตะสิทธิ์/ข้อมูล · ไม่มี `dangerouslySetInnerHTML` หรือ `console.*` เพิ่ม
+
+| คำสั่ง | ผล |
+|---|---|
+| `npx vitest run tests/auth tests/security tests/rbac tests/platform/r18-share.test.ts tests/platform/r18-invite-purge.test.ts tests/notifications tests/groups tests/ui/install-hint.test.ts tests/ui/share-render.test.ts tests/ui/share-model.test.ts tests/ops/headers.test.ts tests/ops/docs-sync.test.ts --testTimeout=60000 --reporter=agent` | ✅ 63 ไฟล์ · 4093 passed, 1 skipped |
+
+**Verdict หลังตรวจซ้ำ: ผ่าน** — Critical/High/Medium/Low = 0 · เหลือ Info 5 (ยอมรับแล้ว) และ ❓ Cache-Control ของ `/i/<token>` บน build จริง · e2e ยังต้องดูจาก CI
