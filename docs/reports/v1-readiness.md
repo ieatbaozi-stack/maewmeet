@@ -2,16 +2,16 @@
 
 > ผู้เขียน: architect · 2026-11-22 · branch `feat/r18-v1` ที่ `9a3ce92` (โค้ดล่าสุด `091a2d4`) · ผู้ตรวจอิสระ: qa (ยังไม่ได้ตรวจ)
 > วิธีตรวจ: อ่าน [PRD](../prd/PRD.md) §2–§9 + [R18_CONTRACT](../contracts/R18_CONTRACT.md) แล้วชี้ไฟล์โค้ด + ไฟล์เทสต์ที่มีอยู่จริง (`ls`/`grep` ใน worktree) · **"ส่งแล้ว" = มีโค้ดและมีเทสต์ที่ครอบ ไม่ได้แปลว่ารันเทสต์ทุกไฟล์ในรายงานนี้** — ที่รันจริงดูหัวข้อ "ผลรันจริง" ท้ายไฟล์
-> สถานะ: ✅ ส่งแล้ว · ⏸ เลื่อน/ตัด (มีคำตัดสิน) · ⚠ **ช่องว่าง — ยังไม่มีทั้งของจริงและคำตัดสิน (main ต้องตัดสิน)** · 👤 ต้องให้ boss ทำบนเครื่องจริง
+> สถานะ: ✅ ส่งแล้ว · ⏸ เลื่อน/ตัด (มีคำตัดสิน) · ⚠ **ช่องว่าง — ยังไม่มีทั้งของจริงและคำตัดสิน (main ต้องตัดสิน)** · ⏳ ตัดสินแล้ว กำลังทำ/รอผล · 👤 ต้องให้ boss ทำบนเครื่องจริง · (อัปเดต 2026-11-22: ไม่มีข้อ ⚠ ค้างแล้ว)
 
-## สรุปช่องว่าง (ให้ main)
-| # | ข้อ PRD | เรื่อง | ข้อเสนอ |
+## สรุปช่องว่าง (ให้ main) — ตัดสินแล้วทุกข้อ ([R18_CONTRACT §11](../contracts/R18_CONTRACT.md), 2026-11-22)
+| # | ข้อ PRD | เรื่อง | คำตัดสิน / สถานะ (อัปเดต 2026-11-22) |
 |---|---|---|---|
-| G1 | §6 "PWA manifest (… + แบนเนอร์สอน iOS)" | มี manifest + ไอคอน (R15a) แต่ **ไม่มีแบนเนอร์สอนติดตั้งในแอป** — มีแค่ขั้นตอนใน `docs/guides/quickstart-th.html` (หัวข้อ "เพิ่มไปยังหน้าจอโฮม") · ไม่พบคำตัดสินตัดออก | (ก) ตัดสิน "ใช้คู่มือแทนแบนเนอร์" แล้วติ๊กใน PRD (แนะนำ — boss ติดตั้งได้แล้ว R15 T3) หรือ (ข) ทำแบนเนอร์ (ux + frontend, เกิน B5 เล็กน้อย) |
-| G2 | §7 "Lighthouse มือถือ Performance ≥ 85, Accessibility ≥ 95 บน preview" | **ไม่พบผลวัดในเอกสาร/รายงานใด** (`grep -i lighthouse docs/reports` ว่าง) · R0_CONTRACT บอกว่าจะปิดหลัง deploy แต่ไม่มีบันทึก | ให้ qa วัดบน preview ใน V2 แล้วจดผล หรือ main ตัดสินว่าใช้ผล e2e a11y/perf (`tests/perf/r7-baseline.test.ts`) แทน |
-| G3 | §8 ข้อ 4.1 "E2E flow ข้อ 1 รันผ่านทั้งไทยและอังกฤษ" | flow ข้อ 1 แตกเป็นหลาย spec: `groups-story`, `calendar-story`, `signup` รันทั้ง TH/EN · แต่ **`free-story.spec.ts` และ `appt-story.spec.ts` ล็อก `locale = 'th'`** (และ `appt-story` สมัคร/เข้ากลุ่มผ่าน API helper ไม่ใช่ UI) | qa ยืนยันใน V2 ว่ายอมรับแบบแยก spec ได้ หรือเพิ่มรอบ EN ของ 2 spec นี้ (test) |
-| G4 | §6 "v1.x: นำเข้า ICS" | ทำเป็น**ส่งออก** .ics แล้ว (R12) · PRD หมายเหตุ 2026-11-18 บอกแค่ว่า "นำเข้ายังไม่ทำ" ไม่มีคำตัดสิน | เป็นขอบเขต v1.x ไม่บล็อก 1.0 · main ติ๊ก "ตัดสินแล้ว ไม่ทำใน 1.0" ใน PRD |
-| G5 | §9 R6 hardening backlog (deny list, opt-out, confusable, guard 200) | ตัดสินแล้วใน R18_CONTRACT §4 (B3 = ไม่ทำ · guard 200 = R16 H5) แต่ **checkbox ใน PRD ยังไม่ติ๊ก** | main ติ๊กตาม §6 ของ contract (งานของ main อยู่แล้ว) |
+| G1 | §6 "PWA manifest (… + แบนเนอร์สอน iOS)" | เดิมไม่มีแบนเนอร์ในแอป มีแค่คู่มือ quickstart | **ทำใน R18 (boss)** — แถบเล็กเฉพาะ Safari บน iPhone/iPad ที่ยังไม่เปิดแบบแอป ปิดแล้วไม่ขึ้นอีก ไม่มี migration · สเปกและถ้อยคำ ux (`6a7f437`) · **กำลังทำ: frontend** · qa ตรวจ |
+| G2 | §7 Lighthouse ≥ 85 / ≥ 95 | เดิมไม่พบผลวัด | **qa วัดบน Vercel preview ของ PR** (login, หน้าหลัก, ปฏิทิน) บันทึกใน `docs/reports/qa-r18.md` · ต่ำกว่าเกณฑ์ = frontend แก้ก่อน merge · ยังไม่มีผล |
+| G3 | §8 ข้อ 4.1 flow ทั้ง TH/EN | เดิม `free-story`/`appt-story` รันแค่ th | **เสร็จแล้ว** — test ขยายให้รัน en ด้วย (`e50d5fc`) · ผลรันดูที่ CI |
+| G4 | §6 "v1.x: นำเข้า ICS" | ทำเฉพาะส่งออก .ics (R12) | ⏸ **ไม่ทำใน 1.0 (boss)** — งานหลัง 1.0 · main บันทึกใน PRD |
+| G5 | §9 R6 hardening backlog | เดิม checkbox ใน PRD ยังไม่ติ๊ก | **เสร็จแล้ว** — main ติ๊กใน PRD (`8c195d7`) |
 
 ข้อ 👤 (ไม่ใช่ช่องว่างของโค้ด): PRD §8 ข้อ 5 boss ลองบนมือถือ 1 เครื่อง + iPad 1 เครื่อง → V4 (secretary) · ยังไม่มีบันทึกผล iPad
 
@@ -68,14 +68,14 @@
 |---|---|---|
 | มือถือก่อน 375 + iPad สองคอลัมน์ | ✅ | `@media (min-width: 48em)` ใน CSS · Playwright projects `mobile-375`/`mobile-390`/`tablet-768` (`playwright.config.ts`) · `tests/e2e/responsive.spec.ts`, `*-layout.spec.ts` |
 | PWA manifest ติดตั้งหน้าจอหลักได้ | ✅ | `src/app/manifest.ts`, `public/brand/app/*` · `tests/e2e/r15a-feedback.spec.ts` · boss ทดสอบ iPhone ผ่าน (R15) |
-| แบนเนอร์สอน iOS | ⚠ G1 | ไม่มีในโค้ด · มีในคู่มือเท่านั้น |
+| แบนเนอร์สอน iOS | ⏳ G1 | ตัดสินให้ทำใน R18 · frontend กำลังทำ |
 | แจ้งเตือนในแอป (คำเชิญตรง, นัดใหม่, reset อนุมัติ) | ✅ | `src/lib/data/notifications/notify.ts` (`group.invite.received`, `appointment.created`, `pin_reset.approved`) · `tests/notifications/notifications.test.ts` |
 | v1.x LINE + เตือนก่อนนัด | ✅ (R10) | `src/lib/data/services/reminders.ts`, `tests/line/*`, `tests/calendar/reminders.test.ts` |
-| v1.x นำเข้า ICS | ⚠ G4 | ทำเฉพาะส่งออก (`src/lib/calendar/ics.ts`, `tests/calendar/ics*.test.ts`) |
+| v1.x นำเข้า ICS | ⏸ G4 ไม่ทำใน 1.0 (boss) | ทำเฉพาะส่งออก (`src/lib/calendar/ics.ts`, `tests/calendar/ics*.test.ts`) |
 | ไม่ทำ: แชท ชำระเงิน native ออฟไลน์ ตำแหน่ง | ⏸ | PRD §6 "ไม่ทำ" · ไม่มี service worker (ARCHITECTURE ข้อ 10) |
 | UI_DIRECTION + Anti-slop 4 ชุด | ⏳ | V5 (`docs/design/V1_UI_AUDIT.md` — ux) + V2 (qa) ยังไม่ปิด · e2e ถ่ายภาพ 4 ชุดหลายหน้า (`*-layout.spec.ts`) |
 | ปุ่ม ≥ 44px / แป้น PIN ≥ 56px / ไม่ scroll แนวนอน | ✅ | `tests/ui/pinpad.test.ts`, `tests/e2e/*-layout.spec.ts` (checkLayout) |
-| Lighthouse ≥ 85 / ≥ 95 | ⚠ G2 | ไม่พบผลวัด |
+| Lighthouse ≥ 85 / ≥ 95 | ⏳ G2 | qa วัดบน preview ของ PR → `docs/reports/qa-r18.md` |
 | สิทธิ์ที่เซิร์ฟเวอร์ / ความลับใน env / ไม่ log PIN/token | ✅ | `tests/security/*.test.ts`, `tests/auth/secrets-exposure.test.ts`, `tests/security/config-hygiene.test.ts` · V3 security-v1 ยังไม่ปิด |
 | ต้นทุน ≈ $0 | ✅ | Vercel Hobby + Turso + LINE OA เพดาน 300/เดือน (`LINE_SEND_CAPS`, `tests/line/caps.test.ts`) |
 
@@ -86,7 +86,7 @@
 | 2 เมทริกซ์สิทธิ์ครบ | ✅ | ดูหัวข้อ 2 |
 | 3 E2E reset PIN + เกิน 24 ชม. | ✅ | `tests/e2e/pin-reset.spec.ts` (TH/EN), `tests/auth/pin-reset-login.test.ts` |
 | 4 เกต PROCESS + Anti-slop | ⏳ | V2/V3/V5 ของ R18 |
-| 4.1 flow ข้อ 1 ทั้ง TH/EN · ภาพ 3 หน้าหลัก 4 ชุด · เทสต์คีย์ | ⚠ G3 (ส่วน flow) | คีย์: `tests/i18n/messages.test.ts` ✅ · ภาพ 4 ชุด: `appt-layout`/`calendar-layout`/`groups-responsive` ✅ |
+| 4.1 flow ข้อ 1 ทั้ง TH/EN · ภาพ 3 หน้าหลัก 4 ชุด · เทสต์คีย์ | ✅ G3 (`e50d5fc`) | คีย์: `tests/i18n/messages.test.ts` ✅ · ภาพ 4 ชุด: `appt-layout`/`calendar-layout`/`groups-responsive` ✅ |
 | 5 boss ลองมือถือ + iPad | 👤 | V4 (secretary) |
 
 ## 6. งานรอบ R18
@@ -104,7 +104,7 @@
 | H7 picomatch | ⏸ ยอมรับความเสี่ยง | — | `docs/OPERATIONS.md` ภาคผนวก Dependabot (ตรวจซ้ำ 2026-11-20 ไม่มีรุ่นแก้) |
 | C1 ยืนยัน "ลบวันนี้" busy/routine + ถอนคำเชิญตรง | ✅ | `BusyFormSheet.tsx`, `RoutineScopeSheet.tsx`, `InviteSection.tsx` | `tests/e2e/r6f-daily-busy.spec.ts`, `r14b-busy-routine.spec.ts`, `r18-share.spec.ts` |
 | C2 ทุกปุ่มลบผ่าน | ✅ | — | `docs/design/R17_DELETE_CONFIRM.md` §8.2 (16 แถว "ผ่าน" · แถว 16 ปฏิเสธคำเชิญ = ตัดสินคงเดิม, ux เสนอ main ยกระดับได้) |
-| §4 B3 ข้อเสนอที่ไม่มีใครขอ | ⏸ | — | R18_CONTRACT §4 + §9 B3 = (ก) · OPERATIONS K4 (r16 Info 2–3) · ⚠ G5 PRD ยังไม่ติ๊ก |
+| §4 B3 ข้อเสนอที่ไม่มีใครขอ | ⏸ | — | R18_CONTRACT §4 + §9 B3 = (ก) · OPERATIONS K4 (r16 Info 2–3) · G5 PRD ติ๊กแล้ว (`8c195d7`) |
 | S1 สร้างลิงก์ (ของใครของมัน, ซ้ำได้ลิงก์เดิม, hash) | ✅ | `src/lib/data/services/share.ts`, `share-token.ts`, `repos/share-link.ts` | `tests/platform/r18-share.test.ts` (S1), `tests/rbac/share-guests.test.ts`, `tests/auth/share-rate-limits.test.ts` |
 | S2 หมดอายุ/ยกเลิก/ผู้สร้างออก | ✅ | 〃 + `services/groups.ts` (`revokeActiveShareLinksCreatedBy`) | `r18-share.test.ts` (S2/S6, S7) |
 | S3 หน้า `/i/[token]` (ไม่มีชื่อสมาชิก, noindex, safeNext) | ✅ | `src/app/i/[token]/page.tsx`, `src/components/share/ShareLanding.tsx`, `src/lib/shared/safe-next.ts`, `next.config.ts` (`X-Robots-Tag`) | `r18-share.test.ts` (S3), `tests/ops/headers.test.ts`, `tests/ui/share-render.test.ts`, `tests/e2e/r18-share.spec.ts` |
