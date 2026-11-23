@@ -29,11 +29,11 @@ UI มี 2 ภาษา (ไทย/อังกฤษ) × 2 ธีม (สว�
 ## 3. ระดับงาน — ทำที่ไหน ใครตรวจ
 | ระดับ | ตัวอย่าง | ทำที่ | ผู้ตรวจ |
 |---|---|---|---|
-| A ทั่วไป | UI, ข้อความ TH/EN, bug, เทสต์, เอกสาร, CI/ops, API/logic ที่ไม่แตะสิทธิ์ | Antigravity ทั้งรอบ | แชตใหม่ **คนละโมเดลกับคนทำ** (Opus ทำ → Gemini ตรวจ หรือสลับ) ตามเช็กลิสต์ qa + Code review (§6) |
-| B เสี่ยง | แตะ `src/lib/auth/**`, `src/lib/rbac/**`, `src/app/api/auth/**`, schema/migration, ข้อมูลคน (busy, share link, guest), ความลับ | ทำใน Antigravity ได้ | ระดับ A + **Claude Code `security` agent 1 ครั้ง** ก่อน boss merge · migration ต้องรันกับ boss ตาม §2 |
+| A ทั่วไป | UI, ข้อความ TH/EN, bug, เทสต์, เอกสาร, CI/ops, logic ที่ไม่แตะ `src/app/api/**` | Antigravity ทั้งรอบ | แชตใหม่ **คนละโมเดลกับคนทำ** (Opus ทำ → Gemini ตรวจ หรือสลับ) ตามเช็กลิสต์ qa + Code review (§6) |
+| B เสี่ยง | เพิ่ม/แก้ route ใน `src/app/api/**`, แตะ `src/lib/auth/**`, `src/lib/rbac/**`, `src/app/api/auth/**`, schema/migration, ข้อมูลคน (busy, share link, guest), ความลับ | ทำใน Antigravity ได้ | ระดับ A + **Claude Code `security` agent 1 ครั้ง** ก่อน boss merge · migration ต้องรันกับ boss ตาม §2 |
 | C ใหญ่ | ฟีเจอร์ใหม่หลายส่วน, ADR ใหม่, รื้อโครง, เปลี่ยนเวอร์ชันหลัก | Claude Code (ทีม agent เต็ม) | ตาม PROCESS.md |
 
-ไม่แน่ใจว่าระดับไหน → ใช้ระดับสูงกว่า หรือถาม boss
+ระดับ A = งานที่ไม่แตะ `src/app/api/**`, `src/lib/auth|rbac/**`, schema/migration, ข้อมูลคน, ความลับ เลย · ไม่แน่ใจว่าระดับไหน → ใช้ระดับสูงกว่า หรือถาม boss
 
 ## 4. บทบาท → ขอบเขตไฟล์ (จริงอยู่ที่ `.claude/agents/<บทบาท>.md`)
 | บทบาท | model (Claude Code) | ขอบเขตไฟล์ |
