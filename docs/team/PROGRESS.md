@@ -11,14 +11,14 @@
 - **migration `0007`** (เพิ่มตาราง `appointment_share_link` + `appointment_guest` อย่างเดียว) รันแล้ว preview 2026-11-22 · prod 2026-11-23 ก่อน merge (ตามที่ main แจ้ง)
 - **ผลตรวจอิสระ R18:** qa `docs/reports/qa-r18.md` ผ่านแบบมีข้อสังเกต · security `docs/reports/security-v1.md` ผ่าน (ตรวจซ้ำ `3c7d8c2`)
 - **เลขรุ่นในระบบ:** `package.json` = `1.0.1` · ตรงกับ CHANGELOG `[1.0.1] - 2026-11-23` · quickstart ท้ายหน้า `app v1.0.1` · PRD หมายเหตุ 1.0.1 (ตรวจด้วย `tests/ops/docs-sync.test.ts`)
-- **production `/api/health` version:** ยืนยันแล้วตอน **1.0.0** (2026-11-23 · `qa-release-1.0.0.md`) · **1.0.1** ยังไม่ได้ตรวจหลัง deploy
-- **DUALTOOL (Claude Code + Antigravity):** PR #44 merge `55469e5` · อยู่บน `main` แล้ว
+- **production `/api/health` version:** ยืนยันแล้ว = **`1.0.1`** (2026-11-23 19:43 · `ok:true`, `db:true`, `pepper.ok:true`, `node:v24.22.3`) · CI `chore(release): v1.0.1` (`45174826022`) บน `main` ผ่าน ✔
+- **DUALTOOL (Claude Code + Antigravity):** PR #44 merge `55469e5` · PR #46 (`docs/release-1.0.1`) merge `e71f62c` · อยู่บน `main` แล้ว
 
 ## เหลือ (รายการเปิดจริงหลัง 1.0 · ตรวจ 2026-11-23)
 
 ### 1. ระดับเครื่อง boss / ของจริง (ไม่บล็อกรุ่น · ต้องจดผล)
 - **เช็กลิสต์บนมือถือจริง:** [docs/reports/r18-boss-device-checklist.md](../reports/r18-boss-device-checklist.md) — ช่อง "ผล" ยังว่างทั้งหมด (ลิงก์ในชื่อนัดบน LINE · ป้าย "ผู้ดูแลระบบ" · เปิดเต็มจอบน iOS · ปุ่ม Apple Maps ที่ 768 · ชวนคนนอก/LINE in-app browser · แบนเนอร์ iOS (G1) · iPad 1 เครื่อง) · ผลส่งให้ main/secretary เพื่อจด
-- **header ของ `/i/<token>` บน production:** qa ตรวจแล้ว 2026-11-23 (token ปลอม) `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate` + `X-Robots-Tag: noindex, nofollow` (security-v1 Info 3 ปิดแล้ว · ยังไม่ได้ลองกับ token จริงบน prod)
+- **header ของ `/i/<token>` บน production:** ตรวจซ้ำบน `v1.0.1` แล้ว 2026-11-23 (token ปลอม) `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate` + `X-Robots-Tag: noindex, nofollow` (security-v1 Info 3 ปิดแล้ว · ยังไม่ได้ลองกับ token จริงบน prod)
 - **เครื่อง boss:** ติดตั้ง Node 24 (เครื่องเป็น v26 ทำให้เทสต์ health ล้ม) · ติดตั้ง Python สำหรับเทสต์ที่ต้องใช้ Python
 - **เทสต์ที่ล้มเฉพาะเครื่อง Windows** (ปัญหาเครื่อง ไม่ใช่ repo): `release.test` (`.bin/tsx` ENOENT) · `config-hygiene` ข้อ permissions (CRLF) · `npm test` ทั้งชุดมี EPERM/timeout · ผลจริงดูจาก CI
 
