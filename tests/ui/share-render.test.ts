@@ -17,6 +17,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 import { CalendarView } from '@/components/calendar/CalendarView';
+import { HomeView } from '@/components/home/HomeView';
 import { GuestAppointmentView } from '@/components/share/GuestAppointmentView';
 import { GuestsSection } from '@/components/share/GuestsSection';
 import { ShareLanding } from '@/components/share/ShareLanding';
@@ -189,6 +190,22 @@ describe.each(LOCALES)('แชร์นัด/แขก render (%s)', (locale) =
     const bare = render(locale, GuestAppointmentView as never, { initial: guestDto({ invitedBy: null, description: null, placeName: null }), nowMs: NOW, appOrigin: '' });
     expect(bare).not.toContain('data-testid="appt-detail-description"');
     expect(render(locale, GuestAppointmentView as never, { initial: guestDto({ myRsvp: 'going' }), nowMs: NOW, appOrigin: '' })).toContain('data-testid="appt-add-calendar"');
+  });
+
+  it('HomeView: การ์ดนัดถัดไปของแขกใช้ guest.goingHint · การ์ดสมาชิกใช้ข้อความเดิม (F18)', () => {
+    const m = MESSAGES[locale] as unknown as { guest: { goingHint: string }; appointments: { rsvp: { goingHint: string } } };
+    const card = (viewerKind: 'member' | 'guest') => ({
+      id: 'h1', groupId: viewerKind === 'guest' ? '' : 'g1', groupName: 'ก๊วนกาแฟ', groupIcon: null, title: 'นัด h1', placeName: null,
+      startAt: START, endAt: START + 2 * 3_600_000, tz: 'Asia/Bangkok', localDate: '2026-12-06', status: 'active', isPast: false, daysUntil: 5,
+      rsvp: { counts: { going: 1, maybe: 0, not_going: 0, noResponse: 0 }, mine: null }, viewerKind,
+    });
+    const guestHtml = render(locale, HomeView as never, { initial: { kind: 'ready', appointments: [card('guest')] }, initialNowMs: NOW });
+    expect(guestHtml).toContain('data-testid="home-rsvp-hint"');
+    expect(guestHtml).toContain(m.guest.goingHint);
+    expect(guestHtml).not.toContain(m.appointments.rsvp.goingHint);
+    const memberHtml = render(locale, HomeView as never, { initial: { kind: 'ready', appointments: [card('member')] }, initialNowMs: NOW });
+    expect(memberHtml).toContain(m.appointments.rsvp.goingHint);
+    expect(memberHtml).not.toContain(m.guest.goingHint);
   });
 });
 
