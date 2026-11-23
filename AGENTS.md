@@ -1,7 +1,7 @@
 # AGENTS.md — กติกาสำหรับ AI ทุกเครื่องมือที่ทำงานใน repo maewmeet
 
 ผู้อ่าน: AI ใน Claude Code, Antigravity (Opus/Gemini) หรือเครื่องมืออื่น · กติกาเดียวกันทุกเครื่องมือ · คุยกับ boss เป็นภาษาไทย สั้น ตรง ไม่ฟุ้ง
-ต้นฉบับกติกาละเอียด: [CLAUDE.md](CLAUDE.md) · [docs/team/PROCESS.md](docs/team/PROCESS.md) · [docs/prd/PRD.md](docs/prd/PRD.md) · สถานะงาน [docs/team/PROGRESS.md](docs/team/PROGRESS.md) · ทีม [docs/team/TEAM.md](docs/team/TEAM.md) · เอกสารตาม [docs/contracts/DOCS_SYNC_CONTRACT.md](docs/contracts/DOCS_SYNC_CONTRACT.md)
+ต้นฉบับกติกาละเอียด: [CLAUDE.md](CLAUDE.md) · [docs/team/PROCESS.md](docs/team/PROCESS.md) · [docs/prd/PRD.md](docs/prd/PRD.md) · สถานะงาน [docs/team/PROGRESS.md](docs/team/PROGRESS.md) · สถานะส่งต่อล่าสุด [docs/team/HANDOFF.md](docs/team/HANDOFF.md) · ทีม [docs/team/TEAM.md](docs/team/TEAM.md) · เอกสารตาม [docs/contracts/DOCS_SYNC_CONTRACT.md](docs/contracts/DOCS_SYNC_CONTRACT.md)
 ถ้าไฟล์นี้ขัดกับ CLAUDE.md ให้ยึด CLAUDE.md แล้วแจ้ง boss · โฟลเดอร์ `Pre-start/` อ่านได้ ห้ามแก้ ห้ามอ้างแทนเอกสารที่ root
 
 ## 1. กฎเหล็ก (ย่อ — ละเมิดแล้วงานถูกตีกลับ)
@@ -72,8 +72,9 @@ Claude Code เรียก sub-agent แยกตัวได้ แต่เ�
 - commit แบบ conventional: `feat:` `fix:` `qa:` `docs:` `chore:` `test:`
 - ผู้เขียน = ชื่อบทบาท + อีเมล noreply ของ boss:
   `git -c user.name=<บทบาท> -c user.email=309017158+ieatbaozi-stack@users.noreply.github.com commit -m "feat: ..."`
-- trailer ท้าย message ใช้ **ชื่อโมเดลที่ใช้จริงในแชตนั้น** ห้ามอ้างโมเดลที่ไม่ได้ใช้ ตามผู้ให้บริการ เช่น
-  `Co-Authored-By: <ชื่อโมเดลจริง> <noreply@anthropic.com>` (Claude) · `Co-Authored-By: <ชื่อโมเดลจริง> <noreply@google.com>` (Gemini)
+- trailer ท้าย message แยกสองกรณี:
+  - **commit จาก Claude Code (ทีม agent)** ใช้ trailer ที่ main ให้มาในแต่ละรอบ — ธรรมเนียมโปรเจกต์คือ `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` เหมือนกันทุกบทบาท (ไม่ต้องเปลี่ยนตามโมเดลของ agent นั้น)
+  - **commit จาก Antigravity** ใช้ **ชื่อโมเดลที่ใช้จริงในแชตนั้น** ห้ามอ้างโมเดลที่ไม่ได้ใช้ ตามผู้ให้บริการ เช่น `Co-Authored-By: <ชื่อโมเดลจริง> <noreply@anthropic.com>` (Claude) · `Co-Authored-By: <ชื่อโมเดลจริง> <noreply@google.com>` (Gemini)
 - อย่าใช้ `git add -A` เมื่อมีหลายแชตทำงาน worktree เดียวกัน — ระบุไฟล์ของตัวเอง · ห้าม `git stash`/สลับ branch ถ้าไม่ได้รับมอบ
 - เปิด PR แล้ว **หยุด** · คำอธิบาย PR ต้องมี: เปลี่ยนอะไร · ผลเทสต์จริง (คำสั่ง + ผลลัพธ์) · ผลตรวจจากผู้ตรวจอิสระ · หัวข้อ "เอกสาร" ตาม DOCS_SYNC · ระดับงาน (A/B/C) และโมเดลที่ใช้ทำ/ตรวจ
 
