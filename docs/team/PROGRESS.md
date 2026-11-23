@@ -1,19 +1,18 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-23 (เวลาไทย) · **v1.0.1 เป็นรุ่นล่าสุดที่ออกแล้ว** (ออก 2026-11-23 · tag `v1.0.0` → `c906d09`) · **โปรเจกต์ปิดรอบ R0–R18 · เข้าโหมดดูแล (maintenance mode)**
+> อัปเดตล่าสุด: 2026-11-23 (เวลาไทย) · **v1.0.1 เป็นรุ่นล่าสุดที่ออกแล้ว** (ออก 2026-11-23 · tag `v1.0.1` → `80856c2`) · **โปรเจกต์ปิดรอบ R0–R18 · เข้าโหมดดูแล (maintenance mode)**
 
 > **วิธีอ่านไฟล์นี้:** สถานะจริงอยู่ที่หัวข้อ **สถานะปัจจุบัน** และ **เหลือ** (ตรวจกับ git log, CHANGELOG, `docs/reports/` เมื่อ 2026-11-23) · ประวัติรอบเดิมทั้งหมดอยู่ใน [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md) (คำต่อคำ)
 
-## สถานะปัจจุบัน — 2026-11-23 (v1.0.0 ออกแล้ว · maintenance mode)
+## สถานะปัจจุบัน — 2026-11-23 (v1.0.1 ออกแล้ว · maintenance mode)
+- **ออกรุ่น patch v1.0.1** (2026-11-23): PR #45 (`fix/post-v1-polish`) merge `68c181d` · release commit `80856c2` `chore(release): v1.0.1` · tag `v1.0.1` → `80856c2` · แก้ F18 (`guest.goingHint` TH/EN บนหน้านัดแขกและการ์ดแขกหน้าหลัก) + เพิ่ม `.claude/worktrees/**` ใน `eslint.config.mjs` · ผ่าน QA อิสระ 2 รอบ (`docs/reports/qa-post-v1-polish.md`: รอบแรก Claude Opus 5.5, รอบสอง Gemini 4 Neon) · ไม่มี migration
 - **R18 ปิดรอบ + ออกรุ่น v1.0.0** (2026-11-23): PR #42 merge `1b07381` · release commit `c906d09` `chore(release): v1.0.0` · tag `v1.0.0` → `c906d09` · บรรทัดปิดรอบใน contract `68a8a97` · รายละเอียดรอบ R18 [ประวัติ] อยู่ที่ PROGRESS_ARCHIVE
 - **migration `0007`** (เพิ่มตาราง `appointment_share_link` + `appointment_guest` อย่างเดียว) รันแล้ว preview 2026-11-22 · prod 2026-11-23 ก่อน merge (ตามที่ main แจ้ง)
 - **ผลตรวจอิสระ R18:** qa `docs/reports/qa-r18.md` ผ่านแบบมีข้อสังเกต · security `docs/reports/security-v1.md` ผ่าน (ตรวจซ้ำ `3c7d8c2`)
-- **CI:** main รายงานว่า CI บน `1b07381` เขียว (รอบที่สองของ H5) — ข้อมูลจาก main ยังไม่ได้ตรวจด้วย `gh` โดยเลขา
-- **เลขรุ่นในระบบ:** `package.json` = `1.0.0` · ตรงกับ CHANGELOG `[1.0.0] - 2026-11-23` · quickstart ท้ายหน้า `app v1.0.0` · PRD หมายเหตุ 1.0.0 (ตรวจด้วย `tests/ops/docs-sync.test.ts` 8/8 ผ่าน)
-- **production `/api/health` version:** **1.0.0** (main ตรวจ 2026-11-23 · qa ตรวจซ้ำเองด้วย `curl` ได้ `{"ok":true,"version":"1.0.0","db":true,…}`)
-- **DUALTOOL (Claude Code + Antigravity):** PR #44 merge `55469e5` · เครื่อง boss pull ถึง `55469e5` แล้ว
-- **งานรอบ `fix/post-v1-polish` (ระดับ A · Antigravity):** แก้ F18 (`guest.goingHint` TH/EN) + เพิ่ม `.claude/worktrees/**` ใน `eslint.config.mjs` + อัปเดต `HANDOFF.md` — รอ QA อิสระ (แชตใหม่คนละโมเดล) ก่อนเปิด/merge PR
+- **เลขรุ่นในระบบ:** `package.json` = `1.0.1` · ตรงกับ CHANGELOG `[1.0.1] - 2026-11-23` · quickstart ท้ายหน้า `app v1.0.1` · PRD หมายเหตุ 1.0.1 (ตรวจด้วย `tests/ops/docs-sync.test.ts`)
+- **production `/api/health` version:** ยืนยันแล้วตอน **1.0.0** (2026-11-23 · `qa-release-1.0.0.md`) · **1.0.1** ยังไม่ได้ตรวจหลัง deploy
+- **DUALTOOL (Claude Code + Antigravity):** PR #44 merge `55469e5` · อยู่บน `main` แล้ว
 
 ## เหลือ (รายการเปิดจริงหลัง 1.0 · ตรวจ 2026-11-23)
 
@@ -28,7 +27,6 @@
 
 ### 3. งานหลัง 1.0 (ยังไม่เริ่ม · ต้องมี contract สั้นก่อนทำ)
 - **นำเข้า ICS** (PRD v1.x · ตัดสินแล้ว ไม่ทำใน 1.0 — งานหลัง 1.0 ถ้ามีคนขอ)
-- ~~**F18 ข้อความหน้าแขก:**~~ แก้แล้วใน branch `fix/post-v1-polish` (`guest.goingHint` TH/EN · รอ QA อิสระและ merge)
 
 ### 4. ตัดสินแล้ว — ไม่ทำ (ไม่ใช่งานค้าง)
 - ข้อเสนอ PRD ที่ไม่มีคนขอ: deny list ผู้ถูกลบ · ผู้รับปิดรับคำเชิญตรง · ชื่อกลุ่มคล้ายกัน — ไม่ทำใน 1.0 (R18 §4 · B3)
