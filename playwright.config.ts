@@ -31,10 +31,11 @@ export default defineConfig({
   outputDir: 'test-results',
   fullyParallel: true,
   forbidOnly: isCI,
-  // R16 (B2): retry 1 รอบบน CI · 0 ในเครื่อง · เหตุที่เคยใช้ 2 (SQLITE_BUSY ตอนหลาย worker เขียนไฟล์ DB เดียวกัน, Handoff D1)
-  // แก้แล้วที่ src/db/client.ts (busy timeout ของ `file:` — tests/platform/db-busy-timeout.test.ts)
-  // เทสต์ที่ผ่านเมื่อ retry = flaky: reporter list ระบุ "flaky" + reporter github (CI) annotate เตือนในหน้า run → ต้องรายงานทุกครั้ง ห้ามปล่อยเงียบ
-  retries: isCI ? 1 : 0,
+  // R18 (H5): retries 0 ทุกที่ รวม CI — เทสต์ที่ไม่นิ่งต้องแก้ที่ต้นเหตุ ไม่ซ่อนด้วยการลองซ้ำ
+  // ต้นเหตุที่เคยเจอ (R17 CI run 44459866120, r6e-layout th/dark): ECONNRESET ตอนเรียก API ผ่าน keep-alive socket ที่เซิร์ฟเวอร์ปิดแล้ว
+  // → helper API ใน tests/e2e/support/{appt,groups,auth}.ts ใช้ `maxRetries` ของ Playwright (ลองใหม่เฉพาะ ECONNRESET ระดับ socket ไม่ใช่ตาม HTTP status)
+  // SQLITE_BUSY แก้แล้วที่ src/db/client.ts (tests/platform/db-busy-timeout.test.ts)
+  retries: 0,
   timeout: 60_000, // R1: signup/login hash argon2 + หลายหน้า/เครื่องต่อเทสต์ — runner 2 vCPU ที่ --workers=4 ช้ากว่า 30 วิ
   expect: { timeout: 10_000 },
   reporter: isCI

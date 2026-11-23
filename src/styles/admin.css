@@ -30,6 +30,7 @@
   .hub-text { flex: 1; min-width: 0; display: grid; gap: var(--space-1); }
   .hub-title { font-weight: var(--weight-semibold); }
   .hub-hint { font-size: var(--text-sm); color: var(--ink-muted); }
+  .hub-badge { display: flex; margin-top: var(--space-1); }
   .hub-card > .icon:last-child { color: var(--ink-muted); }
 
   /* ---------- ค้นหา / ตัวกรอง ---------- */

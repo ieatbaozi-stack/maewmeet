@@ -249,6 +249,47 @@ export const appointmentRsvp = sqliteTable('appointment_rsvp', {
   check('rsvp_response_ck', sql`${t.response} in ('going','maybe','not_going')`),
 ]);
 
+// ───────── R18 §S แชร์นัดให้คนนอกกลุ่ม (ADR 0016 §2 · migration 0007 เพิ่มอย่างเดียว) ─────────
+// ลิงก์ชวนต่อสมาชิกต่อนัด — เก็บแค่ hash ของ token (token สร้างซ้ำได้จาก id + APP_SECRET: src/lib/data/share-token.ts)
+// "ใช้ได้" คำนวณสดทุกครั้ง (ADR 0016 §2.3: revoked_at · นัด active + ยังไม่จบ · กลุ่มไม่ลบ · ผู้สร้างยังเป็นสมาชิกรอบเดิม + บัญชี active) — ไม่มี expires_at/status
+// created_by ไม่มี ON DELETE (แถว user ไม่ถูกลบจริง — ลบบัญชี = anonymize แล้วลบแถวลิงก์เองใน purgeDeletedUserFootprint)
+export const appointmentShareLink = sqliteTable('appointment_share_link', {
+  id: text('id').primaryKey(),
+  appointmentId: text('appointment_id').notNull().references(() => appointment.id, { onDelete: 'cascade' }),
+  createdBy: text('created_by').notNull().references(() => user.id),
+  tokenHash: text('token_hash').notNull(),                            // hex HMAC-SHA256 (HKDF 'maewmeet/appointment-share-hash/v1') — ไม่เก็บ token ดิบ
+  createdAt: ms('created_at').notNull(),
+  revokedAt: ms('revoked_at'),                                        // มือ / ผู้สร้างออก-ถูกลบจากกลุ่ม
+  revokedBy: text('revoked_by').references(() => user.id, { onDelete: 'set null' }),
+}, (t) => [
+  uniqueIndex('share_link_token_hash_uq').on(t.tokenHash),
+  uniqueIndex('share_link_one_active_uq').on(t.appointmentId, t.createdBy).where(sql`${t.revokedAt} is null`),  // S1: 1 ลิงก์ที่ใช้อยู่ต่อคนต่อนัด
+  index('share_link_appointment_idx').on(t.appointmentId),
+  index('share_link_creator_idx').on(t.createdBy, t.revokedAt),
+  check('share_link_revoked_ck', sql`${t.revokedAt} is not null or ${t.revokedBy} is null`),
+]);
+
+// แขกของนัด — 1 แถวต่อ (นัด, ผู้ใช้) · ไม่มี group_member · RSVP ของแขกเก็บที่นี่ (ไม่ใช่ appointment_rsvp)
+// removed_at ไม่ NULL = ถูกนำออกโดยสมาชิก → ไม่ใช่แขกแล้ว และกันการกลับเข้านัดนี้ทุกลิงก์ (PK ชน → DO NOTHING) · ทุกคิวรีฝั่งแขกต้องมี removed_at IS NULL
+export const appointmentGuest = sqliteTable('appointment_guest', {
+  appointmentId: text('appointment_id').notNull().references(() => appointment.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  invitedBy: text('invited_by').references(() => user.id, { onDelete: 'set null' }),   // คัดลอกจาก link.created_by ตอนเข้า ("มากับ X")
+  linkId: text('link_id').references(() => appointmentShareLink.id, { onDelete: 'set null' }),
+  response: text('response', { enum: ['going', 'maybe', 'not_going'] }),
+  respondedAt: ms('responded_at'),
+  joinedAt: ms('joined_at').notNull(),
+  removedAt: ms('removed_at'),
+  removedBy: text('removed_by').references(() => user.id, { onDelete: 'set null' }),
+}, (t) => [
+  primaryKey({ columns: [t.appointmentId, t.userId] }),
+  index('appointment_guest_user_idx').on(t.userId),
+  index('appointment_guest_link_idx').on(t.linkId).where(sql`${t.linkId} is not null`),
+  check('appointment_guest_response_ck', sql`${t.response} is null or ${t.response} in ('going','maybe','not_going')`),
+  check('appointment_guest_responded_ck', sql`(${t.response} is null) = (${t.respondedAt} is null)`),
+  check('appointment_guest_removed_ck', sql`${t.removedAt} is not null or ${t.removedBy} is null`),
+]);
+
 // R10 §1.2: กันเตือนซ้ำต่อ (นัด, ชนิด, เวลาเริ่ม) — เลื่อนเวลานัด = startAt ใหม่ = เตือนใหม่ได้ · เขียนในธุรกรรมเดียวกับ notify()
 export const appointmentReminder = sqliteTable('appointment_reminder', {
   appointmentId: text('appointment_id').notNull().references(() => appointment.id, { onDelete: 'cascade' }),

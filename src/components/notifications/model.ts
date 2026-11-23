@@ -194,6 +194,7 @@ export function notificationView(kind: string, params: Record<string, unknown>, 
         const responder = personName(params.responderName, deletedName);
         const response = params.response;
         if (!responder || (response !== "going" && response !== "maybe" && response !== "not_going")) return UNKNOWN;
+        // R18 §S: responderGuest (แขกตอบ) — ข้อความเดิมใช้ได้ (ชื่อแขก + คำตอบ) · ลิงก์ไปหน้านัดของสมาชิกเหมือนเดิม
         return {
           known: true,
           messageKey: "notifications.appointment.rsvp_changed",
@@ -212,6 +213,36 @@ export function notificationView(kind: string, params: Record<string, unknown>, 
       const changes = params.changes;
       if (changes !== "time" && changes !== "place" && changes !== "both") return UNKNOWN;
       return { known: true, messageKey: "notifications.appointment.updated", values: { ...base, actorName: isolate(actor), changes }, icon: "calendar", tone: "appt", href };
+    }
+    case "appointment.guest.cancelled":
+    case "appointment.guest.updated": {
+      // R18 §S: แขกได้รับแจ้ง — ไม่มีชื่อผู้กระทำ (แขกไม่รู้จักสมาชิก) · changes ส่งดิบ (select) ห้าม isolate
+      const title = str(params.title);
+      const appointmentId = id(params.appointmentId);
+      const startAt = ms(params.startAt);
+      if (!title || !appointmentId || startAt === null) return UNKNOWN;
+      const base = { title: isolate(title), when: whenLabel(startAt, safeTz(params.tz), locale) };
+      const href = `/appointments/${appointmentId}`;
+      if (kind === "appointment.guest.cancelled") {
+        return { known: true, messageKey: "notifications.appointment.guest.cancelled", values: base, icon: "calendar-x", tone: "plain", href };
+      }
+      const changes = params.changes;
+      if (changes !== "time" && changes !== "place" && changes !== "both") return UNKNOWN;
+      return { known: true, messageKey: "notifications.appointment.guest.updated", values: { ...base, changes }, icon: "calendar", tone: "appt", href };
+    }
+    case "appointment.guest.removed": {
+      // R18 §S: ถูกนำออกจากนัด — ไม่มี appointmentId (เข้านัดไม่ได้แล้ว) → ลิงก์ไปหน้าหลัก · ไม่บอกผู้นำออก
+      const title = str(params.title);
+      const startAt = ms(params.startAt);
+      if (!title || startAt === null) return UNKNOWN;
+      return {
+        known: true,
+        messageKey: "notifications.appointment.guest.removed",
+        values: { title: isolate(title), when: whenLabel(startAt, safeTz(params.tz), locale) },
+        icon: "user-minus",
+        tone: "plain",
+        href: "/",
+      };
     }
     case "group.member.joined":
     case "group.member.left": {

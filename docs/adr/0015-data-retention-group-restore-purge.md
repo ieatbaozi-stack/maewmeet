@@ -1,6 +1,6 @@
 # ADR 0015 — การเก็บข้อมูลที่ลบ: กลุ่มเก็บ 30 วัน กู้คืนได้ แล้วลบถาวรอัตโนมัติ · บัญชีล้างทันที
 
-- **Status**: Accepted (2026-11-19) · boss ตัดสิน B1–B4 = (ก) ทุกข้อ ใน [R17_CONTRACT](../contracts/R17_CONTRACT.md) §5 (2026-11-19) · ที่มา R16 §5 B4 = (ก) (boss 2026-11-18) · บันทึกโดย Architect 2026-11-19 หลังอ่านโค้ด platform commit `20de516`
+- **Status**: Accepted (2026-11-19) · boss ตัดสิน B1–B4 = (ก) ทุกข้อ ใน [R17_CONTRACT](../contracts/R17_CONTRACT.md) §5 (2026-11-19) · ที่มา R16 §5 B4 = (ก) (boss 2026-11-18) · บันทึกโดย Architect 2026-11-19 หลังอ่านโค้ด platform commit `20de516` · ส่วนเติม R18 (2026-11-22): ลำดับลบแขก/ลิงก์ใน purge กลุ่ม + ลำดับงาน D1/§S7 ใน cron (§4)
 - **เกี่ยวข้อง**: [ADR 0003](0003-rbac.md) (action `admin.group.restore`) · [ADR 0004](0004-time-and-timezone.md) (เวลา UTC + `src/lib/calendar`) · [ADR 0007](0007-notifications.md) (ชนิด `group.restored`) · [ADR 0002](0002-auth-pin.md) (ลบบัญชียืนยันด้วย PIN) · `docs/design/ARCHITECTURE.md` ข้อ 5, 8 · `docs/OPERATIONS.md` (ops: วิธีกู้ด้วยมือ/นโยบาย)
 - **เจ้าของการ implement**: Platform (`src/lib/data/group-retention.ts`, `repos/group-purge.ts`, `repos/admin-groups.ts`, `services/admin-groups.ts`, `services/maintenance.ts`, `services/account.ts`) · Frontend (หน้า admin กลุ่ม, sheet ยืนยันลบ) · UX (ถ้อยคำ TH/EN)
 
@@ -45,6 +45,10 @@
 - ลบลูกด้วยคำสั่งชัดเจนแทนพึ่ง cascade อย่างเดียว — ได้จำนวนแถวจริงไปลง audit และไม่ค้างแม้ `foreign_keys` ถูกปิด
 - ข้อ 6 ทำ**หลัง**งานเก็บกวาดข้อ 1–4 (คนละธุรกรรม) — ลบกลุ่มล้มไม่ทำให้งานเก็บกวาดหาย · รันซ้ำได้ (idempotent: กลุ่มที่ลบแล้วไม่อยู่ในรายการอีก)
 - **แข่งกับการกู้คืน:** ทั้งสองฝั่งเป็นธุรกรรมเขียนที่มีเงื่อนไขในคำสั่ง — ฝั่งที่เขียนก่อนชนะ · กู้ก่อน → `deleted_at` เป็น NULL → purge ข้าม · purge ก่อน → กู้ได้ 404 · และเส้นเวลาเดียวกัน (ข้อ 2) ทำให้ ณ เวลาเดียวกันมีเพียงฝั่งเดียวที่เงื่อนไขเป็นจริง
+- **ส่วนเติม R18 (2026-11-22, Architect — อ่านโค้ดที่ `091a2d4`):**
+  - **ลำดับลบใน `purgeGroupIfDue` เพิ่ม 2 ขั้น** หลังข้อ 2 (`notification`) และก่อนข้อ 3 (`appointment_reminder`): `appointment_guest` → `appointment_share_link` ของนัดในกลุ่ม (แขกก่อนเพราะ FK `link_id`) — [ADR 0016 §7.3](0016-appointment-share-guests.md) · `GroupPurgeCounts`/meta ของ audit `group.purge` เพิ่ม `guests`, `shareLinks` (จำนวนเท่านั้น) · แจ้งเตือนของแขก (รวม `appointment.guest.removed`) มี `params.groupId` จึงถูกลบในข้อ 2 เดิม
+  - **ลำดับงานใน `runDailyMaintenance`**: เก็บกวาดข้อ 1–4 → ลบกลุ่มถาวร (ข้อนี้) → **R18 D1 `purgeOldInvites`** (คำเชิญที่จบ `max(expires_at, revoked_at)` เกิน 30 วัน · boss B1) → **R18 §S7 `purgeOldShareLinks`** (ลิงก์ที่สิ้นสุดเกิน 30 วัน) · ทั้งสองงานใหม่ทำ**หลัง**ลบกลุ่มถาวร เพราะคำเชิญ/ลิงก์ของกลุ่มที่ purge ถูกลบไปพร้อมกลุ่มแล้ว (ไม่นับซ้ำ) และหลังงาน `expiredInvites` ที่เปลี่ยนสถานะไปแล้ว · แต่ละงานเป็นธุรกรรมต่อชุด (200 แถว ≤ 10 ชุด/รอบ) ล้มแล้วหยุดรอบนั้นโดยไม่ทำให้ cron ล้ม · ผลคืนในฟิลด์ `purgedInvites`, `purgedShareLinks`
+  - **กู้กลุ่ม**: คำเชิญ/ลิงก์ชวน/แขกของกลุ่มที่ยังไม่ถูกลบกลับมาพร้อมกลุ่ม (ไม่เคยถูกแตะ) · คำเชิญที่จบแล้วเกิน 30 วันอาจถูก D1 ลบไปแล้วระหว่างกลุ่มอยู่ในถังลบ (ไม่กระทบการกู้ — เป็นคำเชิญที่ใช้ไม่ได้อยู่แล้ว) · ข้อควรรู้หลังกู้ (โค้ดเชิญที่ยังไม่หมดอายุใช้ได้อีก · เพดานกลุ่มต่อผู้สร้างอาจเกิน) และเรื่องที่ตัดสินแล้วว่าไม่แก้ (security-r17 Info 3–4, security-r16 Info 4 — R18 D3) บันทึกใน `docs/OPERATIONS.md` ส่วน K4
 - **สิ่งที่คงไว้:** `audit_log` (รวม `group_id` ของกลุ่มที่ลบถาวรแล้ว — มีแค่ id/enum ไม่มีชื่อกลุ่ม · retention เดิม ไม่ขยาย R17 §6) · `rate_limit_bucket` ที่คีย์มี id กลุ่ม ปล่อยให้งานข้อ 1 ลบเองภายใน 2 วัน
 
 ### 5. บัญชี (B1) — ล้างทันทีเหมือนเดิม + ยืนยันหนักขึ้น

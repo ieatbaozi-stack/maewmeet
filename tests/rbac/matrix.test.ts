@@ -70,6 +70,7 @@ function actorFor(col: Column, o: ActorOverrides = {}): Actor {
 const OTHER_USER = 'u-other';
 const OTHER_ADMIN = 'u-other-admin';
 const ANON_PLACEHOLDER = 'u-anon-placeholder';
+const GUEST_USER = 'u-guest';
 
 function groupFor(col: Column, deleted = false): GroupCtx {
   return { id: 'g-1', deleted, actorRole: COLUMN_SPEC[col].role };
@@ -119,6 +120,26 @@ function resourceFor(entry: MatrixEntry, scenario: Scenario, col: Column, delete
     case 'ownedByUser': {
       const ownerId = ownerOf();
       return ownerId === null ? null : { type: 'ownedByUser', ownerId };
+    }
+    // R18 §S (ADR 0016 §5.1)
+    case 'shareLink': {
+      if (scenario === 'linkCreator') return { type: 'shareLink', group, appointmentCreatedBy: OTHER_USER, linkCreatedBy: me };
+      if (scenario === 'apptCreator') return { type: 'shareLink', group, appointmentCreatedBy: me, linkCreatedBy: OTHER_USER };
+      if (scenario === 'other') return { type: 'shareLink', group, appointmentCreatedBy: OTHER_USER, linkCreatedBy: OTHER_USER };
+      return null;
+    }
+    case 'appointmentGuest': {
+      if (scenario === 'guest') return { type: 'appointmentGuest', group, isGuest: true };
+      if (scenario === 'notGuest') return { type: 'appointmentGuest', group, isGuest: false };
+      return null;
+    }
+    case 'guestTarget': {
+      const base = { type: 'guestTarget', group, guestUserId: GUEST_USER } as const;
+      if (scenario === 'apptCreator') return { ...base, appointmentCreatedBy: me, invitedBy: OTHER_USER };
+      if (scenario === 'inviter') return { ...base, appointmentCreatedBy: OTHER_USER, invitedBy: me };
+      if (scenario === 'other') return { ...base, appointmentCreatedBy: OTHER_USER, invitedBy: OTHER_USER };
+      if (scenario === 'target:self') return { ...base, appointmentCreatedBy: OTHER_USER, invitedBy: OTHER_USER, guestUserId: me };
+      return null;
     }
   }
 }
@@ -213,11 +234,14 @@ describe('suspended: ปฏิเสธทุก action (ADR 0003 §2.2)', () =>
   });
 });
 
-const GROUP_RESOURCES = new Set(['group', 'member', 'invite', 'appointment']);
+/** resource ที่ผ่านด่านสมาชิกกลุ่ม (inGroup) — คนนอก 404 · SA นอกกลุ่มติดธง audit */
+const GROUP_RESOURCES = new Set(['group', 'member', 'invite', 'appointment', 'shareLink', 'guestTarget']);
 const GROUP_CELLS = CELLS.filter((c) => GROUP_RESOURCES.has(c.entry.resource));
+/** R18 §S: ทางของแขก (appointmentGuest) ผูกกลุ่มแต่ไม่ผ่าน inGroup — คนนอกที่เป็นแขกผ่านได้ · กลุ่มลบยัง 404 ทุกคน */
+const DELETED_GROUP_CELLS = CELLS.filter((c) => GROUP_RESOURCES.has(c.entry.resource) || c.entry.resource === 'appointmentGuest');
 
 describe('กลุ่มถูกลบ: NOT_FOUND ทุก action ที่ผูกกลุ่ม แม้เป็น SA (ADR 0003 §4.4)', () => {
-  it.each(GROUP_CELLS.map((c) => [`${c.action} [${c.scenario}] ${c.col}`, c] as const))('%s', (_n, cell) => {
+  it.each(DELETED_GROUP_CELLS.map((c) => [`${c.action} [${c.scenario}] ${c.col}`, c] as const))('%s', (_n, cell) => {
     check(cell, actorFor(cell.col), cell.col === 'AN' ? 'AUTH_REQUIRED' : 'NOT_FOUND', true);
   });
 });

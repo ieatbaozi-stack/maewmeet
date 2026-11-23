@@ -104,7 +104,21 @@ describe('ชื่อ action / ชนิด resource / ชุดพิเศษ
   it('ไม่มี action นัด/แจ้งเตือนอื่นแอบเพิ่ม (กัน action ที่ไม่มีเมทริกซ์)', () => {
     const family = ACTIONS.filter((a) => /^(appointment|notification|place)\./.test(a)).sort();
     expect(family).toEqual(
-      [...APPT_ACTIONS, 'appointment.list.mine', 'notification.list.own', 'notification.markRead.own'].sort(),
+      [
+        ...APPT_ACTIONS,
+        'appointment.list.mine',
+        'notification.list.own',
+        'notification.markRead.own',
+        // R18 §S (ADR 0016) — เมทริกซ์อยู่ใน matrix.fixture.ts + tests/rbac/share-guests.test.ts
+        'appointment.share.preview',
+        'appointment.share.create',
+        'appointment.share.revoke',
+        'appointment.guest.join',
+        'appointment.guest.view',
+        'appointment.guest.rsvp',
+        'appointment.guest.leave',
+        'appointment.guest.remove',
+      ].sort(),
     );
   });
   it('R13: ไม่มี action ตระกูล place.* เหลือ (route ค้นหาสถานที่ถูกลบ) · isAction ปฏิเสธชื่อเดิม', () => {

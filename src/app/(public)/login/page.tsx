@@ -6,6 +6,7 @@ import { Aurora, Logo } from "@/components/brand";
 import { getResetStatus, redirectIfSignedIn } from "@/app/_lib/session";
 import { LoginForm, type ResetBanner } from "@/components/login/LoginForm";
 import { LoginPrefs } from "@/components/prefs/LoginPrefs";
+import { nextFromSearch } from "@/components/share/model";
 import { THEME_COOKIE, parseLocale, parseTheme } from "@/i18n/config";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -14,8 +15,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /** หน้าเข้าสู่ระบบ (UX W1 · samples/login.html) — aurora hero: บน aurora ตรงๆ มีแค่โลโก้ หัวข้อ ปุ่มภาษา (--ink) */
-export default async function LoginPage() {
-  await redirectIfSignedIn();
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string | string[] }> }) {
+  // R18 §S3: `next` = หน้าลิงก์ชวน (/i/<token>) เท่านั้น — safeNext ตรวจแบบ allowlist · อย่างอื่น = "/"
+  const next = nextFromSearch((await searchParams).next);
+  await redirectIfSignedIn(next);
   const status = await getResetStatus();
   const reset: ResetBanner =
     status.status === "pending"
@@ -38,7 +41,7 @@ export default async function LoginPage() {
           <Logo variant={locale} title={t("brand.appName")} className="logo" />
           <h1>{t("login.title")}</h1>
         </div>
-        <LoginForm reset={reset} />
+        <LoginForm reset={reset} next={next} />
         <p className="link-row login-privacy">
           <Link href="/privacy" data-testid="login-privacy">
             {t("login.privacy")}

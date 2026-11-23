@@ -66,7 +66,18 @@ export function GoingList({ items, onRetry }: GoingListProps) {
                       <span className="m">{weekdayShort(first, { locale })}</span>
                     </span>
                     <span className="row-main">
-                      <span className="row-title">{withNames((n) => t("busy.mine.going.row", { title: n.title, group: n.group }), { title: a.title, group: a.groupName })}</span>
+                      <span className="row-title">
+                        {withNames((n) => t("busy.mine.going.row", { title: n.title, group: n.group }), { title: a.title, group: a.groupName })}
+                        {/* R18 §S: นัดที่ฉันเป็นแขก (API ส่ง viewerKind: "guest") */}
+                        {(a as { viewerKind?: string }).viewerKind === "guest" ? (
+                          <>
+                            {" "}
+                            <span className="tag tag-wait" data-testid="mine-going-guest-badge">
+                              {t("guest.badge")}
+                            </span>
+                          </>
+                        ) : null}
+                      </span>
                       <span className="row-meta">{whenText}</span>
                     </span>
                     <Icon name="chevron-right" className="chev" />

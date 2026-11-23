@@ -25,6 +25,8 @@ export interface DayPanelProps {
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
+  /** R18 F20: false = ซ่อนปุ่ม "วันนี้" (แผงข้างปฏิทินเดือนมีปุ่มของเดือนอยู่แล้ว) · ค่าเริ่มต้น true */
+  showToday?: boolean;
   onAdd: () => void;
   /** R14: วันของ routine ของฉัน (busy id → รายการ) — ใช้แสดงป้าย "ประจำ" เฉพาะแถวของฉันเอง */
   routineDays?: ReadonlyMap<string, OwnBusy>;
@@ -36,7 +38,7 @@ export interface DayPanelProps {
  * มุมมองวัน (UX X26–X29): หัววัน + ปุ่มก่อน/ถัด/วันนี้ · "ติด N จาก M คน" · แถบเวลา 00–24 ต่อสมาชิก (aria-hidden — ข้อมูลเดียวกันอยู่ในรายการข้อความ) ·
  * รายการ "ใครไม่ว่างเมื่อไร" · รายการซ่อน/ไม่ได้ใส่ → "ไม่ว่าง" · คนที่ไม่มีรายการ = "ไม่ได้ลงว่าติด" (ไม่ใช่ "ว่าง" — X29)
  */
-export function DayPanel({ date, today, members, spans, myId, nowMinute, onPrev, onNext, onToday, onAdd, routineDays, onRoutineEdit, onRoutineDelete }: DayPanelProps) {
+export function DayPanel({ date, today, members, spans, myId, nowMinute, onPrev, onNext, onToday, showToday = true, onAdd, routineDays, onRoutineEdit, onRoutineDelete }: DayPanelProps) {
   const t = useTranslations();
   const locale = useLocale() as CalendarLocale;
   const uid = useId();
@@ -55,9 +57,11 @@ export function DayPanel({ date, today, members, spans, myId, nowMinute, onPrev,
         <button type="button" className="icon-btn" aria-label={t("calendar.nav.nextDay")} data-testid="cal-day-next" onClick={onNext}>
           <Icon name="chevron-right" />
         </button>
-        <button type="button" className="btn btn-secondary" aria-label={t("calendar.nav.todayAria")} data-testid="cal-day-today" onClick={onToday}>
-          {t("calendar.nav.today")}
-        </button>
+        {showToday ? (
+          <button type="button" className="btn btn-secondary" aria-label={t("calendar.nav.todayAria")} data-testid="cal-day-today" onClick={onToday}>
+            {t("calendar.nav.today")}
+          </button>
+        ) : null}
       </div>
       <p className="cal-summary" role="status" data-testid="cal-day-summary">
         {t("calendar.day.summary", { count: busyRows.length, total: members.length })}
@@ -66,7 +70,8 @@ export function DayPanel({ date, today, members, spans, myId, nowMinute, onPrev,
       <section className="cal-card" aria-labelledby={`${uid}-tl`}>
         <h3 id={`${uid}-tl`}>{t("calendar.day.timeline")}</h3>
         <div className="cal-axis" aria-hidden="true">
-          {AXIS.map((h) => (
+          {/* R18 F19: เลขแกนที่ใกล้เส้น "ตอนนี้" (< 150 นาที) ซ่อน กันป้าย "Now" ชนเป็น "06Now" */}
+          {AXIS.filter((h) => nowMinute === null || Math.abs(h * 60 - nowMinute) >= 150).map((h) => (
             <span key={h} style={{ "--at": `${(h / 24) * 100}%` } as CSSProperties}>
               {String(h).padStart(2, "0")}
             </span>

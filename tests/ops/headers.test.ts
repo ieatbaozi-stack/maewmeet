@@ -39,7 +39,10 @@ beforeAll(async () => {
 describe('next.config.ts (production)', () => {
   it('ใช้กับทุก path', async () => {
     const { rules } = await loadConfig('production');
-    expect(rules.map((r) => r.source)).toEqual(['/:path*']);
+    // R18 §S3: + X-Robots-Tag ของหน้าเปิดลิงก์ชวน /i/*
+    expect(rules.map((r) => r.source)).toEqual(['/:path*', '/i/:path*']);
+    const share = rules.find((r) => r.source === '/i/:path*') as unknown as { headers: unknown };
+    expect(share.headers).toEqual([{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }]);
   });
 
   it('CSP: ไม่มี unsafe-eval · frame-ancestors none · object-src none · ไม่มี origin ภายนอกใน img-src (R13)', async () => {

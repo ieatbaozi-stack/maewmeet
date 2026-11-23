@@ -37,6 +37,7 @@ import {
 import { rateKey, type RateSpec } from '@/lib/auth/throttle';
 import { refundBucket, reserveBucket } from '@/lib/data/repos/rate-limit-bucket';
 import { listReminderAudience } from '@/lib/data/repos/reminder';
+import { goingMaybeCounts, listActiveGuestAudience, listMyGuestAppointmentRows, type GuestListedAppointment } from '@/lib/data/repos/appointment-guest';
 import { findUserById } from '@/lib/data/repos/user';
 import { takeResolvedSessionUser } from '@/lib/auth/session';
 import { dispatchCancelledLineAfterResponse } from '@/lib/integrations/line/dispatch-after';
@@ -76,7 +77,10 @@ import {
   type OverlapDto,
   NO_CONFLICTS,
   toMyConflictDto,
+  type AppointmentListItemDto,
 } from '../serializers/appointments';
+import { toGuestListItemDto, type GuestAppointmentDto } from '../serializers/share';
+import { guestDetailDto, memberShareExtras } from './share-views';
 import { loadMemberBusy, type MemberBusyItem } from './member-busy';
 import { inTx, serialized } from '../tx';
 import { asUser, audit, auditRead } from './group-common';
@@ -271,10 +275,12 @@ export function parseLimit(raw: string | undefined, fallback: number, max: numbe
 // ───────── helpers ─────────
 const groupRes = (group: GroupCtx) => ({ type: 'group', group }) as const;
 const apptRes = (c: AppointmentCtx) => ({ type: 'appointment', group: c.group, createdBy: c.appointment?.createdBy ?? '' }) as const;
+/** R18 §S: resource ของทางแขก (สถานะของผู้ดูเองต่อนัด) */
+const guestRes = (c: AppointmentCtx) => ({ type: 'appointmentGuest', group: c.group, isGuest: c.isGuest }) as const;
 
 /** โหลดนัด + บริบทกลุ่ม/role ให้ can() (ADR 0003 §1) — อ่านอย่างเดียว ยังไม่คืนข้อมูลใด ๆ ก่อน authorize */
-async function appointmentFor(actor: Actor, id: string, ctx: DataCtx): Promise<AppointmentCtx> {
-  return loadAppointmentCtx(ctx.db, actor, id);
+async function appointmentFor(actor: Actor, id: string, ctx: DataCtx, opts: { withShare?: boolean } = {}): Promise<AppointmentCtx> {
+  return loadAppointmentCtx(ctx.db, actor, id, opts);
 }
 
 type Reader = Parameters<typeof listMembers>[0];
@@ -353,7 +359,7 @@ async function myConflictsFor(db: Reader, me: UserActor, now: number, row: Appoi
  * R15b §3: สมาชิก + คำตอบมาจาก query เดียว (listMembersWithRsvps — ผลเท่า listMembers + listCurrentRsvps ทุกไบต์ ดู tests/platform/r15b-golden)
  */
 async function toDetailDto(
-  db: Reader,
+  ctx: DataCtx,
   actor: UserActor,
   now: number,
   row: AppointmentRow,
@@ -361,22 +367,31 @@ async function toDetailDto(
   groupName: string,
   groupIcon: string | null,
   withConflicts = false,
+  preloaded?: AppointmentCtx['share'],
 ): Promise<AppointmentDetailDto> {
-  const [{ members, rsvps }, conflicts] = await Promise.all([
-    listMembersWithRsvps(db, row.groupId, row.id),
+  const db = ctx.db;
+  const membersP = listMembersWithRsvps(db, row.groupId, row.id);
+  const memberMapP = membersP.then(({ members }) => new Map(members.map((m) => [m.userId, m])));
+  // R18 §S: แขก + ลิงก์ชวน เริ่มพร้อมคิวรีสมาชิก (ไม่เพิ่มรอบรอ)
+  const [{ members, rsvps }, conflicts, share, memberMap] = await Promise.all([
+    membersP,
     withConflicts ? myConflictsFor(db, actor, now, row, group) : Promise.resolve(NO_CONFLICTS),
+    memberShareExtras(db, actor, ctx, now, row, group, memberMapP, preloaded),
+    memberMapP,
   ]);
   const res = { type: 'appointment', group, createdBy: row.createdBy } as const;
   const open = row.status === 'active' && row.endAt > now;
   return toAppointmentDetailDto(
     row,
-    { viewerId: actor.id, now, groupName, groupIcon, members: new Map(members.map((m) => [m.userId, m])), memberCount: members.length, rsvps },
+    { viewerId: actor.id, now, groupName, groupIcon, members: memberMap, memberCount: members.length, rsvps },
     {
       canEdit: open && can(actor, 'appointment.update', res).allow,
       canCancel: open && can(actor, 'appointment.cancel', res).allow,
       canRsvp: open && can(actor, 'appointment.rsvp', res).allow,
+      canShare: share.canShare,
     },
     conflicts,
+    { guests: share.guests, shareLinks: share.shareLinks },
   );
 }
 
@@ -521,7 +536,7 @@ export async function createAppointment(actor: Actor, groupId: string, input: Cr
     return created;
   });
 
-  return { appointment: await toDetailDto(db, me, now, row, group, groupRow.name, groupRow.icon), overlap: await overlapOrUnknown(db, row) };
+  return { appointment: await toDetailDto(ctx, me, now, row, group, groupRow.name, groupRow.icon), overlap: await overlapOrUnknown(db, row) };
 }
 
 async function whyCreateRejected(db: Reader, actor: UserActor, groupId: string, before: GroupCtx, now: number): Promise<AppError> {
@@ -585,13 +600,13 @@ async function groupAppointmentsAfterAuth(actor: Actor, allow: Allow, groupId: s
 }
 
 export async function getAppointment(actor: Actor, id: string, ctx: DataCtx): Promise<{ appointment: AppointmentDetailDto }> {
-  const c = await appointmentFor(actor, id, ctx);
+  const c = await appointmentFor(actor, id, ctx, { withShare: true });
   const allow = authorize(actor, 'appointment.view', apptRes(c));
   const me = asUser(actor);
   const row = c.appointment!;
   const { db, now } = ctx;
   await auditRead(db, me, allow, { action: 'appointment.view', targetType: 'appointment', targetId: id, groupId: row.groupId }, now);
-  return { appointment: await toDetailDto(db, me, now, row, c.group, c.groupName, c.groupIcon, true) };
+  return { appointment: await toDetailDto(ctx, me, now, row, c.group, c.groupName, c.groupIcon, true, c.share) };
 }
 
 /**
@@ -606,11 +621,20 @@ export async function getAppointmentIcs(actor: Actor, id: string, appOrigin: str
   const { db, now } = ctx;
   // ก่อนตรวจสถานะ: 409 ก็บอกสถานะนัดแก่ super admin นอกกลุ่ม จึงต้องมี audit เหมือน getAppointment (security R12 Low 1)
   await auditRead(db, me, allow, { action: 'appointment.view', targetType: 'appointment', targetId: id, groupId: row.groupId }, now);
+  return appointmentIcsText(row, me.id, appOrigin, ctx);
+}
+
+/**
+ * ตัวสร้างข้อความ .ics หลังผ่านด่านแล้ว (สมาชิก: appointment.view · แขก R18: appointment.guest.view) — ข้อมูลชุดเดียวกันทุกไบต์
+ * นัดยกเลิก → APPOINTMENT_CANCELLED · จบแล้ว → APPOINTMENT_PAST
+ */
+export async function appointmentIcsText(row: AppointmentRow, viewerId: string, appOrigin: string, ctx: DataCtx): Promise<string> {
+  const { db, now } = ctx;
   if (row.status === 'cancelled') throw new AppError('APPOINTMENT_CANCELLED');
   if (row.endAt <= now) throw new AppError('APPOINTMENT_PAST');
   // R13 §1.4: ป้ายลิงก์ตามภาษาที่ผู้ดาวน์โหลดเห็นอยู่: คุกกี้ mm_locale ของคำขอ → user.locale → ไทย (อ่านบัญชีเฉพาะเมื่อไม่มีคุกกี้ที่ใช้ได้)
   const cookieLocale = localeFromCookie(ctx.req);
-  const labels = calendarLinkLabels(resolveCalendarLocale(cookieLocale, cookieLocale ? null : (await findUserById(db, me.id))?.locale));
+  const labels = calendarLinkLabels(resolveCalendarLocale(cookieLocale, cookieLocale ? null : (await findUserById(db, viewerId))?.locale));
   return buildAppointmentIcs(
     {
       id: row.id,
@@ -627,15 +651,69 @@ export async function getAppointmentIcs(actor: Actor, id: string, appOrigin: str
   );
 }
 
-/** U11: นัด active ที่ยังไม่จบ ข้ามทุกกลุ่มของฉัน เรียงเริ่มเร็วสุดก่อน (ไม่รวมนัดที่ยกเลิก/ผ่านแล้ว/กลุ่มที่ลบ) · rsvp=going → เฉพาะที่ฉันตอบ "ไป" (R6D) */
-export async function listMyAppointments(actor: Actor, query: MyAppointmentsQuery, ctx: DataCtx): Promise<{ appointments: AppointmentDto[] }> {
+/**
+ * U11: นัด active ที่ยังไม่จบ ข้ามทุกกลุ่มของฉัน เรียงเริ่มเร็วสุดก่อน (ไม่รวมนัดที่ยกเลิก/ผ่านแล้ว/กลุ่มที่ลบ) · rsvp=going → เฉพาะที่ฉันตอบ "ไป" (R6D)
+ * R18 §S (ADR 0016 §5.3): + นัดที่ฉันเป็นแขก (แถวที่มีผล · กลุ่มไม่ลบ) → การ์ดแขก `viewerKind: 'guest'` (ไม่มี groupId/รายชื่อ) · การ์ดสมาชิก `viewerKind: 'member'`
+ *   สองแหล่งรวมกันตาม (startAt, id) แล้วตัดที่ limit · myConflict ของการ์ดแขกใช้คิวรีคำมั่นเดียวกัน (มีสาขาแขกแล้ว)
+ */
+export async function listMyAppointments(actor: Actor, query: MyAppointmentsQuery, ctx: DataCtx): Promise<{ appointments: AppointmentListItemDto[] }> {
   authorize(actor, 'appointment.list.mine', { type: 'none' });
   const me = asUser(actor);
   const { db, now } = ctx;
   const limit = parseLimit(query.limit, APPOINTMENT_LIST_DEFAULT, APPOINTMENT_LIST_MAX);
   if (query.rsvp !== undefined && query.rsvp !== 'going') throw new AppError('VALIDATION', { fields: { rsvp: 'INVALID' } });
-  const rows = await listMyUpcomingAppointmentRows(db, me.id, now, limit, { onlyGoing: query.rsvp === 'going' });
-  return { appointments: await toListDtos(db, me.id, now, rows) };
+  const onlyGoing = query.rsvp === 'going';
+  // R18 §S perf: คิวรีนัดแขกเฉพาะเมื่อผู้ใช้มีแถวแขก (ธงมากับคิวรีนัดสมาชิก) หรือไม่มีนัดสมาชิกเลย (ไม่มีแถวให้ถือธง) — สมาชิกทั่วไป +0 query
+  const memberRows = await listMyUpcomingAppointmentRows(db, me.id, now, limit, { onlyGoing });
+  const needGuest = memberRows.length === 0 || memberRows[0]!.viewerHasGuestRows === true;
+  const guestRows = needGuest ? await listMyGuestAppointmentRows(db, me.id, now, limit, { onlyGoing }) : [];
+  if (guestRows.length === 0) {
+    return { appointments: (await toListDtos(db, me.id, now, memberRows)).map((d) => ({ ...d, viewerKind: 'member' as const })) };
+  }
+  type Entry = { kind: 'member'; l: ListedAppointment } | { kind: 'guest'; g: GuestListedAppointment };
+  const rowOf = (e: Entry) => (e.kind === 'member' ? e.l.row : e.g.row);
+  const merged: Entry[] = [...memberRows.map((l) => ({ kind: 'member' as const, l })), ...guestRows.map((g) => ({ kind: 'guest' as const, g }))]
+    .sort((x, y) => rowOf(x).startAt - rowOf(y).startAt || (rowOf(x).id < rowOf(y).id ? -1 : rowOf(x).id > rowOf(y).id ? 1 : 0))
+    .slice(0, limit);
+  const members = merged.flatMap((e) => (e.kind === 'member' ? [e.l] : []));
+  const guests = merged.flatMap((e) => (e.kind === 'guest' ? [e.g] : []));
+  const guestGoing = new Set(guests.filter((g) => g.response === 'going').map((g) => g.row.id));
+  const [memberDtos, counts, guestFlags] = await Promise.all([
+    toListDtos(db, me.id, now, members),
+    goingMaybeCounts(db, guests.map((g) => g.row.id)),
+    listConflictFlags(db, me.id, guests.map((g) => g.row), guestGoing),
+  ]);
+  const byId = new Map(memberDtos.map((d) => [d.id, d]));
+  return {
+    appointments: merged.map((e): AppointmentListItemDto => {
+      if (e.kind === 'member') return { ...byId.get(e.l.row.id)!, viewerKind: 'member' };
+      const g = e.g;
+      return toGuestListItemDto(
+        { row: g.row, groupName: g.groupName, groupIcon: g.groupIcon, inviterName: g.inviterName, myRsvp: g.response, counts: counts.get(g.row.id) ?? { going: 0, maybe: 0 }, now },
+        guestFlags.has(g.row.id),
+      );
+    }),
+  };
+}
+
+/**
+ * R18 §S (ADR 0016 §4): หน้า /appointments/[id] โหลดบริบทครั้งเดียว — ผู้ดูเป็นแขกที่มีผล → มุมมองแขก · สมาชิก/SA → รายละเอียดสมาชิกเดิม
+ * ไม่ใช่ทั้งสองแบบ → NOT_FOUND (ทุกไบต์เหมือนเดิม) · ด่านของแต่ละมุมมองคือ authorize ของ action นั้นเอง
+ */
+export type AppointmentViewDto = { viewerKind: 'member'; appointment: AppointmentDetailDto } | { viewerKind: 'guest'; appointment: GuestAppointmentDto };
+
+export async function getAppointmentForViewer(actor: Actor, id: string, ctx: DataCtx): Promise<AppointmentViewDto> {
+  const c = await appointmentFor(actor, id, ctx, { withShare: true });
+  if (can(actor, 'appointment.guest.view', guestRes(c)).allow) {
+    authorize(actor, 'appointment.guest.view', guestRes(c));
+    return { viewerKind: 'guest', appointment: await guestDetailDto(ctx.db, asUser(actor).id, ctx.now, c) };
+  }
+  const allow = authorize(actor, 'appointment.view', apptRes(c));
+  const me = asUser(actor);
+  const row = c.appointment!;
+  const { db, now } = ctx;
+  await auditRead(db, me, allow, { action: 'appointment.view', targetType: 'appointment', targetId: id, groupId: row.groupId }, now);
+  return { viewerKind: 'member', appointment: await toDetailDto(ctx, me, now, row, c.group, c.groupName, c.groupIcon, true, c.share) };
 }
 
 // ───────── แก้ / ยกเลิก ─────────
@@ -674,12 +752,23 @@ export async function updateAppointment(actor: Actor, id: string, input: UpdateA
         },
         now,
       );
+      // R18 §S (ADR 0016 §7.2): แขกที่มีผลทุกคน (บัญชี active) — ชนิดของแขก ไม่มีชื่อ/id ผู้แก้
+      const guestIds = (await listActiveGuestAudience(tx, updated.id)).map((g) => g.userId);
+      await notify(
+        tx,
+        {
+          userIds: guestIds,
+          kind: 'appointment.guest.updated',
+          params: { groupId: updated.groupId, groupName: sanitizeDisplayText(c.groupName), appointmentId: updated.id, title: sanitizeDisplayText(updated.title), startAt: updated.startAt, tz: updated.tz, changes },
+        },
+        now,
+      );
     }
     await auditAppt(tx, me, allow, 'appointment.update', updated, now, { fields: Object.keys(input).filter((k) => (input as Record<string, unknown>)[k] !== undefined) });
     return updated;
   });
 
-  return { appointment: await toDetailDto(db, me, now, row, c.group, c.groupName, c.groupIcon), overlap: await overlapOrUnknown(db, row) };
+  return { appointment: await toDetailDto(ctx, me, now, row, c.group, c.groupName, c.groupIcon), overlap: await overlapOrUnknown(db, row) };
 }
 
 export async function cancelAppointment(actor: Actor, id: string, ctx: DataCtx): Promise<{ appointment: AppointmentDetailDto }> {
@@ -698,7 +787,10 @@ export async function cancelAppointment(actor: Actor, id: string, ctx: DataCtx):
     // R11 §1: แจ้งเฉพาะยกเลิกก่อนเวลาเริ่ม · กระดิ่ง = ไป/อาจไป/ยังไม่ตอบ · LINE = ตอบไปเท่านั้น (แคบกว่า) · ผู้กระทำไม่ได้รับ
     let lineQueued = false;
     if (cancelled.startAt > now) {
-      const audience = (await listReminderAudience(tx, cancelled.id, cancelled.groupId)).filter((r) => r.userId !== me.id);
+      const everyone = (await listReminderAudience(tx, cancelled.id, cancelled.groupId)).filter((r) => r.userId !== me.id);
+      // R18 §S (ADR 0016 §7.2): แขกได้ชนิดของแขก (ไม่มีชื่อผู้ยกเลิก) · กติกาผู้รับเดียวกับสมาชิก (กระดิ่ง ≠ ไม่ไป · LINE = ไป)
+      const audience = everyone.filter((r) => !r.guest);
+      const guestAudience = everyone.filter((r) => r.guest);
       const bell = audience.filter((r) => r.response !== 'not_going').map((r) => r.userId);
       const lineUserIds = audience.filter((r) => r.response === 'going').map((r) => r.userId);
       await notify(
@@ -711,18 +803,29 @@ export async function cancelAppointment(actor: Actor, id: string, ctx: DataCtx):
         },
         now,
       );
-      lineQueued = lineUserIds.length > 0;
+      const guestLine = guestAudience.filter((r) => r.response === 'going').map((r) => r.userId);
+      await notify(
+        tx,
+        {
+          userIds: guestAudience.filter((r) => r.response !== 'not_going').map((r) => r.userId),
+          lineUserIds: guestLine,
+          kind: 'appointment.guest.cancelled',
+          params: { groupId: cancelled.groupId, groupName: sanitizeDisplayText(c.groupName), appointmentId: cancelled.id, title: sanitizeDisplayText(cancelled.title), startAt: cancelled.startAt, tz: cancelled.tz },
+        },
+        now,
+      );
+      lineQueued = lineUserIds.length > 0 || guestLine.length > 0;
     }
     await auditAppt(tx, me, allow, 'appointment.cancel', cancelled, now);
     return { row: cancelled, lineQueued };
   });
   if (lineQueued) dispatchCancelledLineAfterResponse(db, row.id);
-  return { appointment: await toDetailDto(db, me, now, row, c.group, c.groupName, c.groupIcon) };
+  return { appointment: await toDetailDto(ctx, me, now, row, c.group, c.groupName, c.groupIcon) };
 }
 
 // ───────── RSVP ─────────
 export async function setRsvp(actor: Actor, id: string, input: RsvpInput, ctx: DataCtx): Promise<{ appointment: AppointmentDetailDto }> {
-  const c = await appointmentFor(actor, id, ctx);
+  const c = await appointmentFor(actor, id, ctx, { withShare: true }); // R18 §S perf: แขก/ลิงก์มากับ query สิทธิ์ — RSVP ของสมาชิกไม่แตะแถวแขก/ลิงก์
   authorize(actor, 'appointment.rsvp', apptRes(c));
   const me = asUser(actor);
   const current = c.appointment!;
@@ -751,7 +854,7 @@ export async function setRsvp(actor: Actor, id: string, input: RsvpInput, ctx: D
   });
   // R7 B-4: ไม่อ่าน access ซ้ำหลัง commit — upsert สำเร็จ ⇒ ในคำสั่งเดียวกันนัดยัง active/ยังไม่จบ · กลุ่มยังอยู่ · ฉันยังเป็นสมาชิก
   // RSVP ไม่แตะแถวนัด จึงใช้แถว/บริบทที่อ่านไว้ก่อนเขียนได้ · คำตอบของทุกคน (รวมที่เพิ่งเข้ามา) + สมาชิก + myConflicts ยังอ่านใหม่ใน toDetailDto
-  return { appointment: await toDetailDto(db, me, now, current, c.group, c.groupName, c.groupIcon, true) };
+  return { appointment: await toDetailDto(ctx, me, now, current, c.group, c.groupName, c.groupIcon, true, c.share) };
 }
 
 async function whyRsvpRejected(db: Reader, actor: UserActor, id: string, now: number): Promise<AppError> {

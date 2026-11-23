@@ -1,17 +1,18 @@
 # ARCHITECTURE — แมวเจอกัน (maewmeet) v1
 
-> เจ้าของไฟล์: Architect · สถานะ: **ตรงกับโค้ดจริงที่ v0.15.0 (ออกรุ่น 2026-11-20 · R0–R17 · ตรวจ 2026-11-20)** — ADR 0001–0015 สถานะ Accepted · ใช้ประกอบ [DOCS_SYNC_CONTRACT](../contracts/DOCS_SYNC_CONTRACT.md) (ทุก route ใน ROUTE_MANIFEST และทุกตารางที่ migration สร้างต้องมีชื่อในไฟล์นี้)
+> เจ้าของไฟล์: Architect · สถานะ: **ตรงกับโค้ดจริงบน branch `feat/r18-v1` (R0–R18 · ฉบับที่จะออกเป็น v1.0.0 · ตรวจ 2026-11-22 ที่ commit `091a2d4`)** — รุ่นที่ออกล่าสุดคือ v0.15.0 (2026-11-20) · ADR 0001–0016 สถานะ Accepted · ใช้ประกอบ [DOCS_SYNC_CONTRACT](../contracts/DOCS_SYNC_CONTRACT.md) (ทุก route ใน ROUTE_MANIFEST และทุกตารางที่ migration สร้างต้องมีชื่อในไฟล์นี้)
 > แหล่งความจริงของโค้ด: schema = `src/db/schema.ts` + `drizzle/*.sql` · routes = `src/app/api/_lib/manifest.ts` (`ROUTE_MANIFEST`) · env = `.env.example` + `src/lib/shared/env.ts` · cron = `vercel.json` + `.github/workflows/keepalive.yml` — ถ้าเอกสารนี้ขัดกับไฟล์เหล่านี้ ให้ถือโค้ดเป็นหลักแล้วแจ้ง architect
 > repo บน GitHub เป็น **public** แล้ว (ผลต่อ keepalive ดูข้อ 8)
 > แก้รอบ 2 (2026-10-16): การจัดการ pepper (ADR 0002 §7) — env `PIN_PEPPER_V<n>`, ตาราง `pepper_fingerprint`, `AUTH_MAINTENANCE` · keep-alive Turso 2 ชั้น (ADR 0001 §3.1) — ตาราง `system_heartbeat`, `/api/cron/heartbeat`, GitHub Actions · สัปดาห์เริ่มวันจันทร์ (ADR 0004)
-> แหล่งความจริงของความต้องการ: [PRD](../prd/PRD.md) · ตัดสินใจรายเรื่อง: [ADR 0001](../adr/0001-stack-and-project-structure.md) · [0002](../adr/0002-auth-pin.md) · [0003](../adr/0003-rbac.md) · [0004](../adr/0004-time-and-timezone.md) · [0005](../adr/0005-common-free-time-algorithm.md) · [0006](../adr/0006-busy-visibility.md) · [0007](../adr/0007-notifications.md) · [0008](../adr/0008-i18n-and-theme.md) · [0009](../adr/0009-going-counts-as-busy.md) · [0010](../adr/0010-daily-busy-series.md) · [0011](../adr/0011-line-reminders.md) · [0012](../adr/0012-busy-routines.md) · [0013](../adr/0013-drop-place-search-cache.md) · [0014](../adr/0014-csp-unsafe-inline-accepted.md) · [0015](../adr/0015-data-retention-group-restore-purge.md)
+> แหล่งความจริงของความต้องการ: [PRD](../prd/PRD.md) · ตัดสินใจรายเรื่อง: [ADR 0001](../adr/0001-stack-and-project-structure.md) · [0002](../adr/0002-auth-pin.md) · [0003](../adr/0003-rbac.md) · [0004](../adr/0004-time-and-timezone.md) · [0005](../adr/0005-common-free-time-algorithm.md) · [0006](../adr/0006-busy-visibility.md) · [0007](../adr/0007-notifications.md) · [0008](../adr/0008-i18n-and-theme.md) · [0009](../adr/0009-going-counts-as-busy.md) · [0010](../adr/0010-daily-busy-series.md) · [0011](../adr/0011-line-reminders.md) · [0012](../adr/0012-busy-routines.md) · [0013](../adr/0013-drop-place-search-cache.md) · [0014](../adr/0014-csp-unsafe-inline-accepted.md) · [0015](../adr/0015-data-retention-group-restore-purge.md) · [0016](../adr/0016-appointment-share-guests.md)
 > **หมายเหตุ R13 (2026-11-11, boss อนุมัติ):** การค้นหาสถานที่ผ่าน Nominatim (U10 `GET /api/places/search`, action `place.search`, env `PLACE_SEARCH_ENABLED`/`NOMINATIM_*`/`NEXT_PUBLIC_MAP_*`) และภาพแผนที่ OSM ถูกเอาออกแล้ว — ผู้ใช้วางลิงก์แผนที่เอง + ปุ่มเปิด Google Maps / Apple Maps · ตาราง `place_search_cache` + งาน cron ล้างมัน **ถูกลบใน migration `0006` (R15, [ADR 0013](../adr/0013-drop-place-search-cache.md), ย้อนไม่ได้)** · ส่วนที่พูดถึงเรื่องนี้ด้านล่างคงไว้เป็นประวัติ · ดู [R13_CONTRACT §1.3](../contracts/R13_CONTRACT.md) และ [PRD D11](../prd/PRD.md)
 > **หมายเหตุ R16 (2026-11-19, ออกรุ่นใน v0.14.0):** rate limit ใหม่ `group:settings` / `prefs:update` / `api:read` (ข้อ 2, 5, 11) · DTO คำเชิญค้างและ notification `group.invite.received` มีธง `actorSystemAdmin` (ข้อ 5) · ข้อจำกัดที่รู้และความเสี่ยงที่ยอมรับ (redirect ได้ 200 ระหว่าง stream, Server-Timing เฉพาะ API, CSP `'unsafe-inline'` — [ADR 0014](../adr/0014-csp-unsafe-inline-accepted.md)) อยู่ข้อ 11 · ไม่มี route/ตารางใหม่
 > **หมายเหตุ R17 (2026-11-19, ออกรุ่นใน v0.15.0 เมื่อ 2026-11-20):** นโยบายเก็บข้อมูลที่ลบ [ADR 0015](../adr/0015-data-retention-group-restore-purge.md) — กลุ่มที่ลบเก็บ 30 วัน super admin กู้ได้ (`POST /api/admin/groups/:gid/restore`, action `admin.group.restore` ใน `SUPER_ADMIN_ONLY`/`SUPER_ADMIN_AUDITED`) แล้ว cron daily ลบถาวร (ข้อ 8 งานที่ 5) · DTO กลุ่มของ admin มี `purgeAt`/`restorable`/`restoreBlockedReason` · notification ชนิดใหม่ `group.restored` (ADR 0007, กระดิ่งเท่านั้น) · audit action `group.restore`/`group.purge` · บัญชียังล้างทันที แต่ `POST /api/me/delete` ต้องส่ง `confirmUsername` (ข้อ 5) · **ไม่มี migration/ตาราง/env ใหม่**
-> โค้ดใน §3 เริ่มจากฉบับที่ใช้ตอน R0–R1 แล้วปรับตามโค้ดจริงถึง v0.15.0 (R16 และ R17 ไม่มี migration — schema เท่ากับ v0.13.0) — คอลัมน์ทุกตัวที่ยังมีอยู่ตรงกับ `src/db/schema.ts` (สรุปตารางทั้งหมดอยู่ต้น §3) · ชื่อไฟล์/คอลัมน์ถือเป็นสัญญา เปลี่ยนต้องผ่าน migration + ADR/contract
+> **หมายเหตุ R18 (2026-11-22, จะออกเป็น v1.0.0):** แชร์นัดให้คนนอกกลุ่ม [ADR 0016](../adr/0016-appointment-share-guests.md) — migration `0007_r18_appointment_share` (เพิ่มอย่างเดียว) สร้างตาราง `appointment_share_link` + `appointment_guest` (ข้อ 3) · route ใหม่ 8 ตัว + หน้า `/i/[token]` (ข้อ 1, 5) · action RBAC ใหม่ 8 ตัว (ข้อ 5.1) · error `SHARE_LINK_INVALID`/`SHARE_LINK_EXPIRED`/`SHARE_FULL` (ข้อ 6) · cron daily เพิ่มงานลบคำเชิญเก่า (D1) และลิงก์ชวนเก่า + ฟิลด์ `purgedInvites`/`purgedShareLinks` (ข้อ 8) · limiter `api:read` จองให้เสร็จ**ก่อน** handler (H1, ข้อ 2 และ 11) · ถังใหม่ `redeem:all` (H3) และ `share:*` (ข้อ 11.4) · **ไม่มี env ใหม่** (token ลิงก์ใช้ `APP_SECRET` ผ่าน HKDF info ใหม่ 2 ค่า — ข้อ 7)
+> โค้ดใน §3 เริ่มจากฉบับที่ใช้ตอน R0–R1 แล้วปรับตามโค้ดจริงถึง R18 (R16 และ R17 ไม่มี migration · R18 เพิ่ม `0007`) — คอลัมน์ทุกตัวที่ยังมีอยู่ตรงกับ `src/db/schema.ts` (สรุปตารางทั้งหมดอยู่ต้น §3) · ชื่อไฟล์/คอลัมน์ถือเป็นสัญญา เปลี่ยนต้องผ่าน migration + ADR/contract
 
 ## สารบัญ
-1. โครงโฟลเดอร์และเจ้าของ · 2. การไหลของ request · 3. Schema Drizzle (ตารางทั้งหมด) · 4. Session และ actor · 5. API endpoint ต่อ story · 6. รหัส error · 7. ตัวแปร env (`.env.example`) · 8. งานตามเวลา (cron) · 9. คำถามถึง Lead / ประเด็นเปิด · 10. เปิดแบบแอปบนหน้าจอโฮม (R15) · 11. Rate limit ที่ wrapper + ข้อจำกัดที่รู้ (R16)
+1. โครงโฟลเดอร์และเจ้าของ · 2. การไหลของ request · 3. Schema Drizzle (ตารางทั้งหมด) · 4. Session และ actor · 5. API endpoint ต่อ story · 6. รหัส error · 7. ตัวแปร env (`.env.example`) · 8. งานตามเวลา (cron) · 9. คำถามถึง Lead / ประเด็นเปิด · 10. เปิดแบบแอปบนหน้าจอโฮม (R15) · 11. Rate limit ที่ wrapper + ข้อจำกัดที่รู้ (R16 · R18 ข้อ 11.4)
 
 ---
 
@@ -37,11 +38,13 @@ maewmeet/
 │   │   │   ├── appointments/[id]/page.tsx     U10, U10.1, U10.2
 │   │   │   ├── notifications/page.tsx         ADR 0007
 │   │   │   └── me/page.tsx                    U13, U14, U15
-│   │   ├── admin/                             U12 (layout ตรวจ is_admin ผ่าน service — ไม่ใช่แค่ซ่อนเมนู)
+│   │   ├── admin/                             U12 (layout ตรวจ is_admin ผ่าน service — ไม่ใช่แค่ซ่อนเมนู) · ของจริงอยู่ที่ `(app)/admin/**`
+│   │   ├── privacy/page.tsx                   ประกาศความเป็นส่วนตัว (U13) · R18: หัวข้อ "แขกเห็นอะไร"
+│   │   ├── i/[token]/page.tsx                 R18 §S หน้าเปิดลิงก์ชวน (ADR 0016 §3–4) — นอก `(app)`/`(public)` · เรียก service ตรง (ไม่มี API route) · noindex + `X-Robots-Tag` (`next.config.ts`)
 │   │   └── api/                               Platform (5) — ยกเว้น auth/ และ line/
 │   │       ├── _lib/                          route wrapper, manifest, serializer ของ HTTP, error→status
 │   │       ├── auth/**                        Auth & Access (8): signup, login, logout, pin, pin-reset, admin/pin-resets
-│   │       ├── me/**  groups/**  appointments/**  invites/**  prefs/**  admin/**   (places/** ถูกลบ R13)
+│   │       ├── me/**  groups/**  appointments/**  invites/**  prefs/**  admin/**  share/** (R18)   (places/** ถูกลบ R13)
 │   │       ├── cron/daily/route.ts            งานรายวัน (ข้อ 8)
 │   │       ├── cron/heartbeat/route.ts        keep-alive จาก GitHub Actions (ข้อ 8)
 │   │       ├── cron/reminders/route.ts        เตือนก่อนนัด ทุก 15 นาที (R10, ADR 0011, ข้อ 8)
@@ -94,8 +97,9 @@ HTTP request ──► │ route(spec) wrapper  (src/app/api/_lib/route.ts)     
                  │  3. actor = getActor(cookies)  ← src/lib/auth/session.ts                 │
                  │       hash(token) → session JOIN user (status, is_admin, must_change_pin) │
                  │       sliding renew (≤ 1 write/วัน)                                      │
-                 │  3½. R16: GET + ผู้ใช้ล็อกอิน + action ไม่สาธารณะ → จองช่อง `api:read`    │
-                 │      ขนานกับข้อ 4 (เต็ม → 429 ทิ้งผล handler) — ข้อ 11                    │
+                 │  3½. R16/R18 H1: GET + ผู้ใช้ล็อกอิน + action ไม่สาธารณะ → จองช่อง        │
+                 │      `api:read` ให้เสร็จ *ก่อน* ข้อ 4 (เต็ม → 429 โดย handler ไม่รัน)     │
+                 │      — ข้อ 11                                                            │
                  │  4. result = service(actor, input)                                       │
                  │  5. JSON {data} | {error:{code,params}} + Cache-Control: private,no-store │
                  └──────────────────────────────────────────────────────────────────────────┘
@@ -112,16 +116,17 @@ HTTP request ──► │ route(spec) wrapper  (src/app/api/_lib/route.ts)     
 
 Server Component (src/app/(app)/**/page.tsx):
    actor = await getActor(await cookies())  →  service เดียวกัน (อ่านอย่างเดียว)  →  render
-   (ไม่มีการ mutate จาก Server Component/Server Action ใน v1)
+   (ไม่มีการ mutate จาก Server Component/Server Action ใน v1 · ข้อยกเว้นเดียว R18: หน้า `/i/[token]` จองถัง `share:view:ip`
+    ใน `rate_limit_bucket` ทุกการเรนเดอร์ — ไม่สร้างแถวข้อมูลอื่น การเข้าเป็นแขกต้อง `POST /api/share/join` · ADR 0016 §3)
 ```
 - **ลำดับนี้ตายตัว**: ไม่มี service ไหนข้าม `authorize()` · repos ไม่รู้จัก actor
 - เวลา "ตอนนี้" มาจาก `clock.now()` ที่ inject ได้ (เทสต์ควบคุมเวลา — ADR 0002/0004)
 - PolicyError → HTTP: `AUTH_REQUIRED`/`ACCOUNT_SUSPENDED` 401 · `PIN_CHANGE_REQUIRED`/`FORBIDDEN` 403 · `NOT_FOUND` 404 · `ADMIN_TRANSFER_REQUIRED`/`CONFLICT` 409 · `RATE_LIMITED`/`LOGIN_LOCKED` 429 (+ `Retry-After`)
 - Route manifest (`src/app/api/_lib/manifest.ts`): ทุก route ลงทะเบียน `{method, path, action}` — ใช้ทั้งเอกสาร (ข้อ 5) และเทสต์เมทริกซ์อัตโนมัติ (ADR 0003 §4)
 
-## 3. Schema Drizzle (ตรงกับ v0.15.0 — R16 และ R17 ไม่มี migration ใหม่ ล่าสุดคือ `0006`)
+## 3. Schema Drizzle (ตรงกับ R18 — migration ล่าสุดคือ `0007_r18_appointment_share` · R16 และ R17 ไม่มี migration)
 
-### ตารางทั้งหมดในฐานจริง (หลัง migration `0000`–`0006`)
+### ตารางทั้งหมดในฐานจริง (หลัง migration `0000`–`0007`)
 | ตาราง | สร้าง/แก้ใน migration | ที่มา | หมายเหตุ |
 |---|---|---|---|
 | `user` | `0000_init` | ADR 0002 | `line_user_id` ใช้จริงตั้งแต่ R10 (ไม่มี migration เพิ่ม — คอลัมน์มีตั้งแต่ 0000) |
@@ -140,13 +145,15 @@ Server Component (src/app/(app)/**/page.tsx):
 | `appointment` | `0000_init` · + `scheduled_at` ใน `0004_r10_line_reminders` (backfill = `created_at`) | U10, ADR 0011 | |
 | `appointment_rsvp` | `0000_init` | U10.1 | |
 | `appointment_reminder` | `0004_r10_line_reminders` | ADR 0011 §2 | |
+| `appointment_share_link` | `0007_r18_appointment_share` | ADR 0016 §2.1 | R18 §S ลิงก์ชวนคนนอก (ต่อสมาชิกต่อนัด) · เก็บ `token_hash` เท่านั้น |
+| `appointment_guest` | `0007_r18_appointment_share` | ADR 0016 §2.2 | R18 §S แขกของนัด (ไม่ใช่สมาชิกกลุ่ม) · RSVP ของแขกอยู่ในแถวนี้ |
 | `line_link_code` | `0004_r10_line_reminders` | ADR 0011, R10 §2 | |
 | `notification` | `0000_init` | ADR 0007 | |
 | `notification_outbox` | `0000_init` | ADR 0007 §2 | ใช้จริงตั้งแต่ R10 (channel `line`) · เพดาน LINE นับจากตารางนี้ (ข้อ 8) |
 | `audit_log` | `0000_init` | U12 | |
 | ~~`place_search_cache`~~ | สร้าง `0000_init` · **DROP ใน `0006_r15_group_icon_drop_place_cache`** | ADR 0013 | ไม่มีในฐานแล้ว |
 
-รวม 20 ตารางที่ยังอยู่ · migration ทั้งหมดเป็นแบบเพิ่มอย่างเดียว ยกเว้น `0006` ที่ลบ `place_search_cache` (ย้อนไม่ได้)
+รวม 22 ตารางที่ยังอยู่ · migration ทั้งหมดเป็นแบบเพิ่มอย่างเดียว ยกเว้น `0006` ที่ลบ `place_search_cache` (ย้อนไม่ได้)
 
 หลักการ: id = `text` UUIDv4 สร้างในแอป · เวลา = `integer` epoch ms UTC (ตั้งค่าจาก `clock.now()` ไม่ใช้ default ของ DB) · วันที่ = `text` `YYYY-MM-DD` · boolean = `integer({mode:'boolean'})` · enum บังคับทั้ง TS (`enum`) และ DB (`check`) · ตาราง `groups` เป็นพหูพจน์เพราะ `GROUP` เป็นคำสงวน SQL
 
@@ -456,6 +463,15 @@ export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy N
 - **ลบ `place_search_cache`** + งาน cron `stalePlaceSearchCache` ในไฟล์ migration เดียวกัน — ย้อนไม่ได้ ([ADR 0013](../adr/0013-drop-place-search-cache.md)) · rollback = ย้อนแอปอย่างเดียว ตารางหายถาวร (รุ่นเก่ามีงาน cron ที่อ้างตารางนี้ใน batch เดียว → ดูขั้นตอนใน ADR 0013)
 - ผลกับรุ่นเดิม: รุ่นก่อน 0006 ไม่อ่าน `groups.icon` → ไม่กระทบ · เทสต์: `tests/platform/migration-0006.test.ts` (ฐานที่มีข้อมูล R14 → ข้อมูลเดิมเท่าเดิม, `groups.icon` NULL, ไม่มีตาราง cache — R15-1)
 
+### แชร์นัดให้คนนอก + migration 0007 (R18 §S, [ADR 0016](../adr/0016-appointment-share-guests.md) §2, `src/db/schema.ts` บรรทัด `appointmentShareLink`/`appointmentGuest`)
+แหล่งความจริงของคอลัมน์คือ `src/db/schema.ts` + `drizzle/0007_r18_appointment_share.sql` — ข้างล่างเป็นสรุป
+- **`appointment_share_link`**: `id` PK · `appointment_id` → appointment (**cascade**) · `created_by` → user (no action — แถว user ไม่ถูกลบจริง) · `token_hash` (hex HMAC ของ token · ไม่เก็บ token ดิบ) · `created_at` · `revoked_at` · `revoked_by` → user (set null) · unique `share_link_token_hash_uq(token_hash)` · partial unique `share_link_one_active_uq(appointment_id, created_by) WHERE revoked_at IS NULL` (1 ลิงก์ที่ยังไม่ยกเลิกต่อคนต่อนัด — S1) · index `share_link_appointment_idx`, `share_link_creator_idx(created_by, revoked_at)` · check `share_link_revoked_ck` · **ไม่มี** `expires_at`/`status` — "ลิงก์ใช้ได้" คำนวณสดทุกครั้ง (ยังไม่ยกเลิก · นัด active และ `end_at > now` · กลุ่มไม่ลบ · ผู้สร้างยังเป็นสมาชิกตั้งแต่ก่อนสร้างลิงก์ และบัญชี active — ADR 0016 §2.3, SQL fragment ที่เดียวใน `src/lib/data/repos/share-link.ts`)
+- **`appointment_guest`**: PK `(appointment_id, user_id)` · `appointment_id` → appointment (cascade) · `user_id` → user (cascade) · `invited_by` → user (set null · ป้าย "มากับ X") · `link_id` → appointment_share_link (set null) · `response` (`going`/`maybe`/`not_going`/NULL) + `responded_at` · `joined_at` · `removed_at`/`removed_by` (ถูกสมาชิกนำออก = แถวคงไว้เป็นตัวกันกลับเข้านัดนั้น) · index `appointment_guest_user_idx(user_id)`, partial `appointment_guest_link_idx(link_id) WHERE link_id IS NOT NULL` · check `appointment_guest_response_ck`, `appointment_guest_responded_ck`, `appointment_guest_removed_ck` · "แขกที่มีผล" = `removed_at IS NULL` และกลุ่มของนัดไม่ลบ
+- token ลิงก์ = `base64url(HMAC(K_tok, "share-link:"+id)[0..16))` 22 ตัว 128 บิต (derive จาก id จึงคืนลิงก์เดิมได้โดยไม่เก็บ token) · `K_tok`/`K_hash` = HKDF ของ `APP_SECRET` info `maewmeet/appointment-share-token/v1` / `maewmeet/appointment-share-hash/v1` (`src/lib/data/share-token.ts`) · หมุน `APP_SECRET` = ลิงก์เดิมใช้ไม่ได้ทั้งหมด (เหมือนโค้ดเชิญ)
+- เพดานแขก `APPOINTMENT_GUESTS_MAX` = 10 ต่อนัด (`src/lib/shared/limits.ts`) ตรวจในคำสั่ง `INSERT … SELECT … WHERE (count) < :max` เดียวกับการเพิ่ม (S5) · แขกที่เป็นสมาชิกกลุ่มอยู่แล้วไม่ได้แถวแขก · แขกเข้าเป็นสมาชิกภายหลัง → ย้ายคำตอบเป็น `appointment_rsvp` แล้วลบแถวแขกใน tx เดียวกับการเข้ากลุ่ม (ADR 0016 §8.4)
+- busy ของแขกไม่เข้าการหาวันว่างของกลุ่มเจ้าของนัด · นัดที่แขกตอบ `going` นับเป็นไม่ว่างใน**กลุ่มของแขกเอง** แบบ `other_group_appointment` (ไม่มี id/ชื่อ — ADR 0016 §5.3)
+- ผลกับรุ่นเดิม: v0.15.0 ไม่อ่านตารางใหม่ → ย้อนแอปอย่างเดียวได้ (ADR 0016 §9 · OPERATIONS) · เทสต์: `tests/platform/migration-0007.test.ts` (มีแต่ CREATE · ON DELETE ตรง ADR · constraint · apply ซ้ำไม่พัง)
+
 ### ความต่างจาก "โมเดลข้อมูลร่าง" ใน PRD §5 (เหตุผลสั้น)
 | PRD ร่าง | ฉบับนี้ | เหตุผล |
 |---|---|---|
@@ -471,6 +487,7 @@ export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy N
 | `group_member` | + `color_slot`, `shape_slot` (R6C) | สมาชิกเลือกสี/รูปทรงเองในกลุ่ม |
 | `appointment` | + `local_date`, `cancelled_*`, timestamps · + `scheduled_at` (R10) | U10.2 นัดยกเลิกยังเห็นได้ · ตัดสินเตือนก่อนนัด (ADR 0011) |
 | — | `appointment_reminder`, `line_link_code` (R10) | กันเตือนซ้ำ · เชื่อม LINE ด้วยโค้ดครั้งเดียว (ADR 0011) |
+| — | `appointment_share_link`, `appointment_guest` (R18) | แชร์นัดให้คนนอกกลุ่มโดยไม่ให้เข้ากลุ่ม (ADR 0016) |
 | `appointment_rsvp` | + `updated_at` | — |
 | `audit_log(target)` | แยก `target_type`, `target_id`, `group_id`, `meta` | ค้น/กรองในหน้า admin (U12) |
 | `notification_outbox` | + `notification_id`, `next_attempt_at`, `last_error`, `sent_at` | retry (ADR 0007) |
@@ -479,7 +496,7 @@ export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy N
 
 ### กฎข้อมูลที่ schema บังคับไม่ได้ (บังคับใน service + เทสต์)
 - username: `^[a-z0-9._]{3,20}$` หลัง normalize (ASCII เท่านั้น กันตัวอักษรหน้าตาเหมือนกัน) · display name: 1–40 ตัวอักษรใดก็ได้ (ไทยได้)
-- ลบบัญชี (U13): ต้องไม่ถือ role admin กลุ่มใด → ลบ session, busy, busy routine (ต้องลบเอง — anonymize ไม่เกิด cascade, ADR 0012), rsvp, notification, membership, คำเชิญค้าง → anonymize แถว user (`username_normalized = 'deleted:'||id`, `username=''`, `display_name=''`, `pin_hash=NULL`, `line_user_id=NULL`, `status='deleted'`) — คงแถวไว้ให้ FK ของนัด/audit · UI แสดงชื่อเป็นคีย์แปล "ผู้ใช้ที่ลบบัญชีแล้ว"
+- ลบบัญชี (U13): ต้องไม่ถือ role admin กลุ่มใด → ลบ session, busy, busy routine (ต้องลบเอง — anonymize ไม่เกิด cascade, ADR 0012), rsvp, notification, membership, คำเชิญค้าง, R18: ลิงก์ชวนที่ตัวเองสร้าง (ตั้ง `appointment_guest.link_id = NULL` ก่อน — แขกที่ชวนไว้อยู่ต่อ) + แถวแขกของตัวเอง (ADR 0016 §7.4) → anonymize แถว user (`username_normalized = 'deleted:'||id`, `username=''`, `display_name=''`, `pin_hash=NULL`, `line_user_id=NULL`, `status='deleted'`) — คงแถวไว้ให้ FK ของนัด/audit · UI แสดงชื่อเป็นคีย์แปล "ผู้ใช้ที่ลบบัญชีแล้ว"
 - หมดอายุทุกชนิด (โค้ดเชิญ, reset) ตรวจแบบ lazy ตอนอ่าน — cron แค่เก็บกวาด
 
 ## 4. Session และ actor (สรุป — ละเอียดใน ADR 0002 §4)
@@ -487,7 +504,7 @@ export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy N
 Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` · `mustChangePin` → redirect `/set-pin` (เป็น UX เท่านั้น ด่านจริงคือ `can()`)
 
 ## 5. API endpoint ต่อ story
-ทุก endpoint: JSON, prefix `/api`, ผ่าน wrapper ข้อ 2 · ตารางนี้ **ตรงกับ `ROUTE_MANIFEST` ใน `src/app/api/_lib/manifest.ts` ที่ v0.15.0 ทีละแถว (73 route · R16 ไม่มี route ใหม่ · R17 เพิ่ม `POST /api/admin/groups/:gid/restore`)** — path เขียนแบบ manifest (`:param`) · คอลัมน์ "action" = ชื่อใน [ADR 0003](../adr/0003-rbac.md) ที่ service เรียก · "auth" = `actor` (session + CSRF Origin/JSON สำหรับ non-GET) / `cron` (Bearer `CRON_SECRET`) / `public` · "เจ้าของ" = บทบาทที่เขียน route
+ทุก endpoint: JSON, prefix `/api`, ผ่าน wrapper ข้อ 2 · ตารางนี้ **ตรงกับ `ROUTE_MANIFEST` ใน `src/app/api/_lib/manifest.ts` บน `feat/r18-v1` ทีละแถว (81 route · R16 ไม่มี route ใหม่ · R17 เพิ่ม `POST /api/admin/groups/:gid/restore` · R18 เพิ่ม 8 route ของแชร์นัด — ท้ายตาราง)** · หน้า `/i/[token]` ไม่ใช่ API route (Server Component เรียก service ตรง ด้วย action `appointment.share.preview`) — path เขียนแบบ manifest (`:param`) · คอลัมน์ "action" = ชื่อใน [ADR 0003](../adr/0003-rbac.md) ที่ service เรียก · "auth" = `actor` (session + CSRF Origin/JSON สำหรับ non-GET) / `cron` (Bearer `CRON_SECRET`) / `public` · "เจ้าของ" = บทบาทที่เขียน route
 เพิ่ม/เปลี่ยน route ใน manifest ต้องแก้ตารางนี้ใน PR เดียวกัน (DOCS_SYNC §2) · เทสต์ `tests/ops/docs-sync.test.ts` ตรวจว่าทุก path ใน manifest มีในไฟล์นี้
 
 | Story | Method + path | action (RBAC) | auth | หมายเหตุ | เจ้าของ |
@@ -565,21 +582,49 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | R10 | `GET /api/me/line` | `self.read` | actor | สถานะเชื่อม LINE ของฉัน (ไม่ส่ง LINE user id ออก) | Platform |
 | R10 | `POST /api/me/line` | `self.update` | actor | สร้างโค้ดเชื่อม (คืนครั้งเดียว · DB เก็บ HMAC · อายุ 10 นาที) → 201 · RL `line:code:create` | Platform |
 | R10 | `DELETE /api/me/line` | `self.update` | actor | ยกเลิกการเชื่อม | Platform |
+| R18 S1 | `POST /api/appointments/:id/share-link` | `appointment.share.create` | actor | get-or-create ลิงก์ของฉันสำหรับนัดนี้ → `{url, linkId, createdAt, reused}` (กดซ้ำได้ลิงก์เดิม) · สมาชิกทุก role · SA ที่ไม่ใช่สมาชิก 403 · นัดยกเลิก 409 `APPOINTMENT_CANCELLED` · จบแล้ว 409 `APPOINTMENT_PAST` · คนนอก/กลุ่มลบ 404 · RL `share:create:u` · audit `appointment.share.create` (meta `linkId` ไม่มี token) | Platform |
+| R18 S2 | `DELETE /api/appointments/:id/share-links/:lid` | `appointment.share.revoke` | actor | ผู้สร้างลิงก์ · ผู้สร้างนัด · admin/mod · SA (audited) · `:lid` ไม่ใช่ของนัด `:id` → 404 (กัน IDOR) · RL `share:revoke:u` | Platform |
+| R18 S4 | `POST /api/share/join` | `appointment.guest.join` | actor | body `{token}` (`.strict()` · token ไม่อยู่ใน path ของ API) · ผล `{status:'guest'\|'member', appointmentId, joined}` (`joined:false` = เป็นแขก/สมาชิกอยู่แล้ว) · ใช้ไม่ได้ → 404 `SHARE_LINK_INVALID` (ทุกเหตุ body เดียวกัน) / 410 `SHARE_LINK_EXPIRED` · เต็ม → 409 `SHARE_FULL {max:10}` · RL `share:join:u`/`share:join:ip` (นับเฉพาะ token ใช้ไม่ได้) + `share:guest:u` | Platform |
+| R18 S4 | `GET /api/appointments/:id/guest` | `appointment.guest.view` | actor | `GuestAppointmentDto` (allowlist — ไม่มีชื่อสมาชิก/รายชื่อคนตอบ · มีแค่ `counts` going/maybe) · สมาชิก/คนนอก/แขกที่ถูกนำออก/กลุ่มลบ → 404 | Platform |
+| R18 S4 | `DELETE /api/appointments/:id/guest` | `appointment.guest.leave` | actor | แขกออกเอง — ลบแถว (กลับเข้าได้ด้วยลิงก์ที่ยังใช้ได้) · RL `share:guest:u` · ไม่แจ้งใคร | Platform |
+| R18 S4 | `PUT /api/appointments/:id/guest/rsvp` | `appointment.guest.rsvp` | actor | `{response}` แบบ `rsvpInputSchema` เดิม · เก็บในแถวแขก · นัดยกเลิก/จบ → 409 · RL `appt:rsvp` เดิม · แจ้งผู้สร้างนัด `appointment.rsvp_changed` + `responderGuest: true` | Platform |
+| R18 S4 | `GET /api/appointments/:id/guest/calendar.ics` | `appointment.guest.view` | actor | `.ics` ของแขก (builder เดียวกับสมาชิก) | Platform |
+| R18 S6 | `DELETE /api/appointments/:id/guests/:uid` | `appointment.guest.remove` | actor | ผู้สร้างนัด · ผู้ชวน (`invited_by`) · admin/mod · SA (audited) · ตั้ง `removed_at` (ไม่ลบแถว → กลับเข้านัดนี้ไม่ได้) · แจ้งแขก `appointment.guest.removed` (กระดิ่ง) · RL `share:guest:remove:u` | Platform |
+| R18 S3 | (หน้า) `GET /i/[token]` | `appointment.share.preview` | public | **ไม่อยู่ใน manifest** — `src/app/i/[token]/page.tsx` เรียก service (`src/lib/data/services/share.ts`, `src/lib/data/share-page.ts`) · `SharePreviewDto` (ชื่อนัด เวลา สถานที่ ชื่อกลุ่ม/ไอคอน ผู้ชวน ยอด going/maybe — ไม่มีชื่อสมาชิก/description/id) · ไม่มีผลข้างเคียงนอกจากถัง `share:view:ip` · noindex + `X-Robots-Tag` + `referrer: no-referrer` · ยังไม่ล็อกอิน → `/login?next=/i/<token>` (`safeNext` ใน `src/lib/shared/safe-next.ts` ยอมเฉพาะ `^/i/[A-Za-z0-9_-]{22}$`) | Frontend + Platform |
 | U10 (เลิกใช้) | ~~`GET /api/places/search?q=`~~ | ~~`place.search`~~ | — | เอาออกแล้ว R13 · ตาราง cache ลบ R15 (ADR 0013) · **ไม่อยู่ใน manifest** | — |
 
-ครอบคลุม story: U1 ✓ U2 ✓ U3 ✓ U4 ✓ U5 ✓ U6 ✓ U7 ✓ U8 ✓ U9 ✓ U9.1 ✓ U10 ✓ U10.1 ✓ U10.2 ✓ U11 ✓ U12 ✓ U13 ✓ U14 ✓ U15 ✓
+ครอบคลุม story: U1 ✓ U2 ✓ U3 ✓ U4 ✓ U5 ✓ U6 ✓ U7 ✓ U8 ✓ U9 ✓ U9.1 ✓ U10 ✓ U10.1 ✓ U10.2 ✓ U11 ✓ U12 ✓ U13 ✓ U14 ✓ U15 ✓ · R18 §S1–S6 ✓ (ไล่ทีละข้อใน `docs/reports/v1-readiness.md`)
+
+### 5.1 action RBAC ใหม่ของ R18 (ADR 0016 §5 · `src/lib/rbac/actions.ts`, `can.ts`)
+ทางของแขกเป็น action/route/DTO **แยก** จากของสมาชิก — `appointment.view`/`rsvp`/`update`/`cancel` เดิมไม่เปลี่ยน (แขกได้ 404 เหมือนคนนอก)
+
+| action | resource | ใครทำได้ (หลังด่านบัญชีเดิมของ `can()`) |
+|---|---|---|
+| `appointment.share.preview` | `none` | **PUBLIC** (อยู่ใน `PUBLIC_ACTIONS`) — ใครก็ได้ที่ถือ token · ข้อมูลจำกัดที่ `SharePreviewDto` · ไม่อยู่ใน `PIN_CHANGE_ALLOWED` |
+| `appointment.share.create` | `appointment` | สมาชิกทุก role · SA ที่ไม่ใช่สมาชิก FORBIDDEN · คนนอก/กลุ่มลบ NOT_FOUND |
+| `appointment.share.revoke` | `shareLink` (ใหม่) | admin/mod · สมาชิกที่เป็นผู้สร้างลิงก์หรือผู้สร้างนัด · SA = `ALLOW_AUDITED` · สมาชิกอื่น FORBIDDEN |
+| `appointment.guest.join` | `none` | ผู้ใช้ที่ล็อกอิน active ไม่ติดเปลี่ยน PIN (ความสามารถจริงอยู่ที่ token) |
+| `appointment.guest.view` / `.rsvp` / `.leave` | `appointmentGuest` (ใหม่) | เฉพาะผู้ที่เป็นแขกที่มีผลของนัดนั้น · เป็นสมาชิกกลุ่ม → NOT_FOUND (ใช้ทางสมาชิก) · กลุ่มลบ → NOT_FOUND · ไม่มีข้อยกเว้น SA |
+| `appointment.guest.remove` | `guestTarget` (ใหม่) | admin/mod · สมาชิกที่เป็นผู้สร้างนัดหรือผู้ชวนแขกคนนั้น · SA = `ALLOW_AUDITED` |
+
+- resource ใหม่: `ShareLinkResource`, `AppointmentGuestResource`, `GuestTargetResource` (`src/lib/rbac/types.ts`) · โหลดโดย `loadShareLinkCtx`/`loadGuestTargetCtx` + `loadAppointmentCtx` เติม `isGuest` (`src/lib/data/policy-context.ts`)
+- เทสต์: `tests/rbac/share-guests.test.ts`, `tests/rbac/matrix.fixture.ts` (เพิ่มแถว R18), `tests/security/rbac-invariants.test.ts`, `tests/security/authorize-first.test.ts`
+- DTO ของสมาชิก (`GET /api/appointments/:id`) เติม `guests {items, counts, max}`, `shareLinks[]` (`url` เฉพาะลิงก์ของฉัน · ไม่มี `token_hash`), `permissions.canShare` · `GET /api/me/appointments` คืนนัดที่ฉันเป็นแขกด้วย (`viewerKind: 'guest'`)
+- notification ชนิดใหม่ (ADR 0007): `appointment.guest.updated`, `appointment.guest.cancelled` (LINE เฉพาะแขกที่ตอบไป เหมือนสมาชิก), `appointment.guest.removed` (กระดิ่งเท่านั้น) — ไม่มีชื่อ/id ผู้กระทำ · เตือนก่อนนัดถึงแขกผ่าน `listReminderAudience` เดิม นับในเพดาน OA 300/เดือนเดิม
+- audit action ใหม่ (target_type `appointment`, ไม่มี token/hash/URL ใน meta): `appointment.share.create`, `appointment.share.revoke`, `appointment.guest.join`, `appointment.guest.leave`, `appointment.guest.remove` · `group.leave`/`member.remove` เติม meta `shareLinksRevoked`
 
 ## 6. รหัส error (union เดียว — `src/lib/shared/errors.ts` ★)
 | กลุ่ม | รหัส |
 |---|---|
 | ทั่วไป | `VALIDATION` `NOT_FOUND` `FORBIDDEN` `CONFLICT` `RATE_LIMITED` `FEATURE_DISABLED` `UNKNOWN` |
 | auth | `AUTH_MAINTENANCE`(503 — pepper ใช้ไม่ได้, ADR 0002 §7.1) `AUTH_REQUIRED` `ACCOUNT_SUSPENDED` `PIN_CHANGE_REQUIRED` `INVALID_CREDENTIALS`(params: attemptsRemaining) `LOGIN_LOCKED`(retryAfterSec) `USERNAME_TAKEN` `USERNAME_FORMAT` `PIN_FORMAT` `PIN_MISMATCH` `PIN_TOO_WEAK` `CSRF_REJECTED` |
-| กลุ่ม/คำเชิญ | `ADMIN_TRANSFER_REQUIRED` `INVITE_INVALID` `ALREADY_MEMBER`(ใช้เป็นผลสำเร็จแบบมีธง ไม่ใช่ error) `USER_NOT_FOUND`(ชวนตรง — ดู Q4) |
+| กลุ่ม/คำเชิญ | `ADMIN_TRANSFER_REQUIRED` `INVITE_INVALID` `ALREADY_MEMBER`(ใช้เป็นผลสำเร็จแบบมีธง ไม่ใช่ error) `USER_NOT_FOUND`(ชวนตรง — ดู Q4) `LIMIT_REACHED`(เพดานจำนวน เช่น กลุ่ม/busy/routine) |
 | เวลา | `INVALID_RANGE` `INVALID_DATE` `INVALID_LOCAL_TIME` `TIME_NOT_ON_STEP` `DATE_OUT_OF_RANGE` `RANGE_TOO_LARGE` `INVALID_TIMEZONE` `INVALID_WINDOW` |
-| นัด | `INVALID_MAP_URL` `INVALID_COORDINATES` `APPOINTMENT_CANCELLED` |
+| นัด | `INVALID_MAP_URL` `INVALID_COORDINATES` `APPOINTMENT_CANCELLED` `APPOINTMENT_PAST`(409) |
+| แชร์นัด (R18) | `SHARE_LINK_INVALID`(404 · body เดียวกันทุกเหตุ: ไม่มี/ผิดรูป/ยกเลิก/ผู้สร้างออก/แขกที่ถูกนำออก) `SHARE_LINK_EXPIRED`(410 · ไม่บอกเหตุผล: นัดจบ/ยกเลิก/กลุ่มลบ) `SHARE_FULL`(409 · params `{max: 10}`) — ADR 0016 §5.4, §8.2 |
 ทุกรหัสมีคีย์ `errors.<CODE>` ใน `messages/th.json` และ `en.json` (ADR 0008 เทสต์ข้อ 4)
 
-## 7. ตัวแปร env (ตรงกับ `.env.example` ที่ v0.15.0 — ไม่มีค่าจริง · R16 และ R17 ไม่มีตัวแปรใหม่)
+## 7. ตัวแปร env (ตรงกับ `.env.example` บน `feat/r18-v1` — ไม่มีค่าจริง · R16, R17 และ R18 ไม่มีตัวแปรใหม่)
 แหล่งความจริง: `.env.example` (เจ้าของ OPS) + schema zod ใน `src/lib/shared/env.ts` · ขั้นตั้งค่าบน Vercel และวิธีสร้างความลับ: `docs/OPERATIONS.md` (ส่วน C, D, J) · ห้ามใส่ค่าจริงในไฟล์/แชท/PR (กฎ 7)
 
 | ตัวแปร | ต้องมีเมื่อ | ใช้ทำอะไร |
@@ -588,7 +633,7 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | `TURSO_AUTH_TOKEN` | prod/preview | token ของ DB (ว่างได้เมื่อใช้ `file:`) |
 | `PIN_PEPPER_CURRENT_VERSION` | ทุกสภาพแวดล้อม (ดีฟอลต์ 1) | เวอร์ชัน pepper ที่ใช้ hash ใหม่ (ADR 0002 §7.3) |
 | `PIN_PEPPER_V1` (`PIN_PEPPER_V<n>`) | ทุกสภาพแวดล้อม | base64 ≥ 32 ไบต์ · ไม่มีค่าดีฟอลต์ — หาย/ว่าง/ผิดค่า → login ปิด (`AUTH_MAINTENANCE`) · Vercel Type Secret แยกค่า Production/Preview · หมุนโดยเพิ่ม `PIN_PEPPER_V2` |
-| `APP_SECRET` | ทุกสภาพแวดล้อม | base64 ≥ 32 ไบต์ · HKDF แยก subkey: invite-code HMAC, rate-limit IP HMAC, LINE link-code HMAC |
+| `APP_SECRET` | ทุกสภาพแวดล้อม | base64 ≥ 32 ไบต์ · HKDF แยก subkey: invite-code HMAC, rate-limit IP HMAC, LINE link-code HMAC, R18: token ลิงก์ชวน (`maewmeet/appointment-share-token/v1`) + hash ของ token (`maewmeet/appointment-share-hash/v1`) · หมุนค่า = โค้ดเชิญและลิงก์ชวนที่ค้างใช้ไม่ได้ |
 | `CRON_SECRET` | ทุกสภาพแวดล้อม | ≥ 16 ตัวอักษร · Vercel ส่งเป็น `Authorization: Bearer` ให้ cron/schedule · ใส่ค่าเดียวกันใน GitHub Secrets (`CRON_SECRET` + `APP_ORIGIN`) ให้ workflow keepalive |
 | `APP_ORIGIN` | prod (preview ใช้ `VERCEL_URL` ถ้าว่าง) | ตรวจ Origin (CSRF) · ลิงก์ในข้อความ LINE/.ics |
 | `TRUST_PROXY_HEADERS` | ไม่บังคับ (Vercel ไม่ต้องตั้ง) | `1` = เชื่อ header IP จาก reverse proxy · ไม่ตั้งและไม่มี `VERCEL` = ทุกคำขอรวมถัง `unknown` เพดาน ×50 |
@@ -601,7 +646,7 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 ตัวแปรที่ Vercel ใส่ให้เอง (ไม่อยู่ใน `.env.example`): `VERCEL`, `VERCEL_URL`, `VERCEL_ENV` · เทสต์ (Vitest) สร้าง `TURSO_DATABASE_URL=file:<tmp>` และความลับสุ่มต่อรอบเอง · แอป **ล้มตอนเริ่ม** ถ้าตัวแปร "ต้องมี" หายหรือสั้นเกิน (zod ใน `src/lib/shared/env.ts`) — ยกเว้น pepper ที่ล้มเป็น `AUTH_MAINTENANCE` แทน
 
 ## 8. งานตามเวลา (cron)
-ที่มา: `vercel.json` (OPS) + `.github/workflows/keepalive.yml` (OPS) ที่ v0.15.0 (R16 และ R17 ไม่เปลี่ยนตาราง cron — R16 keepalive แก้เฉพาะ comment เรื่อง repo public · R17 เพิ่มงานลบกลุ่มถาวรใน `/api/cron/daily` เดิม ข้อ 5 ด้านล่าง)
+ที่มา: `vercel.json` (OPS) + `.github/workflows/keepalive.yml` (OPS) บน `feat/r18-v1` (R16, R17 และ R18 ไม่เปลี่ยนตาราง cron — R16 keepalive แก้เฉพาะ comment เรื่อง repo public · R17 เพิ่มงานลบกลุ่มถาวรใน `/api/cron/daily` เดิม ข้อ 5 · R18 เพิ่มงานลบคำเชิญเก่า (D1) และลิงก์ชวนเก่า (§S7) ข้อ 6–7 ด้านล่าง)
 
 | ตัวเรียก | ตาราง | เรียก | หมายเหตุ |
 |---|---|---|---|
@@ -617,7 +662,10 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 2. เปลี่ยนสถานะ `pin_reset_request` (pending/approved) / `group_invite` ที่หมดอายุเป็น `expired` (สำรอง — กลไกหลักคือ lazy)
 3. ลบ `notification` เก่ากว่า 90 วัน · `notification_outbox` สถานะ `sent`/`dead` เก่ากว่า 90 วัน (ไม่แตะ `pending`) · `line_link_code` ที่หมดอายุหรือใช้แล้วเกิน 1 วัน
 4. ลบ `busy_block` ที่จบเกิน 90 วัน แล้วลบ `busy_routine` ที่ `end_date` < วันนี้ − 93 วัน (90 + 3 · `busy_routine_skip` ตาม FK cascade) — ลำดับนี้ทำให้ไม่เหลือแถว busy กำพร้า (ADR 0012 §8)
-5. **R17 — ลบกลุ่มถาวร** (`purgeExpiredGroups` · กำหนดเวลาใน `src/lib/data/group-retention.ts` — `GROUP_RETENTION_START_DATE` 2026-12-01, `GROUP_PURGE_BATCH` 25 · ลบแถวใน `src/lib/data/repos/group-purge.ts`, [ADR 0015](../adr/0015-data-retention-group-restore-purge.md) §4) หลัง batch ข้อ 1–4 (ในโค้ด `maintenance.ts` เรียกว่างานที่ 6) · กลุ่มที่ `max(deleted_at, 2026-12-01 00:00 Asia/Bangkok) + 30 วัน <= now` เก่าสุดก่อน ≤ 25 กลุ่ม/รอบ · **ธุรกรรมเขียนแยกต่อกลุ่ม**: ตรวจเงื่อนไขซ้ำ → ลบ `notification_outbox`/`notification` ที่ `params.groupId` ตรง → `appointment_reminder` → `appointment_rsvp` → `appointment` → `group_invite` → `group_member` → `groups` → audit `group.purge` (actor ระบบ, meta = จำนวนแถวเท่านั้น) · คง `audit_log` ไว้ · ผลอยู่ใน `purgedGroups: {groups, failed, remaining}` ของคำตอบ (`remaining` เป็น boolean = ยังมีกลุ่มถึงกำหนดค้าง) · กลุ่มที่ล้ม rollback ทั้งกลุ่มแล้วลองใหม่รอบหน้า · รันซ้ำได้ · แข่งกับการกู้คืน: ฝั่งที่เขียนก่อนชนะ
+5. **R17 — ลบกลุ่มถาวร** (`purgeExpiredGroups` · กำหนดเวลาใน `src/lib/data/group-retention.ts` — `GROUP_RETENTION_START_DATE` 2026-12-01, `GROUP_PURGE_BATCH` 25 · ลบแถวใน `src/lib/data/repos/group-purge.ts`, [ADR 0015](../adr/0015-data-retention-group-restore-purge.md) §4) หลัง batch ข้อ 1–4 (ในโค้ด `maintenance.ts` เรียกว่างานที่ 6) · กลุ่มที่ `max(deleted_at, 2026-12-01 00:00 Asia/Bangkok) + 30 วัน <= now` เก่าสุดก่อน ≤ 25 กลุ่ม/รอบ · **ธุรกรรมเขียนแยกต่อกลุ่ม**: ตรวจเงื่อนไขซ้ำ → ลบ `notification_outbox`/`notification` ที่ `params.groupId` ตรง → R18: `appointment_guest` → `appointment_share_link` (ของนัดในกลุ่ม · แขกก่อนเพราะ FK `link_id`) → `appointment_reminder` → `appointment_rsvp` → `appointment` → `group_invite` → `group_member` → `groups` → audit `group.purge` (actor ระบบ, meta = จำนวนแถวเท่านั้น · R18 เพิ่ม `guests`, `shareLinks`) · คง `audit_log` ไว้ · ผลอยู่ใน `purgedGroups: {groups, failed, remaining}` ของคำตอบ (`remaining` เป็น boolean = ยังมีกลุ่มถึงกำหนดค้าง) · กลุ่มที่ล้ม rollback ทั้งกลุ่มแล้วลองใหม่รอบหน้า · รันซ้ำได้ · แข่งกับการกู้คืน: ฝั่งที่เขียนก่อนชนะ
+6. **R18 D1 — ลบคำเชิญเก่าถาวร** (`purgeOldInvites` ใน `maintenance.ts` · ลบแถวใน `src/lib/data/repos/invite-purge.ts`) หลังข้อ 5 · แถว `group_invite` ทุกสถานะที่ `expires_at <= cutoff` **และ** (`revoked_at IS NULL` หรือ `revoked_at <= cutoff`) = จบไปแล้วเกิน `INVITE_RETENTION_DAYS` 30 วัน (boss B1) · `cutoff = addDaysAt(now, −30, Asia/Bangkok)` จาก `src/lib/calendar` (กฎ 9) · คำเชิญ active ที่ยังไม่หมดอายุไม่มีทางเข้าเงื่อนไข · ชุดละ `INVITE_PURGE_BATCH` 200 แถว ≤ `INVITE_PURGE_MAX_BATCHES` 10 ชุด/รอบ แต่ละชุดเป็นธุรกรรมเขียนของตัวเอง (ชุดล้ม → log รหัส error แล้วหยุดรอบนี้ ไม่ทำให้ cron ล้ม) · **ก่อนลบในธุรกรรมเดียวกัน** ประทับ `inviterId`/`inviteeId` ลง `notification.params` ของ `group.invite.received`/`accepted`/`declined` ที่อ้างคำเชิญเหล่านั้น เพื่อให้ลบบัญชีภายหลังยังล้างชื่อในแจ้งเตือนได้ (R18_CONTRACT §7.1 · คีย์ภายใน ไม่ออกทาง API) · `audit_log` ที่อ้าง id คำเชิญคงไว้ (เป็นข้อความ ไม่มี FK) · ผล `purgedInvites` (จำนวน)
+7. **R18 §S7 — ลบลิงก์ชวนเก่า** (`purgeOldShareLinks` · `purgeEndedShareLinksBatch` ใน `src/lib/data/repos/share-link.ts`) หลังข้อ 6 · ลิงก์ที่ "สิ้นสุด" (ยกเลิก / นัดยกเลิก / นัดจบ — เวลาที่เร็วที่สุด) เกิน `SHARE_LINK_RETENTION_DAYS` (= 30 วัน ค่าเดียวกับ D1) · ชุด/เพดานเดียวกับข้อ 6 · ตั้ง `appointment_guest.link_id = NULL` ของชุดนั้นก่อนลบ (ไม่พึ่ง FK SET NULL) · แถวแขกไม่ถูกลบ (อยู่ตามนัด) · ผล `purgedShareLinks` (จำนวน)
+- คำตอบของ `/api/cron/daily` (`DailyMaintenanceResult`): `{heartbeat, cleaned, purgedGroups, purgedInvites, purgedShareLinks}` — ไม่มีข้อมูลคน
 - ~~ลบ `place_search_cache` เก่ากว่า 30 วัน~~ — ลบพร้อมตารางใน migration 0006 (ADR 0013)
 - ตรวจ fingerprint pepper (ADR 0002 §7.1–7.2) อยู่ที่ `GET /api/health` (`checks.pepper`, keepalive เรียกทุก 12 ชม.) และ fail closed ตอน login (`src/lib/auth/pepper.ts`) — ไม่ได้อยู่ใน cron รายวัน
 
@@ -665,8 +713,8 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 - [A1] Apple — Safari Web Content Guide: Configuring Web Applications (`apple-touch-icon` + sizes, `apple-mobile-web-app-capable`, status-bar-style · เอกสาร archive อัปเดต 2016-12-12 ใช้เป็นประวัติ) — https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariWebContent/ConfiguringWebApplications/ConfiguringWebApplications.html
 - [A2] WebKit — WebKit Features in Safari 26.0 ("By default, every website added to the Home Screen opens as a web app"; manifest ยังใช้ไอคอน) — https://webkit.org/blog/17333/webkit-features-in-safari-26-0/
 
-## 11. Rate limit ที่ wrapper + ข้อจำกัดที่รู้ (R16)
-ที่มา: [R16_CONTRACT](../contracts/R16_CONTRACT.md) §1 (H1–H6), §5 (ผลตัดสิน boss 2026-11-18), §6 · อ่านโค้ด `feat/r16-cleanup` 2026-11-19 (`git diff 9db2c08..HEAD -- src`)
+## 11. Rate limit ที่ wrapper + ข้อจำกัดที่รู้ (R16 · R18)
+ที่มา: [R16_CONTRACT](../contracts/R16_CONTRACT.md) §1 (H1–H6), §5 (ผลตัดสิน boss 2026-11-18), §6 · อ่านโค้ด `feat/r16-cleanup` 2026-11-19 (`git diff 9db2c08..HEAD -- src`) · R18: [R18_CONTRACT](../contracts/R18_CONTRACT.md) §2 H1–H3, §S · อ่านโค้ด `feat/r18-v1` ที่ `091a2d4` (2026-11-22)
 
 ### 11.1 ถัง rate limit ใหม่ (`src/lib/shared/limits.ts` — เก็บใน `rate_limit_bucket` เหมือนถังอื่น นับรวมข้าม instance)
 | prefix | เพดาน | นับที่ | นับ | ไม่นับ |
@@ -676,9 +724,9 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | `api:read` (H3, boss B1) | 600/10 นาที/ผู้ใช้ รวมทุก route | wrapper `route()` ขั้น 3½ (`src/app/api/_lib/route.ts` + `src/lib/data/read-limit.ts`) | `GET` + `auth: 'actor'` + action ไม่ใช่ `null` และไม่สาธารณะ + actor เป็นผู้ใช้ (`readLimited()`) — รวม GET ที่ handler ตอบ error ด้วย | cron / health (auth ไม่ใช่ actor หรือ action `null`) · action สาธารณะ (เช่น สถานะ pin-reset) · anonymous · เมธอดอื่น (มีถังของตัวเองต่อ route) · webhook LINE (POST) · หน้า Server Component (ไม่ผ่าน wrapper) |
 
 กลไก `api:read`:
-- จองช่อง (UPSERT มีเพดาน `reserveBucket` ใน `serialized`) **ขนานกับ handler** ไม่เพิ่ม round trip · ผลของ limiter ตัดสินก่อนใช้ผล handler เสมอ — เต็ม → 429 `RATE_LIMITED` + `Retry-After` และทิ้งผล handler · ข้อควรรู้: handler เริ่มทำงานพร้อม limiter จึงอาจทำงานจบไปแล้วตอนถูกปฏิเสธ — ผลข้างเคียงของ GET (ถ้ามี เช่น audit ตอน SA เปิดดูกลุ่ม ตามข้อ 5 `GET /api/admin/groups/:gid`) อาจเกิดแม้ผู้เรียกได้ 429 (อ่านจากโค้ด ยังไม่ได้ทดสอบกรณีนี้)
+- **R18 H1 (security-r16 Info 1) — จองให้เสร็จก่อน handler:** `takeReadSlot` (UPSERT มีเพดาน `reserveBucket` ใน `serialized`) ทำงาน**ก่อน**เรียก handler (`src/app/api/_lib/route.ts` ขั้น 3½) · เต็ม → 429 `RATE_LIMITED` + `Retry-After` โดย **handler ไม่รันและไม่มี query ของ handler** — ปิดช่องเดิม (R16) ที่ handler รันขนานแล้วผลข้างเคียงของ GET เช่น audit ตอน SA เปิดดูกลุ่ม (`GET /api/admin/groups/:gid`) เกิดทั้งที่ได้ 429 · ราคา: +1 round trip ต่อเนื่องต่อ GET ที่ล็อกอิน · **ห้ามกลับไปรันขนาน** (คอมเมนต์ในโค้ด) · เทสต์ `tests/platform/r18-read-limit-before-handler.test.ts` (ถังเต็ม = 429 และไม่มี query/audit ของ handler · ช่องสุดท้าย = 200 · 5 คำขอพร้อมกันเมื่อเหลือ 2 ช่อง)
 - ทางลัดใน process: ผู้ใช้ที่เพิ่งถูกปฏิเสธ → จำ `userId → ปลายหน้าต่าง` (Map ≤ `READ_BLOCK_MEMO_MAX` = 1,000 คีย์ ทิ้งเก่าสุดเมื่อเต็ม) แล้วตอบ 429 ทันทีโดยไม่แตะ DB และไม่รัน handler จนหน้าต่างหมด · หาย/ล้นเพดาน = เสียแค่ทางลัด DB ยังเป็นตัวตัดสิน · ไม่ได้แชร์ข้าม instance (แต่ละ instance เรียนรู้เองจากการถูก DB ปฏิเสธครั้งแรก)
-- ผลข้างเคียงต่อโหลด: GET ที่ล็อกอินทุกครั้งเขียน `rate_limit_bucket` 1 ครั้ง (ขนานกับ handler) · cron daily ลบถังเก่ากว่า 2 วันเหมือนเดิม (ข้อ 8)
+- ผลข้างเคียงต่อโหลด: GET ที่ล็อกอินทุกครั้งเขียน `rate_limit_bucket` 1 ครั้ง (ก่อน handler ตั้งแต่ R18) · cron daily ลบถังเก่ากว่า 2 วันเหมือนเดิม (ข้อ 8) · ผลวัด query ต่อหน้าหลังเปลี่ยน: `tests/perf/r7-baseline.test.ts` (platform ปรับใน `091a2d4`)
 
 ### 11.2 ธง `actorSystemAdmin` / `creatorSystemAdmin` (H4, H4b, H4c — security R15b Info 3)
 - notification `group.invite.received` params เพิ่ม `actorSystemAdmin: boolean` (ADR 0007 §1) — ตั้ง `true` เมื่อผู้เชิญผ่านด่านสิทธิ์ในฐานะ super admin ที่ไม่ใช่สมาชิก (`actorRole === null`) แล้วเก็บ `inviterName ''` · แถวก่อน R16 ไม่มีคีย์ = ถือเป็น `false` (ไม่เขียนย้อนหลัง — R16 §6)
@@ -692,3 +740,18 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | `Server-Timing` มีเฉพาะ API | header ออกจาก wrapper `route()` เท่านั้น (เปิด/ปิดด้วย `SERVER_TIMING_ENABLED`, ข้อ 7) · หน้า RSC ไม่มี | Next 16 `headers()` ใน Server Component อ่านอย่างเดียว และหน้า streaming ส่ง header ก่อน query จบ · วัดหน้าด้วย `tests/perf/r7-baseline.test.ts` แทน | R16 §6 H6 |
 | CSP ยังมี `'unsafe-inline'` ใน `script-src` / `style-src` | `next.config.ts` `contentSecurityPolicy()` | boss B3 = (ก) ไม่ทำ nonce ยอมรับความเสี่ยง | [ADR 0014](../adr/0014-csp-unsafe-inline-accepted.md) · R16 §5 B3 |
 | SkeletonHold (U4) | `src/components/shell/SkeletonHold.tsx` ใน root layout เฝ้า `data-nav-loading` แล้ววาง skeleton ค้างให้ครบ 250 ms หลัง `loading.tsx` หาย (client-only ไม่กระทบ status/stream) | — (บันทึกไว้เพราะอยู่ที่ root layout ทุกหน้า) | R16 §1 U4 |
+
+### 11.4 ถัง rate limit ของ R18 (H2, H3, §S — ทุกถังอยู่ใน `rate_limit_bucket` เดิม ไม่มี migration · ตาราง auth รวมอยู่ใน [ADR 0002 §3](../adr/0002-auth-pin.md))
+| prefix | เพดาน | ที่ประกาศ | นับ |
+|---|---|---|---|
+| `redeem:all` (H3) | 300 / 15 นาที **ทั้งระบบ** (คีย์เดียว `REDEEM_GLOBAL_KEY` ไม่มีข้อมูลผู้ใช้/โค้ด) | `INVITE_RATE_LIMITS.redeemGlobal` (`src/lib/data/services/invites.ts`) | ใช้โค้ดเชิญผิดเท่านั้น (คืนช่องเมื่อสำเร็จ/เป็นสมาชิก/กลุ่มเต็ม) · จองหลังผ่านถัง `redeem:ip` + `redeem:u` แล้ว (ผู้ที่ติดลิมิตตัวเองไม่กินช่องรวม) · **ถังเต็ม → 429 ข้อความเดิมเฉพาะผู้เรียกที่ถัง IP หรือผู้ใช้ของตัวเองมีครั้งผิด/คำขอค้างในหน้าต่าง** · ผู้เรียกที่สะอาด (ถังทั้งสอง = 1 หลังจองครั้งนี้) ยังได้ตรวจโค้ดโดยไม่ถือช่องรวม (security-v1 Low 1, `bb7a282`) · เพดานการเดาตอนถังเต็ม = 300 + min(IP ใหม่, บัญชีใหม่) ต่อหน้าต่าง · ไม่มีข้อยกเว้นตามบทบาท · รายละเอียด [ADR 0002 §8](../adr/0002-auth-pin.md) |
+| `share:create:u` | 30 / ชม. / ผู้ใช้ | `SHARE_RATE_LIMITS` (`src/lib/auth/throttle.ts`) | ทุกคำขอสร้างลิงก์หลังด่านสิทธิ์ (รวมได้ลิงก์เดิม) |
+| `share:revoke:u` | 60 / 10 นาที / ผู้ใช้ | 〃 | ทุกคำขอยกเลิกลิงก์หลังด่านสิทธิ์ |
+| `share:join:u` / `share:join:ip` | 10 / 15 นาที / ผู้ใช้ · 30 / 15 นาที / IP (HMAC) | 〃 | จองก่อนแตะ token · คืนช่องเมื่อสำเร็จ/เป็นสมาชิก/เป็นแขกอยู่แล้ว/เต็ม (นับเฉพาะ token ใช้ไม่ได้ แบบ redeem) |
+| `share:guest:u` | 30 / ชม. / ผู้ใช้ | 〃 | เข้าเป็นแขกสำเร็จจริง + แขกออกเอง (ถังเดียว กันวนเข้า-ออก) |
+| `share:view:ip` | 120 / 15 นาที / IP | 〃 | ทุกการเรนเดอร์หน้า `/i/[token]` (หน้า RSC จองเอง — ข้อยกเว้นของ "หน้า Server Component ไม่นับถัง" ในข้อ 11.3/security-r16 Info 3) · เกิน → หน้า "ลองใหม่ภายหลัง" ไม่มีข้อมูลนัด |
+| `share:guest:remove:u` | 60 / 10 นาที / ผู้ใช้ | 〃 | สมาชิกนำแขกออก หลังด่านสิทธิ์ |
+| (แขกตอบ RSVP) | `appt:rsvp` เดิม 120 / 10 นาที | `APPOINTMENT_WRITE_RATE_LIMITS.rsvp` | ถังเดียวกับสมาชิก |
+
+- **H2 — pre-check ก่อนคิว `serialized`:** อ่านถังแบบไม่เขียน (peek) ก่อนเข้าคิว ถ้าถังใดเต็มอยู่แล้ว → 429 ทันที · ถัง `share:*` ใช้ `precheckRates` (`src/lib/auth/throttle.ts`) ผ่าน `takeSlots` (`src/lib/data/rate-slots.ts`) · การใช้โค้ดเชิญ peek เองใน `redeemInviteCode` (`src/lib/data/services/invites.ts`): `redeem:ip`/`redeem:u` เต็ม → 429 · `redeem:all` เต็ม → 429 เฉพาะเมื่อถัง IP หรือผู้ใช้ของผู้เรียก > 0 · ไม่ได้แทนการจองจริง (ยังจองแบบอะตอมมิกใน `serialized` เหมือนเดิม — pre-check เป็นแค่ทางลัดราคาถูก การล็อกเดิมไม่เปลี่ยน) · เทสต์ `tests/auth/redeem-limits.test.ts`, `tests/auth/share-rate-limits.test.ts`
+- ไม่มีถังรวมทั้งระบบสำหรับ `share:join` (ตั้งใจ): token 128 บิตเดาออนไลน์ไม่ได้ ต่างจากโค้ดเชิญ ~39.6 บิต (คอมเมนต์ใน `throttle.ts`)

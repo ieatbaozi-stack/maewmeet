@@ -8,6 +8,7 @@ import { callApi } from "@/components/auth/api";
 import { PinPad } from "@/components/auth/PinPad";
 import { useCountdown } from "@/components/auth/useCountdown";
 import { Icon } from "@/components/icons/Icon";
+import { postAuthDestination, withNext } from "@/components/share/model";
 import { signalNavStart } from "@/components/shell/nav-start";
 import { lockedMessage, messageRefOf } from "@/i18n/auth-messages";
 
@@ -22,7 +23,7 @@ interface LoginResponse {
  * ครบ 6 หลัก (และมีชื่อผู้ใช้) → ส่งทันที · ผิด: "เหลืออีก N ครั้ง" · ล็อก: นับถอยหลังจาก retryAfterSec แป้นปิด (ลืม PIN ยังกดได้)
  * AUTH_MAINTENANCE / RATE_LIMITED / เครือข่าย → ข้อความจาก messages ไม่นับเป็น PIN ผิด
  */
-export function LoginForm({ reset }: { reset: ResetBanner }) {
+export function LoginForm({ reset, next = "/" }: { reset: ResetBanner; /** R18 §S3: ปลายทางหลังเข้าสู่ระบบ (ผ่าน safeNext จากหน้าแล้ว) */ next?: string }) {
   const t = useTranslations();
   const format = useFormatter();
   const router = useRouter();
@@ -43,7 +44,7 @@ export function LoginForm({ reset }: { reset: ResetBanner }) {
     setError(null);
     const res = await callApi<LoginResponse>("/api/auth/login", { body: { username: username.trim(), pin: fullPin } });
     if (res.ok) {
-      const dest = res.data.user.mustChangePin ? "/set-pin" : "/";
+      const dest = postAuthDestination(res.data.user.mustChangePin, next);
       signalNavStart(dest);
       router.replace(dest);
       router.refresh();
@@ -83,6 +84,13 @@ export function LoginForm({ reset }: { reset: ResetBanner }) {
       ) : null}
 
       <section className="panel login-card" aria-labelledby={`${id}-pin`} aria-busy={busy}>
+        {locked ? (
+          <div className="lock-box lock-box-top" role="alert" data-testid="login-locked">
+            <p className="lock-title">{t("login.locked.title")}</p>
+            <p>{t(lockRef.key, lockRef.values)}</p>
+            <p className="muted">{t("login.locked.hint")}</p>
+          </div>
+        ) : null}
         <div className="field field-first">
           <label htmlFor={`${id}-u`}>{t("login.username")}</label>
           <input
@@ -121,11 +129,8 @@ export function LoginForm({ reset }: { reset: ResetBanner }) {
           }
         >
           {locked ? (
-            <div className="lock-box" role="alert">
-              <p className="lock-title">{t("login.locked.title")}</p>
-              <p>{t(lockRef.key, lockRef.values)}</p>
-              <p className="muted">{t("login.locked.hint")}</p>
-            </div>
+            // R18 F01: กล่องล็อกอยู่เหนือช่องชื่อผู้ใช้ (ไม่ดันแป้น) — ตรงนี้คงความสูงบรรทัดข้อความไว้
+            <p className="pin-msg" aria-hidden="true" />
           ) : error ? (
             <p className="pin-msg err" role="alert">
               {error}
@@ -144,7 +149,7 @@ export function LoginForm({ reset }: { reset: ResetBanner }) {
 
       <p className="login-foot">
         <span>{t("login.noAccount")}</span>{" "}
-        <Link className="link-btn" href="/signup">
+        <Link className="link-btn" href={withNext("/signup", next)} data-testid="login-signup">
           {t("login.createAccount")}
         </Link>
       </p>

@@ -39,6 +39,10 @@ export function InviteSection({ groupId, groupName, invites, seesOthers, notify 
   const [revoking, setRevoking] = useState<Revoking>(null);
   const [revokeBusy, setRevokeBusy] = useState(false);
   const [revokeError, setRevokeError] = useState<string | null>(null);
+  // R18 C1: ยกเลิกคำเชิญตรง = ConfirmDialog 1 ขั้น (ผู้ถูกเชิญเห็นคำเชิญหายทันที ต้องเชิญใหม่)
+  const [withdrawing, setWithdrawing] = useState<InviteDto | null>(null);
+  const [withdrawBusy, setWithdrawBusy] = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
   const codes = invites.filter((i) => i.kind === "code");
   const directs = invites.filter((i) => i.kind === "direct");
@@ -93,16 +97,21 @@ export function InviteSection({ groupId, groupName, invites, seesOthers, notify 
     if (res.kind === "api" && (res.error.code === "CONFLICT" || isGone(res))) router.refresh();
   }
 
-  /** ยกเลิกคำเชิญตรง: ผลกระทบเล็ก (ส่งใหม่ได้) จึงไม่ต้องมี dialog ยืนยัน */
+  /** ยกเลิกคำเชิญตรง (หลังยืนยันใน dialog — R18 C1) */
   async function cancelDirect(inv: InviteDto) {
+    if (withdrawBusy) return;
+    setWithdrawBusy(true);
+    setWithdrawError(null);
     notify(null);
     const res = await callApi(`/api/groups/${groupId}/invites/${inv.id}`, { method: "DELETE" });
+    setWithdrawBusy(false);
     if (res.ok) {
+      setWithdrawing(null);
       notify({ kind: "ok", text: t("direct.cancelled") });
       router.refresh();
       return;
     }
-    notify({ kind: "error", text: failureMessage(tAll, "generic", res) });
+    setWithdrawError(failureMessage(tAll, "generic", res));
     if (res.kind === "api" && (res.error.code === "CONFLICT" || isGone(res))) router.refresh();
   }
 
@@ -198,7 +207,11 @@ export function InviteSection({ groupId, groupName, invites, seesOthers, notify 
                     type="button"
                     className="btn-sm-text"
                     aria-label={t("direct.cancelAria", { username: d.inviteeName ?? "" })}
-                    onClick={() => void cancelDirect(d)}
+                    data-testid="direct-invite-cancel"
+                    onClick={() => {
+                      setWithdrawError(null);
+                      setWithdrawing(d);
+                    }}
                   >
                     {t("direct.cancel")}
                   </button>
@@ -211,6 +224,20 @@ export function InviteSection({ groupId, groupName, invites, seesOthers, notify 
       ) : null}
 
       {created ? <InviteCodeSheet groupName={groupName} created={created} onClose={() => setCreated(null)} /> : null}
+
+      {withdrawing ? (
+        <ConfirmDialog
+          title={t("direct.confirm.title", { username: withdrawing.inviteeName ?? "" })}
+          body={withNames((n) => t("direct.confirm.body", { username: n.username }), { username: withdrawing.inviteeName ?? "" })}
+          confirmLabel={t("direct.confirm.confirm")}
+          busy={withdrawBusy}
+          error={withdrawError}
+          onClose={() => {
+            if (!withdrawBusy) setWithdrawing(null);
+          }}
+          onConfirm={() => void cancelDirect(withdrawing)}
+        />
+      ) : null}
 
       {revoking ? (
         <ConfirmDialog

@@ -272,8 +272,19 @@ for (const { loc, theme } of COMBOS) {
     await expect(a.getByTestId('routine-scope-one')).toBeVisible();
     await expect(a.getByTestId('routine-scope-all')).toBeVisible();
     await checkLayout(a, testInfo, 'r14b-scope-delete', loc, theme);
+    // R18 C1: "เฉพาะวันนี้" ต้องยืนยันอีกชั้น — กดครั้งเดียวยังไม่ลบ · ยกเลิกแล้วยังอยู่
     await a.getByTestId('routine-scope-one').click();
-    await expect(a.getByTestId('routine-scope')).toHaveCount(0);
+    const oneConfirm = a.getByRole('alertdialog');
+    await expect(oneConfirm).toContainText(T('busy.routine.scope.confirmOne.title'));
+    await expect(a.getByTestId('routine-tag'), 'กดครั้งเดียวต้องยังไม่ลบ').toHaveCount(1);
+    expect(await routineRowsIn(A.context.request, winFrom, winTo), 'กดครั้งเดียวต้องยังไม่ลบ (API)').toHaveLength(n1);
+    await oneConfirm.getByRole('button', { name: T('common.cancel'), exact: true }).click();
+    expect(await routineRowsIn(A.context.request, winFrom, winTo), 'ยกเลิกแล้วยังอยู่').toHaveLength(n1);
+    // ยกเลิกแล้วกลับมาที่ sheet เลือกขอบเขต (ไม่ปิด) → เลือกใหม่แล้วยืนยัน
+    await expect(a.getByTestId('routine-scope')).toBeVisible();
+    await a.getByTestId('routine-scope-one').click();
+    await a.getByRole('alertdialog').getByRole('button', { name: T('busy.routine.scope.confirmOne.confirm'), exact: true }).click();
+    await expect(a.getByRole('alertdialog')).toHaveCount(0);
     await expect(toastOf(a)).toContainText(T('busy.routine.toast.deletedOne'));
     await expect(a.getByTestId('routine-tag')).toHaveCount(0);
     rows = await routineRowsIn(A.context.request, winFrom, winTo);

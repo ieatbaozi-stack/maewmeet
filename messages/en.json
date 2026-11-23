@@ -212,6 +212,10 @@
       "otherLabel": "In another group’s plan",
       "appointmentAria": "{name} is going to {title} {time}",
       "otherAria": "{name} is in another group’s plan {time}"
+    },
+    "busyRateLimited": {
+      "title": "Couldn’t load your busy time yet",
+      "body": "You’ve opened the calendar a lot in a short time. Wait a moment and try again. Nothing you added is lost."
     }
   },
   "availability": {
@@ -718,7 +722,12 @@
         "waiting": "Waiting for {username}",
         "cancel": "Cancel invite",
         "cancelAria": "Cancel the invite to {username}",
-        "cancelled": "Invite cancelled"
+        "cancelled": "Invite cancelled",
+        "confirm": {
+          "title": "Withdraw the invite to {username}?",
+          "body": "{username} won’t see this invite in the Groups tab anymore. You can’t undo this. To invite them again, you’ll need to send a new invite.",
+          "confirm": "Withdraw invite"
+        }
       }
     },
     "transfer": {
@@ -842,7 +851,12 @@
       "rsvp_nudge": "You haven’t confirmed yet. Are you in? {title} ({when}) in “{groupName}”",
       "cancelled": "{actorName} cancelled {title} ({when}) in “{groupName}”",
       "updated": "{changes, select, time {{actorName} changed the time: {title} is now {when} in “{groupName}”} place {{actorName} changed the place for {title} ({when}) in “{groupName}”} other {{actorName} changed the time and place: {title} is now {when} in “{groupName}”}}",
-      "rsvp_changed": "{response, select, going {{responderName} is going to {title} ({when}) in “{groupName}”} maybe {{responderName} might go to {title} ({when}) in “{groupName}”} other {{responderName} can’t make {title} ({when}) in “{groupName}”}}"
+      "rsvp_changed": "{response, select, going {{responderName} is going to {title} ({when}) in “{groupName}”} maybe {{responderName} might go to {title} ({when}) in “{groupName}”} other {{responderName} can’t make {title} ({when}) in “{groupName}”}}",
+      "guest": {
+        "removed": "You were removed from {title} ({when})",
+        "cancelled": "{title} ({when}) was cancelled",
+        "updated": "{changes, select, time {{title} is now {when}} place {Place changed for {title} ({when})} other {Time and place changed: {title} is now {when}}}"
+      }
     }
   },
   "errors": {
@@ -881,7 +895,10 @@
     "INVALID_MAP_URL": "We can’t read a location from that link. Try copying it from the Share button in your maps app.",
     "INVALID_COORDINATES": "Those coordinates don’t look right. Check the latitude and longitude.",
     "APPOINTMENT_CANCELLED": "This plan was cancelled, so it can’t be changed.",
-    "APPOINTMENT_PAST": "This plan is over, so answers are closed."
+    "APPOINTMENT_PAST": "This plan is over, so answers are closed.",
+    "SHARE_LINK_INVALID": "This link doesn’t work. Try opening it again from the message, or ask whoever invited you for a new one.",
+    "SHARE_LINK_EXPIRED": "This link has expired. Ask whoever sent it.",
+    "SHARE_FULL": "This plan already has {max} guests. Ask whoever invited you if there’s still room."
   },
   "busy": {
     "add": "Add busy time",
@@ -932,7 +949,7 @@
         "label": "Type",
         "allDay": "All day",
         "timed": "Time range",
-        "multi": "Several days",
+        "multi": "Multi-day",
         "help": {
           "allDay": "One whole day",
           "timed": "Pick a start and end time. It can run past midnight.",
@@ -1056,7 +1073,10 @@
       "confirmAllBody": "Every day in this series goes, including days that have passed, and disappears from every friend’s calendar right away. You can’t undo it.",
       "confirmAllBodyCount": "All {count, plural, one {# day} other {# days}} in this series go, including days that have passed, and disappear from every friend’s calendar right away. You can’t undo it.",
       "confirmAll": "Delete the whole series",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "confirmOneTitle": "Delete this day?",
+      "confirmOneBody": "This removes only this day’s entry, and your groups stop seeing it right away. The other days in the series stay. You can’t undo it.",
+      "confirmOne": "Delete this day"
     },
     "routine": {
       "add": "Add a routine",
@@ -1217,6 +1237,11 @@
           "title": "Stop this routine from here?",
           "body": "Every day from this point on is removed, and friends in your groups stop seeing those days right away. Earlier days stay. You can’t undo it.",
           "confirm": "Stop from here"
+        },
+        "confirmOne": {
+          "title": "Delete just this day?",
+          "body": "This removes only this day of the routine, and your groups stop seeing it right away. The other days stay, but this day won’t come back even if you edit the routine later. You can’t undo it.",
+          "confirm": "Delete this day"
         }
       },
       "toast": {
@@ -1633,7 +1658,7 @@
   },
   "admin": {
     "eyebrow": "System admin",
-    "title": "System admin console",
+    "title": "Admin console",
     "lead": "Everything a system admin does to someone else’s account or group is recorded in the audit log.",
     "resets": "PIN reset requests",
     "resetsHint": "Approve or reject requests from people who forgot their PIN",
@@ -1737,7 +1762,8 @@
       "confirm": {
         "title": "Restore {group}?",
         "body": "Its members, plans and invites come back as they were, and everyone in it is told the group was restored. This is recorded as done by you.",
-        "confirm": "Restore group"
+        "confirm": "Restore group",
+        "inviteNote": "Existing invite codes that haven’t expired will work again, and guests of the group’s plans will see those plans again."
       },
       "done": "{group} was restored",
       "error": {
@@ -1745,7 +1771,8 @@
         "noAdmin": "No one with an active account is left as admin of this group, so it can’t be restored. It would have nobody in charge.",
         "purged": "This group has already been deleted for good. It can’t be restored.",
         "alreadyRestored": "This group has already been restored. Reload to see the latest."
-      }
+      },
+      "inviteNote": "Invite codes that haven’t expired or been revoked will work again, and guests of the group’s plans will see those plans again."
     },
     "transfer": {
       "title": "Hand over group admin",
@@ -1824,6 +1851,11 @@
       "appointment_cancel": "Cancelled a plan",
       "appointment_view": "Viewed plans",
       "appointment_check": "Checked for overlapping plans",
+      "appointment_share_create": "Created a guest invite link",
+      "appointment_share_revoke": "Turned off a guest invite link",
+      "appointment_guest_join": "A guest joined a plan",
+      "appointment_guest_leave": "A guest left a plan",
+      "appointment_guest_remove": "Removed a guest from a plan",
       "user_delete": "Deleted their account",
       "admin_user_suspend": "Suspended or unsuspended an account",
       "admin_user_unlock": "Unlocked an account",
@@ -1862,9 +1894,16 @@
       "rsvps": "Replies removed",
       "reminders": "Reminders removed",
       "notifications": "Notifications removed",
-      "outbox": "Queued messages removed"
+      "outbox": "Queued messages removed",
+      "linkId": "Invite link",
+      "reason": "Reason",
+      "invitedBy": "Invited by",
+      "guestUserId": "Guest",
+      "shareLinksRevoked": "Guest links turned off",
+      "guests": "Guests removed",
+      "shareLinks": "Guest links removed"
     },
-    "value": "{value, select, true {Yes} false {No} approved {Approved} approve {Approved} rejected {Rejected} reject {Rejected} accepted {Accepted} declined {Declined} active {Active} suspended {Suspended} admin {Group admin} moderator {Moderator} member {Member} code {Code} direct {Direct} other {{value}}}"
+    "value": "{value, select, true {Yes} false {No} manual {Turned off by hand}approved {Approved} approve {Approved} rejected {Rejected} reject {Rejected} accepted {Accepted} declined {Declined} active {Active} suspended {Suspended} admin {Group admin} moderator {Moderator} member {Member} code {Code} direct {Direct} other {{value}}}"
   },
   "privacy": {
     "eyebrow": "maewmeet",
@@ -1924,6 +1963,13 @@
     "line": {
       "title": "Messages on LINE",
       "body": "If you connect LINE, we send pre-plan reminders, and a message if a plan you said you’re going to is cancelled, there through LINE’s service. They contain only the plan title, date and time, group name and a link to the plan, and go only to you. No place, details or member names are sent. We keep your LINE user ID for this. You can disconnect any time from the Me tab. If you haven’t connected, nothing is sent to LINE."
+    },
+    "guest": {
+      "title": "Guests with an invite link",
+      "preview": "Anyone who opens an invite link sees only the plan’s title, date, time and place, the group’s name, who invited them, and how many people are going or might go.",
+      "joined": "A guest who has joined sees that one plan and the reply counts. They can’t see members’ names, who replied what, other plans, or anyone’s busy time, and a guest’s busy time is never used to find free days for the group that made the plan. In a guest’s own groups, a plan they’re going to counts as busy, like a plan from another group (friends see only that they’re busy, not the plan’s name).",
+      "members": "Group members see a guest’s display name, the “with …” tag and the guest’s reply.",
+      "retention": "Invite links that expired or were turned off are deleted after 30 days. When a guest leaves a plan or deletes their account, that guest’s data is cleared too."
     }
   },
   "onboarding": {
@@ -1978,5 +2024,143 @@
       "party": "Party",
       "star": "Star"
     }
+  },
+  "share": {
+    "invite": {
+      "button": "Invite a guest",
+      "aria": "Invite a guest to {title}"
+    },
+    "sheet": {
+      "title": "Invite a guest",
+      "lead": "Send this link to a friend who isn’t in the group. They can open it and add this plan to their app without joining the group.",
+      "seesTitle": "Whoever opens it sees",
+      "sees": "The plan’s title, date, time and place, the group’s name, and how many people are going or might go",
+      "hidesTitle": "They won’t see",
+      "hides": "Members’ names, who replied what, other plans, or anyone’s busy time",
+      "mine": "This link is yours. Guests who join with it show up as “with {name}”.",
+      "limit": "Up to {max} guests per plan · {count} so far",
+      "valid": "The link works until the plan ends or someone turns it off.",
+      "creating": "Making your link…",
+      "done": "Done"
+    },
+    "link": {
+      "label": "Invite link"
+    },
+    "copy": "Copy link",
+    "copied": "Link copied",
+    "copyFailed": "Couldn’t copy. Press and hold the link to copy it yourself.",
+    "share": "Share",
+    "shareTitle": "Join {title}",
+    "shareText": "Join “{title}” on {when}. Open the link to see the details and add it.",
+    "revoke": {
+      "cta": "Turn off my link",
+      "title": "Turn off this invite link?",
+      "body": "People who haven’t opened it yet won’t be able to. Guests who already joined stay on the plan. You can’t turn it back on, but you can make a new link.",
+      "confirm": "Turn off link",
+      "done": "Link turned off"
+    },
+    "links": {
+      "title": "Active invite links",
+      "item": "{name}’s link",
+      "revokeAria": "Turn off {name}’s link"
+    },
+    "error": {
+      "generic": "Couldn’t make the link. Try again.",
+      "cancelled": "This plan is cancelled, so you can’t invite anyone to it.",
+      "past": "This plan has ended, so you can’t invite anyone to it.",
+      "rate": "You’re making links a bit too fast. Wait a moment and try again.",
+      "revoke": "Couldn’t turn off the link. Try again."
+    }
+  },
+  "shareLanding": {
+    "invitedBy": "{name} invited you",
+    "inGroup": "From {group}",
+    "counts": {
+      "going": "{count} going",
+      "maybe": "{count} might go",
+      "none": "No replies yet",
+      "aria": "Replies so far: {going} going, {maybe} might go"
+    },
+    "cta": {
+      "add": "Add this plan",
+      "adding": "Adding…",
+      "login": "Log in",
+      "signup": "Sign up"
+    },
+    "loginHint": "Log in or sign up first. We’ll bring you straight back to this plan.",
+    "note": "You’ll only see this plan. You won’t join the group, and your busy time isn’t shared with it.",
+    "privacyLink": "What guests can see",
+    "added": "Plan added",
+    "addError": "Couldn’t add this plan. Try again.",
+    "already": {
+      "member": {
+        "title": "You’re already in this group",
+        "body": "You can see this plan in the group as usual.",
+        "cta": "Go to the plan"
+      },
+      "guest": {
+        "title": "You’re already on this plan",
+        "body": "It’s already on your home page and calendar.",
+        "cta": "Go to the plan"
+      }
+    },
+    "state": {
+      "full": {
+        "title": "This plan is full",
+        "body": "It already has {max} guests. Ask whoever sent you the link if there’s still room."
+      },
+      "expired": {
+        "title": "This link has expired",
+        "body": "This link doesn’t work anymore. Ask whoever sent it."
+      },
+      "invalid": {
+        "title": "This link doesn’t work",
+        "body": "Try opening it again from the message, or ask whoever invited you for a new link."
+      },
+      "home": "Go home"
+    }
+  },
+  "guest": {
+    "badge": "Guest",
+    "fromGroup": "From {group}",
+    "banner": "You’re here as a guest, with {name}",
+    "limits": "Guests only see this plan. You can reply going, maybe or can’t go, but you can’t edit or cancel the plan, or invite anyone else.",
+    "counts": {
+      "title": "Replies so far"
+    },
+    "leave": {
+      "cta": "Leave this plan",
+      "title": "Leave this plan?",
+      "body": "It disappears from your home page and calendar, and you’ll stop getting reminders for it. If you change your mind, you’ll need the invite link again, as long as the plan hasn’t ended and there’s still room.",
+      "confirm": "Leave plan",
+      "done": "You left the plan",
+      "error": "Couldn’t leave the plan. Try again."
+    }
+  },
+  "guests": {
+    "title": "Guests · {count}",
+    "listAria": "Guests from outside the group",
+    "limit": "{count} of {max}",
+    "badge": "Guest",
+    "with": "With {name}",
+    "noReply": "No reply yet",
+    "empty": "No guests yet. Tap “Invite a guest” to send a link to a friend outside the group.",
+    "remove": "Remove",
+    "removeAria": "Remove {name} from this plan",
+    "removeConfirm": {
+      "title": "Remove {name} from this plan?",
+      "body": "{name} won’t see this plan anymore and will be told they were removed. They won’t be able to rejoin this plan, whichever link they use.",
+      "confirm": "Remove"
+    },
+    "removed": "Removed {name} from the plan",
+    "removeError": "Couldn’t remove them. Try again."
+  },
+  "installHint": {
+    "title": "Add maewmeet to your Home Screen",
+    "body": "Open it in one tap, like any other app.",
+    "step1": "Tap the Share button in Safari (the square with an arrow pointing up).",
+    "step2": "Scroll down and tap “Add to Home Screen”.",
+    "dismiss": "Got it, don’t show again",
+    "region": "Install tip for iPhone"
   }
 }

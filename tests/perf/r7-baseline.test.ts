@@ -234,35 +234,35 @@ async function measure(route: string, kind: Row['kind'], run: () => Promise<Samp
 // ───────── เพดานจำนวน query = ค่าหลังเฟส B ครบ (B-1…B-5) · เฟส A อยู่ใน docs/reports/perf-r7-baseline.md · ห้ามขึ้น ─────────
 const CEILINGS: Record<string, number> = {
   'PAGE /': 9,
-  'PAGE /calendar?v=month': 8,
-  'PAGE /calendar?v=free': 8,
-  'PAGE /calendar?v=day': 8,
+  'PAGE /calendar?v=month': 9, // · R18 §S (ADR 0016 §5.3 [A]): +1 คิวรีนัดที่สมาชิกเป็นแขกตอบไป (listGuestGoingBusyInGroup) — รันขนานใน Promise.all เดียวกับ going เดิม (ไม่เพิ่มรอบรอ) · รวมเข้า goingBusyInGroupQuery ต้องใช้ UNION ALL ซึ่งขัดเกณฑ์ R6D (tests/appointments/r6d-query-count: ปฏิทิน/วันว่างไม่มี UNION ALL · going query 1 ตัว)
+  'PAGE /calendar?v=free': 9, // · R18 §S (ADR 0016 §5.3 [A]): +1 คิวรีนัดที่สมาชิกเป็นแขกตอบไป (listGuestGoingBusyInGroup) — รันขนานใน Promise.all เดียวกับ going เดิม (ไม่เพิ่มรอบรอ) · รวมเข้า goingBusyInGroupQuery ต้องใช้ UNION ALL ซึ่งขัดเกณฑ์ R6D (tests/appointments/r6d-query-count: ปฏิทิน/วันว่างไม่มี UNION ALL · going query 1 ตัว)
+  'PAGE /calendar?v=day': 9, // · R18 §S (ADR 0016 §5.3 [A]): +1 คิวรีนัดที่สมาชิกเป็นแขกตอบไป (listGuestGoingBusyInGroup) — รันขนานใน Promise.all เดียวกับ going เดิม (ไม่เพิ่มรอบรอ) · รวมเข้า goingBusyInGroupQuery ต้องใช้ UNION ALL ซึ่งขัดเกณฑ์ R6D (tests/appointments/r6d-query-count: ปฏิทิน/วันว่างไม่มี UNION ALL · going query 1 ตัว)
   'PAGE /calendar?v=mine': 11,
   'PAGE /groups': 5,
   'PAGE /groups/[gid]': 10, // R8-4: hasUpcomingBusy +0 (11) · R15b §3: ด่านกลุ่มครั้งเดียว (getGroupPage) 11 → 10
   'PAGE /appointments/[id]': 6, // R15b §3: สมาชิก + คำตอบ query เดียว (listMembersWithRsvps) 7 → 6
   'PAGE /me': 3,
-  'GET /api/groups/:gid/calendar (เดือน)': 6, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
-  'GET /api/groups/:gid/availability (เดือน)': 6, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
-  'GET /api/me/busy': 3, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
-  'GET /api/me/appointments?rsvp=going': 7, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
-  'GET /api/me/appointments?limit=5 (home refresh)': 7, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
-  'GET /api/me/notifications?limit=1 (bell)': 4, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
-  'GET /api/groups': 3, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
-  'GET /api/groups/:gid': 4, // R8-4: +0 (listMembers → listMembersWithUpcomingBusy · 3 ก่อน/หลัง) · R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
-  'GET /api/groups/:gid/appointments': 8, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
-  'GET /api/me/invites': 3, // R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
-  'GET /api/appointments/:id': 5, // R15b §3: 5 → 4 (listMembersWithRsvps) · R16 H3: +1 จองถัง api:read (ขนานกับ handler — ไม่เพิ่ม round trip ต่อเนื่อง)
+  'GET /api/groups/:gid/calendar (เดือน)': 7, // R16 H3: +1 จองถัง api:read · R18 H1: จองเสร็จ *ก่อน* handler (ต่อเนื่อง +1 round trip — เกินโควตาแล้ว 429 โดย handler ไม่รัน) · R18 §S (ADR 0016 §5.3 [A]): +1 คิวรีนัดที่สมาชิกเป็นแขกตอบไป (listGuestGoingBusyInGroup) — รันขนานใน Promise.all เดียวกับ going เดิม (ไม่เพิ่มรอบรอ) · รวมเข้า goingBusyInGroupQuery ต้องใช้ UNION ALL ซึ่งขัดเกณฑ์ R6D (tests/appointments/r6d-query-count: ปฏิทิน/วันว่างไม่มี UNION ALL · going query 1 ตัว)
+  'GET /api/groups/:gid/availability (เดือน)': 7, // R16 H3: +1 จองถัง api:read · R18 H1: จองเสร็จ *ก่อน* handler (ต่อเนื่อง +1 round trip — เกินโควตาแล้ว 429 โดย handler ไม่รัน) · R18 §S (ADR 0016 §5.3 [A]): +1 คิวรีนัดที่สมาชิกเป็นแขกตอบไป (listGuestGoingBusyInGroup) — รันขนานใน Promise.all เดียวกับ going เดิม (ไม่เพิ่มรอบรอ) · รวมเข้า goingBusyInGroupQuery ต้องใช้ UNION ALL ซึ่งขัดเกณฑ์ R6D (tests/appointments/r6d-query-count: ปฏิทิน/วันว่างไม่มี UNION ALL · going query 1 ตัว)
+  'GET /api/me/busy': 3, // R16 H3: +1 จองถัง api:read · R18 H1: จองเสร็จ *ก่อน* handler (ต่อเนื่อง +1 round trip — เกินโควตาแล้ว 429 โดย handler ไม่รัน)
+  'GET /api/me/appointments?rsvp=going': 7, // R16 H3: +1 จองถัง api:read · R18 H1: จองเสร็จ *ก่อน* handler (ต่อเนื่อง +1 round trip — เกินโควตาแล้ว 429 โดย handler ไม่รัน)
+  'GET /api/me/appointments?limit=5 (home refresh)': 7, // R16 H3: +1 จองถัง api:read · R18 H1: จองเสร็จ *ก่อน* handler (ต่อเนื่อง +1 round trip — เกินโควตาแล้ว 429 โดย handler ไม่รัน)
+  'GET /api/me/notifications?limit=1 (bell)': 4, // R16 H3: +1 จองถัง api:read · R18 H1: จองเสร็จ *ก่อน* handler (ต่อเนื่อง +1 round trip — เกินโควตาแล้ว 429 โดย handler ไม่รัน)
+  'GET /api/groups': 3, // R16 H3: +1 จองถัง api:read · R18 H1: จองเสร็จ *ก่อน* handler (ต่อเนื่อง +1 round trip — เกินโควตาแล้ว 429 โดย handler ไม่รัน)
+  'GET /api/groups/:gid': 4, // R8-4: +0 (listMembers → listMembersWithUpcomingBusy · 3 ก่อน/หลัง) · R16 H3: +1 จองถัง api:read · R18 H1: จองเสร็จ *ก่อน* handler (ต่อเนื่อง +1 round trip — เกินโควตาแล้ว 429 โดย handler ไม่รัน)
+  'GET /api/groups/:gid/appointments': 8, // R16 H3: +1 จองถัง api:read · R18 H1: จองเสร็จ *ก่อน* handler (ต่อเนื่อง +1 round trip — เกินโควตาแล้ว 429 โดย handler ไม่รัน)
+  'GET /api/me/invites': 3, // R16 H3: +1 จองถัง api:read · R18 H1: จองเสร็จ *ก่อน* handler (ต่อเนื่อง +1 round trip — เกินโควตาแล้ว 429 โดย handler ไม่รัน)
+  'GET /api/appointments/:id': 5, // R15b §3: 5 → 4 (listMembersWithRsvps) · R16 H3: +1 จองถัง api:read · R18 H1: จองเสร็จ *ก่อน* handler (ต่อเนื่อง +1 round trip — เกินโควตาแล้ว 429 โดย handler ไม่รัน)
   'PUT /api/me/current-group': 3,
-  'POST /api/groups/:gid/appointments/check': 5,
+  'POST /api/groups/:gid/appointments/check': 6, // R18 §S (ADR 0016 §5.3 [A]): +1 คิวรีนัดที่สมาชิกเป็นแขกตอบไป (listGuestGoingBusyInGroup) ขนานกับ going เดิม (ไม่เพิ่มรอบรอ) · รวมต้องใช้ UNION ALL ซึ่งขัดเกณฑ์ R6D
   'PUT /api/appointments/:id/rsvp': 9, // R11: +1 อ่านคำตอบเดิมก่อนเขียน (10) · R15b §3: listMembersWithRsvps 10 → 9 · การอ่านคำตอบเดิมยังอยู่ใน tx (ไม่ย้าย)
   // R15b §3: ผู้ตอบไม่ใช่ผู้สร้าง + คำตอบเปลี่ยน — ชื่อผู้ตอบจาก session + "ผู้สร้างยัง active" มากับ query สิทธิ์ (−2) + listMembersWithRsvps (−1) · วัดก่อนแก้ 14
   'PUT /api/appointments/:id/rsvp (แจ้งผู้สร้าง)': 11,
   'POST /api/me/busy (timed)': 5,
   'DELETE /api/me/busy/:id': 6, // R14 (ADR 0012): +1 insert busy_routine_skip ใน tx เดียวกัน (จำเป็นตาม ADR)
   // R7 B-2: service ที่ loader ของ /calendar ใช้ (วัดแยก ไม่รวม session/layout · actor สร้างตรง)
-  'SVC openGroupCalendar → load (เดือน · B-2)': 4,
-  'SVC openGroupAvailability → load (เดือน · B-2)': 4,
+  'SVC openGroupCalendar → load (เดือน · B-2)': 5, // R18 §S (ADR 0016 §5.3 [A]): +1 คิวรีนัดที่สมาชิกเป็นแขกตอบไป (listGuestGoingBusyInGroup) ขนานกับ going เดิม (ไม่เพิ่มรอบรอ) · รวมต้องใช้ UNION ALL ซึ่งขัดเกณฑ์ R6D
+  'SVC openGroupAvailability → load (เดือน · B-2)': 5, // R18 §S (ADR 0016 §5.3 [A]): +1 คิวรีนัดที่สมาชิกเป็นแขกตอบไป (listGuestGoingBusyInGroup) ขนานกับ going เดิม (ไม่เพิ่มรอบรอ) · รวมต้องใช้ UNION ALL ซึ่งขัดเกณฑ์ R6D
 };
 
 // ───────── seed ─────────

@@ -48,6 +48,8 @@ export const FREE_TIME_MAX_ITEMS = 32_000;
 export const ME_BUSY_RANGE_MAX_ITEMS = 1000;
 /** แถว busy ที่จบนานกว่านี้ถูก cron รายวันลบถาวร (วัน) — ต้องมากกว่า BUSY_MAX_BACKDATE_DAYS มาก */
 export const BUSY_RETENTION_DAYS = 90;
+/** R18 D1 (boss B1 = (ก)): คำเชิญที่จบแล้ว (หมดอายุ/ยกเลิก/รับ/ปฏิเสธ) เก็บกี่วันปฏิทินนับจาก max(expires_at, revoked_at) ก่อน cron ลบถาวร */
+export const INVITE_RETENTION_DAYS = 30;
 /** R8 F1 §2.2: "ลงวันไม่ว่างแล้ว" = มี busy_block ทับช่วง [ตอนนี้, ตอนนี้ + N วันปฏิทินใน tz ของกลุ่ม) */
 export const UPCOMING_BUSY_LOOKAHEAD_DAYS = 30;
 /** ความยาวสูงสุดของ title / note (อักขระ = code point) */
@@ -143,6 +145,12 @@ export const APPOINTMENT_WRITE_RATE_LIMITS = {
   cancel: { prefix: 'appt:cancel', limit: 60, windowMs: 10 * MINUTE_MS },
   rsvp: { prefix: 'appt:rsvp', limit: 120, windowMs: 10 * MINUTE_MS },
 } as const;
+
+// ───────── R18 §S แชร์นัดให้คนนอกกลุ่ม (ADR 0016 §6) — ค่า rate limit อยู่ที่ SHARE_RATE_LIMITS (src/lib/auth/throttle.ts) ─────────
+/** แขก (ที่มีผล: removed_at IS NULL) ต่อนัด — ตรวจในคำสั่ง INSERT เดียวกับการเพิ่ม (S5) · เต็ม → 409 SHARE_FULL { max } */
+export const APPOINTMENT_GUESTS_MAX = 10;
+/** ลิงก์ชวนที่สิ้นสุดแล้วเก็บกี่วันก่อนลบถาวร — ค่าเดียวกับคำเชิญ (D1/B1 · ADR 0016 §7.5) */
+export const SHARE_LINK_RETENTION_DAYS = INVITE_RETENTION_DAYS;
 
 // ───────── บัญชีของฉัน / หน้า super admin — R5_CONTRACT §2 ─────────
 /** limiter ต่อผู้ใช้ (fixed window ผ่าน rate_limit_bucket) · เกิน → RATE_LIMITED + Retry-After */

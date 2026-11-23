@@ -4,11 +4,12 @@
 import { authorize } from '@/lib/rbac/can';
 import type { Actor } from '@/lib/rbac/types';
 import type { DataCtx } from '../context';
-import type { AppointmentDto } from '../serializers/appointments';
+import type { AppointmentListItemDto } from '../serializers/appointments';
 import { listMyAppointments, type MyAppointmentsQuery } from './appointments';
 import { listMyGroups } from './groups';
 
-export type HomeFeedDto = { hasGroups: boolean; appointments: AppointmentDto[] };
+/** R18 §S: appointments มีการ์ดแขก (viewerKind 'guest') ได้ — ผู้ใช้ที่ไม่มีกลุ่มแต่เป็นแขกของนัด ยังเห็นนัดนั้น (hasGroups=false) */
+export type HomeFeedDto = { hasGroups: boolean; appointments: AppointmentListItemDto[] };
 
 /** = listMyGroups แล้ว (ถ้ามีกลุ่ม) listMyAppointments(query) แบบเดิม แต่ไม่รอกันเป็นทอด (−1 wave) · query ตรวจโดย listMyAppointments เหมือนเดิม */
 export async function getHomeFeed(actor: Actor, query: MyAppointmentsQuery, ctx: DataCtx): Promise<HomeFeedDto> {
@@ -16,6 +17,10 @@ export async function getHomeFeed(actor: Actor, query: MyAppointmentsQuery, ctx:
   const appointments = listMyAppointments(actor, query, ctx);
   appointments.catch(() => undefined); // ไม่มีกลุ่ม → ไม่ await ผลนี้ · กัน unhandled rejection (มีกลุ่ม → await ด้านล่างโยนต่อตามเดิม)
   const { groups } = await listMyGroups(actor, ctx);
-  if (groups.length === 0) return { hasGroups: false, appointments: [] };
+  if (groups.length === 0) {
+    // ไม่มีกลุ่ม: มีได้เฉพาะการ์ดแขก (R18 §S) · ล้ม → [] ตามเดิม
+    const guestOnly = await appointments.then((r) => r.appointments.filter((a) => a.viewerKind === 'guest')).catch(() => []);
+    return { hasGroups: false, appointments: guestOnly };
+  }
   return { hasGroups: true, appointments: (await appointments).appointments };
 }

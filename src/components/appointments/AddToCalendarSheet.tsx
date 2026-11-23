@@ -11,6 +11,8 @@ export interface AddToCalendarSheetProps {
   appointment: { id: string; title: string; placeName: string | null; mapUrl: string | null; startAt: number; endAt: number; tz: string };
   /** origin ของแอป ไม่มี `/` ท้าย (จาก page.tsx) */
   appOrigin: string;
+  /** R18 §S: แขกใช้ .ics ของแขก (/api/appointments/:id/guest/calendar.ics) — ไม่ส่ง = ของสมาชิก */
+  icsHref?: string;
   onClose: () => void;
 }
 
@@ -21,7 +23,7 @@ function detectMode(): CalendarSheetMode {
 }
 
 /** R12 §4.2/§4.4 — เลือกปลายทางเพิ่มนัดลงปฏิทิน · ลิงก์ล้วน ไม่มี fetch จึงไม่มี loading/error */
-export function AddToCalendarSheet({ appointment: a, appOrigin, onClose }: AddToCalendarSheetProps) {
+export function AddToCalendarSheet({ appointment: a, appOrigin, icsHref, onClose }: AddToCalendarSheetProps) {
   const t = useTranslations("appointments.calendar");
   const uid = useId();
   const [mode] = useState<CalendarSheetMode>(detectMode);
@@ -31,7 +33,7 @@ export function AddToCalendarSheet({ appointment: a, appOrigin, onClose }: AddTo
     const cls = `btn ${primary ? "btn-primary" : "btn-secondary"} cal-add-row`;
     if (option === "ics") {
       return (
-        <a key="ics" className={cls} href={calendarIcsHref(a.id)} data-testid="cal-add-ics">
+        <a key="ics" className={cls} href={icsHref ?? calendarIcsHref(a.id)} data-testid="cal-add-ics">
           <Icon name="calendar-plus" />
           <span>{t("device")}</span>
         </a>

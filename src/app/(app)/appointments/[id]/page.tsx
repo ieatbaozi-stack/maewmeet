@@ -6,7 +6,8 @@ import { headers } from "next/headers";
 import { clock } from "@/lib/shared/clock";
 import { configuredAppOrigin, getEnv } from "@/lib/shared/env";
 import { memberAppearance } from "@/lib/shared/member-color";
-import { loadAppointment } from "../_lib/load";
+import { GuestAppointmentView } from "@/components/share/GuestAppointmentView";
+import { loadAppointmentView } from "../_lib/load";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   // ชื่อนัดเป็นข้อมูลของสมาชิก: ไม่ล็อกอิน/ต้องเปลี่ยน PIN → title เริ่มต้น (หน้าเองจะ redirect)
@@ -14,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!user || user.mustChangePin) return {};
   const { id } = await params;
   try {
-    return { title: (await loadAppointment(id)).title };
+    return { title: (await loadAppointmentView(id)).appointment.title };
   } catch {
     return {}; // 404/ผิดพลาดอื่น: ให้ตัวหน้าตัดสินเอง
   }
@@ -34,7 +35,17 @@ async function appOrigin(): Promise<string> {
 export default async function AppointmentPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
   const { id } = await params;
-  const appointment = await loadAppointment(id);
+  const view = await loadAppointmentView(id);
+  if (view.viewerKind === "guest") {
+    // R18 §S4: แขก — มุมมองแขก (ไม่มีลิงก์กลุ่ม/รายชื่อ/แก้ไข) · ข้อมูลที่แขกไม่ควรเห็นไม่ได้ถูกส่งมา
+    return (
+      <>
+        <Aurora intensity="soft" />
+        <GuestAppointmentView initial={view.appointment} nowMs={clock.now()} appOrigin={await appOrigin()} />
+      </>
+    );
+  }
+  const appointment = view.appointment;
   return (
     <>
       <Aurora intensity="soft" />

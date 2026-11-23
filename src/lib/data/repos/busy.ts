@@ -13,6 +13,7 @@ import { appointment, appointmentRsvp, busyBlock, groupMember, groups } from '@/
 import type { DbOrTx, Tx } from '@/db/client';
 import { DAY_MS } from '@/lib/shared/clock';
 import { BUSY_MAX_BACKDATE_DAYS } from '@/lib/shared/limits';
+import { listGuestGoingBusyInGroup } from './appointment-guest';
 
 export type OwnBusyRow = typeof busyBlock.$inferSelect;
 
@@ -354,14 +355,22 @@ export async function listGoingBusyInGroup(
   max: number,
   excludeAppointmentId?: string,
 ): Promise<{ rows: GoingBusyRow[]; truncated: boolean }> {
-  const raw = await goingBusyInGroupQuery(db, groupId, fromMs, toMs, max + 1, excludeAppointmentId);
-  const rows: GoingBusyRow[] = raw.slice(0, max).map((r) => ({
-    userId: r.userId,
-    startAt: r.startAt,
-    endAt: r.endAt,
-    sameGroup: Number(r.sameGroup) === 1,
-    appointmentId: r.appointmentId,
-    title: r.title,
-  }));
-  return { rows, truncated: raw.length > max };
+  // R18 §S (ADR 0016 §5.3 [A]): + นัดที่สมาชิกเป็น "แขก" และตอบ going → แถวกลุ่มอื่นเสมอ (ไม่มี id/title) · คิวรีแยก รันขนาน แล้วรวมตามลำดับเดียวกัน
+  const [raw, guest] = await Promise.all([
+    goingBusyInGroupQuery(db, groupId, fromMs, toMs, max + 1, excludeAppointmentId),
+    listGuestGoingBusyInGroup(db, groupId, fromMs, toMs, max + 1),
+  ]);
+  const merged: GoingBusyRow[] = [
+    ...raw.map((r) => ({
+      userId: r.userId,
+      startAt: r.startAt,
+      endAt: r.endAt,
+      sameGroup: Number(r.sameGroup) === 1,
+      appointmentId: r.appointmentId,
+      title: r.title,
+    })),
+    ...guest.map((g) => ({ userId: g.userId, startAt: g.startAt, endAt: g.endAt, sameGroup: false, appointmentId: null, title: null })),
+  ];
+  if (guest.length > 0) merged.sort((x, y) => x.startAt - y.startAt || x.endAt - y.endAt || (x.userId < y.userId ? -1 : x.userId > y.userId ? 1 : 0));
+  return { rows: merged.slice(0, max), truncated: merged.length > max };
 }

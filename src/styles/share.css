@@ -1,0 +1,94 @@
+/* R18 §S แชร์นัดให้คนนอกกลุ่ม — หน้าลิงก์ /i/<token> · sheet ชวน · รายชื่อแขก · มุมมองแขก (UX R18_SHARE_FLOW)
+ * ใช้ token/คลาสเดิมทั้งหมด (.panel .btn .alert .input .tag .rsvp-count .appt-*) — ไม่มีค่าสี/ระยะใหม่
+ * ต้องมีคลาสกลางเหล่านี้อยู่แล้ว: .btn .btn-primary .btn-secondary .btn-danger .btn-block .panel .login .login-card .input .form-error .muted .link-btn .tag .alert .sheet
+ */
+
+/* ---------- หน้าลิงก์ (การ์ดบน aurora/veil แบบหน้า login) ---------- */
+.share-card { display: grid; gap: var(--space-3); max-width: calc(var(--content-max) * 0.7); margin-inline: auto; width: 100%; min-width: 0; }
+.share-card > * { min-width: 0; }
+.share-cat { justify-self: center; }
+.share-invited { font-size: var(--text-md); color: var(--ink); font-weight: var(--weight-medium); overflow-wrap: anywhere; }
+.share-title { font-size: var(--text-2xl); font-weight: var(--weight-semibold); line-height: var(--leading-heading); overflow-wrap: anywhere; }
+.share-facts { display: grid; gap: var(--space-2); list-style: none; padding: 0; margin: 0; }
+.share-facts > li { display: flex; align-items: flex-start; gap: var(--space-2); min-width: 0; overflow-wrap: anywhere; }
+.share-facts > li > .icon { flex: none; margin-top: var(--space-1); }
+/* R18 F02: แถวสถานที่เริ่มซ้ายตรงกับแถววันที่/กลุ่ม (ปุ่มแผนที่ไม่กึ่งกลาง/เต็มกว้าง) */
+.share-facts .appt-place { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); text-align: start; }
+.share-facts .map-open { width: auto; margin-top: 0; }
+.share-facts .map-apps { margin-top: 0; }
+/* R18 F03: ช่วงเวลาไม่ถูกตัดกลางตัวเลข */
+.nowrap { white-space: nowrap; }
+.share-counts { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); margin: 0; }
+.share-cta { display: grid; gap: var(--space-2); }
+.share-cta .btn { width: 100%; min-height: var(--tap-lg); }
+.share-hint { font-size: var(--text-sm); color: var(--ink); overflow-wrap: anywhere; }
+.share-note { font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
+.share-privacy { display: inline-flex; align-items: center; min-height: var(--tap); color: var(--accent-ink); font-weight: var(--weight-medium); text-decoration: underline; text-underline-offset: var(--space-1); }
+.share-status { text-align: center; justify-items: center; }
+.share-status > .icon { width: var(--space-5); height: var(--space-5); color: var(--ink-muted); }
+.share-status h1 { font-size: var(--text-xl); font-weight: var(--weight-semibold); line-height: var(--leading-heading); overflow-wrap: anywhere; }
+.share-status p { max-width: 36ch; overflow-wrap: anywhere; }
+
+/* ---------- sheet ชวนคนนอก ---------- */
+.share-sheet { display: grid; gap: var(--space-3); min-width: 0; padding-bottom: var(--space-4); } /* R18 F05: ปุ่มท้ายไม่ชนแถบ "เสร็จแล้ว" */
+.share-sheet > * { min-width: 0; }
+.share-lead { color: var(--ink-muted); }
+.share-link-label { font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.share-link-field { font-size: var(--text-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: all; }
+.share-link-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(calc(var(--tap-lg) * 3), 1fr)); gap: var(--space-2); }
+.share-link-actions .btn { min-height: var(--tap-lg); }
+.share-sees { display: grid; gap: var(--space-2); }
+.share-sees-row { display: flex; align-items: flex-start; gap: var(--space-2); overflow-wrap: anywhere; }
+.share-sees-row > .icon { flex: none; margin-top: var(--space-1); }
+.share-sees-row b { display: block; font-weight: var(--weight-semibold); }
+.share-sees-row[data-kind="sees"] > .icon { color: var(--free-ink); }
+.share-sees-row[data-kind="hides"] > .icon { color: var(--danger-ink); }
+.share-limit { display: flex; align-items: flex-start; gap: var(--space-2); font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
+.share-limit.is-full { color: var(--warn-ink); font-weight: var(--weight-medium); }
+.share-limit > .icon { flex: none; margin-top: var(--space-1); }
+.share-skeleton { height: var(--tap-lg); border-radius: var(--radius-sm); }
+.share-links { display: grid; gap: var(--space-1); border-top: var(--border) solid var(--line); padding-top: var(--space-3); }
+.share-links h3 { font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.share-links ul { list-style: none; padding: 0; margin: 0; }
+.share-links li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: var(--tap); }
+.share-links li > span { min-width: 0; overflow-wrap: anywhere; }
+.share-danger { color: var(--danger-ink); border-color: var(--danger-ink); min-height: var(--tap); }
+.share-danger-text { background: transparent; border: 0; color: var(--danger-ink); font-weight: var(--weight-semibold); min-height: var(--tap); padding: 0 var(--space-2); text-decoration: underline; text-underline-offset: var(--space-1); }
+.share-invite-btn { width: 100%; margin-top: var(--space-3); }
+
+/* ---------- รายชื่อแขก (ฝั่งสมาชิก) ---------- */
+.guests-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-1) var(--space-3); margin-bottom: var(--space-2); }
+.guests-head h2 { margin-bottom: 0; font-size: var(--text-lg); font-weight: var(--weight-semibold); line-height: var(--leading-heading); } /* R18 F13: หัวข้อเท่าการ์ดอื่น */
+.nm-short { white-space: nowrap; }
+.guests-limit { font-size: var(--text-sm); color: var(--ink-muted); }
+.guests-limit.is-full { color: var(--warn-ink); font-weight: var(--weight-medium); }
+.guest-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; }
+.guest-row { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-2) 0; min-height: var(--tap); min-width: 0; }
+.guest-row + .guest-row { border-top: var(--border) solid var(--line); }
+.guest-row > .member-avatar { flex: none; }
+.guest-main { flex: 1; min-width: 0; display: grid; gap: var(--space-1); }
+.guest-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); overflow-wrap: anywhere; }
+.guest-with { font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
+.guest-answer { font-size: var(--text-sm); color: var(--ink); }
+.guest-remove { flex: none; align-self: center; display: inline-flex; flex-direction: row; align-items: center; gap: var(--space-1); } /* R18 F13: ไอคอนซ้ายข้อความ */
+@media (min-width: 48em) {
+  .guest-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-5); }
+  .guest-row:nth-child(2) { border-top: 0; }
+}
+
+/* ---------- มุมมองแขก ---------- */
+.guest-banner { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); overflow-wrap: anywhere; }
+.guest-banner > .icon { flex: none; margin-top: var(--space-1); }
+.guest-leave { display: flex; justify-content: center; }
+.guest-limits { display: flex; align-items: flex-start; gap: var(--space-2); font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
+.guest-limits > .icon { flex: none; margin-top: var(--space-1); }
+.guest-counts { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); margin: 0; }
+
+/* ---------- R18 G1: แถบ "เพิ่มไปหน้าจอโฮม" (iOS Safari) — ในกระแสเนื้อหา ไม่ fixed ---------- */
+.install-hint { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-4); margin-top: var(--space-3); background: var(--surface); }
+.install-hint > .icon { flex: none; margin-top: var(--space-1); }
+.install-hint-body { display: grid; gap: var(--space-2); min-width: 0; overflow-wrap: anywhere; }
+.install-hint h2 { font-size: var(--text-lg); font-weight: var(--weight-semibold); line-height: var(--leading-heading); }
+.install-hint p { color: var(--ink-muted); }
+.install-hint ol { margin: 0; padding-inline-start: var(--space-5); display: grid; gap: var(--space-1); }
+.install-hint .btn { justify-self: start; }

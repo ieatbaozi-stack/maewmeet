@@ -10,8 +10,10 @@
 // ลำดับตายตัว: (cron: Bearer) → 1. CSRF Origin + JSON content-type (non-GET, auth=actor) → 2. zod → 3. actor →
 //              4. handler/service → 5. {data} | {error:{code,params}} + Cache-Control: private, no-store
 // R7 §2: ครอบทั้งหมดด้วยตัวนับ query/เวลาต่อ request (ปิดได้ด้วย SERVER_TIMING_ENABLED=false) → header Server-Timing (ดู shouldExposeServerTiming)
-// R16 H3: ขั้น 3½ — GET ที่ต้องล็อกอิน (ผู้ใช้จริง · action ไม่สาธารณะ) จองช่อง API_READ_RATE_LIMIT ต่อผู้ใช้ *ขนานกับ* handler (ไม่เพิ่ม round trip)
-//          เต็ม → 429 RATE_LIMITED + Retry-After (ทิ้งผลของ handler) · ผู้ที่เพิ่งถูกปฏิเสธ → 429 ทันทีไม่รัน handler (ดู src/lib/data/read-limit.ts)
+// R16 H3: ขั้น 3½ — GET ที่ต้องล็อกอิน (ผู้ใช้จริง · action ไม่สาธารณะ) จองช่อง API_READ_RATE_LIMIT ต่อผู้ใช้ *ก่อน* handler
+//          เต็ม → 429 RATE_LIMITED + Retry-After โดย handler ไม่รันเลย (ไม่อ่านฐาน · ไม่เขียน audit การอ่าน) · ผู้ที่เพิ่งถูกปฏิเสธ → 429 ทันทีไม่แตะ DB
+//          R18 H1 (security-r16 Info 1): เดิมจองขนานกับ handler แล้วทิ้งผล — handler ยังอ่านฐาน/บันทึก audit ของ SA ทั้งที่ได้ 429 · แลกกับ +1 round trip ต่อเนื่อง
+//          (ดู src/lib/data/read-limit.ts)
 import type { z } from 'zod';
 import { isPublicAction, type Action } from '@/lib/rbac/actions';
 import type { Actor } from '@/lib/rbac/types';
@@ -292,29 +294,22 @@ export function route<S extends AnySchema | undefined = undefined, PS extends An
       seen.user = actor.kind === 'user';
 
       const now = clock.now();
-      // 3½. R16 H3: limiter อ่านต่อผู้ใช้ — จองช่องขนานกับ handler · ผลของ limiter ตัดสินก่อนใช้ผลของ handler เสมอ
-      let readSlot: Promise<void> | null = null;
+      // 3½. R16 H3 / R18 H1: limiter อ่านต่อผู้ใช้ — จองช่องให้เสร็จ *ก่อน* เริ่ม handler · เกินโควตา = โยน RATE_LIMITED → 429 โดย handler ไม่รัน
+      //     ห้ามกลับไปรันขนาน: GET ของ super admin เขียน audit การอ่าน — handler ที่เริ่มก่อนรู้ผล limiter จะบันทึกทั้งที่ได้ 429
       if (actor.kind === 'user' && readLimited(entry.method, entry.auth, entry.action, true)) {
         assertNotReadBlocked(actor.id, now);
-        readSlot = takeReadSlot(getDb(), actor.id, now);
+        await takeReadSlot(getDb(), actor.id, now);
       }
 
       // 4. handler → service
-      const pending = Promise.resolve().then(() =>
-        spec.handler({
-          req,
-          input: input as Out<S>,
-          params: params as Out<PS>,
-          actor,
-          now,
-          entry,
-        }),
-      );
-      if (readSlot) {
-        pending.catch(() => undefined); // limiter ปฏิเสธก่อน → ผลของ handler ถูกทิ้ง (ไม่ปล่อยเป็น unhandled rejection)
-        await readSlot;
-      }
-      const result = await pending;
+      const result = await spec.handler({
+        req,
+        input: input as Out<S>,
+        params: params as Out<PS>,
+        actor,
+        now,
+        entry,
+      });
 
       // 5. response
       const r = isReply(result) ? result : reply(result);

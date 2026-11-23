@@ -51,8 +51,9 @@ describe('ลบสมาชิก (D7)', () => {
     expect((await del(a.c, `/api/groups/${gid}/members/${m.id}`)).status).toBe(200);
     const rows = await auditRows('member.remove');
     expect(rows.map((r) => JSON.parse(r.meta))).toEqual([
-      { targetUserId: b.id, targetRole: 'member', asSuperAdmin: false },
-      { targetUserId: m.id, targetRole: 'moderator', asSuperAdmin: false },
+      // R18 §S: shareLinksRevoked = ลิงก์ชวนนัดของคนที่ถูกลบที่ถูกยกเลิกใน tx เดียวกัน
+      { targetUserId: b.id, targetRole: 'member', shareLinksRevoked: 0, asSuperAdmin: false },
+      { targetUserId: m.id, targetRole: 'moderator', shareLinksRevoked: 0, asSuperAdmin: false },
     ]);
   });
 

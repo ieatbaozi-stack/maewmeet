@@ -57,6 +57,16 @@ export const ACTIONS = [
   'appointment.rsvp',
   'appointment.list.mine',
 
+  // ── R18 §S (ADR 0016 §5.2): ลิงก์ชวนคนนอก + แขกของนัด — ทางของแขกแยกจาก appointment.* เดิม (แขกได้ NOT_FOUND ที่ทางสมาชิก) ──
+  'appointment.share.preview',
+  'appointment.share.create',
+  'appointment.share.revoke',
+  'appointment.guest.join',
+  'appointment.guest.view',
+  'appointment.guest.rsvp',
+  'appointment.guest.leave',
+  'appointment.guest.remove',
+
   // ── §3 แถว 12–17: จัดการกลุ่ม/สมาชิก ──
   'member.remove',
   'group.update',
@@ -99,6 +109,8 @@ export const PUBLIC_ACTIONS = [
   'auth.pinReset.request',
   'auth.pinReset.status',
   'prefs.cookie.set',
+  // R18 §S (ADR 0016 §5.2): หน้า /i/<token> — ใครก็ได้ที่ถือ token · ข้อมูลจำกัดที่ DTO (SharePreviewDto) · ไม่อยู่ใน PIN_CHANGE_ALLOWED
+  'appointment.share.preview',
 ] as const satisfies readonly Action[];
 
 /** ทำได้ระหว่าง must_change_pin (ADR 0003 §3 ค่าคงที่ · PRD §3 กติกาเสริม · U3) */
@@ -149,6 +161,10 @@ export const RESOURCE_TYPES = [
   'appointment',
   'busy',
   'ownedByUser',
+  // R18 §S (ADR 0016 §5.1)
+  'shareLink',
+  'appointmentGuest',
+  'guestTarget',
 ] as const;
 export type ResourceType = (typeof RESOURCE_TYPES)[number];
 
@@ -200,6 +216,15 @@ export const ACTION_RESOURCE = {
   'appointment.cancel': ['appointment'],
   'appointment.rsvp': ['appointment'],
   'appointment.list.mine': ['none'],
+
+  'appointment.share.preview': ['none'],
+  'appointment.share.create': ['appointment'],
+  'appointment.share.revoke': ['shareLink'],
+  'appointment.guest.join': ['none'],
+  'appointment.guest.view': ['appointmentGuest'],
+  'appointment.guest.rsvp': ['appointmentGuest'],
+  'appointment.guest.leave': ['appointmentGuest'],
+  'appointment.guest.remove': ['guestTarget'],
 
   'member.remove': ['member'],
   'group.update': ['group'],

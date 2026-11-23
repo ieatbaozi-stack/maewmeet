@@ -32,6 +32,10 @@ export const NOTIFICATION_KINDS = [
   'group.member.role_changed',
   // R17 G5: super admin กู้คืนกลุ่มที่ลบ → สมาชิกที่บัญชี active ทุกคน (กระดิ่งเท่านั้น ไม่เข้า LINE)
   'group.restored',
+  // R18 §S (ADR 0016 §7.2): ถึงแขกของนัด — ชนิดแยก params ไม่มีชื่อ/id ผู้กระทำ (แขกไม่เห็นชื่อสมาชิก)
+  'appointment.guest.updated',
+  'appointment.guest.cancelled',
+  'appointment.guest.removed',
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -61,8 +65,11 @@ export type NotificationParamsByKind = {
   'appointment.cancelled': AppointmentActorParams;
   /** startAt / tz = ค่าใหม่หลังแก้ */
   'appointment.updated': AppointmentActorParams & { changes: 'time' | 'place' | 'both' };
-  /** responderId ใช้จับคู่ "ผู้ตอบคนเดิม" ตอนแทนที่ และล้างชื่อตอนลบบัญชี (ไม่ออกทาง API) */
-  'appointment.rsvp_changed': AppointmentReminderParams & { responderName: string; responderId: string; response: RsvpResponse };
+  /**
+   * responderId ใช้จับคู่ "ผู้ตอบคนเดิม" ตอนแทนที่ และล้างชื่อตอนลบบัญชี (ไม่ออกทาง API)
+   * R18 §S: responderGuest = ผู้ตอบเป็นแขกของนัด (ไม่ใช่สมาชิก) · แถวเก่าไม่มีคีย์นี้ = false
+   */
+  'appointment.rsvp_changed': AppointmentReminderParams & { responderName: string; responderId: string; response: RsvpResponse; responderGuest?: boolean };
   'group.member.joined': GroupMemberEventParams;
   'group.member.left': GroupMemberEventParams;
   /** ไม่บอกชื่อผู้นำออก (R11 §1) */
@@ -73,6 +80,12 @@ export type NotificationParamsByKind = {
    * groupName = ชื่อกลุ่ม ณ เวลากู้คืน
    */
   'group.restored': { groupId: string; groupName: string; actorSystemAdmin: true };
+  /** R18 §S: นัดที่ฉันเป็นแขกถูกแก้เวลา/สถานที่ — startAt / tz = ค่าใหม่ · ไม่มีชื่อผู้แก้ · แทนที่ unread แบบ appointment.updated */
+  'appointment.guest.updated': AppointmentReminderParams & { changes: 'time' | 'place' | 'both' };
+  /** R18 §S: นัดที่ฉันเป็นแขกถูกยกเลิก — ไม่มีชื่อผู้ยกเลิก · LINE เฉพาะ lineUserIds (แขกที่ตอบ going) */
+  'appointment.guest.cancelled': AppointmentReminderParams;
+  /** R18 §S: ฉันถูกนำออกจากนัด — ไม่มี appointmentId (ลิงก์ไป '/') · ไม่บอกผู้นำออก · groupId ไว้ให้ purge กลุ่มลบตาม JSON · กระดิ่งเท่านั้น */
+  'appointment.guest.removed': { groupId: string; groupName: string; title: string; startAt: number; tz: string };
 };
 
 export function isNotificationKind(value: unknown): value is NotificationKind {
@@ -80,18 +93,30 @@ export function isNotificationKind(value: unknown): value is NotificationKind {
 }
 
 /** ตัวอ้างอิงภายใน (ใช้แทนที่ + ล้างชื่อตอนลบบัญชี) — ตัดออกก่อนส่งออกทาง API เสมอ */
-export const INTERNAL_PARAM_KEYS: readonly string[] = ['actorId', 'responderId', 'memberId'];
+/** R18 D1: inviterId / inviteeId ถูกประทับโดย cron ตอนลบคำเชิญเก่า (repos/invite-purge.ts) เพื่อให้ล้างชื่อตอนลบบัญชีได้ */
+export const INTERNAL_PARAM_KEYS: readonly string[] = ['actorId', 'responderId', 'memberId', 'inviterId', 'inviteeId'];
 
-/** params ที่ส่งออกไปหา client ได้ */
-export function publicParams(params: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(params).filter(([k]) => !INTERNAL_PARAM_KEYS.includes(k)));
+/**
+ * R18 §S (security-v1 Info 1 · ADR 0016 §5.4 "ไม่มี groupId"): คีย์ภายในเฉพาะชนิดของแขก — groupId อยู่ในฐานเพื่อ purge กลุ่มตาม JSON
+ * และเพดาน unread ต่อกลุ่ม แต่ไม่ส่งออกทาง API (แขกไม่ควรเห็น id กลุ่ม · UI ของชนิดแขกไม่ใช้)
+ */
+const INTERNAL_PARAM_KEYS_BY_KIND: Readonly<Record<string, readonly string[]>> = {
+  'appointment.guest.updated': ['groupId'],
+  'appointment.guest.cancelled': ['groupId'],
+  'appointment.guest.removed': ['groupId'],
+};
+
+/** params ที่ส่งออกไปหา client ได้ · kind = ชนิดของแถว (ตัดคีย์ภายในเฉพาะชนิดด้วย) */
+export function publicParams(params: Record<string, unknown>, kind?: string): Record<string, unknown> {
+  const perKind = kind !== undefined && Object.prototype.hasOwnProperty.call(INTERNAL_PARAM_KEYS_BY_KIND, kind) ? INTERNAL_PARAM_KEYS_BY_KIND[kind]! : [];
+  return Object.fromEntries(Object.entries(params).filter(([k]) => !INTERNAL_PARAM_KEYS.includes(k) && !perKind.includes(k)));
 }
 
 /**
  * ชนิดที่ส่งทาง LINE (R10 §1.4 · R11 §2) — ชนิดอื่นทั้งหมดไม่เข้า outbox · rsvp_nudge เป็นกระดิ่งเท่านั้น
  * reminder: ทุกผู้รับ userIds · appointment.cancelled: เฉพาะ lineUserIds (บังคับ — ผู้รับกระดิ่งกว้างกว่าผู้รับ LINE)
  */
-const LINE_KINDS: ReadonlySet<NotificationKind> = new Set<NotificationKind>(['appointment.reminder_1d', 'appointment.reminder_1h', 'appointment.cancelled']);
+const LINE_KINDS: ReadonlySet<NotificationKind> = new Set<NotificationKind>(['appointment.reminder_1d', 'appointment.reminder_1h', 'appointment.cancelled', 'appointment.guest.cancelled']);
 
 /** ค่าที่ไม่ต้องอยู่ใน payload ของ outbox: ข้อความ LINE ไม่มีชื่อคนกดยกเลิก (R11 §2) · ลดข้อมูลคนที่ค้างในคิว */
 const LINE_PAYLOAD_OMIT: ReadonlySet<string> = new Set(['actorName', 'actorId', 'actorSystemAdmin']);
@@ -125,7 +150,7 @@ function mergeChanges(previous: UpdateChanges, next: UpdateChanges): UpdateChang
  */
 async function replaceUnread(tx: DbOrTx, kind: NotificationKind, userIds: readonly string[], params: Record<string, unknown>): Promise<Map<string, UpdateChanges>> {
   const merged = new Map<string, UpdateChanges>();
-  if (kind === 'appointment.updated') {
+  if (kind === 'appointment.updated' || kind === 'appointment.guest.updated') {
     const replaced = await deleteUnreadEventRows(tx, { userIds, kind, appointmentId: String(params.appointmentId) });
     const next = params.changes as UpdateChanges;
     for (const row of replaced) {
@@ -139,14 +164,14 @@ async function replaceUnread(tx: DbOrTx, kind: NotificationKind, userIds: readon
 }
 
 /** R11 §1: ชนิดที่มีเพดาน unread ต่อกลุ่มต่อผู้รับ (นับแยกชนิด — created ที่ค้างอ่านไม่บังการแจ้งยกเลิก) · เกิน = ไม่มีทั้งกระดิ่งและ LINE ของผู้รับคนนั้น */
-const UNREAD_CAPPED_KINDS: ReadonlySet<NotificationKind> = new Set<UnreadCappedKind>(['appointment.created', 'appointment.cancelled', 'group.member.joined', 'group.member.left', 'group.member.role_changed']);
+const UNREAD_CAPPED_KINDS: ReadonlySet<NotificationKind> = new Set<UnreadCappedKind>(['appointment.created', 'appointment.cancelled', 'appointment.guest.cancelled', 'group.member.joined', 'group.member.left', 'group.member.role_changed']);
 const cappedKind = (kind: NotificationKind): kind is UnreadCappedKind => UNREAD_CAPPED_KINDS.has(kind);
 
 /**
  * LINE ของ appointment.cancelled แคบกว่ากระดิ่ง จึงบังคับระบุ lineUserIds ทั้งชนิดข้อมูลและตอนรันจริง · ชนิดอื่นห้ามระบุ
  * (เพิ่มชนิด LINE ใหม่ = ต้องตัดสินใจเรื่องผู้รับแบบชัดเจนตรงนี้)
  */
-type LineAudienceInput<K extends NotificationKind> = K extends 'appointment.cancelled' ? { lineUserIds: readonly string[] } : { lineUserIds?: undefined };
+type LineAudienceInput<K extends NotificationKind> = K extends 'appointment.cancelled' | 'appointment.guest.cancelled' ? { lineUserIds: readonly string[] } : { lineUserIds?: undefined };
 
 /** แจ้งผู้รับทุกคนใน userIds (ตัดซ้ำ) แถวละคน · คืนจำนวนแถวที่เขียน (appointment.created: ข้ามผู้ที่ unread ของกลุ่มนั้นครบเพดาน) */
 export async function notify<K extends NotificationKind>(
@@ -155,7 +180,7 @@ export async function notify<K extends NotificationKind>(
   now: number,
 ): Promise<number> {
   const lineUserIds = (input as { lineUserIds?: readonly string[] }).lineUserIds;
-  if (input.kind === 'appointment.cancelled' && lineUserIds === undefined) throw new Error('notify: appointment.cancelled requires lineUserIds');
+  if ((input.kind === 'appointment.cancelled' || input.kind === 'appointment.guest.cancelled') && lineUserIds === undefined) throw new Error(`notify: ${input.kind} requires lineUserIds`);
   let userIds = [...new Set(input.userIds)];
   if (userIds.length === 0) return 0;
   if (userIds.length > NOTIFY_MAX_RECIPIENTS) throw new Error('notify: too many recipients');

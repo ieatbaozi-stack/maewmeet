@@ -19,6 +19,7 @@ import {
   doneCount,
   initialMode,
   initialMonth,
+  monthAfterModeChange,
   isInteractive,
   mapSkipFailure,
   poolMonths,
@@ -81,8 +82,7 @@ export function RoutineSkipSheet({ routine, onClose, onDone }: RoutineSkipSheetP
     if (busy || m === mode) return;
     setMode(m);
     setError(null);
-    const cur = ym && months.includes(ym) ? ym : null;
-    setYm(cur ?? initialMonth(pool, m));
+    setYm(monthAfterModeChange(pool, m, ym));
   }
 
   function toggle(date: DateISO) {

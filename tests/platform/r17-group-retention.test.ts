@@ -315,6 +315,8 @@ describe('G2 — ลบถาวรใน cron รายวัน', () => {
       reminders: 1,
       notifications: before.notifications,
       outbox: 1,
+      guests: 0, // R18 §S
+      shareLinks: 0,
     });
     expect(before.invites).toBe(3);
     expect(audits[0]!.meta).not.toContain('ก๊วนแมว');

@@ -64,6 +64,11 @@ export function RestoreGroupDialog({
       error={error}
       onClose={onClose}
       onConfirm={() => void confirm()}
-    />
+    >
+      {/* R18 D2: โค้ดเชิญเดิมที่ยังไม่หมดอายุ (และแขกของนัด) กลับมาใช้ได้ — บอกก่อนกด */}
+      <p className="muted small" style={{ marginTop: "var(--space-2)" }} data-testid="restore-invite-note">
+        {t("adminGroup.restore.confirm.inviteNote")}
+      </p>
+    </ConfirmDialog>
   );
 }

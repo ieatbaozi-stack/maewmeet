@@ -226,7 +226,7 @@ export type OutboxSendContext = {
   response: RsvpResponse | null;
 };
 
-/** ข้อมูลตรวจซ้ำก่อนส่ง — คำตอบนับเฉพาะสมาชิกปัจจุบัน + updated_at >= joined_at (ADR 0009 §1) */
+/** ข้อมูลตรวจซ้ำก่อนส่ง — คำตอบนับเฉพาะสมาชิกปัจจุบัน + updated_at >= joined_at (ADR 0009 §1) · R18 §S: หรือคำตอบในแถวแขกที่มีผล (removed_at IS NULL) */
 export async function loadOutboxSendContext(db: DbOrTx, input: { userId: string; appointmentId: string }): Promise<OutboxSendContext | null> {
   const rows = await db.all<{
     status: string | null;
@@ -239,12 +239,13 @@ export async function loadOutboxSendContext(db: DbOrTx, input: { userId: string;
     response: RsvpResponse | null;
   }>(sql`
     SELECT a.status AS status, a.start_at AS start_at, g.id AS group_id, g.deleted_at AS deleted_at,
-           u.status AS user_status, u.line_user_id AS line_user_id, u.locale AS locale, r.response AS response
+           u.status AS user_status, u.line_user_id AS line_user_id, u.locale AS locale, coalesce(r.response, ag.response) AS response
     FROM user u
     LEFT JOIN appointment a ON a.id = ${input.appointmentId}
     LEFT JOIN groups g ON g.id = a.group_id
     LEFT JOIN group_member gm ON gm.group_id = a.group_id AND gm.user_id = u.id
     LEFT JOIN appointment_rsvp r ON r.appointment_id = a.id AND r.user_id = gm.user_id AND r.updated_at >= gm.joined_at
+    LEFT JOIN appointment_guest ag ON ag.appointment_id = a.id AND ag.user_id = u.id AND ag.removed_at IS NULL
     WHERE u.id = ${input.userId}`);
   const r = rows[0];
   if (!r) return null;

@@ -138,6 +138,14 @@ Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL
 > - **ไม่ต้องตั้ง env/header เพิ่ม** สำหรับ manifest และ apple-touch-icon ของ "เปิดเหมือนแอปบน iPhone": CSP มี `manifest-src 'self'` อยู่แล้ว และ `img-src 'self' data: blob:` ครอบไอคอนที่เสิร์ฟจากโดเมนเดียวกัน (ตรวจใน `next.config.ts`) · ไม่มีตัวแปรใหม่ใน `.env.example`
 > - ไม่มีข้อมูล/ขั้นตอนมือเกี่ยวกับ `place_search_cache` เหลือในส่วน SQL มือหรือ retention (ค้นหาแล้ว ไม่พบ — ตรวจด้วย grep)
 
+> **หมายเหตุ R18 §S (migration `0007`, ADR 0016 §9 — เขียนโดย platform ตามที่ main มอบ · ops ตรวจ)**: ไฟล์ใหม่ `drizzle/0007_r18_appointment_share.sql` — **เพิ่มอย่างเดียว**: `CREATE TABLE appointment_guest` + `CREATE TABLE appointment_share_link` + index 6 ตัว · ไม่แตะตาราง/ข้อมูลเดิม · ไม่มี env ใหม่ (token ลิงก์ได้จาก `APP_SECRET` ผ่าน HKDF — **เปลี่ยน `APP_SECRET` = ลิงก์ชวนทั้งหมดใช้ไม่ได้** สมาชิกกดชวนใหม่ได้ลิงก์ใหม่)
+> - **ลำดับ**: รันกับ boss บน **preview ก่อนเปิด PR → prod ก่อน merge** ด้วยคำสั่ง B6/B7 เดิม · รุ่นเก่าทำงานกับฐานที่มีตารางใหม่ได้ (ไม่ SELECT/INSERT ตารางนี้) จึงรัน prod ก่อน merge ได้ปลอดภัย · ห้ามรันหลัง deploy รุ่นใหม่ (หน้านัด/ปฏิทินจะล้มเพราะไม่มีตาราง)
+> - **ตรวจหลังรัน** (`turso db shell <ฐาน> "..."`): `SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('appointment_guest','appointment_share_link');` → ต้องได้ **2 แถว** · `SELECT count(*) FROM appointment_guest;` → `0`
+> - **Rollback (1) ย้อนแอปอย่างเดียว (Vercel Instant Rollback) พอ** — v0.15.0 ไม่รู้จักตารางใหม่ · ระหว่างอยู่รุ่นเก่า: แขกเข้าไม่ได้ (ไม่มีหน้า `/i/*`) ข้อมูลอยู่ครบ · ข้อควรรู้ (อ่านจากโค้ด **ยังไม่ได้รันจริง**): (ก) cron รุ่นเก่า purge กลุ่มด้วยการลบ `appointment` → แถวแขก/ลิงก์ของนัดนั้นหายตาม FK CASCADE ถ้า `foreign_keys` เปิด (ยังไม่ได้ยืนยันกับ Turso จริง) · ถ้าปิดจะค้างเป็นแถวกำพร้า (ไม่มีใครเห็น) ลบหลังกลับรุ่นใหม่ด้วย `DELETE FROM appointment_guest WHERE appointment_id NOT IN (SELECT id FROM appointment);` แล้ว `DELETE FROM appointment_share_link WHERE appointment_id NOT IN (SELECT id FROM appointment);` (ข) ลบบัญชีบนรุ่นเก่าไม่ลบแถวแขก/ลิงก์ของคนนั้น → หลังกลับรุ่นใหม่รัน: `UPDATE appointment_guest SET link_id = NULL WHERE link_id IN (SELECT id FROM appointment_share_link WHERE created_by IN (SELECT id FROM user WHERE status = 'deleted'));` → `DELETE FROM appointment_share_link WHERE created_by IN (SELECT id FROM user WHERE status = 'deleted');` → `DELETE FROM appointment_guest WHERE user_id IN (SELECT id FROM user WHERE status = 'deleted');` (ค) สมาชิกที่ออก/ถูกลบบนรุ่นเก่า: ลิงก์ของเขาไม่ถูกตั้ง `revoked_at` แต่ใช้ไม่ได้อยู่แล้ว (ตรวจสด: ผู้สร้างต้องยังเป็นสมาชิกตั้งแต่ก่อนสร้างลิงก์)
+> - **Rollback (2) ถอดตารางจริง — ไม่แนะนำ ทำเมื่อ boss สั่งเท่านั้น** ลำดับ: `DROP TABLE IF EXISTS appointment_guest;` → `DROP TABLE IF EXISTS appointment_share_link;` (แขกก่อนเพราะ FK `link_id` · index หายตามตาราง) · ผล: แขกและลิงก์ทั้งหมดหายถาวร (นัด/RSVP สมาชิกไม่กระทบ) · แถว `0007` ใน `__drizzle_migrations` **ยังไม่ได้ตรวจกับฐานจริง** — แจ้ง main ก่อนแตะ (ถ้าไม่ลบแถวนั้น drizzle จะไม่สร้างตารางใหม่เมื่อ deploy รุ่นใหม่ซ้ำ)
+> - **cron รายวัน** มีฟิลด์ใหม่ `purgedShareLinks` = ลิงก์ชวนที่สิ้นสุด (ยกเลิก/นัดยกเลิก/นัดจบ) เกิน 30 วันที่ลบถาวรรอบนี้ · ล้ม → log `[cron] share-link.purge failed <CODE>` (ไม่มี token/ข้อมูลคน) ลองใหม่วันถัดไป
+> - **access log ของ Vercel บันทึก path `/i/<token>`** (เหมือนลิงก์แชร์ทั่วไป) — ยอมรับได้ตาม ADR 0016 §3 · แอปไม่ log token เอง · หน้า `/i/*` ส่ง `X-Robots-Tag: noindex, nofollow`
+
 > **หมายเหตุ R15b (ไม่มี migration · ไม่มี env ใหม่)**: รอบนี้เพิ่มถังจำกัดอัตราต่อผู้ใช้ (เกิน = 429 `RATE_LIMITED` + `Retry-After`) ไม่ต้องตั้งอะไรเพิ่ม:
 > - `busy:update` 60 คำขอ / 10 นาที — `PATCH` ช่วงไม่ว่าง
 > - `group:membership` 30 ครั้ง / ชม. — เข้า/ออกกลุ่ม (ถังเดียว ทุกกลุ่มรวมกัน) · ออก: นับทุกคำขอหลังด่านสิทธิ์ · ใช้โค้ด: นับเฉพาะครั้งที่เข้าได้จริง
@@ -346,6 +354,19 @@ cron รายวันของ Vercel ไม่ทำงาน (Turso ยั�
 ถ้าตัวจัดการรหัสผ่านไม่มี → ใช้สำเนาออฟไลน์ (C3) พิมพ์ลงตัวต่อตัว แล้วทำ H2 เทียบก่อนใส่ Vercel
 
 **ข้อ 2 (ทางสุดท้าย — pepper หายครบทุกสำเนาจริง ๆ เท่านั้น)** → ใช้สคริปต์กู้ฉุกเฉิน `scripts/admin-reset-pin.ts` ตาม **ส่วน H4** · แจ้ง Lead ก่อนเริ่มทุกครั้ง · เหตุผลที่ต้องมี: ถ้า pepper หาย super admin เองก็ล็อกอินไม่ได้ จึงอนุมัติ reset ให้ใครไม่ได้
+
+### G8 โค้ดเชิญใช้ไม่ได้พร้อมกันหลายคน (429 ตอนใช้โค้ด) — ถังรวมทั้งระบบเต็ม (R18 H3 · security-v1 Low 1)
+**ถังคืออะไร:** ทุกครั้งที่มีคนใส่โค้ดเชิญ **ผิด** ระบบนับ 1 ในถังรวมทั้งระบบ `redeem:all` (300 ครั้ง/15 นาที · แถวใน `rate_limit_bucket` คีย์ `redeem:all:global` · ไม่มีข้อมูลผู้ใช้/โค้ด) · ใช้สำเร็จ เป็นสมาชิกอยู่แล้ว กลุ่มเต็ม หรือถึงเพดานสมาชิก = คืนโควตา ไม่นับ
+**ผลเมื่อเต็ม:** ปิดกั้น **เฉพาะผู้เรียกที่ถัง IP/ผู้ใช้ของเขามีรอยเดาผิดอยู่แล้ว** (ได้ 429 ข้อความเดิมทันที ไม่ต่อคิว) · ผู้ใช้ปกติที่ยังไม่เคยเดาผิดในหน้าต่างนั้นยังใช้โค้ดได้ตามปกติ (โค้ดถูก = เข้ากลุ่ม · โค้ดผิด = นับในถัง IP/ผู้ใช้ของเขา) · หน้าต่างรีเซ็ตเองภายใน 15 นาที ไม่มีอะไรต้อง deploy
+**วิธีสังเกต:**
+1. ผู้ใช้แจ้งว่าใส่โค้ดแล้วขึ้นว่าลองมากเกินไปทั้งที่เพิ่งลองครั้งแรก/ใส่ถูก — หรือ log Vercel มีคำขอใช้โค้ดเชิญตอบ 429 ถี่ผิดปกติ
+2. ยืนยันที่ฐาน (อ่านอย่างเดียว · แทน `<prod-db>` ด้วยชื่อฐาน production): `turso db shell <prod-db> "SELECT key, count, window_start FROM rate_limit_bucket WHERE key = 'redeem:all:global';"` · ตัวนับใกล้/ถึง 300 และหน้าต่างเริ่มภายใน 15 นาทีที่ผ่านมา = ถังเต็ม (ชื่อคอลัมน์ดูจาก `drizzle/` · เฉพาะคีย์นี้ไม่มีข้อมูลผู้ใช้ — ระวังอย่า `SELECT *` ทั้งตารางแล้วแคปหน้าจอ เพราะคีย์อื่นมี IP/id ผู้ใช้)
+3. แยกโจมตีกับคนจริงเยอะ: ดู log จำนวนคำขอใช้โค้ดต่อ IP (log ไม่มีโค้ด) · มาจาก IP/บัญชีไม่กี่ราย = เดาโค้ด
+**ต้องทำอะไร:**
+- **ปกติไม่ต้องทำอะไร** — ถังนี้ออกแบบให้กัน brute-force ทั้งระบบโดยไม่ล็อกผู้ใช้สะอาด · รอ 15 นาที
+- ถ้าเกิดซ้ำต่อเนื่อง: แจ้ง Lead พร้อมเวลาและจำนวน 429 · ผู้ดูแลกลุ่มที่โค้ดอาจถูกเดา → เพิกถอนโค้ดแล้วออกโค้ดใหม่ (หน้าตั้งค่ากลุ่ม → คำเชิญ) หรือใช้คำเชิญตรงแทนโค้ด
+- **ห้ามลบแถวถังด้วย SQL เพื่อ "ปลดล็อก" ระหว่างถูกโจมตี** (เปิดช่องให้เดาต่อ) · ลบได้เฉพาะเมื่อแน่ใจว่าเป็นคนจริงเยอะ (เช่นงานรวมกลุ่มใหญ่) และ Lead เห็นชอบ: `DELETE FROM rate_limit_bucket WHERE key = 'redeem:all:global';`
+- ปรับเพดาน 300: แก้ค่าคงที่ `INVITE_RATE_LIMITS.redeemGlobal` ใน `src/lib/data/services/invites.ts` ผ่าน PR (ไม่ใช่ env)
 
 ---
 
@@ -568,6 +589,56 @@ Schedule ชื่อ `reminders` อยู่ใน `vercel.json` ทุก 15 
 - **rate limit:** ถัง `admin:write` (60 ครั้ง/10 นาที/ผู้ใช้) ที่เดิมใช้กับการเขียนของหน้า admin ตอนนี้ **ครอบคลุมการกู้คืนด้วย** · ไม่มีถังใหม่
 - ไม่มีวิธีกู้ด้วย SQL ทางการ — ใช้ปุ่ม/API เท่านั้น (เงื่อนไข 30 วัน/มี admin ตรวจในคำสั่งเดียว ทำด้วยมือเสี่ยงข้ามเงื่อนไข) · ปัญหาที่กู้ไม่ได้และควรกู้ → แจ้ง Lead
 
+### K4 ข้อควรรู้หลังกู้คืน และเรื่องที่ตัดสินแล้วว่าไม่แก้ (R18 D2/D3)
+**ก่อนกดกู้คืน super admin ควรรู้ 2 ข้อ** (security-r17 Info 1–2):
+- **เพดานกลุ่มต่อผู้สร้างอาจเกินได้:** เพดาน `groupsCreatedPerUser` (และเพดานคำเชิญค้างต่อผู้ถูกเชิญ) นับเฉพาะกลุ่มที่ยังไม่ถูกลบ · ผู้ใช้ที่สร้างครบเพดาน ลบ 1 สร้างใหม่ 1 แล้ว super admin กู้กลุ่มเดิม จะมีกลุ่มเกินเพดาน 1 กลุ่ม · ทำได้เฉพาะ super admin ไม่ใช่ช่องยกระดับสิทธิ์ · ยอมรับได้ (ไม่ต้องทำอะไร ผู้ใช้แค่สร้างกลุ่มใหม่เพิ่มไม่ได้จนกว่าจะต่ำกว่าเพดาน)
+- **โค้ดเชิญที่ยังไม่หมดอายุใช้ได้อีก:** คำเชิญเดิมกลับมาพร้อมกลุ่มโดยตั้งใจ (R17 G1) · โค้ดอายุ 7 วัน จึงมีผลเมื่อกู้ภายใน 7 วันหลังสร้างโค้ด · **ถ้ากลุ่มถูกลบเพราะโค้ดเชิญรั่ว ให้ผู้ดูแลกลุ่มเพิกถอนโค้ดเองหลังกู้** (หน้าตั้งค่ากลุ่ม → คำเชิญ) · กล่องยืนยันกู้คืนของ super admin บอกข้อนี้แล้ว (R18 D2)
+
+**ตัดสินแล้ว ไม่แก้ (บันทึก 2026-11-20 ตาม R18 D3):**
+| ข้อ | เรื่อง | เหตุผลที่ไม่แก้ |
+|---|---|---|
+| security-r17 Info 3 | purge ลบแถว outbox ที่ส่งแล้ว ตัวนับ OA รายเดือนอาจลดได้ | เกิดได้เฉพาะเดือน 31 วันที่ลบกลุ่มวันที่ 1 แล้ว purge วันที่ 31 · คลาดได้ไม่กี่ข้อความ เพดาน 300 ยังเป็นเพดานนุ่ม · แก้ต้องเก็บแถวไว้นานขึ้น ซึ่งขัดนโยบายลบถาวร |
+| security-r17 Info 4 | `json_extract` สแกนทั้งตารางต่อกลุ่ม (ไม่มี index) | ≤ 25 กลุ่มต่อวัน บนข้อมูลขนาดปัจจุบันที่เล็ก · เพิ่ม index ต้องมี migration และ index บน JSON ไม่คุ้ม · ถ้าตารางโตจน cron ช้า ให้วัด `EXPLAIN` แล้วค่อยพิจารณา (ADR 0015) |
+| security-r16 Info 2 | rate limit `api:read` เป็น fixed window + ทางลัดไม่แชร์ข้าม instance | เป็นเรื่องโหลด ไม่ใช่สิทธิ์ · ช่วงรอยต่อหน้าต่างยิงได้ราว 2 เท่า (≈1,200 ใน 2 นาที) ไม่เกินเพดานที่ DB รับได้ · sliding window ซับซ้อนกว่าที่คุ้มกับผู้ใช้ระดับนี้ |
+| security-r16 Info 3 | หน้า Server Component อ่านข้อมูลโดยไม่นับ `api:read` | ตั้งใจและบันทึกใน ARCHITECTURE ข้อ 11 · หน้าเหล่านี้ต้องมี session และตรวจสิทธิ์ที่เซิร์ฟเวอร์เหมือนกัน · contract H3 กำหนดที่ `route.ts` เท่านั้น |
+| security-r16 Info 4 | ถอด `is_admin` ของ SA ด้วย SQL ขณะคำเชิญค้าง ชื่อใน `/api/me/invites` กลับเป็นชื่อจริง | เกิดได้เฉพาะงาน ops ด้วยมือ ภายใน 7 วัน ผลกระทบต่ำ · ถ้าจะถอด `is_admin` ให้รอคำเชิญของคนนั้นหมดอายุ หรือเพิกถอนก่อน |
+
+## ดูแลหลังปิดโปรเจกต์ (v1.0 · R18 §6)
+หลัง v1.0.0 ทีม agent ไม่ได้ทำงานต่อเนื่อง — ระบบอยู่ได้ด้วยตัวเองเป็นส่วนใหญ่ บทนี้บอกว่า **boss** ต้องทำอะไรและเมื่อไหร่ (agent ช่วยเมื่อ boss เปิดรอบใหม่) · กติกาเดิมยังใช้: ทุกอย่างเข้า `main` ผ่าน PR ที่ boss กด Merge เอง · ความลับอยู่ใน env/ตัวจัดการรหัสผ่านเท่านั้น
+
+| ความถี่ | ทำอะไร | ทำอย่างไร | ถ้าผิดปกติ |
+|---|---|---|---|
+| **ทุกวัน (อัตโนมัติ — boss แค่ดูอีเมล)** | keepalive + heartbeat: GitHub Actions `keepalive` ทุก 12 ชม. ยิง `/api/cron/heartbeat` แล้วตรวจ `/api/health` · cron รายวันของ Vercel (`/api/cron/daily` · `vercel.json`) ทำความสะอาด เตือนก่อนนัด ลบกลุ่ม/คำเชิญที่เกิน 30 วัน | ไม่ต้องทำอะไรถ้าไม่มีอีเมล "workflow failed" · อีเมลแจ้งไปที่อีเมลของ boss (ส่วน E) | อีเมลล้ม → ส่วน G (G1–G6) |
+| **ทุกสัปดาห์ (2 นาที)** | เปิด `<APP_ORIGIN>/api/health` ต้องได้ `ok:true` · GitHub → Actions ดูว่า `keepalive` ล่าสุดเขียว | — | G1–G8 · ถ้า keepalive หยุดเงียบ (ไม่มีรันใหม่) = repo สาธารณะที่เงียบ 60 วันถูก GitHub ปิด schedule → ส่วน E: กด Enable workflow แล้ว Run workflow |
+| **ทุกเดือน** | (1) เปิดดู Actions 1 ครั้งกันถูกปิดเพราะเงียบ (2) Dependabot / `npm audit` (3) โควตา LINE OA (4) หน้า super admin: ผู้ใช้ที่ยังอยู่ pepper เวอร์ชันเก่า (ควรเป็น 0 ถ้าไม่ได้หมุน) | หัวข้อด้านล่าง | — |
+| **ทุกปี / เมื่อเปลี่ยนเครื่องหรือผู้ดูแล** | ซ้อมกู้ pepper (C8/H2) · ตรวจว่าสำเนา pepper ออฟไลน์ยังอ่านได้ · ตรวจว่า Node ที่ Vercel (`.nvmrc`, Node 24) ยังได้รับการดูแล · ต่ออายุ token ที่มีวันหมดอายุ (Turso, LINE) | C8, H2 | — |
+
+### สำรองข้อมูล (backup)
+- **ความลับ/pepper:** สำเนาออฟไลน์ตามส่วน C (ตัวจัดการรหัสผ่าน + สำเนาออฟไลน์) — pepper หายครบทุกสำเนา = ผู้ใช้เข้าด้วย PIN เดิมไม่ได้ (กู้ฉุกเฉิน H4 เป็นทางสุดท้าย)
+- **ฐานข้อมูล Turso:** ก่อนรัน migration ทุกครั้งสร้างสำเนา เช่น `turso db shell <prod-db> .dump > backup-<วันที่>.sql` เก็บไว้ในที่ปลอดภัย **ไม่เก็บใน repo** (มีข้อมูลผู้ใช้) · ความสามารถสำรองอัตโนมัติ/point-in-time ของ Turso ขึ้นกับแผน **ยังไม่ได้ตรวจกับบัญชีจริง** — boss ตรวจที่ Turso dashboard แล้วจดผลไว้ที่นี่ · กลุ่มที่ลบมีที่กู้ 30 วันในแอปอยู่แล้ว (ส่วน K)
+- **โค้ด:** อยู่ใน GitHub (`main` + tag `vX.Y.Z`) · Vercel Instant Rollback ย้อนแอปได้ทันที
+
+### หมุน pepper
+ทำเมื่อสงสัยว่ารั่วเท่านั้น (ไม่มีรอบบังคับ) ตามส่วน C9: สร้าง V(n+1) → ตั้ง `PIN_PEPPER_CURRENT_VERSION` → Redeploy → รอผู้ใช้เวอร์ชันเก่า = 0 บนหน้า super admin → จึงลบตัวเก่า · **ห้ามลบเวอร์ชันเก่าก่อน** · ซ้อมกู้ C8 หลังหมุนทุกครั้ง · อย่าเปลี่ยน `APP_SECRET` โดยไม่จำเป็น: ลิงก์ชวนแขกที่แจกไปแล้วจะใช้ไม่ได้ (สมาชิกกดชวนใหม่ได้) — ตรวจผลข้างเคียงอื่นใน ARCHITECTURE §7 ก่อนเปลี่ยน
+
+### Dependabot และ `npm audit`
+- GitHub ส่งอีเมล Dependabot alert ถึง boss · ทุกเดือนรัน `npm audit` และ `npm audit --omit=dev` บน `main` ที่สะอาด
+- **รายการที่รู้จักแล้ว:** picomatch GHSA-fc5q-39xc-vjpf — ยังไม่มีรุ่นแก้ (ตรวจ 2026-11-20) ยอมรับความเสี่ยงเพราะไม่ถึงคำขอผู้ใช้ (ดู "ผลประเมิน Dependabot" ท้ายเอกสาร) · เมื่อมีรุ่นแก้ → เพิ่ม `overrides` ใน `package.json` แล้วรัน build + typecheck + lint + vitest
+- **ห้ามรัน `npm audit fix`** (ถอย vitest) · ช่องโหว่ใหม่ระดับ high/critical ที่ถึงโค้ดบน production → เปิดรอบใหม่กับ main (เรียก security ตรวจ) ไม่แก้เองแบบเดา
+- merge PR ของ Dependabot ได้เมื่อ CI เขียวทั้ง `test + migration` และ e2e เท่านั้น
+
+### migration
+- schema เปลี่ยนด้วย migration แบบมีเวอร์ชันเท่านั้น (ส่วน B) · **ลำดับเสมอ:** สำรองฐาน → ซ้อมบน preview → รัน migration บน prod → แล้วจึง merge/deploy · migration ที่ลบ/แปลงข้อมูล = breaking (ขยับ MAJOR ตาม `docs/VERSIONING.md`) · คนรัน migration บน prod คือ boss (token Turso บนเครื่อง boss)
+
+### ออกรุ่น (release)
+boss รันเอง (agent ไม่ออกรุ่น): `git switch main` → `git pull --ff-only` → `npm ci` → `npx tsx scripts/release.ts <เลข> --dry-run` → ตรวจ → `npx tsx scripts/release.ts <เลข>` → push `main` และ tag ตามที่สคริปต์พิมพ์ · ขั้นตอนเต็มและข้อความ error ใน `docs/VERSIONING.md` §6 · เลขรุ่นตามกติกา "หลัง 1.0": PATCH = แก้บั๊ก · MINOR = ความสามารถใหม่ที่ไม่ breaking · MAJOR = breaking (ต้องมี Upgrade notes) · หลังออกรุ่นตรวจ `/api/health` กับ CI บน `main` (ส่วน F) และทำตาม `docs/contracts/DOCS_SYNC_CONTRACT.md`
+
+### โควตา LINE OA
+แผนฟรี 300 ข้อความ/เดือน (นับตามเดือนปฏิทิน Asia/Bangkok · แอปหยุดส่งที่ 300 เป็น `LINE_OA_CAP` · กระดิ่งยังทำงาน) · ทุกเดือนดูจำนวนที่ส่งใน LINE Official Account Manager · ใกล้เพดานบ่อย → พิจารณาแผนที่สูงขึ้นแล้วปรับเพดานในโค้ดผ่าน PR · ข้อความหยุดส่งทั้งที่ยังไม่ถึงเพดาน → ตรวจ token/secret ตามส่วน J · การเตือนแขกที่ชวนผ่านลิงก์นับในเพดานเดียวกัน
+
+### เมื่อไม่แน่ใจ
+อย่าแก้ฐานหรือ env ด้วยมือแบบเดา · ใช้ runbook ส่วน G/K · ปัญหาที่ runbook ไม่ครอบคลุม → เปิดรอบใหม่ให้ main เขียน contract ก่อนลงมือ (กฎ 1)
+
 ## ภาคผนวก: ตารางสรุปตัวแปร env
 อ้างอิงเต็มใน `.env.example` (ARCHITECTURE §7) · ที่มาของกติกาเข้ม/ผ่อน: `src/lib/shared/env.ts`
 | ตัวแปร | ต้องมีเมื่อ | ถ้าขาด |
@@ -620,11 +691,13 @@ cron รายวัน (`/api/cron/daily`) ลบ `busy_block` ที่ `end_a
 |---|---|---|---|---|
 | `esbuild` 0.18.20 | GHSA-67mh-4wv8-2f99 (moderate · เว็บใดก็ส่งคำขอถึง dev server ของ esbuild ได้) แก้ใน 0.25.0 | `drizzle-kit` → `@esbuild-kit/esm-loader` → `@esbuild-kit/core-utils` | **ไม่** — เครื่องมือ dev/migration เท่านั้น (ไม่ได้อยู่ใน bundle ของ Next) และช่องโหว่ต้องรัน esbuild serve | `overrides`: `@esbuild-kit/core-utils` → `esbuild` `0.25.12` (รุ่นเดียวกับที่ drizzle-kit ใช้อยู่แล้ว) · `drizzle-kit check` ผ่าน |
 | `minimatch` 10.2.6 | GHSA-g3hv-75wg-m249 (moderate · DoS) แก้ใน 11.0.1 | `eslint-config-next` → `typescript-eslint` → `@typescript-eslint/typescript-estree` | **ไม่** — lint ตอนพัฒนา/CI เท่านั้น | `overrides`: `@typescript-eslint/typescript-estree` → `minimatch` `11.0.1` (ตัวอื่นของ eslint ยังใช้ 3.1.5 ซึ่งไม่อยู่ในช่วงที่ได้รับผลกระทบ 7.0.0–11.0.0) · lint ผ่าน |
-| `picomatch` (ทุกรุ่น) | GHSA-fc5q-39xc-vjpf (**high** · ReDoS ผ่าน extglob ซ้ำ) **ยังไม่มีรุ่นที่แก้** | `vite`/`vitest`/`tinyglobby`/`fdir` (เทสต์), `micromatch` → `fast-glob` → `@next/eslint-plugin-next` (lint), `@parcel/watcher` ← `next-intl` | **ไม่พบทางถึงคำขอผู้ใช้** — picomatch รับ "รูปแบบ glob" จากโค้ด/คอนฟิกของเรา ไม่เคยรับจากคำขอของผู้ใช้ · ส่วนใหญ่เป็น dev/test/lint · `@parcel/watcher` อยู่ใน dependencies ของ `next-intl` แต่ใช้เฝ้าไฟล์ตอน dev/extract เท่านั้น แอปเราไม่ได้เปิดใช้ | **ไม่แก้** (ไม่มีรุ่นแก้ · `npm audit fix --force` จะถอย vitest เป็น 3.1.4 ซึ่งผิดทาง) · ตรวจซ้ำเมื่อ picomatch ออกรุ่นแก้ แล้วเพิ่ม override |
+| `picomatch` (ทุกรุ่น) | GHSA-fc5q-39xc-vjpf (**high** · ReDoS ผ่าน extglob ซ้ำ) **ยังไม่มีรุ่นที่แก้** (ตรวจซ้ำ 2026-11-20: ดูด้านล่าง) | `vite`/`vitest`/`tinyglobby`/`fdir` (เทสต์), `micromatch` → `fast-glob` → `@next/eslint-plugin-next` (lint), `@parcel/watcher` ← `next-intl` | **ไม่พบทางถึงคำขอผู้ใช้** — picomatch รับ "รูปแบบ glob" จากโค้ด/คอนฟิกของเรา ไม่เคยรับจากคำขอของผู้ใช้ · ส่วนใหญ่เป็น dev/test/lint · `@parcel/watcher` อยู่ใน dependencies ของ `next-intl` แต่ใช้เฝ้าไฟล์ตอน dev/extract เท่านั้น แอปเราไม่ได้เปิดใช้ | **ไม่แก้** (ไม่มีรุ่นแก้ · `npm audit fix --force` จะถอย vitest เป็น 3.1.4 ซึ่งผิดทาง) · ตรวจซ้ำเมื่อ picomatch ออกรุ่นแก้ แล้วเพิ่ม override |
 
 หมายเหตุ: `npm audit --omit=dev` ยังรายงาน picomatch เพราะ `@parcel/watcher` นับเป็น production dependency ของ `next-intl` ตามไฟล์ package แต่ไม่ถูกเรียกในเส้นทางคำขอ
 
 **คำเตือน: ห้ามรัน `npm audit fix`** (แม้ไม่ใส่ `--force`) — dry-run แล้วจะถอย `vitest` เป็น 3.1.4 และ picomatch ก็ยังอยู่ · แก้ด้วย `overrides` ใน `package.json` เท่านั้น
+
+**ตรวจซ้ำ 2026-11-20 (R18 H7): ยังไม่มีรุ่นแก้ — คงสถานะยอมรับความเสี่ยง** · `npm view picomatch versions` รุ่นล่าสุด 4.0.7 · `gh api advisories/GHSA-fc5q-39xc-vjpf` ช่วงที่ได้รับผลกระทบ `<= 4.0.7` และ `first_patched_version` เป็น null · Dependabot alert ที่เปิดอยู่ = ไม่มี · `npm audit` รายงาน 0 vulnerabilities (ฐาน audit ของ npm ยังไม่รวมรายการนี้) · lockfile ใช้ picomatch 4.0.7 และ 2.3.2 (ผ่าน micromatch) · ตรวจซ้ำครั้งถัดไปเมื่อมี Dependabot alert ใหม่หรือก่อนรุ่นถัดไป
 
 **เงื่อนไขประเมิน picomatch ใหม่:**
 - ถ้าเปิดใช้ `extract` ของ next-intl (ใช้ `@parcel/watcher`) หรือตั้ง `images` patterns ใน `next.config.ts` ให้ประเมินใหม่ทันที เพราะ picomatch อาจรับ pattern ที่เกี่ยวกับ runtime

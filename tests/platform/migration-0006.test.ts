@@ -111,9 +111,11 @@ describe('migration 0006 บนฐานที่มีข้อมูลรู�
     expect(tablesBefore).toContain('place_search_cache');
     const after = (await exec("select name from pragma_table_info('groups') order by cid")).rows.map((r) => String(r.name));
     expect(after).toEqual([...groupColsBefore, 'icon']);
-    expect(await tableNames()).toEqual(tablesBefore.filter((n) => n !== 'place_search_cache'));
+    // ตาราง/index ของ migration หลังจากนี้ (0007 R18) ไม่นับ — เทสต์นี้ apply ทั้งโฟลเดอร์
+    const later = (n: string) => /^appointment_(guest|share_link)(\.|$)/.test(n);
+    expect((await tableNames()).filter((n) => !later(n))).toEqual(tablesBefore.filter((n) => n !== 'place_search_cache'));
     // index ของตารางอื่นยังอยู่ครบ (DROP TABLE เอา index ของตัวเองไปด้วยเท่านั้น)
-    expect(await indexNames()).toEqual(indexesBefore.filter((n) => !n.startsWith('place_search_cache.')));
+    expect((await indexNames()).filter((n) => !later(n))).toEqual(indexesBefore.filter((n) => !n.startsWith('place_search_cache.')));
     const rs = await exec('select count(*) as n from __drizzle_migrations');
     expect(Number(rs.rows[0]?.n)).toBe(journalOf().entries.length);
   });

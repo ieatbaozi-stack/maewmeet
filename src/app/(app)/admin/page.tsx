@@ -42,7 +42,6 @@ export default async function AdminHubPage() {
     <>
       <TopBar />
       <div className="admin-head">
-        <p className="eyebrow">{t("eyebrow")}</p>
         <h1>{t("title")}</h1>
         <p className="admin-lead">{t("lead")}</p>
       </div>
@@ -57,8 +56,13 @@ export default async function AdminHubPage() {
                 <span className="hub-text">
                   <span className="hub-title">{t(l.key)}</span>
                   <span className="hub-hint">{t(`${l.key}Hint`)}</span>
+                  {/* R18 F11: ป้ายอยู่ใต้คำอธิบาย ไม่แย่งความกว้างของหัวข้อ */}
+                  {l.key === "resets" && pending ? (
+                    <span className="hub-badge">
+                      <span className="tag tag-wait">{tMe("adminResetsBadge", { count: pending })}</span>
+                    </span>
+                  ) : null}
                 </span>
-                {l.key === "resets" && pending ? <span className="tag tag-wait">{tMe("adminResetsBadge", { count: pending })}</span> : null}
                 <Icon name="chevron-right" />
               </Link>
             </li>

@@ -194,3 +194,4 @@ a.steps-row:focus-visible, .steps-toggle:focus-visible { outline: var(--focus-ri
 
 /* ทางเข้า "วิธีใช้งาน" ในแท็บ ฉัน (R8 §5) */
 .menu-row .field-hint { display: block; color: var(--ink-muted); font-size: var(--text-sm); }
+.set-sec .field, .set-sec form { max-width: calc(var(--tap-lg) * 10); } /* R18 F16: ช่องกรอกไม่ยืดเต็มจอ iPad (ไม่จัดโครงใหม่) */

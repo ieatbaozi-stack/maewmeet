@@ -100,7 +100,8 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, ro
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   // R6F: ลบรายการในชุด → dialog เลือก (วันนี้/ทั้งชุด) แล้วยืนยันอีกชั้นก่อนลบทั้งชุด
-  const [seriesStep, setSeriesStep] = useState<"choose" | "confirm" | null>(null);
+  // R18 C1: "วันนี้วันเดียว" ก็ยืนยันอีกชั้น (confirmOne) เหมือนทั้งชุด — กดครั้งเดียวไม่ลบ
+  const [seriesStep, setSeriesStep] = useState<"choose" | "confirm" | "confirmOne" | null>(null);
   const inSeries = edit !== null && edit.seriesId != null;
   // R6E E11: ทับ busy เดิมของตัวเอง → dialog ถามก่อนบันทึก (ไม่บล็อก)
   const [overlap, setOverlap] = useState<{ payload: BusyPayload; items: OwnBusy[] } | null>(null);
@@ -457,7 +458,8 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, ro
                 {titleCount}/{TITLE_MAX}
               </span>
             </div>
-            <p className="field-hint" id={`${uid}-what-h`}>
+            {/* R18 F14: เพดานตัวอักษรซ้ำกับตัวนับ → เหลือให้โปรแกรมอ่านจอ (describedby) ไม่แสดงซ้ำบนจอ */}
+            <p className="sr-only" id={`${uid}-what-h`}>
               {t("busy.form.what.hint", { max: TITLE_MAX })}
             </p>
           </div>
@@ -552,6 +554,10 @@ export function BusyFormSheet({ edit, defaultDate, today, groupCount, userId, ro
           summaryText={summaryText}
           title={edit.title}
           onOne={() => void remove("one")}
+          onAskOne={() => {
+            setDeleteError(null);
+            setSeriesStep("confirmOne");
+          }}
           onAskAll={() => {
             setDeleteError(null);
             setSeriesStep("confirm");
@@ -600,16 +606,18 @@ function SeriesDeleteDialog({
   summaryText,
   title,
   onOne,
+  onAskOne,
   onAskAll,
   onAll,
   onClose,
 }: {
-  step: "choose" | "confirm";
+  step: "choose" | "confirm" | "confirmOne";
   busy: boolean;
   error: string | null;
   summaryText: string;
   title: string | null;
   onOne: () => void;
+  onAskOne: () => void;
   onAskAll: () => void;
   onAll: () => void;
   onClose: () => void;
@@ -627,6 +635,13 @@ function SeriesDeleteDialog({
       ) : null}
     </p>
   );
+  if (step === "confirmOne") {
+    return (
+      <ConfirmDialog title={t("busy.series.confirmOneTitle")} body={t("busy.series.confirmOneBody")} confirmLabel={t("busy.series.confirmOne")} busy={busy} error={error} onConfirm={onOne} onClose={onClose}>
+        {detail}
+      </ConfirmDialog>
+    );
+  }
   if (step === "confirm") {
     return (
       <ConfirmDialog title={t("busy.series.confirmAllTitle")} body={t("busy.series.confirmAllBody")} confirmLabel={t("busy.series.confirmAll")} busy={busy} error={error} onConfirm={onAll} onClose={onClose}>
@@ -642,7 +657,7 @@ function SeriesDeleteDialog({
       initialFocusRef={cancelRef}
       footer={
         <>
-          <BusyButton type="button" className="btn btn-secondary btn-block" busy={busy} data-testid="busy-series-delete-one" busyLabel={t("busy.series.deleteOne")} idleLabel={t("busy.series.deleteOne")} onClick={onOne} />
+          <BusyButton type="button" className="btn btn-secondary btn-block" busy={busy} data-testid="busy-series-delete-one" busyLabel={t("busy.series.deleteOne")} idleLabel={t("busy.series.deleteOne")} onClick={onAskOne} />
           <button type="button" className="btn btn-danger btn-block" disabled={busy} data-testid="busy-series-delete-all" onClick={onAskAll}>
             {t("busy.series.deleteAll")}
           </button>

@@ -34,6 +34,7 @@ import { clock } from "@/lib/shared/clock";
 import { DayPanel } from "./DayPanel";
 import { GroupSwitchSheet, type GroupOption } from "./GroupSwitchSheet";
 import { KindLegend, MemberLegend, MonthGrid } from "./MonthGrid";
+import { InstallHint } from "@/components/home/InstallHint";
 import { MineList } from "./MineList";
 import { classifyDay, isSelectable, planFromDate, urlDayParam } from "@/components/availability/model";
 import { addCreatedBusy, buildMonth, busyUsersByDate, fetchRange, monthStart, shiftMonth, spanOf, toSharedBusy, ymOf, type OwnBusy } from "./model";
@@ -45,7 +46,7 @@ const VIEWS: readonly CalView[] = ["month", "free", "day", "mine"];
 /** skipped = เซิร์ฟเวอร์ไม่ได้โหลดปฏิทิน (เปิดมาที่ ?v=free) → โหลดเมื่อสลับไปมุมมองเดือน/วัน */
 export type InitialCalendar = { status: "ready"; data: GroupCalendarDto } | { status: "error" } | { status: "gone" } | { status: "skipped" };
 /** ข้อมูลแท็บ "ของฉัน" จากเซิร์ฟเวอร์ (?v=mine) */
-export type InitialMine = { status: "ready"; items: OwnBusy[]; truncated: boolean; going: AppointmentDto[] | null } | { status: "error" };
+export type InitialMine = { status: "ready"; items: OwnBusy[]; truncated: boolean; going: AppointmentDto[] | null } | { status: "error"; /** R18 H4: เกินโควตา (429) — ขึ้นข้อความ "ลองใหม่อีกครั้ง" แทนข้อผิดพลาดทั่วไป */ rateLimited?: boolean };
 export type InitialAvailability = { status: "ready"; data: GroupAvailabilityDto } | { status: "error" } | { status: "gone" };
 
 export interface CalendarViewProps {
@@ -74,7 +75,7 @@ export interface CalendarViewProps {
 
 type CalState = { key: string; nowMs: EpochMs; status: "ready"; data: GroupCalendarDto } | { key: string; nowMs: EpochMs; status: "error" | "gone" };
 type AvState = { key: string; nowMs: EpochMs; status: "ready"; data: GroupAvailabilityDto } | { key: string; nowMs: EpochMs; status: "error" | "gone" };
-type MineState = { key: string; nowMs: EpochMs; status: "ready"; items: OwnBusy[]; truncated: boolean; going: AppointmentDto[] | null } | { key: string; nowMs: EpochMs; status: "error" };
+type MineState = { key: string; nowMs: EpochMs; status: "ready"; items: OwnBusy[]; truncated: boolean; going: AppointmentDto[] | null } | { key: string; nowMs: EpochMs; status: "error"; rateLimited?: boolean };
 type FormState = { edit: OwnBusy | null; today: DateISO; defaultDate: DateISO; routineDayNote?: boolean } | null;
 /** R14: sheet ขอบเขต / ฟอร์ม routine ที่เปิดอยู่ (own = วันของ routine ที่แตะ — ใช้เปิดฟอร์ม busy เดิมเมื่อเลือก "เฉพาะวันนี้") */
 type RoutineUi = { type: "scope"; action: ScopeAction; target: ScopeTarget; own: OwnBusy | null } | { type: "form"; mode: RoutineFormMode } | { type: "skip"; routine: RoutineView } | null;
@@ -163,7 +164,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   const mineKey = `mine|${version}`;
   // R14: ส่วน "แบบประจำของฉัน" โหลดแยกจากรายการ busy เดี่ยว (ล้มเหลวเฉพาะส่วนนี้) · วันของ routine ของฉันในช่วงที่เห็น (ไว้แสดงป้าย "ประจำ")
   const [rt, setRt] = useState<{ key: string; state: RoutineListState } | null>(null);
-  const [ownDays, setOwnDays] = useState<{ key: string; map: ReadonlyMap<string, OwnBusy> } | null>(null);
+  const [ownDays, setOwnDays] = useState<{ key: string; map: ReadonlyMap<string, OwnBusy>; rateLimited?: boolean } | null>(null);
   const [mine, setMine] = useState<MineState | null>(() => (initialMine ? { key: "mine|0", nowMs: initialNowMs, ...initialMine } : null));
 
   // ───────── โหลดข้อมูล (setState เฉพาะใน callback หลัง await — ไม่ซิงก์ใน effect) ─────────
@@ -210,7 +211,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       setMine(
         res.ok
           ? { key: mineKey, nowMs, status: "ready", items: res.data.busy, truncated: res.data.truncated === true, going: going.ok ? going.data.appointments : null }
-          : { key: mineKey, nowMs, status: "error" },
+          : { key: mineKey, nowMs, status: "error", ...(res.kind === "api" && res.status === 429 ? { rateLimited: true } : {}) },
       );
     });
     return () => {
@@ -239,7 +240,8 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       if (!live) return;
       const map = new Map<string, OwnBusy>();
       if (res.ok && Array.isArray(res.data?.busy)) for (const b of res.data.busy) if (b.routineId) map.set(b.id, b);
-      setOwnDays({ key: ownKey, map });
+      // R18 H4: 429 ไม่กลืนเงียบ — บอกผู้ใช้ให้ลองใหม่ (ล้มเหลวอื่นๆ = ไม่มีป้ายตามเดิม)
+      setOwnDays({ key: ownKey, map, ...(!res.ok && res.kind === "api" && res.status === 429 ? { rateLimited: true } : {}) });
     });
     return () => {
       live = false;
@@ -498,6 +500,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       onPrev={() => moveDay(-1)}
       onNext={() => moveDay(1)}
       onToday={goToday}
+      showToday={view === "day"}
       onAdd={() => openForm(null)}
       {...(ownDays?.key === ownKey && ownDays.map.size > 0
         ? { routineDays: ownDays.map, onRoutineEdit: (own: OwnBusy) => void openDayScope("edit", own), onRoutineDelete: (own: OwnBusy) => void openDayScope("delete", own) }
@@ -529,7 +532,9 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
     } else if (mine.status === "error") {
       showFab = false;
       showTopActions = false;
-      body = errorBlock(t("busy.mine.error.title"), t("busy.mine.error.body"), retryCal, "cal-error");
+      body = mine.rateLimited
+        ? errorBlock(t("calendar.busyRateLimited.title"), t("calendar.busyRateLimited.body"), retryCal, "cal-busy-rate-limited")
+        : errorBlock(t("busy.mine.error.title"), t("busy.mine.error.body"), retryCal, "cal-error");
     } else {
       showFab = mine.items.length > 0 || hasRoutines;
       body = (
@@ -704,6 +709,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       </header>
       <main className="main wide cal-main" id="main" data-view={view}>
         <h1 className="sr-only">{t("nav.calendar")}</h1>
+        <InstallHint />
         <div className="segmented cols-4 cal-views" role="group" aria-label={t("calendar.view.label")}>
           {VIEWS.map((v) => (
             <button type="button" key={v} aria-pressed={view === v} data-testid={`cal-view-${v}`} data-emphasis={v === "free" ? "true" : undefined} onClick={() => changeView(v)}>
@@ -712,6 +718,10 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
             </button>
           ))}
         </div>
+        {/* R18 H4: ปฏิทินเดือน/วัน — โหลดวันของ routine (GET /api/me/busy) โดน 429 → ขึ้นข้อความลองใหม่ (ปฏิทินกลุ่มยังใช้ได้) */}
+        {(view === "month" || view === "day") && ownDays?.key === ownKey && ownDays.rateLimited
+          ? errorBlock(t("calendar.busyRateLimited.title"), t("calendar.busyRateLimited.body"), () => setOwnDays(null), "cal-busy-rate-limited")
+          : null}
         {missingShown ? (
           <div className="alert alert-warn" role="status" data-testid="cal-group-missing">
             <Icon name="info" />

@@ -17,10 +17,10 @@ export function dispatchCancelledLineAfterResponse(db: Db, appointmentId: string
     after(async () => {
       const startedAt = clock.now();
       try {
-        await dispatchLineOutbox(db, startedAt, {
-          scope: { kind: 'appointment.cancelled', appointmentId },
-          shouldStop: () => clock.now() - startedAt >= LINE_DISPATCH.afterResponseBudgetMs,
-        });
+        const shouldStop = () => clock.now() - startedAt >= LINE_DISPATCH.afterResponseBudgetMs;
+        await dispatchLineOutbox(db, startedAt, { scope: { kind: 'appointment.cancelled', appointmentId }, shouldStop });
+        // R18 §S: แขกของนัด (ชนิดแยก — ADR 0016 §7.2)
+        if (!shouldStop()) await dispatchLineOutbox(db, startedAt, { scope: { kind: 'appointment.guest.cancelled', appointmentId }, shouldStop });
       } catch (e) {
         console.error(`[line] immediate dispatch failed ${e instanceof Error ? e.name : typeof e}`);
       }

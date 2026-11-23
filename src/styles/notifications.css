@@ -19,12 +19,12 @@ a.notif-row:focus-visible { outline-offset: calc(var(--focus-ring) * -1); }
 .notif-ico.k-cancel { background: var(--busy); color: var(--busy-ink); }
 .notif-ico.k-ok { background: var(--free); color: var(--free-ink); }
 .notif-body { flex: 1; min-width: 0; display: grid; gap: var(--space-1); }
-.notif-msg { overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.notif-msg { overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
 .notif-time { font-size: var(--text-sm); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 .notif-chev { flex: none; color: var(--ink-muted); align-self: center; }
 
 /* ยังไม่อ่าน */
-.notif-row.is-unread { background: var(--accent-soft); box-shadow: inset var(--space-1) 0 0 var(--accent); }
+.notif-row.is-unread { background: var(--accent-soft); }
 .notif-row.is-unread .notif-msg { font-weight: var(--weight-semibold); }
 .notif-row.is-unread .notif-time { color: var(--ink-muted); }
 .notif-dot { flex: none; align-self: center; width: var(--space-2); height: var(--space-2); border-radius: var(--radius-full); background: var(--accent); }

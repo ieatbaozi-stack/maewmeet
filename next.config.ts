@@ -96,7 +96,13 @@ const nextConfig: NextConfig = {
   // ADR 0001 §1: cacheComponents ปิดใน v1 — ห้ามเปิด (ทุกหน้าอ่าน cookie ธีม/ภาษา/session)
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // R18 §S3 (ADR 0016 §3 · main มอบ platform ใน R18 §7.1): หน้าเปิดลิงก์ชวน — ห้าม index/ตามลิงก์/เก็บ cache
+      // header เป็นด่านที่แน่นอน (metadata ของ Next 16 อาจถูก stream ไปท้าย <body>)
+      // (ไม่ตั้ง Cache-Control ที่นี่: Next ตั้งเองสำหรับหน้า dynamic ที่อ่านคุกกี้ — ยังไม่ยืนยันบน build จริง ดู handoff)
+      { source: "/i/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+    ];
   },
 };
 

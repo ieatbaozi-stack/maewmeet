@@ -108,6 +108,15 @@ export const ROUTE_MANIFEST = [
   { method: 'GET', path: '/api/me/line', action: 'self.read', auth: 'actor', owner: 'platform' },
   { method: 'POST', path: '/api/me/line', action: 'self.update', auth: 'actor', owner: 'platform' },
   { method: 'DELETE', path: '/api/me/line', action: 'self.update', auth: 'actor', owner: 'platform' },
+  // ── R18 §S (Platform) — แชร์นัดให้คนนอกกลุ่ม (ADR 0016 §4) · หน้า /i/[token] เรียก service ตรง (ไม่มี API route) ──
+  { method: 'POST', path: '/api/appointments/:id/share-link', action: 'appointment.share.create', auth: 'actor', owner: 'platform' },
+  { method: 'DELETE', path: '/api/appointments/:id/share-links/:lid', action: 'appointment.share.revoke', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/share/join', action: 'appointment.guest.join', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/appointments/:id/guest', action: 'appointment.guest.view', auth: 'actor', owner: 'platform' },
+  { method: 'DELETE', path: '/api/appointments/:id/guest', action: 'appointment.guest.leave', auth: 'actor', owner: 'platform' },
+  { method: 'PUT', path: '/api/appointments/:id/guest/rsvp', action: 'appointment.guest.rsvp', auth: 'actor', owner: 'platform' },
+  { method: 'GET', path: '/api/appointments/:id/guest/calendar.ics', action: 'appointment.guest.view', auth: 'actor', owner: 'platform' },
+  { method: 'DELETE', path: '/api/appointments/:id/guests/:uid', action: 'appointment.guest.remove', auth: 'actor', owner: 'platform' },
 ] as const satisfies readonly ManifestEntry[];
 
 export function findRoute(method: string, path: string): ManifestEntry | undefined {

@@ -230,13 +230,18 @@ describe('3. params ของ notification มีเฉพาะคีย์ใ�
     // R11 (R11_CONTRACT §1 params) — เขียนมือจากสัญญา · actorId/responderId/memberId = คีย์ภายในใน DB ที่ไม่ส่งออก API/LINE
     'appointment.cancelled': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz', 'actorName', 'actorId', 'actorSystemAdmin'],
     'appointment.updated': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz', 'actorName', 'actorId', 'actorSystemAdmin', 'changes'],
-    'appointment.rsvp_changed': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz', 'responderName', 'responderId', 'response'],
+    'appointment.rsvp_changed': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz', 'responderName', 'responderId', 'response', 'responderGuest'],
     'group.member.joined': ['groupId', 'groupName', 'memberName', 'memberId'],
     'group.member.left': ['groupId', 'groupName', 'memberName', 'memberId'],
     'group.member.removed': ['groupId', 'groupName'],
     'group.member.role_changed': ['groupId', 'groupName', 'role'],
     // R17 G5 (contract R17 §1 G5 · B3): ไม่มีชื่อ super admin — ธง actorSystemAdmin แทน (แบบ R16 H4)
     'group.restored': ['groupId', 'groupName', 'actorSystemAdmin'],
+    // R18 §S (ADR 0016 §7.2): ถึงแขก — ไม่มีชื่อ/id ผู้กระทำ · removed ไม่มี appointmentId
+    // groupId = คีย์ในฐานเท่านั้น (purge กลุ่ม/เพดาน unread) — publicParams ตัดออกก่อนส่งทาง API (security-v1 Info 1 · ดูเทสต์ด้านล่าง)
+    'appointment.guest.updated': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz', 'changes'],
+    'appointment.guest.cancelled': ['groupId', 'groupName', 'appointmentId', 'title', 'startAt', 'tz'],
+    'appointment.guest.removed': ['groupId', 'groupName', 'title', 'startAt', 'tz'],
     'pin_reset.approved': ['expiresAt'],
     'pin_reset.cancelled_by_login': [],
   };
@@ -362,5 +367,19 @@ describe('3. params ของ notification มีเฉพาะคีย์ใ�
         `${rel(f)}: ไม่พบการกันผู้สร้างออกจากผู้รับ`,
       ).toBe(true);
     }
+  });
+});
+
+describe('R18 security-v1 Info 1 — ชนิดของแขกไม่ส่ง groupId ออกทาง API', () => {
+  it('publicParams ตัด groupId เฉพาะ appointment.guest.* · ชนิดของสมาชิกยังมี groupId · คีย์ภายในเดิมยังถูกตัด', async () => {
+    const { publicParams } = await import('@/lib/data/notifications/notify');
+    const p = { groupId: 'g', groupName: 'G', appointmentId: 'a', title: 't', startAt: 1, tz: 'Asia/Bangkok', actorId: 'x' };
+    for (const kind of ['appointment.guest.updated', 'appointment.guest.cancelled', 'appointment.guest.removed']) {
+      expect(publicParams(p, kind), kind).not.toHaveProperty('groupId');
+      expect(publicParams(p, kind), kind).not.toHaveProperty('actorId');
+    }
+    expect(publicParams(p, 'appointment.cancelled')).toHaveProperty('groupId', 'g');
+    expect(publicParams(p, 'appointment.cancelled')).not.toHaveProperty('actorId');
+    expect(publicParams(p)).toHaveProperty('groupId', 'g');
   });
 });

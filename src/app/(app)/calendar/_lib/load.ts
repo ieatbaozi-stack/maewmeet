@@ -110,7 +110,7 @@ export async function loadCalendarPage(search: CalendarSearch): Promise<Calendar
     initialMine =
       busy.status === "fulfilled"
         ? { status: "ready", items: busy.value.busy as OwnBusy[], truncated: busy.value.truncated, going: going.status === "fulfilled" ? (going.value.appointments as AppointmentDto[]) : null }
-        : { status: "error" };
+        : { status: "error", ...(busy.reason instanceof AppError && busy.reason.code === "RATE_LIMITED" ? { rateLimited: true } : {}) }; // R18 H4: 429 → ข้อความลองใหม่
   } else if (view === "free") {
     initial = { status: "skipped" };
     try {

@@ -151,7 +151,18 @@ test.describe('R6F ฝั่ง UI', () => {
     for (const id of ['busy-series-delete-one', 'busy-series-delete-all', 'busy-series-cancel']) {
       expect((await a.getByTestId(id).boundingBox())!.height, `${id} ≥ 44`).toBeGreaterThanOrEqual(44);
     }
+    // R18 C1: "ลบวันนี้" ต้องยืนยันอีกชั้น — กดครั้งเดียวยังไม่ลบ · ยกเลิกแล้วยังอยู่ครบ
     await a.getByTestId('busy-series-delete-one').click();
+    const oneConfirm = a.getByRole('alertdialog');
+    await expect(oneConfirm).toContainText(T('busy.series.confirmOneTitle'));
+    await expect(oneConfirm).toContainText(T('busy.series.confirmOneBody'));
+    expect((await listOwn(A.context.request)).filter((r) => r.seriesId), 'กดครั้งเดียวต้องยังไม่ลบ').toHaveLength(3);
+    await expect(toast(a)).toHaveCount(0);
+    await oneConfirm.getByRole('button', { name: T('common.cancel'), exact: true }).click();
+    expect((await listOwn(A.context.request)).filter((r) => r.seriesId), 'ยกเลิกแล้วยังอยู่ครบ').toHaveLength(3);
+    await dialogs(a).getByTestId('busy-delete').click();
+    await a.getByTestId('busy-series-delete-one').click();
+    await a.getByRole('alertdialog').getByRole('button', { name: T('busy.series.confirmOne'), exact: true }).click();
     await expect(dialogs(a)).toHaveCount(0);
     await expect(toast(a)).toContainText(T('busy.toast.deletedDay'));
     const afterOne = await listOwn(A.context.request);

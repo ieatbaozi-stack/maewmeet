@@ -65,6 +65,15 @@ export function initialMonth(p: SkipPool, mode: SkipMode): string | null {
   return first ? ymOf(first) : null;
 }
 
+/**
+ * เดือนที่แสดงหลังสลับโหมด: คงเดือนปัจจุบันไว้เฉพาะเมื่อมีวันของ "โหมดปลายทาง" อยู่ในเดือนนั้น (skip = available · restore = skipped)
+ * ไม่งั้นไปเดือนของวันแรกของโหมดนั้น — กันค้างเดือนที่ไม่มีวันเว้นให้เอากลับ
+ */
+export function monthAfterModeChange(p: SkipPool, mode: SkipMode, current: string | null): string | null {
+  const list = mode === "skip" ? p.available : p.skipped;
+  return current && list.some((d) => ymOf(d) === current) ? current : initialMonth(p, mode);
+}
+
 export type SkipCell =
   /** ว่างก่อนวันที่ 1 ของเดือน (ให้ตารางเริ่มตรงวันในสัปดาห์) */
   | { type: "blank"; key: string }

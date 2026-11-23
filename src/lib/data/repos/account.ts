@@ -82,6 +82,9 @@ export type PurgeCounts = {
   invitesRevoked: number;
   directInvitesClosed: number;
   pinResetsCancelled: number;
+  /** R18 §S (ADR 0016 §7.4): ลิงก์ชวนนัดที่ผู้ใช้สร้าง (ลบ) · แถวแขกของผู้ใช้ (ลบ) */
+  shareLinks: number;
+  guestRows: number;
 };
 
 /**
@@ -99,14 +102,17 @@ export async function purgeDeletedUserFootprint(
 ): Promise<PurgeCounts> {
   const { userId } = input;
   // แจ้งเตือนของคนอื่นที่อ้างชื่อผู้ใช้นี้ — ทำก่อนปิดคำเชิญ (อ้างด้วย inviteId ของคำเชิญที่ผู้ใช้สร้าง/ได้รับ)
+  // R18 D1: คำเชิญที่ cron ลบถาวรแล้วไม่มีแถวให้ join → ใช้ id ที่ cron ประทับไว้ใน params (inviterId / inviteeId) แทน แล้วลบ id ออกพร้อมล้างชื่อ
   await db.run(sql`
-    UPDATE notification SET params = json_set(params, '$.inviterName', '')
+    UPDATE notification SET params = json_set(json_remove(params, '$.inviterId'), '$.inviterName', '')
      WHERE kind = 'group.invite.received' AND user_id <> ${userId}
-       AND json_extract(params, '$.inviteId') IN (SELECT id FROM group_invite WHERE created_by = ${userId})`);
+       AND (json_extract(params, '$.inviteId') IN (SELECT id FROM group_invite WHERE created_by = ${userId})
+            OR json_extract(params, '$.inviterId') = ${userId})`);
   await db.run(sql`
-    UPDATE notification SET params = json_set(params, '$.inviteeName', '')
+    UPDATE notification SET params = json_set(json_remove(params, '$.inviteeId'), '$.inviteeName', '')
      WHERE kind IN ('group.invite.accepted', 'group.invite.declined') AND user_id <> ${userId}
-       AND json_extract(params, '$.inviteId') IN (SELECT id FROM group_invite WHERE invitee_user_id = ${userId})`);
+       AND (json_extract(params, '$.inviteId') IN (SELECT id FROM group_invite WHERE invitee_user_id = ${userId})
+            OR json_extract(params, '$.inviteeId') = ${userId})`);
   // R11-7: แจ้งเตือนเหตุการณ์นัด/สมาชิกของคนอื่นที่อ้างผู้ใช้นี้ — อ้างผ่าน id ภายในใน params · ล้างชื่อ + ลบ id ออก
   await db.run(sql`
     UPDATE notification SET params = json_set(json_remove(params, '$.actorId'), '$.actorName', '')
@@ -126,6 +132,11 @@ export async function purgeDeletedUserFootprint(
   const busy = await db.delete(busyBlock).where(eq(busyBlock.userId, userId)).returning({ id: busyBlock.id });
   // R14 (ADR 0012 §8): บัญชีถูก anonymize ไม่ได้ลบแถว user → FK cascade จาก user ไม่ทำงาน · ลบกฎ routine เอง (skip ตาม FK cascade ของ busy_routine)
   const routines = await db.delete(busyRoutine).where(eq(busyRoutine.userId, userId)).returning({ id: busyRoutine.id });
+  // R18 §S (ADR 0016 §7.4): แถว user ไม่ถูกลบจริง → FK cascade ไม่ทำงาน · ลิงก์ที่ผู้ใช้สร้าง: ตั้ง link_id ของแขกเป็น NULL ก่อนลบ (แขกที่เขาชวนยังอยู่)
+  await db.run(sql`UPDATE appointment_guest SET link_id = NULL WHERE link_id IN (SELECT id FROM appointment_share_link WHERE created_by = ${userId})`);
+  const shareLinks = (await db.run(sql`DELETE FROM appointment_share_link WHERE created_by = ${userId}`)).rowsAffected;
+  // ฐานะแขก — คำตอบหายไปพร้อมแถว (invited_by/revoked_by/removed_by ที่ชี้ผู้ใช้นี้ในแถวของคนอื่นไม่แตะ — ชี้แถว user ที่ anonymize แล้ว)
+  const guestRows = (await db.run(sql`DELETE FROM appointment_guest WHERE user_id = ${userId}`)).rowsAffected;
   const rsvps = await db.delete(appointmentRsvp).where(eq(appointmentRsvp.userId, userId)).returning({ a: appointmentRsvp.appointmentId });
   await db.delete(notificationOutbox).where(eq(notificationOutbox.userId, userId));
   await db.delete(lineLinkCode).where(eq(lineLinkCode.userId, userId));
@@ -159,5 +170,7 @@ export async function purgeDeletedUserFootprint(
     invitesRevoked: invitesRevoked.length,
     directInvitesClosed: directInvitesClosed.length,
     pinResetsCancelled: pinResetsCancelled.length,
+    shareLinks,
+    guestRows,
   };
 }
