@@ -25,8 +25,8 @@
 ### 2. เฝ้าดู (watch)
 - **picomatch GHSA-fc5q-39xc-vjpf** — ยังไม่มีรุ่นแก้ (ตรวจซ้ำ 2026-11-20) คงยอมรับความเสี่ยงตาม OPERATIONS (dev/test/lint เท่านั้น) · ตรวจใหม่เมื่อมี Dependabot alert หรือรุ่นแก้
 
-### 3. งานหลัง 1.0 (มี contract แล้ว · รอเริ่มงานโค้ด)
-- **นำเข้า ICS (v1.1.0 · ระดับ C · ไม่มี migration):** [docs/contracts/ICS_IMPORT_CONTRACT.md](../contracts/ICS_IMPORT_CONTRACT.md) — boss อนุมัติ 2026-11-23 (B1–B4 = ค่าแนะนำ (ก)) · รอเริ่มงานโค้ดบน `feat/ics-import` (แนะนำทำใน Claude Code ทีม agent เต็มตาม `AGENTS.md` §3)
+### 3. งานหลัง 1.0 (พัฒนาครบแล้วบน `feat/ics-import` · รอตรวจอิสระ qa + security)
+- **นำเข้า ICS (v1.1.0 · ระดับ C · ไม่มี migration):** [docs/contracts/ICS_IMPORT_CONTRACT.md](../contracts/ICS_IMPORT_CONTRACT.md) (PR #48 merge `65ccfa9`) · [ADR 0017](../adr/0017-ics-import.md) · [docs/design/ICS_IMPORT.md](../design/ICS_IMPORT.md) — พัฒนาครบทุกส่วน (parser + preview/confirm API + rate limit + 2-step UI + `/privacy` + unit/integration/E2E + DOCS_SYNC) บน branch `feat/ics-import` · **เหลือ:** ตรวจอิสระ `qa` (แชตใหม่คนละโมเดล) + Claude Code `security` agent ก่อน boss merge และออกรุ่น **v1.1.0**
 
 ### 4. ตัดสินแล้ว — ไม่ทำ (ไม่ใช่งานค้าง)
 - ข้อเสนอ PRD ที่ไม่มีคนขอ: deny list ผู้ถูกลบ · ผู้รับปิดรับคำเชิญตรง · ชื่อกลุ่มคล้ายกัน — ไม่ทำใน 1.0 (R18 §4 · B3)
