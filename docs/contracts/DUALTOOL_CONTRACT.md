@@ -17,8 +17,8 @@
 ## 3. แบ่งงานระหว่างเครื่องมือ (ใส่ใน AGENTS.md)
 | ระดับ | ตัวอย่าง | ทำที่ | ผู้ตรวจ |
 |---|---|---|---|
-| A — ทั่วไป | UI, ข้อความ TH/EN, bug, เทสต์, เอกสาร, CI/ops, API/logic ที่ไม่แตะสิทธิ์ | Antigravity ทั้งรอบ | แชตใหม่ใน Antigravity **คนละโมเดลกับคนทำ** (Opus ทำ → Gemini ตรวจ หรือสลับ) ตามเช็กลิสต์ qa + review |
-| B — เสี่ยง | แตะ `src/lib/auth/**`, `src/lib/rbac/**`, `api/auth`, schema/migration, ข้อมูลคน (busy, share link, guest), ความลับ | ทำใน Antigravity ได้ | ระดับ A + **Claude Code `security` agent 1 ครั้ง** ก่อน boss merge · migration ยังต้องรันกับ boss บน preview ก่อนเปิด PR และ prod ก่อน merge |
+| A — ทั่วไป | UI, ข้อความ TH/EN, bug, เทสต์, เอกสาร, CI/ops, logic ที่ไม่แตะ `src/app/api/**` | Antigravity ทั้งรอบ | แชตใหม่ใน Antigravity **คนละโมเดลกับคนทำ** (Opus ทำ → Gemini ตรวจ หรือสลับ) ตามเช็กลิสต์ qa + review |
+| B — เสี่ยง | แตะ `src/lib/auth/**`, `src/lib/rbac/**`, route ใน `src/app/api/**` (เพิ่ม/แก้ — ตาม CLAUDE.md ที่ให้ security ตรวจเมื่อแตะ api; main ชี้ขาด 2026-11-23 จากข้อสังเกต qa), schema/migration, ข้อมูลคน (busy, share link, guest), ความลับ | ทำใน Antigravity ได้ | ระดับ A + **Claude Code `security` agent 1 ครั้ง** ก่อน boss merge · migration ยังต้องรันกับ boss บน preview ก่อนเปิด PR และ prod ก่อน merge |
 | C — ใหญ่ | ฟีเจอร์ใหม่หลายส่วน, ADR ใหม่, รื้อโครง, เปลี่ยนเวอร์ชันหลัก | Claude Code (ทีม agent เต็ม) | ตาม PROCESS เดิม |
 
 ทุกระดับใช้กติกาเดิม: contract ก่อนโค้ด (ระดับ A เล็กมาก ใช้ "contract ย่อ" ในคำอธิบาย PR ได้: เป้าหมาย · ไฟล์ · เกณฑ์ผ่าน) · ทำบน branch → PR → หยุด · ผู้เขียน commit = ชื่อบทบาทที่ตรงกับไฟล์ที่แก้ + อีเมล noreply · ผลเทสต์จริงใน PR · เอกสารตาม DOCS_SYNC
