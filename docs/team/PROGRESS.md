@@ -12,7 +12,7 @@
 - **ผลตรวจอิสระ R18:** qa `docs/reports/qa-r18.md` ผ่านแบบมีข้อสังเกต · security `docs/reports/security-v1.md` ผ่าน (ตรวจซ้ำ `3c7d8c2`)
 - **เลขรุ่นในระบบ:** `package.json` = `1.0.1` · ตรงกับ CHANGELOG `[1.0.1] - 2026-11-23` · quickstart ท้ายหน้า `app v1.0.1` · PRD หมายเหตุ 1.0.1 (ตรวจด้วย `tests/ops/docs-sync.test.ts`)
 - **production `/api/health` version:** ยืนยันแล้ว = **`1.0.1`** (2026-11-23 19:43 · `ok:true`, `db:true`, `pepper.ok:true`, `node:v24.22.3`) · CI `chore(release): v1.0.1` (`45174826022`) บน `main` ผ่าน ✔
-- **DUALTOOL (Claude Code + Antigravity):** PR #44 merge `55469e5` · PR #46 (`docs/release-1.0.1`) merge `e71f62c` · อยู่บน `main` แล้ว
+- **DUALTOOL (Claude Code + Antigravity):** PR #44 merge `55469e5` · PR #46 (`docs/release-1.0.1`) merge `e71f62c` · PR #47 (`docs/v1.0.1-verify`) merge `f5b23ab` · อยู่บน `main` แล้ว
 
 ## เหลือ (รายการเปิดจริงหลัง 1.0 · ตรวจ 2026-11-23)
 
@@ -25,8 +25,8 @@
 ### 2. เฝ้าดู (watch)
 - **picomatch GHSA-fc5q-39xc-vjpf** — ยังไม่มีรุ่นแก้ (ตรวจซ้ำ 2026-11-20) คงยอมรับความเสี่ยงตาม OPERATIONS (dev/test/lint เท่านั้น) · ตรวจใหม่เมื่อมี Dependabot alert หรือรุ่นแก้
 
-### 3. งานหลัง 1.0 (ยังไม่เริ่ม · ต้องมี contract สั้นก่อนทำ)
-- **นำเข้า ICS** (PRD v1.x · ตัดสินแล้ว ไม่ทำใน 1.0 — งานหลัง 1.0 ถ้ามีคนขอ)
+### 3. งานหลัง 1.0 (มี contract แล้ว · รอเริ่มงานโค้ด)
+- **นำเข้า ICS (v1.1.0 · ระดับ C · ไม่มี migration):** [docs/contracts/ICS_IMPORT_CONTRACT.md](../contracts/ICS_IMPORT_CONTRACT.md) — boss อนุมัติ 2026-11-23 (B1–B4 = ค่าแนะนำ (ก)) · รอเริ่มงานโค้ดบน `feat/ics-import` (แนะนำทำใน Claude Code ทีม agent เต็มตาม `AGENTS.md` §3)
 
 ### 4. ตัดสินแล้ว — ไม่ทำ (ไม่ใช่งานค้าง)
 - ข้อเสนอ PRD ที่ไม่มีคนขอ: deny list ผู้ถูกลบ · ผู้รับปิดรับคำเชิญตรง · ชื่อกลุ่มคล้ายกัน — ไม่ทำใน 1.0 (R18 §4 · B3)
