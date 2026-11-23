@@ -39,7 +39,7 @@ import {
 import { hasSeenNotice, markNoticeSeen, subscribeNotice } from "./notice";
 import { BusyButton } from "@/components/shell/BusyButton";
 
-export type BusyDone = "created" | "updated" | "deleted" | "deletedDay" | "deletedSeries" | "gone";
+export type BusyDone = "created" | "updated" | "deleted" | "deletedDay" | "deletedSeries" | "imported" | "gone";
 
 export interface BusyFormSheetProps {
   /** รายการที่แก้ (null = ลงใหม่) */

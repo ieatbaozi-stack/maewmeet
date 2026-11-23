@@ -133,3 +133,33 @@
 .busy-series-note .tag { width: fit-content; max-width: 100%; margin: 0; }
 .busy-series-note .field-hint { margin-top: var(--space-2); }
 .busy-delete-detail { overflow-wrap: anywhere; word-break: break-word; }
+
+/* v1.1.0 — นำเข้าไฟล์ .ics (ใช้ token เท่านั้น ห้าม hex/px) */
+.busy-head-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+.busy-head-actions .rt-add { margin-top: 0; }
+.ics-sheet { display: grid; gap: var(--space-3); }
+.ics-sheet .field { margin-top: 0; }
+.ics-dropzone {
+  display: grid; justify-items: center; gap: var(--space-2); width: 100%;
+  padding: var(--space-6) var(--space-4); min-height: calc(var(--tap-lg) * 2);
+  border: var(--border-strong) dashed var(--line-control); border-radius: var(--radius-md);
+  background: var(--surface-2); color: var(--ink); text-align: center; cursor: pointer;
+}
+.ics-dropzone:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+.ics-dropzone-cta { font-weight: var(--weight-semibold); font-size: var(--text-md); }
+.ics-privacy { margin-top: 0; }
+.ics-file-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-width: 0; }
+.ics-file-name { font-weight: var(--weight-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ics-summary { display: grid; gap: var(--space-1); padding: var(--space-3); border-radius: var(--radius-sm); background: var(--surface-2); }
+.ics-summary-main { margin: 0; font-weight: var(--weight-semibold); }
+.ics-skipped { border: var(--border) solid var(--line); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); }
+.ics-skipped-summary { cursor: pointer; min-height: var(--tap); display: flex; align-items: center; font-weight: var(--weight-medium); }
+.ics-skipped-list { margin: var(--space-2) 0 0; padding-left: var(--space-5); display: grid; gap: var(--space-1); font-size: var(--text-sm); color: var(--ink-muted); }
+.ics-empty { padding: var(--space-5) var(--space-3); text-align: center; border-radius: var(--radius-sm); background: var(--surface-2); }
+.ics-bulk-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.ics-items { list-style: none; margin: 0; padding: 0; border: var(--border) solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.ics-item + .ics-item { border-top: var(--border) solid var(--line); }
+.ics-item-label { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3); min-height: var(--tap-lg); cursor: pointer; }
+.ics-checkbox { width: var(--space-5); height: var(--space-5); margin-top: var(--space-1); flex: none; accent-color: var(--accent); cursor: pointer; }
+.ics-item-body { display: grid; gap: var(--space-1); min-width: 0; flex: 1; }
+.ics-item-title { font-weight: var(--weight-medium); overflow-wrap: anywhere; }

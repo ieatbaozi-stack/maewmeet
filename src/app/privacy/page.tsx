@@ -21,7 +21,7 @@ const SECTIONS = [
   { key: "guest", items: ["preview", "joined", "members", "retention"] },
   { key: "places", items: ["links", "noTracking"] },
   { key: "line", items: ["body"] },
-  { key: "calendar", items: ["body"] },
+  { key: "calendar", items: ["body", "import"] },
   { key: "retention", items: ["busy", "notifications", "sessions", "security", "groups", "providers", "line"] },
   { key: "delete", items: ["how", "removed", "kept", "noRestore"] },
   { key: "contact", items: ["body"] },
