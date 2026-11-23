@@ -898,7 +898,9 @@
     "APPOINTMENT_PAST": "This plan is over, so answers are closed.",
     "SHARE_LINK_INVALID": "This link doesn’t work. Try opening it again from the message, or ask whoever invited you for a new one.",
     "SHARE_LINK_EXPIRED": "This link has expired. Ask whoever sent it.",
-    "SHARE_FULL": "This plan already has {max} guests. Ask whoever invited you if there’s still room."
+    "SHARE_FULL": "This plan already has {max} guests. Ask whoever invited you if there’s still room.",
+    "ICS_TOO_LARGE": "That file is too large or has too many events (up to 512 KB and 500 events). Try exporting a shorter date range.",
+    "ICS_INVALID": "We couldn’t read that file. Make sure it’s an .ics calendar file exported from your calendar app and try again."
   },
   "busy": {
     "add": "Add busy time",
@@ -1053,7 +1055,59 @@
       "savedDaily": "Saved {count, plural, one {# day} other {# days}}",
       "deletedDay": "Day deleted. The rest of the series is still there.",
       "deletedSeries": "Whole series deleted",
-      "deletedSeriesCount": "Whole series deleted ({count, plural, one {# day} other {# days}})"
+      "deletedSeriesCount": "Whole series deleted ({count, plural, one {# day} other {# days}})",
+      "imported": "Imported {count, plural, one {# entry} other {# entries}}"
+    },
+    "import": {
+      "button": "Import .ics",
+      "title": "Import .ics file",
+      "lead": "Bring in busy time from Google Calendar, Apple Calendar or Outlook in one go, then pick what to keep before saving.",
+      "loading": "Reading calendar file…",
+      "privacyNote": "We only read dates, times (and short titles if you choose to show them) to create your busy blocks. We don’t store the original file, descriptions, locations, or attendees, and never share it.",
+      "window": {
+        "label": "Look-ahead range",
+        "d30": "30 days",
+        "d60": "60 days",
+        "d90": "90 days",
+        "d180": "180 days"
+      },
+      "pick": {
+        "cta": "Choose .ics file",
+        "hint": "Supports .ics files up to 512 KB"
+      },
+      "preview": {
+        "title": "Review before importing",
+        "changeFile": "Change file",
+        "found": "Found {total, plural, one {# entry} other {# entries}} · {selected} selected",
+        "quota": "Your busy-time quota: {used}/{max} ({remaining} left)",
+        "selectAll": "Select all",
+        "selectNone": "Clear",
+        "noTitle": "No title",
+        "roundedTag": "Rounded",
+        "duplicateTag": "Already added",
+        "allDuplicates": "Every entry in this file is already in your busy time.",
+        "hideDetail": "Hide details from group members",
+        "hideDetailHint": "Friends will only see that you’re “Busy”, without event titles (recommended).",
+        "roundedNote": "Some times were rounded outward to half-hour steps so plans won’t overlap.",
+        "overQuota": "Selected entries exceed your remaining quota ({remaining} left). Uncheck some to continue.",
+        "overBatch": "You can import up to {max} entries at a time. Uncheck some to continue.",
+        "submit": "Import {count, plural, one {# entry} other {# entries}}",
+        "submitting": "Importing…"
+      },
+      "empty": {
+        "title": "No importable entries in this range",
+        "body": "Try a wider look-ahead range, or pick another .ics file."
+      },
+      "skipped": {
+        "summary": "Skipped {count, plural, one {# entry} other {# entries}}",
+        "rrule": "{count, plural, one {# recurring event} other {# recurring events}} — try adding a Routine in the app instead",
+        "cancelled": "{count, plural, one {# cancelled event} other {# cancelled events}}",
+        "transparent": "{count, plural, one {# event marked Free} other {# events marked Free}}",
+        "past": "{count, plural, one {# event} other {# events}} ended more than 7 days ago",
+        "tooFarAhead": "{count, plural, one {# event} other {# events}} outside the selected range",
+        "tooLong": "{count, plural, one {# event} other {# events}} longer than the max span",
+        "invalid": "{count, plural, one {# event} other {# events}} with unreadable date or time zone"
+      }
     },
     "series": {
       "tag": "In a series",
@@ -1957,8 +2011,9 @@
       "body": "Questions, or want more removed than the delete button does? Reach a system admin through one of your groups, or ask whoever invited you to the app."
     },
     "calendar": {
-      "title": "Adding a plan to your calendar",
-      "body": "If you tap “Add to your calendar app” on a plan, data leaves the app only when you tap it yourself. If you choose Google Calendar, the plan’s title, time, time zone, place name, map link (if any) and plan link are sent to Google straight from your browser (not through our server). That data is in the URL, so it may stay in your browser history. If you choose the .ics file, the same details sit in a file on your device, though your calendar app may sync it on to your iCloud or Google account. The map link is the one added to the plan (or carried over from an older plan), and it may contain the place’s coordinates. If the plan has a map link, it goes in the entry’s URL field or its Location section, depending on your calendar app, and in the Details with the label “Map:”. The plan link goes in the Details with the label “See the plan in maewmeet:”. With no map link, the URL field is the plan link. The title and place may be text another member typed. We don’t send the plan’s details, coordinates on their own, group name or member names. Either way it’s a one-time copy: if the plan changes or is removed from the app, the entry in your calendar won’t change or disappear."
+      "title": "Calendar and .ics files",
+      "body": "If you tap “Add to your calendar app” on a plan, data leaves the app only when you tap it yourself. If you choose Google Calendar, the plan’s title, time, time zone, place name, map link (if any) and plan link are sent to Google straight from your browser (not through our server). That data is in the URL, so it may stay in your browser history. If you choose the .ics file, the same details sit in a file on your device, though your calendar app may sync it on to your iCloud or Google account. The map link is the one added to the plan (or carried over from an older plan), and it may contain the place’s coordinates. If the plan has a map link, it goes in the entry’s URL field or its Location section, depending on your calendar app, and in the Details with the label “Map:”. The plan link goes in the Details with the label “See the plan in maewmeet:”. With no map link, the URL field is the plan link. The title and place may be text another member typed. We don’t send the plan’s details, coordinates on their own, group name or member names. Either way it’s a one-time copy: if the plan changes or is removed from the app, the entry in your calendar won’t change or disappear.",
+      "import": "If you use “Import .ics” in My busy time, we read only dates, times (and short titles if you choose to show them) from the .ics file you upload to create busy entries for your account, with details hidden from group members by default. We don’t store the original file, and we never store descriptions, locations, attendees, or links from that file."
     },
     "line": {
       "title": "Messages on LINE",
