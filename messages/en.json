@@ -2124,6 +2124,7 @@
     "badge": "Guest",
     "fromGroup": "From {group}",
     "banner": "You’re here as a guest, with {name}",
+    "goingHint": "Saying “Going” marks this time as busy on your calendar (and any groups you’re in).",
     "limits": "Guests only see this plan. You can reply going, maybe or can’t go, but you can’t edit or cancel the plan, or invite anyone else.",
     "counts": {
       "title": "Replies so far"
