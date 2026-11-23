@@ -1,6 +1,6 @@
 # ARCHITECTURE — แมวเจอกัน (maewmeet) v1
 
-> เจ้าของไฟล์: Architect · สถานะ: **ตรงกับโค้ดจริงบน branch `feat/r18-v1` (R0–R18 · ฉบับที่จะออกเป็น v1.0.0 · ตรวจ 2026-11-22 ที่ commit `091a2d4`)** — รุ่นที่ออกล่าสุดคือ v0.15.0 (2026-11-20) · ADR 0001–0016 สถานะ Accepted · ใช้ประกอบ [DOCS_SYNC_CONTRACT](../contracts/DOCS_SYNC_CONTRACT.md) (ทุก route ใน ROUTE_MANIFEST และทุกตารางที่ migration สร้างต้องมีชื่อในไฟล์นี้)
+> เจ้าของไฟล์: Architect · สถานะ: **ตรงกับโค้ดจริงที่ v1.0.0 (ออกรุ่น 2026-11-23 · R0–R18 · tag `v1.0.0` → `c906d09`)** — รุ่นก่อนหน้า v0.15.0 (2026-11-20) · ADR 0001–0016 สถานะ Accepted · ใช้ประกอบ [DOCS_SYNC_CONTRACT](../contracts/DOCS_SYNC_CONTRACT.md) (ทุก route ใน ROUTE_MANIFEST และทุกตารางที่ migration สร้างต้องมีชื่อในไฟล์นี้)
 > แหล่งความจริงของโค้ด: schema = `src/db/schema.ts` + `drizzle/*.sql` · routes = `src/app/api/_lib/manifest.ts` (`ROUTE_MANIFEST`) · env = `.env.example` + `src/lib/shared/env.ts` · cron = `vercel.json` + `.github/workflows/keepalive.yml` — ถ้าเอกสารนี้ขัดกับไฟล์เหล่านี้ ให้ถือโค้ดเป็นหลักแล้วแจ้ง architect
 > repo บน GitHub เป็น **public** แล้ว (ผลต่อ keepalive ดูข้อ 8)
 > แก้รอบ 2 (2026-10-16): การจัดการ pepper (ADR 0002 §7) — env `PIN_PEPPER_V<n>`, ตาราง `pepper_fingerprint`, `AUTH_MAINTENANCE` · keep-alive Turso 2 ชั้น (ADR 0001 §3.1) — ตาราง `system_heartbeat`, `/api/cron/heartbeat`, GitHub Actions · สัปดาห์เริ่มวันจันทร์ (ADR 0004)
@@ -8,7 +8,7 @@
 > **หมายเหตุ R13 (2026-11-11, boss อนุมัติ):** การค้นหาสถานที่ผ่าน Nominatim (U10 `GET /api/places/search`, action `place.search`, env `PLACE_SEARCH_ENABLED`/`NOMINATIM_*`/`NEXT_PUBLIC_MAP_*`) และภาพแผนที่ OSM ถูกเอาออกแล้ว — ผู้ใช้วางลิงก์แผนที่เอง + ปุ่มเปิด Google Maps / Apple Maps · ตาราง `place_search_cache` + งาน cron ล้างมัน **ถูกลบใน migration `0006` (R15, [ADR 0013](../adr/0013-drop-place-search-cache.md), ย้อนไม่ได้)** · ส่วนที่พูดถึงเรื่องนี้ด้านล่างคงไว้เป็นประวัติ · ดู [R13_CONTRACT §1.3](../contracts/R13_CONTRACT.md) และ [PRD D11](../prd/PRD.md)
 > **หมายเหตุ R16 (2026-11-19, ออกรุ่นใน v0.14.0):** rate limit ใหม่ `group:settings` / `prefs:update` / `api:read` (ข้อ 2, 5, 11) · DTO คำเชิญค้างและ notification `group.invite.received` มีธง `actorSystemAdmin` (ข้อ 5) · ข้อจำกัดที่รู้และความเสี่ยงที่ยอมรับ (redirect ได้ 200 ระหว่าง stream, Server-Timing เฉพาะ API, CSP `'unsafe-inline'` — [ADR 0014](../adr/0014-csp-unsafe-inline-accepted.md)) อยู่ข้อ 11 · ไม่มี route/ตารางใหม่
 > **หมายเหตุ R17 (2026-11-19, ออกรุ่นใน v0.15.0 เมื่อ 2026-11-20):** นโยบายเก็บข้อมูลที่ลบ [ADR 0015](../adr/0015-data-retention-group-restore-purge.md) — กลุ่มที่ลบเก็บ 30 วัน super admin กู้ได้ (`POST /api/admin/groups/:gid/restore`, action `admin.group.restore` ใน `SUPER_ADMIN_ONLY`/`SUPER_ADMIN_AUDITED`) แล้ว cron daily ลบถาวร (ข้อ 8 งานที่ 5) · DTO กลุ่มของ admin มี `purgeAt`/`restorable`/`restoreBlockedReason` · notification ชนิดใหม่ `group.restored` (ADR 0007, กระดิ่งเท่านั้น) · audit action `group.restore`/`group.purge` · บัญชียังล้างทันที แต่ `POST /api/me/delete` ต้องส่ง `confirmUsername` (ข้อ 5) · **ไม่มี migration/ตาราง/env ใหม่**
-> **หมายเหตุ R18 (2026-11-22, จะออกเป็น v1.0.0):** แชร์นัดให้คนนอกกลุ่ม [ADR 0016](../adr/0016-appointment-share-guests.md) — migration `0007_r18_appointment_share` (เพิ่มอย่างเดียว) สร้างตาราง `appointment_share_link` + `appointment_guest` (ข้อ 3) · route ใหม่ 8 ตัว + หน้า `/i/[token]` (ข้อ 1, 5) · action RBAC ใหม่ 8 ตัว (ข้อ 5.1) · error `SHARE_LINK_INVALID`/`SHARE_LINK_EXPIRED`/`SHARE_FULL` (ข้อ 6) · cron daily เพิ่มงานลบคำเชิญเก่า (D1) และลิงก์ชวนเก่า + ฟิลด์ `purgedInvites`/`purgedShareLinks` (ข้อ 8) · limiter `api:read` จองให้เสร็จ**ก่อน** handler (H1, ข้อ 2 และ 11) · ถังใหม่ `redeem:all` (H3) และ `share:*` (ข้อ 11.4) · **ไม่มี env ใหม่** (token ลิงก์ใช้ `APP_SECRET` ผ่าน HKDF info ใหม่ 2 ค่า — ข้อ 7)
+> **หมายเหตุ R18 (2026-11-22, ออกรุ่นใน v1.0.0 เมื่อ 2026-11-23):** แชร์นัดให้คนนอกกลุ่ม [ADR 0016](../adr/0016-appointment-share-guests.md) — migration `0007_r18_appointment_share` (เพิ่มอย่างเดียว) สร้างตาราง `appointment_share_link` + `appointment_guest` (ข้อ 3) · route ใหม่ 8 ตัว + หน้า `/i/[token]` (ข้อ 1, 5) · action RBAC ใหม่ 8 ตัว (ข้อ 5.1) · error `SHARE_LINK_INVALID`/`SHARE_LINK_EXPIRED`/`SHARE_FULL` (ข้อ 6) · cron daily เพิ่มงานลบคำเชิญเก่า (D1) และลิงก์ชวนเก่า + ฟิลด์ `purgedInvites`/`purgedShareLinks` (ข้อ 8) · limiter `api:read` จองให้เสร็จ**ก่อน** handler (H1, ข้อ 2 และ 11) · ถังใหม่ `redeem:all` (H3) และ `share:*` (ข้อ 11.4) · **ไม่มี env ใหม่** (token ลิงก์ใช้ `APP_SECRET` ผ่าน HKDF info ใหม่ 2 ค่า — ข้อ 7)
 > โค้ดใน §3 เริ่มจากฉบับที่ใช้ตอน R0–R1 แล้วปรับตามโค้ดจริงถึง R18 (R16 และ R17 ไม่มี migration · R18 เพิ่ม `0007`) — คอลัมน์ทุกตัวที่ยังมีอยู่ตรงกับ `src/db/schema.ts` (สรุปตารางทั้งหมดอยู่ต้น §3) · ชื่อไฟล์/คอลัมน์ถือเป็นสัญญา เปลี่ยนต้องผ่าน migration + ADR/contract
 
 ## สารบัญ
@@ -504,7 +504,7 @@ export const placeSearchCache = sqliteTable('place_search_cache', {   // proxy N
 Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` · `mustChangePin` → redirect `/set-pin` (เป็น UX เท่านั้น ด่านจริงคือ `can()`)
 
 ## 5. API endpoint ต่อ story
-ทุก endpoint: JSON, prefix `/api`, ผ่าน wrapper ข้อ 2 · ตารางนี้ **ตรงกับ `ROUTE_MANIFEST` ใน `src/app/api/_lib/manifest.ts` บน `feat/r18-v1` ทีละแถว (81 route · R16 ไม่มี route ใหม่ · R17 เพิ่ม `POST /api/admin/groups/:gid/restore` · R18 เพิ่ม 8 route ของแชร์นัด — ท้ายตาราง)** · หน้า `/i/[token]` ไม่ใช่ API route (Server Component เรียก service ตรง ด้วย action `appointment.share.preview`) — path เขียนแบบ manifest (`:param`) · คอลัมน์ "action" = ชื่อใน [ADR 0003](../adr/0003-rbac.md) ที่ service เรียก · "auth" = `actor` (session + CSRF Origin/JSON สำหรับ non-GET) / `cron` (Bearer `CRON_SECRET`) / `public` · "เจ้าของ" = บทบาทที่เขียน route
+ทุก endpoint: JSON, prefix `/api`, ผ่าน wrapper ข้อ 2 · ตารางนี้ **ตรงกับ `ROUTE_MANIFEST` ใน `src/app/api/_lib/manifest.ts` ที่ v1.0.0 ทีละแถว (81 route · R16 ไม่มี route ใหม่ · R17 เพิ่ม `POST /api/admin/groups/:gid/restore` · R18 เพิ่ม 8 route ของแชร์นัด — ท้ายตาราง)** · หน้า `/i/[token]` ไม่ใช่ API route (Server Component เรียก service ตรง ด้วย action `appointment.share.preview`) — path เขียนแบบ manifest (`:param`) · คอลัมน์ "action" = ชื่อใน [ADR 0003](../adr/0003-rbac.md) ที่ service เรียก · "auth" = `actor` (session + CSRF Origin/JSON สำหรับ non-GET) / `cron` (Bearer `CRON_SECRET`) / `public` · "เจ้าของ" = บทบาทที่เขียน route
 เพิ่ม/เปลี่ยน route ใน manifest ต้องแก้ตารางนี้ใน PR เดียวกัน (DOCS_SYNC §2) · เทสต์ `tests/ops/docs-sync.test.ts` ตรวจว่าทุก path ใน manifest มีในไฟล์นี้
 
 | Story | Method + path | action (RBAC) | auth | หมายเหตุ | เจ้าของ |
@@ -624,7 +624,7 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | แชร์นัด (R18) | `SHARE_LINK_INVALID`(404 · body เดียวกันทุกเหตุ: ไม่มี/ผิดรูป/ยกเลิก/ผู้สร้างออก/แขกที่ถูกนำออก) `SHARE_LINK_EXPIRED`(410 · ไม่บอกเหตุผล: นัดจบ/ยกเลิก/กลุ่มลบ) `SHARE_FULL`(409 · params `{max: 10}`) — ADR 0016 §5.4, §8.2 |
 ทุกรหัสมีคีย์ `errors.<CODE>` ใน `messages/th.json` และ `en.json` (ADR 0008 เทสต์ข้อ 4)
 
-## 7. ตัวแปร env (ตรงกับ `.env.example` บน `feat/r18-v1` — ไม่มีค่าจริง · R16, R17 และ R18 ไม่มีตัวแปรใหม่)
+## 7. ตัวแปร env (ตรงกับ `.env.example` ที่ v1.0.0 — ไม่มีค่าจริง · R16, R17 และ R18 ไม่มีตัวแปรใหม่)
 แหล่งความจริง: `.env.example` (เจ้าของ OPS) + schema zod ใน `src/lib/shared/env.ts` · ขั้นตั้งค่าบน Vercel และวิธีสร้างความลับ: `docs/OPERATIONS.md` (ส่วน C, D, J) · ห้ามใส่ค่าจริงในไฟล์/แชท/PR (กฎ 7)
 
 | ตัวแปร | ต้องมีเมื่อ | ใช้ทำอะไร |
@@ -646,7 +646,7 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 ตัวแปรที่ Vercel ใส่ให้เอง (ไม่อยู่ใน `.env.example`): `VERCEL`, `VERCEL_URL`, `VERCEL_ENV` · เทสต์ (Vitest) สร้าง `TURSO_DATABASE_URL=file:<tmp>` และความลับสุ่มต่อรอบเอง · แอป **ล้มตอนเริ่ม** ถ้าตัวแปร "ต้องมี" หายหรือสั้นเกิน (zod ใน `src/lib/shared/env.ts`) — ยกเว้น pepper ที่ล้มเป็น `AUTH_MAINTENANCE` แทน
 
 ## 8. งานตามเวลา (cron)
-ที่มา: `vercel.json` (OPS) + `.github/workflows/keepalive.yml` (OPS) บน `feat/r18-v1` (R16, R17 และ R18 ไม่เปลี่ยนตาราง cron — R16 keepalive แก้เฉพาะ comment เรื่อง repo public · R17 เพิ่มงานลบกลุ่มถาวรใน `/api/cron/daily` เดิม ข้อ 5 · R18 เพิ่มงานลบคำเชิญเก่า (D1) และลิงก์ชวนเก่า (§S7) ข้อ 6–7 ด้านล่าง)
+ที่มา: `vercel.json` (OPS) + `.github/workflows/keepalive.yml` (OPS) ที่ v1.0.0 (R16, R17 และ R18 ไม่เปลี่ยนตาราง cron — R16 keepalive แก้เฉพาะ comment เรื่อง repo public · R17 เพิ่มงานลบกลุ่มถาวรใน `/api/cron/daily` เดิม ข้อ 5 · R18 เพิ่มงานลบคำเชิญเก่า (D1) และลิงก์ชวนเก่า (§S7) ข้อ 6–7 ด้านล่าง)
 
 | ตัวเรียก | ตาราง | เรียก | หมายเหตุ |
 |---|---|---|---|
