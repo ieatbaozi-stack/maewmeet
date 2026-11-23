@@ -5,7 +5,7 @@ import { expect, test } from './support/auth';
 import { addDays, todayBkk } from './support/busy';
 import { setPrefs, watchConsole } from './support/fixtures';
 import { createGroupApi, go, type Theme } from './support/groups';
-import { LOCALES, msg, type Locale } from './support/messages';
+import { LOCALES, msg } from './support/messages';
 
 const THEMES: readonly Theme[] = ['light', 'dark'];
 const ymdCompact = (iso: string): string => iso.replace(/-/g, '');
