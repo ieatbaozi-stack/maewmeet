@@ -333,15 +333,15 @@ export function sanitizeIcsSummary(raw: string | undefined, maxCodePoints = DEFA
 
 /** แปลง TZID → IANA ที่ isValidTimeZone ยอมรับ (รองรับ Windows TZID จาก Outlook · ไม่รู้จัก = null) */
 export function resolveIcsTimeZone(rawTzid: string): string | null {
-  const cleaned = rawTzid.trim();
+  const cleaned: string = rawTzid.trim();
   if (!cleaned) return null;
-  if (isValidTimeZone(cleaned)) return cleaned;
+  if (isValidTimeZone(cleaned as unknown)) return cleaned;
   if (cleaned.startsWith('/')) {
     const stripped = cleaned.slice(1);
-    if (isValidTimeZone(stripped)) return stripped;
+    if (isValidTimeZone(stripped as unknown)) return stripped;
   }
   const win = WINDOWS_TO_IANA[cleaned] ?? WINDOWS_TO_IANA_LOWER.get(cleaned.toLowerCase());
-  if (win && isValidTimeZone(win)) return win;
+  if (win && isValidTimeZone(win as unknown)) return win;
   return null;
 }
 
