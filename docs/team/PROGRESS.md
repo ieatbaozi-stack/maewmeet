@@ -11,13 +11,13 @@
 - **ผลตรวจอิสระ R18:** qa `docs/reports/qa-r18.md` ผ่านแบบมีข้อสังเกต · security `docs/reports/security-v1.md` ผ่าน (ตรวจซ้ำ `3c7d8c2`)
 - **CI:** main รายงานว่า CI บน `1b07381` เขียว (รอบที่สองของ H5) — ข้อมูลจาก main ยังไม่ได้ตรวจด้วย `gh` โดยเลขา
 - **เลขรุ่นในระบบ:** `package.json` = `1.0.0` · ตรงกับ CHANGELOG `[1.0.0] - 2026-11-23` · quickstart ท้ายหน้า `app v1.0.0` · PRD หมายเหตุ 1.0.0 (ตรวจด้วย `tests/ops/docs-sync.test.ts` 8/8 ผ่าน)
-- **production `/api/health` version:** ยังไม่ยืนยัน (main จะยืนยันหลัง Vercel deploy เสร็จ)
+- **production `/api/health` version:** **1.0.0** (main ตรวจ 2026-11-23 · qa ตรวจซ้ำเองด้วย `curl` ได้ `{"ok":true,"version":"1.0.0","db":true,…}`)
 
 ## เหลือ (รายการเปิดจริงหลัง 1.0 · ตรวจ 2026-11-23)
 
 ### 1. ระดับเครื่อง boss / ของจริง (ไม่บล็อกรุ่น · ต้องจดผล)
 - **เช็กลิสต์บนมือถือจริง:** [docs/reports/r18-boss-device-checklist.md](../reports/r18-boss-device-checklist.md) — ช่อง "ผล" ยังว่างทั้งหมด (ลิงก์ในชื่อนัดบน LINE · ป้าย "ผู้ดูแลระบบ" · เปิดเต็มจอบน iOS · ปุ่ม Apple Maps ที่ 768 · ชวนคนนอก/LINE in-app browser · แบนเนอร์ iOS (G1) · iPad 1 เครื่อง) · ผลส่งให้ main/secretary เพื่อจด
-- **ยืนยันบน production (ยังไม่ยืนยันโดยเลขา):** header `Cache-Control` ของ `/i/<token>` บน production build (security-v1 Info 3 — ตรวจในเครื่องแล้ว แต่ Vercel preview ติด SSO) · ด้วย `curl -sI` หรือ ops/qa
+- **header ของ `/i/<token>` บน production:** qa ตรวจแล้ว 2026-11-23 (token ปลอม) `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate` + `X-Robots-Tag: noindex, nofollow` (security-v1 Info 3 ปิดแล้ว · ยังไม่ได้ลองกับ token จริงบน prod)
 - **เครื่อง boss:** ติดตั้ง Node 24 (เครื่องเป็น v26 ทำให้เทสต์ health ล้ม) · ติดตั้ง Python สำหรับเทสต์ที่ต้องใช้ Python
 - **เทสต์ที่ล้มเฉพาะเครื่อง Windows** (ปัญหาเครื่อง ไม่ใช่ repo): `release.test` (`.bin/tsx` ENOENT) · `config-hygiene` ข้อ permissions (CRLF) · `npm test` ทั้งชุดมี EPERM/timeout · ผลจริงดูจาก CI
 
