@@ -1,14 +1,14 @@
 # V1 readiness — ตรวจ PRD v1 ทีละข้อ (R18 §5 V1)
 
-> ผู้เขียน: architect · 2026-11-22 · branch `feat/r18-v1` ที่ `9a3ce92` (โค้ดล่าสุด `091a2d4`) · ผู้ตรวจอิสระ: qa (ยังไม่ได้ตรวจ)
+> ผู้เขียน: architect · 2026-11-22 (อัปเดตหลังออก v1.0.0 2026-11-23: G1, G2) · branch `feat/r18-v1` ที่ `9a3ce92` (โค้ดล่าสุด `091a2d4`) · ผู้ตรวจอิสระ: qa (ยังไม่ได้ตรวจ)
 > วิธีตรวจ: อ่าน [PRD](../prd/PRD.md) §2–§9 + [R18_CONTRACT](../contracts/R18_CONTRACT.md) แล้วชี้ไฟล์โค้ด + ไฟล์เทสต์ที่มีอยู่จริง (`ls`/`grep` ใน worktree) · **"ส่งแล้ว" = มีโค้ดและมีเทสต์ที่ครอบ ไม่ได้แปลว่ารันเทสต์ทุกไฟล์ในรายงานนี้** — ที่รันจริงดูหัวข้อ "ผลรันจริง" ท้ายไฟล์
 > สถานะ: ✅ ส่งแล้ว · ⏸ เลื่อน/ตัด (มีคำตัดสิน) · ⚠ **ช่องว่าง — ยังไม่มีทั้งของจริงและคำตัดสิน (main ต้องตัดสิน)** · ⏳ ตัดสินแล้ว กำลังทำ/รอผล · 👤 ต้องให้ boss ทำบนเครื่องจริง · (อัปเดต 2026-11-22: ไม่มีข้อ ⚠ ค้างแล้ว)
 
 ## สรุปช่องว่าง (ให้ main) — ตัดสินแล้วทุกข้อ ([R18_CONTRACT §11](../contracts/R18_CONTRACT.md), 2026-11-22)
 | # | ข้อ PRD | เรื่อง | คำตัดสิน / สถานะ (อัปเดต 2026-11-22) |
 |---|---|---|---|
-| G1 | §6 "PWA manifest (… + แบนเนอร์สอน iOS)" | เดิมไม่มีแบนเนอร์ในแอป มีแค่คู่มือ quickstart | **ทำใน R18 (boss)** — แถบเล็กเฉพาะ Safari บน iPhone/iPad ที่ยังไม่เปิดแบบแอป ปิดแล้วไม่ขึ้นอีก ไม่มี migration · สเปกและถ้อยคำ ux (`6a7f437`) · **กำลังทำ: frontend** · qa ตรวจ |
-| G2 | §7 Lighthouse ≥ 85 / ≥ 95 | เดิมไม่พบผลวัด | **qa วัดบน Vercel preview ของ PR** (login, หน้าหลัก, ปฏิทิน) บันทึกใน `docs/reports/qa-r18.md` · ต่ำกว่าเกณฑ์ = frontend แก้ก่อน merge · ยังไม่มีผล |
+| G1 | §6 "PWA manifest (… + แบนเนอร์สอน iOS)" | เดิมไม่มีแบนเนอร์ในแอป มีแค่คู่มือ quickstart | ✅ **เสร็จแล้ว** — ทำใน R18 (boss) · สเปก/ถ้อยคำ ux (`6a7f437`) · frontend (`a2438b0`) · ออกใน v1.0.0 |
+| G2 | §7 Lighthouse ≥ 85 / ≥ 95 | เดิมไม่พบผลวัด | ✅ **qa วัดแล้ว ผ่าน** — Performance 92 (/login) · 89 (หน้าหลัก) · 87 (/calendar) · Accessibility 100 ทั้ง 3 หน้า ([qa-r18.md](qa-r18.md)) · ⚠ วัดบน production build ในเครื่อง (`next start`) ไม่ใช่ Vercel preview เพราะ preview ติด Vercel SSO — ตัวเลขบน Vercel จริงยังไม่ได้วัด |
 | G3 | §8 ข้อ 4.1 flow ทั้ง TH/EN | เดิม `free-story`/`appt-story` รันแค่ th | **เสร็จแล้ว** — test ขยายให้รัน en ด้วย (`e50d5fc`) · ผลรันดูที่ CI |
 | G4 | §6 "v1.x: นำเข้า ICS" | ทำเฉพาะส่งออก .ics (R12) | ⏸ **ไม่ทำใน 1.0 (boss)** — งานหลัง 1.0 · main บันทึกใน PRD |
 | G5 | §9 R6 hardening backlog | เดิม checkbox ใน PRD ยังไม่ติ๊ก | **เสร็จแล้ว** — main ติ๊กใน PRD (`8c195d7`) |
@@ -68,14 +68,14 @@
 |---|---|---|
 | มือถือก่อน 375 + iPad สองคอลัมน์ | ✅ | `@media (min-width: 48em)` ใน CSS · Playwright projects `mobile-375`/`mobile-390`/`tablet-768` (`playwright.config.ts`) · `tests/e2e/responsive.spec.ts`, `*-layout.spec.ts` |
 | PWA manifest ติดตั้งหน้าจอหลักได้ | ✅ | `src/app/manifest.ts`, `public/brand/app/*` · `tests/e2e/r15a-feedback.spec.ts` · boss ทดสอบ iPhone ผ่าน (R15) |
-| แบนเนอร์สอน iOS | ⏳ G1 | ตัดสินให้ทำใน R18 · frontend กำลังทำ |
+| แบนเนอร์สอน iOS | ✅ G1 | frontend `a2438b0` |
 | แจ้งเตือนในแอป (คำเชิญตรง, นัดใหม่, reset อนุมัติ) | ✅ | `src/lib/data/notifications/notify.ts` (`group.invite.received`, `appointment.created`, `pin_reset.approved`) · `tests/notifications/notifications.test.ts` |
 | v1.x LINE + เตือนก่อนนัด | ✅ (R10) | `src/lib/data/services/reminders.ts`, `tests/line/*`, `tests/calendar/reminders.test.ts` |
 | v1.x นำเข้า ICS | ⏸ G4 ไม่ทำใน 1.0 (boss) | ทำเฉพาะส่งออก (`src/lib/calendar/ics.ts`, `tests/calendar/ics*.test.ts`) |
 | ไม่ทำ: แชท ชำระเงิน native ออฟไลน์ ตำแหน่ง | ⏸ | PRD §6 "ไม่ทำ" · ไม่มี service worker (ARCHITECTURE ข้อ 10) |
 | UI_DIRECTION + Anti-slop 4 ชุด | ⏳ | V5 (`docs/design/V1_UI_AUDIT.md` — ux) + V2 (qa) ยังไม่ปิด · e2e ถ่ายภาพ 4 ชุดหลายหน้า (`*-layout.spec.ts`) |
 | ปุ่ม ≥ 44px / แป้น PIN ≥ 56px / ไม่ scroll แนวนอน | ✅ | `tests/ui/pinpad.test.ts`, `tests/e2e/*-layout.spec.ts` (checkLayout) |
-| Lighthouse ≥ 85 / ≥ 95 | ⏳ G2 | qa วัดบน preview ของ PR → `docs/reports/qa-r18.md` |
+| Lighthouse ≥ 85 / ≥ 95 | ✅ G2 | 92/89/87 · a11y 100 (local prod build) — `docs/reports/qa-r18.md` |
 | สิทธิ์ที่เซิร์ฟเวอร์ / ความลับใน env / ไม่ log PIN/token | ✅ | `tests/security/*.test.ts`, `tests/auth/secrets-exposure.test.ts`, `tests/security/config-hygiene.test.ts` · V3 security-v1 ยังไม่ปิด |
 | ต้นทุน ≈ $0 | ✅ | Vercel Hobby + Turso + LINE OA เพดาน 300/เดือน (`LINE_SEND_CAPS`, `tests/line/caps.test.ts`) |
 

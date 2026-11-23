@@ -16,6 +16,35 @@
 - **ออก v0.10.0 แล้ว** (2026-11-09, tag `v0.10.0` → commit `d670fcc` `chore(release): v0.10.0`) รวม R8 · **repo เปลี่ยนเป็น public** (2026-11-08) · รายละเอียดหัวข้อ "v0.10.0 + repo public" ด้านล่าง
 - **ออก v0.11.0 แล้ว** (2026-11-10, tag `v0.11.0` → commit `a77fc50` `chore(release): v0.11.0`) รวม **R10** (F6 เตือนก่อนนัดทาง LINE OA + กระดิ่ง, เชื่อม LINE, ปุ่มขั้น 2) · migration `0004` (รันหลัง merge — ดูหัวข้อ R10) · รายละเอียดด้านล่าง
 
+## R18 — ปิดโปรเจกต์ ออกรุ่น v1.0.0 (2026-11-23) [ประวัติ]
+- **v1.0.0 ออกแล้ว** (2026-11-23 · tag `v1.0.0` → `c906d09` `chore(release): v1.0.0`) · PR #42 merge `1b07381` · contract `docs/contracts/R18_CONTRACT.md` (boss เห็นชอบ 2026-11-20 · ตัดสิน §11 2026-11-22) · บรรทัดปิดรอบ `68a8a97` (main)
+- **migration `0007`** (`appointment_share_link` + `appointment_guest`, เพิ่มอย่างเดียว) รันแล้ว: preview 2026-11-22 · prod 2026-11-23 ก่อน merge (ตามที่ main แจ้ง · เลขาไม่ได้ตรวจฐาน Turso เอง)
+- **ผลตรวจอิสระ:** qa `docs/reports/qa-r18.md` **ผ่านแบบมีข้อสังเกต** (พบ lint ล้มจาก `px` ใน share.css แก้แล้ว `e6cd797` · G2 Lighthouse มือถือ production build ในเครื่อง: /login 92 · / 89 · /calendar 87 · a11y 100 ทั้งสามหน้า) · security `docs/reports/security-v1.md` ผ่านแบบมีข้อสังเกต รอบแรก (Low 1 · Info 1–4) แล้วตรวจซ้ำ `3c7d8c2` **ผ่าน** (Low 1, Info 1–4 ปิดแล้ว · Info 5 ยอมรับ)
+- **CI:** main รายงาน `main` CI บน `1b07381` เขียว (H5 รอบที่สอง) · ข้อมูลจาก main ไม่ใช่เลขาตรวจเอง
+- **Health production:** ยังไม่ยืนยันในรายงานนี้ (main จะยืนยัน · Vercel ยัง deploy ตอนแจ้ง)
+- **สถานะเดิมก่อนปิดรอบ (2026-11-22) คัดลอกจาก PROGRESS เดิม:**
+
+```
+## สถานะปัจจุบัน — 2026-11-22 (R18 ระหว่างทำ · เป้าปิดโปรเจกต์ที่ 1.0)
+- **contract:** [docs/contracts/R18_CONTRACT.md](../contracts/R18_CONTRACT.md) (boss เห็นชอบ 2026-11-20 · ตัดสิน §11 2026-11-22) · branch `feat/r18-v1` จาก `main` `d6f413a` · ยังไม่มี PR
+- **ทำแล้วในโค้ด/เอกสาร** (ตรวจจาก `git log main..feat/r18-v1` และไฟล์ที่อ้าง · ยังไม่ผ่าน qa รอบ R18):
+  - **§S แชร์นัดให้คนนอกกลุ่ม:** ADR 0016 Accepted (`02f4fa8`) · S1–S8 (`13ee066` rbac, `3c5ea5b` migration 0007, `eccfb96` platform, `88721bf` frontend, `26043f8` e2e, `091a2d4` ceiling perf) · S9 ux (`e9ca44e`, `338cc5b`, `32c422a`)
+  - **§1 ข้อมูล:** D1 purge คำเชิญเก่า 30 วัน (`d5c4562`) · D2 บันทึก/ถ้อยคำ (`86ab22b`, `32c422a`, `88721bf`) · D3 ตัดสินไม่แก้ บันทึกแล้ว (`86ab22b`)
+  - **§2 hardening:** H1 (`193ba97`) · H2+H3 (`82db023`) · H4 ข้อความ 429 ปฏิทิน (`88721bf`) · H5 e2e `retries: 0` + H6 i18n render test (`16a67d7`) · H7 picomatch ตรวจซ้ำ 2026-11-20 ยังไม่มีรุ่นแก้ คงยอมรับความเสี่ยง (`86ab22b`)
+  - **§3 ยืนยันการลบ:** C1 ยืนยันลบวันนี้ / ยกเลิกคำเชิญตรง (`88721bf` + e2e `26043f8`) · C2 ตรวจแล้ว 16 แถว (`docs/design/R17_DELETE_CONFIRM.md` §8.2)
+  - **§4 ข้อเสนอ PRD:** ตัดสินแล้ว ไม่ทำ (`8c195d7`)
+  - **§5 ตรวจรับ:** V1 `docs/reports/v1-readiness.md` (`8c6badc`) · V3 `docs/reports/security-v1.md` ผลแบบมีข้อสังเกต (`eac8f95`) · Low 1 แก้ (`bb7a282`) · Info 1 แก้ (`9818d50`) · V5 audit `docs/design/V1_UI_AUDIT.md` (`6a7f437`)
+  - **§10 ลด token:** T1 กติกาเทสต์ใน agent (`b155b09`) · T2 ย้าย [ประวัติ] ไป PROGRESS_ARCHIVE (`9a3ce92`) · ข้อเสนอ (`43fe045`)
+  - **§11:** G3 e2e EN (`e50d5fc`) · G1 spec แบนเนอร์ iOS (`6a7f437` · ดู "เหลือ" ข้อ 1.1) · G4 ไม่ทำใน 1.0 และ G5 ติ๊ก PRD (`8c195d7`)
+  - **§6 เอกสาร (เลขา รอบนี้):** README · quickstart · NEXT_PHASE · รายการนี้ · V4 checklist (`docs/reports/r18-boss-device-checklist.md`)
+- **เลขรุ่น:** ไม่เปลี่ยน (ยัง v0.15.0 ใน `package.json`) — release.ts จะเปลี่ยนเมื่อ boss ออกรุ่น
+
+## เหลือ (รายการเดียวที่ใช้ต่อ · ตรวจ 2026-11-22) — ข้อ 1 ทั้งหมดปิดแล้วตอนออก 1.0
+1. ต้องทำก่อนออก 1.0: G1 แบนเนอร์ iOS (commit `a2438b0`) · V5 แก้ตาม audit (`a2438b0`) · G2 Lighthouse (qa-r18) · V2 qa ถดถอย (`qa-r18.md`) · security re-check (`3c7d8c2`) · งาน ops (`d45abce`) · งาน main (`765bd25`, `68a8a97`) · migration 0007 (preview/prod) · PR → merge → release (PR #42 · tag v1.0.0)
+2. เครื่องจริงของ boss: checklist `docs/reports/r18-boss-device-checklist.md` ยังว่างช่อง "ผล"
+3. ระดับเครื่อง: Node 24 · เทสต์ Windows (`release.test`, `config-hygiene` permissions, Python, EPERM)
+4. ตัดสินแล้ว ไม่ทำ: นำเข้า ICS (G4) · deny list / invite opt-out / confusable (B3) · guard 200 / Server-Timing / DST strip · CSP nonce (ADR 0014) · security-r16/r17 Info (ADR 0015 / OPERATIONS) · security-v1 Info 5 (ADR 0016 §3) · picomatch (ยังไม่มีรุ่นแก้) · แถวแจ้งเตือนเก่าที่แสดงชื่อ SA (ไม่มี backfill)
+
 ## สถานะก่อนหน้า — 2026-11-19 (ปิดรอบ R16 · ออกรุ่น v0.14.0) [ประวัติ]
 - **v0.14.0 ออกแล้ว** (2026-11-19, tag → `7eaff23` `chore(release): v0.14.0`) · รวม R16 (PR #38, `1ae70a6`) · ไม่มี migration ใน R16 · หัวข้อ `[0.14.0] - 2026-11-19` ใน CHANGELOG
 - **v0.13.0 ออกแล้ว** (2026-11-18) · รวม R15a + R15b · ไม่มี migration ใน R15b · บันทึกปิดรอบอยู่ใน `docs/contracts/R15_CONTRACT.md` หัวข้อ "ปิดรอบ R15"

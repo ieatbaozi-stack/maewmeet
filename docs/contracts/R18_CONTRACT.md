@@ -1,6 +1,7 @@
 # R18_CONTRACT.md — เก็บงานค้างทั้งหมด แล้วออก v1.0.0 (ปิดโปรเจกต์)
 
 > ผู้เขียน: main · 2026-11-20 · สถานะ: **boss เห็นชอบแล้ว** 2026-11-20 (B1, B2, B4, B5 = ค่าแนะนำ · B3 = ค่าแนะนำ (ไม่ได้ถามแยก boss เปลี่ยนได้) · เพิ่ม V5 ตรวจ UI ด้วย impeccable ตามที่ boss ขอ · เพิ่ม §S แชร์นัดให้คนนอกกลุ่ม) (ที่มา: boss 2026-11-20 "ทำที่เหลือให้จบเลยครับ โปรเจคนี้มันควรปิด แล้วขึ้นเลข v1.0.0 ได้แล้วครับ")
+> **ปิดรอบ + ออกรุ่น v1.0.0 (2026-11-23)** · PR #42 merge แล้ว (`1b07381`) · tag `v1.0.0` → `c906d09` · migration 0007 รันแล้วทั้ง preview (2026-11-22) และ prod (2026-11-23, ก่อน merge) · qa ผ่านแบบมีข้อสังเกต · security ตรวจซ้ำผ่าน
 > branch: `feat/r18-v1` จาก `main` `d6f413a` (PR #41 merge แล้ว · v0.15.0) · ใช้คู่กับ [DOCS_SYNC_CONTRACT.md](DOCS_SYNC_CONTRACT.md)
 > ที่มาของรายการ: `docs/team/PROGRESS.md` หัวข้อ "เหลือ" (2026-11-20) · PRD "R6 hardening backlog" ข้อที่ยังไม่ติ๊ก · `docs/reports/security-r16.md`, `security-r17.md`, `qa-r16.md` · `docs/design/R17_DELETE_CONFIRM.md`
 
