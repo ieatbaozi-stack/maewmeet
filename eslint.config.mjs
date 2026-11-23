@@ -40,6 +40,7 @@ export default defineConfig([
     "coverage/**",
     "playwright-report/**",
     "test-results/**",
+    ".claude/worktrees/**",
   ]),
 
   // 1) ห้าม import temporal-polyfill นอก src/lib/calendar/** และ tests/**
