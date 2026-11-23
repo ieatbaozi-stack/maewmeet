@@ -547,6 +547,8 @@ Layout `(app)` เรียก `getActor` → anonymous → redirect `/login` ·
 | U7 | `POST /api/me/busy` | `busy.create` | actor | `{allDay, startDate, endDate, startTime?, endTime?, tz?, title?, note?, hideDetail}` → `normalizeBusyInput` (ADR 0004) · ชุดรายวัน (ADR 0010) | Platform |
 | U7 | `PATCH /api/me/busy/:id` | `busy.update` | actor | เจ้าของเท่านั้น · บนแถว routine = แยกเป็น busy เดี่ยว + skip | Platform |
 | U7 | `DELETE /api/me/busy/:id` | `busy.delete` | actor | เจ้าของเท่านั้น · บนแถว routine = ลบวันนั้น + บันทึก skip | Platform |
+| U7 (v1.1) | `POST /api/me/busy/import/preview` | `busy.create` | actor | `{icsText, windowDays?}` ≤ 512 KB / 20,000 บรรทัด / 500 VEVENT · เทียบซ้ำ + คืนโควตา 300 · RL `busy:import:preview` (20/10 นาที) — ADR 0017 | Platform |
+| U7 (v1.1) | `POST /api/me/busy/import` | `busy.create` | actor | `{items (1..100), hideDetail? (ดีฟอลต์ true), skipDuplicates?}` · batch insert อะตอมมิกใน tx เดียว (เพดาน 300) · RL `busy:import` (10/10 นาที) — ADR 0017 | Platform |
 | U7 (R14) | `GET /api/me/busy-routines` | `busy.routine.list.own` | actor | routine ของฉัน (รวม note) + จำนวนวันที่เหลือ + `skippedDates` · ชุดที่ยังไม่จบครบทุกชุด + ที่จบแล้ว ≤ 50 · ADR 0012 | Platform |
 | U7 (R14) | `POST /api/me/busy-routines` | `busy.routine.create` | actor | กฎ (`weekdays`, เวลา/all-day, ช่วง weeks/months) → ขยายแถวใน tx เดียว · zod `.strict()` | Platform |
 | U7 (R14) | `PATCH /api/me/busy-routines/:id` | `busy.routine.update` | actor | เจ้าของเท่านั้น (SA ไม่ได้) · `from` = แก้ตั้งแต่สัปดาห์/เดือนนั้น (ไม่ส่ง = ทุกวันที่ยังไม่ผ่าน) | Platform |
