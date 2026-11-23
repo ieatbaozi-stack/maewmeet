@@ -82,6 +82,10 @@ export type RouteSpec<S extends AnySchema | undefined, PS extends AnySchema | un
   path: string;
   input?: S;
   params?: PS;
+  /** เพดานขนาด JSON body (ไบต์) — ดีฟอลต์ MAX_BODY_BYTES (64 KB) · ใช้เมื่อ route รับไฟล์ข้อความเช่น .ics preview (ADR 0017 §1) */
+  maxBodyBytes?: number;
+  /** รหัส error เมื่อเกิน maxBodyBytes — ดีฟอลต์ VALIDATION { fields: { _body: 'TOO_LARGE' } } */
+  bodyTooLargeCode?: ErrorCode;
   handler: (ctx: HandlerContext<Out<S>, Out<PS>>) => Promise<O | Reply<O>> | O | Reply<O>;
   /**
    * ชั้นนอกสุด: แปลงคำตอบสุดท้ายหลังทุกขั้นตอนจบแล้ว (รวม Server-Timing ซึ่งตัดสินจาก status เดิม) — R12 §5 redirect ตอนเปิดจากลิงก์
@@ -186,17 +190,18 @@ function valueAt(raw: unknown, path: readonly PropertyKey[]): unknown {
   return cur;
 }
 
-const tooLarge = () => new AppError('VALIDATION', { fields: { _body: 'TOO_LARGE' } });
+const tooLarge = (code?: ErrorCode) =>
+  code ? new AppError(code) : new AppError('VALIDATION', { fields: { _body: 'TOO_LARGE' } });
 
 /**
- * อ่าน body แบบ stream พร้อมตัวนับไบต์ — ครบ 64KB เมื่อไหร่ยกเลิก stream ทันที (ไม่ buffer ทั้งก้อนก่อนค่อยวัด)
+ * อ่าน body แบบ stream พร้อมตัวนับไบต์ — ครบ maxBytes เมื่อไหร่ยกเลิก stream ทันที (ไม่ buffer ทั้งก้อนก่อนค่อยวัด)
  * ครอบคลุม chunked / ไม่มี content-length / content-length โกหก
  */
-async function readJsonBody(req: Request): Promise<unknown> {
+async function readJsonBody(req: Request, maxBytes = MAX_BODY_BYTES, tooLargeCode?: ErrorCode): Promise<unknown> {
   const declared = Number(req.headers.get('content-length') ?? '0');
-  if (declared > MAX_BODY_BYTES) {
+  if (declared > maxBytes) {
     await req.body?.cancel().catch(() => undefined);
-    throw tooLarge();
+    throw tooLarge(tooLargeCode);
   }
   if (!req.body) return undefined;
   const reader = req.body.getReader();
@@ -206,9 +211,9 @@ async function readJsonBody(req: Request): Promise<unknown> {
     const { done, value } = await reader.read();
     if (done) break;
     total += value.byteLength;
-    if (total > MAX_BODY_BYTES) {
+    if (total > maxBytes) {
       await reader.cancel().catch(() => undefined);
-      throw tooLarge();
+      throw tooLarge(tooLargeCode);
     }
     chunks.push(value);
   }
@@ -276,7 +281,7 @@ export function route<S extends AnySchema | undefined = undefined, PS extends An
       // 2. validate input + params
       let input: unknown = undefined;
       if (spec.input) {
-        const raw = isRead ? queryObject(req) : await readJsonBody(req);
+        const raw = isRead ? queryObject(req) : await readJsonBody(req, spec.maxBodyBytes ?? MAX_BODY_BYTES, spec.bodyTooLargeCode);
         const parsed = spec.input.safeParse(raw);
         if (!parsed.success) return errorResponse('VALIDATION', validationParams(parsed.error, raw));
         input = parsed.data;
