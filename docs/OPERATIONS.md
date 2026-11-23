@@ -163,6 +163,12 @@ Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL
 > - **B3 ไม่ทำ CSP nonce (boss ยอมรับความเสี่ยง 2026-11-18)**: nonce บังคับให้ทุกหน้า render ใหม่ทุกคำขอ (ไม่มี static/cache) ทำให้ช้าลง ขัดกับ F2 ความเร็ว · แอปไม่มี HTML จากผู้ใช้ (React escape ทั้งหมด) ความเสี่ยง XSS จึงต่ำ · ถ้าจะทำในอนาคตต้องเป็นรอบแยก
 > - **รู้ไว้ (H5)**: หน้า auth ที่ redirect ระหว่าง stream ตอบ status 200 + meta refresh — เกิดจาก root `loading.tsx` (streaming) ครอบทุกหน้า ไม่ใช่เฉพาะ auth · client redirect ทันทีจาก RSC payload และไม่มีข้อมูลหลุด (redirect ถูกโยนก่อน render) · แก้ได้เฉพาะ `proxy.ts` (ขัด ADR 0001) หรือถอด loading boundary (หน้าช้าลง) จึงไม่แก้ · Server-Timing บนหน้า RSC ทำไม่ได้ (header ถูกส่งก่อน query จบ) ใช้ `tests/perf/r7-baseline.test.ts` แทน
 
+> **หมายเหตุนำเข้าไฟล์ `.ics` (v1.1.0 · ADR 0017 · ไม่มี migration · ไม่มี env ใหม่)**: รอบนี้เพิ่มถังจำกัดอัตราต่อผู้ใช้ใน `rate_limit_bucket` เดิม (`BUSY_IMPORT_RATE_LIMITS` ใน `src/lib/auth/throttle.ts`) ไม่ต้องตั้งค่าเพิ่ม:
+> - `busy:import:preview` 20 คำขอ / 10 นาที — `POST /api/me/busy/import/preview` (ขนาดไฟล์ `.ics` ≤ 512 KB, JSON body ≤ 768 KB, ≤ 20,000 บรรทัด, ≤ 500 VEVENT)
+> - `busy:import` 10 คำขอ / 10 นาที — `POST /api/me/busy/import` (≤ 100 รายการ/ครั้ง, เพดานรวม 300 แถวแบบอะตอมมิก)
+> - เกินถัง → `429 RATE_LIMITED` + `Retry-After` · แอปไม่ log เนื้อหา `.ics` หรือ `SUMMARY` · ไม่เก็บไฟล์ต้นฉบับ และไม่รับ URL ภายนอก (ปิดความเสี่ยง SSRF)
+> - **Rollback**: ย้อนแอปอย่างเดียว (Vercel Instant Rollback) ได้ทันที — ไม่มี migration และแถวที่นำเข้าแล้วเป็น `busy_block` ปกติทุกประการ
+
 ---
 
 ## C. สร้างความลับ (pepper, APP_SECRET, CRON_SECRET)
