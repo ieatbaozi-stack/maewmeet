@@ -478,7 +478,8 @@ function NextCard({
             ))}
           </div>
           <p className="rsvp-hint" id="home-rsvp-hint" data-testid="home-rsvp-hint">
-            {t("appointments.rsvp.goingHint")}
+            {/* F18: การ์ดแขกไม่ได้อยู่กลุ่มเจ้าของนัด → ใช้ข้อความของแขก */}
+            {t(isGuestItem(a) ? "guest.goingHint" : "appointments.rsvp.goingHint")}
           </p>
           {saving ? (
             <p className="rsvp-note" role="status">
