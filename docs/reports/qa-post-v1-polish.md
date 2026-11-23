@@ -43,3 +43,31 @@
 - boss เลือกให้แก้ข้อพบ 1 ใน branch นี้ → Claude Opus 5.5 (แชตเดียวกับรายงานนี้) สวมบทบาท frontend/test แก้ `HomeView.tsx` + เพิ่มเทสต์ `HomeView` ใน `tests/ui/share-render.test.ts` (ยืนยันว่าล้มเมื่อถอดการแก้ และผ่านเมื่อใส่กลับ)
 - **ส่วนที่แก้นี้ผู้ตรวจรายงานนี้เป็นคนทำเอง จึงยังไม่นับว่าตรวจแล้ว** — ต้องให้แชตใหม่ที่ใช้ Gemini ตรวจรอบสอง แล้วต่อท้ายผลในไฟล์นี้
 - ข้อเสนอ 2 (`V1_UI_AUDIT.md`) ยังไม่ทำ — เป็นไฟล์ของ ux
+
+---
+
+## QA รอบสอง — ตรวจส่วนแก้หน้าหลัก (`179caeb`, `b5f1797`) + `git diff main...HEAD`
+
+> ผู้ตรวจ: qa (อิสระ) · Antigravity · **Gemini 4 Neon** (ผู้แก้รอบล่าสุด: Claude Opus 5.5 — คนละโมเดล คนละแชต ตาม AGENTS.md §6) · branch `fix/post-v1-polish` HEAD `306a394` · ตรวจ 2026-11-23 · ระดับงาน A
+
+### Verdict: ผ่าน
+ข้อ 🟡 จากรอบแรกปิดครบแล้ว — ไล่ `goingHint` ทั้ง codebase (`src/components/appointments/RsvpControl.tsx`, `src/components/share/GuestAppointmentView.tsx`, `src/components/home/HomeView.tsx`) ครอบคลุมทุกจุดที่แขกเห็นแล้ว ไม่พบข้อ 🔴 หรือ 🟡 ใหม่ (คงเหลือเฉพาะข้อเสนอ 🟢 `docs/design/V1_UI_AUDIT.md:89` ที่ไม่บังคับ)
+
+### ผลตรวจ commit เป้าหมายและ diff ทั้งหมด
+- `179caeb` (`src/components/home/HomeView.tsx:480-483`): ใช้ `isGuestItem(a)` (`src/components/home/model.ts:74` เช็ก `viewerKind === "guest"`) สลับ `guest.goingHint` / `appointments.rsvp.goingHint` ตรงกับจุดอื่นในไฟล์เดียวกัน (`HomeView.tsx:145, 177, 402, 545`) · `aria-describedby="home-rsvp-hint"` ยังผูกเดิม การ์ดนัดถัดไปอื่นไม่มีปุ่ม RSVP
+- `b5f1797` (`tests/ui/share-render.test.ts:195-209`): เทสต์ครบทั้ง 2 ภาษา (`th`/`en`) และทั้งสองกรณี (`viewerKind: 'guest'` ต้องมี `guest.goingHint` และไม่มี `appointments.rsvp.goingHint`, `viewerKind: 'member'` ตรงกันข้าม) ไม่ flaky
+- `5f9f3d6` (`CHANGELOG.md`) และ `306a394` (`HANDOFF.md`, `qa-post-v1-polish.md`): ตรงของจริงและครบตาม DOCS_SYNC
+- `git diff main...HEAD` (12 ไฟล์): ระดับ A แท้ ไม่แตะ `src/app/api/**`, `src/lib/auth|rbac/**`, schema/migration, ความลับ หรือ logic เวลา · ทุก commit ใช้ `user.name` ตรงบทบาท อีเมล noreply และ trailer ถูกต้อง
+
+### คำสั่งที่รันซ้ำเอง (รอบสอง) + ผลจริง
+| คำสั่ง | ผล |
+|---|---|
+| `npx vitest run tests/ui/share-render.test.ts --reporter=agent` | 1 file · 20 tests ผ่าน (เพิ่มจาก 18 เป็น 20 จากเคส HomeView TH/EN) |
+| `npx vitest run tests/i18n tests/ui tests/ops/docs-sync.test.ts tests/ops/operations-doc.test.ts --reporter=agent` | 44 files · 985 tests ผ่าน |
+| `npm run lint` | exit 0 |
+| `npm run typecheck` | exit 0 |
+| `npm run build` | exit 0 (compiled 1608ms · TypeScript 9.9s · 49/49 pages) |
+
+### สิ่งที่ตรวจไม่ได้ (รอบสอง)
+- Playwright E2E (`npm run test:e2e`) และภาพหน้าจอ 375/390/768 สว่าง/มืด ในเครื่อง Windows (ข้อจำกัดเครื่องตาม AGENTS.md §9) → ยึดผล CI บน PR
+- `bash .github/scripts/check-style-literals.sh src` ไม่ได้รัน (branch ไม่แตะไฟล์ CSS) → ยึดผล CI job `lint`
