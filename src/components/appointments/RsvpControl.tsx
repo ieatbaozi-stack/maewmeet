@@ -27,6 +27,8 @@ export interface RsvpControlProps {
   saved: Rsvp | null;
   labelledBy: string;
   onPick: (answer: Rsvp) => void;
+  /** ข้อความอธิบายใต้ปุ่มเมื่อยังตอบได้ · ค่าเริ่มต้นใช้ appointments.rsvp.goingHint */
+  goingHint?: string;
   testIdPrefix?: string;
 }
 
@@ -34,7 +36,7 @@ export interface RsvpControlProps {
  * ปุ่ม RSVP 3 ปุ่ม (X51): ไอคอนคนละรูป + ข้อความ + กรอบหนา/ตัวหนาเมื่อเลือก (ไม่พึ่งสีอย่างเดียว) · aria-pressed
  * ปิด (ยกเลิก/ผ่านแล้ว/ไม่มีสิทธิ์) = disabled + บรรทัดอธิบาย · กำลังบันทึก = aria-busy
  */
-export function RsvpControl({ value, closed, saving, error, saved, labelledBy, onPick, testIdPrefix = "appt-rsvp" }: RsvpControlProps) {
+export function RsvpControl({ value, closed, saving, error, saved, labelledBy, onPick, goingHint, testIdPrefix = "appt-rsvp" }: RsvpControlProps) {
   const t = useTranslations();
   const disabled = closed !== null;
   const hintId = useId();
@@ -58,10 +60,10 @@ export function RsvpControl({ value, closed, saving, error, saved, labelledBy, o
           </button>
         ))}
       </div>
-      {/* R6D: ตอบ "ไป" = ไม่ว่างทุกกลุ่ม — บอกก่อนกด (ผูก aria-describedby กับกลุ่มปุ่ม) */}
+      {/* R6D: ตอบ "ไป" = ไม่ว่าง — บอกก่อนกด (ผูก aria-describedby กับกลุ่มปุ่ม) */}
       {closed === null ? (
         <p className="rsvp-hint" id={hintId} data-testid={`${testIdPrefix}-hint`}>
-          {t("appointments.rsvp.goingHint")}
+          {goingHint ?? t("appointments.rsvp.goingHint")}
         </p>
       ) : null}
       {saving ? (

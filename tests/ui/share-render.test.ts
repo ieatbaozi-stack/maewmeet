@@ -166,13 +166,16 @@ describe.each(LOCALES)('แชร์นัด/แขก render (%s)', (locale) =
     expect(render(locale, GuestsSection as never, { ...props, guests: guests(10) })).toContain('guests-limit is-full');
   });
 
-  it('GuestAppointmentView: ไม่มีลิงก์กลุ่ม/ปุ่มแก้/ปุ่มชวน/รายชื่อ · มีตัวเลขรวม + ออกจากนัด', () => {
+  it('GuestAppointmentView: ไม่มีลิงก์กลุ่ม/ปุ่มแก้/ปุ่มชวน/รายชื่อ · มีตัวเลขรวม + ออกจากนัด + guest.goingHint (F18)', () => {
     const html = render(locale, GuestAppointmentView as never, { initial: guestDto(), nowMs: NOW, appOrigin: 'https://example.test' });
+    const m = MESSAGES[locale] as unknown as { guest: { goingHint: string }; appointments: { rsvp: { goingHint: string } } };
     expect(html).toContain('data-testid="guest-banner"');
     expect(html).toContain('data-testid="guest-badge"');
     expect(html).toContain('data-testid="guest-counts"');
     expect(html).toContain('data-testid="guest-leave"');
     expect(html).toContain('data-testid="appt-group-text"');
+    expect(html).toContain(m.guest.goingHint);
+    expect(html).not.toContain(m.appointments.rsvp.goingHint);
     expect(html).not.toContain('/groups/');
     expect(html).not.toContain('data-testid="appt-edit');
     expect(html).not.toContain('data-testid="appt-cancel');

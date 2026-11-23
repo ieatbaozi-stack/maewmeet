@@ -193,7 +193,7 @@ export function GuestAppointmentView({ initial, nowMs, appOrigin }: GuestAppoint
         {!cancelled ? (
           <section className="appt-section" aria-labelledby={`${uid}-rv`} data-testid="appt-rsvp-section">
             <h2 id={`${uid}-rv`}>{t("appointments.rsvp.question")}</h2>
-            <RsvpControl value={a.myRsvp} closed={closed} saving={saving} error={rsvpError} saved={saved} labelledBy={`${uid}-rv`} onPick={onPick} />
+            <RsvpControl value={a.myRsvp} closed={closed} saving={saving} error={rsvpError} saved={saved} labelledBy={`${uid}-rv`} onPick={onPick} goingHint={t("guest.goingHint")} />
             {a.myRsvp === "going" && !saving && !a.isPast ? (
               <button type="button" className="btn btn-secondary appt-cal-add" data-testid="appt-add-calendar" onClick={() => setCalOpen(true)}>
                 <Icon name="calendar-plus" />
