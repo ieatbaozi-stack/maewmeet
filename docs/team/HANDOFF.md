@@ -1,6 +1,6 @@
 # HANDOFF — สถานะล่าสุดสำหรับเครื่องมือใดก็ได้ที่เพิ่งเปิด repo
 
-> อัปเดต: 2026-11-23 18:09 (เวลาไทย) โดย secretary (Antigravity · branch `fix/post-v1-polish`) · ตรวจกับ `git log`, `CHANGELOG.md`, `package.json`
+> อัปเดต: 2026-11-23 18:30 (เวลาไทย) โดย secretary (Antigravity · Claude Opus 5.5 · branch `fix/post-v1-polish`) · ตรวจกับ `git log`, `CHANGELOG.md`, `package.json`
 > **กติกา:** ใครจบงาน (Claude Code หรือ Antigravity ก็ได้) ให้อัปเดตไฟล์นี้ในรอบเดียวกับงานนั้น · ไฟล์นี้เป็นสรุป หลักฐานจริงอยู่ที่ git/PR
 
 ## 1. Production
@@ -15,7 +15,7 @@
 | #42 | R18 แชร์นัดให้คนนอกกลุ่ม → v1.0.0 | MERGED (`1b07381`) |
 | #43 | docs post-release v1.0.0 (R18 closed) | MERGED (`29534c2`) |
 | #44 | DUALTOOL (`docs/antigravity-team`) Claude Code + Antigravity | MERGED (`55469e5`) |
-| branch `fix/post-v1-polish` | F18 `guest.goingHint` + eslint worktree ignore + อัปเดต HANDOFF | ทำโค้ด/เอกสารแล้ว · **รอ QA อิสระ (แชตใหม่คนละโมเดล) ก่อนเปิด/merge PR** |
+| branch `fix/post-v1-polish` | F18 `guest.goingHint` (หน้าแขก + การ์ดแขกบนหน้าหลัก) + eslint worktree ignore + อัปเดต HANDOFF | QA รอบแรก (Claude Opus 5.5) ผ่านแบบมีข้อสังเกต `qa-post-v1-polish.md` · แก้ข้อ 🟡 หน้าหลักแล้ว (Claude Opus 5.5) · **รอ QA รอบสอง (แชตใหม่ Gemini) ตรวจส่วนหน้าหลัก ก่อนเปิด PR** |
 
 - **งานค้างหลักยึด `docs/team/PROGRESS.md` ส่วน "เหลือ"** (ถ้าขัดกันให้ยึด PROGRESS)
 
@@ -31,11 +31,12 @@
 ## 4. งานต้องให้ boss ทำเอง
 - เช็กลิสต์เครื่องจริง: [r18-boss-device-checklist.md](../reports/r18-boss-device-checklist.md) (LINE ในแอป, แบนเนอร์ iOS, iPad, Apple Maps 768) · **ยังไม่มีผลจด**
 - ตรวจ header `/i/<token>` บน prod ด้วย token จริง (qa ตรวจเฉพาะ token ปลอม)
-- เปิดแชตใหม่ใน Antigravity **คนละโมเดลกับคนทำ** (รอบนี้ทำด้วย Gemini 4 Neon → ตรวจด้วย Claude Opus) เพื่อตรวจ QA รอบ `fix/post-v1-polish` พร้อมยืนยันว่าแชตใหม่โหลด `AGENTS.md` อัตโนมัติ (DUALTOOL §8)
+- เปิดแชตใหม่ใน Antigravity ด้วย **Gemini** (คนละโมเดลกับผู้แก้รอบล่าสุด Claude Opus 5.5) เพื่อตรวจ QA รอบสองของ `fix/post-v1-polish` — เน้น commit แก้หน้าหลัก (`HomeView.tsx` + เทสต์) · ต่อท้ายผลใน `docs/reports/qa-post-v1-polish.md`
 
 ## 5. รอบปัจจุบัน
 - **`fix/post-v1-polish`** (ระดับ A · Antigravity · Gemini 4 Neon) — แก้ F18 (`guest.goingHint` TH/EN + `RsvpControl` + `GuestAppointmentView` + test), เพิ่ม `.claude/worktrees/**` ใน `eslint.config.mjs`, เพิ่ม `CHANGELOG.md` `[Unreleased]`, อัปเดต `HANDOFF.md`/`PROGRESS.md`/`2026-11-23.md`
 - ล้าง worktree ค้างจาก Claude Code ใน `.claude/worktrees/` และ prune แล้ว (`npm run lint` กลับมาทำงานปกติ)
+- QA รอบแรก (Claude Opus 5.5 · แชตใหม่) ผ่านแบบมีข้อสังเกต → boss เลือกแก้ใน branch นี้: `HomeView.tsx` ใช้ `guest.goingHint` เมื่อ `isGuestItem(a)` + เทสต์ใน `tests/ui/share-render.test.ts` (ยืนยันแล้วว่าเทสต์ล้มเมื่อถอดการแก้)
 
 ## 6. วิธีเริ่มงานถัดไป
 - **Claude Code:** อ่าน `CLAUDE.md` → `docs/team/TEAM.md` → `docs/team/PROCESS.md` → contract ของรอบ → ไฟล์นี้
