@@ -1,6 +1,7 @@
 # กติกาสำหรับ agent ทุกตัวในโปรเจกต์ maewmeet
 
 อ่านไฟล์นี้ก่อนทำอะไร แล้วไปต่อที่ [TEAM.md](docs/team/TEAM.md) → [PROCESS.md](docs/team/PROCESS.md) → [docs/prd/PRD.md](docs/prd/PRD.md)
+เครื่องมือ AI อื่น (เช่น Antigravity) ที่ไม่มี sub-agent: ดู [AGENTS.md](AGENTS.md) — กติกาชุดเดียวกัน พร้อมระดับงานและวิธีสวมบทบาท
 
 ## ภาษาและน้ำเสียง
 - คุยกับ boss เป็นภาษาไทย สั้น ตรง ไม่ฟุ้ง · เอกสาร/commit ใช้ไทยหรืออังกฤษก็ได้ แต่ commit แบบ conventional (`feat:`, `fix:`, `qa:`, `docs:`, `chore:`)
@@ -23,7 +24,7 @@
 - main = **ผู้ประสานงาน (Orchestrator) เท่านั้น**: คุยกับ boss · เขียน contract · เลือก agent · ส่งงาน · รวมผล · เปิด PR — **main ไม่แก้ไฟล์/เขียนโค้ดเอง** แม้งานเล็ก · **ข้อยกเว้นเดียว:** main เป็นเจ้าของ `docs/contracts/*_CONTRACT.md` และ `docs/prd/**` (แถว #1 ใน docs/team/TEAM.md) เขียนเองได้ เพราะ contract คือใบสั่งงานที่ boss อนุมัติ · ไฟล์อื่นทั้งหมด main ไม่แก้เอง
 - ไฟล์ที่ไม่มีเจ้าของในไฟล์ agent (เช่น `package.json`, `tsconfig.json`, config lint) → main ระบุผู้แก้ใน contract ของรอบนั้น
 - ก่อนเริ่มงาน เลือกเฉพาะ agent ที่จำเป็นกับงานนั้น ไม่ต้องเรียกครบทุกตัว · งานเล็กมาก (แก้ข้อความ, แก้สีเดียว) ส่ง agent ที่เหมาะที่สุดตัวเดียว
-- รายชื่อ agent ที่ใช้งานจริง ขอบเขตไฟล์ และ model อยู่ที่ `.claude/agents/` (docs/team/TEAM.md เป็นต้นฉบับ ไม่แก้)
+- รายชื่อ agent ที่ใช้งานจริง ขอบเขตไฟล์ และ model อยู่ที่ `.claude/agents/` (`.claude/agents/` คือของจริง · docs/team/TEAM.md เป็นสรุปที่ต้องตรงกับไฟล์เหล่านั้น — secretary ดูแล)
 - ผู้ตรวจอิสระ (`qa` ทุกรอบที่มีโค้ด, `security` เมื่อแตะ auth/rbac/api/schema/ข้อมูลคน) ต้องเป็นคนละตัวกับผู้ทำ (กฎ 5)
 - commit ใช้ชื่อบทบาทเป็นผู้เขียน + อีเมล noreply ของ boss (ดูไฟล์ agent) — อีเมลปลอมทำให้ Vercel ไม่ deploy
 - ตอนรายงานผล ให้ระบุว่าเรียก agent ตัวไหนบ้าง และแต่ละตัวทำอะไร (ในแชทและใน PR)
