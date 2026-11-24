@@ -22,7 +22,7 @@ UI มี 2 ภาษา (ไทย/อังกฤษ) × 2 ธีม (สว�
 - อีเมล commit ต้องเป็น `309017158+ieatbaozi-stack@users.noreply.github.com` เท่านั้น — อีเมลปลอมทำให้ Vercel ไม่ deploy
 - Migration: รันกับ boss บน preview ก่อนเปิด PR และบน prod ก่อน merge แล้วค่อยบอกว่าพร้อม merge
 - ลบถาวรใน UI ต้องยืนยันแบบพิมพ์คำ (type-to-confirm) ห้ามกดครั้งเดียว
-- เอกสารตาม DOCS_SYNC ทุก PR และหลังออกรุ่น โดย boss ไม่ต้องเตือน
+- เอกสารตาม DOCS_SYNC ครบใน PR งานหลักเลย · ตอนออกรุ่น `scripts/release.ts` ขยับเลขรุ่นในเอกสารหลักทั้ง 5 ไฟล์ให้ใน commit เดียว (**ไม่เปิด PR เอกสารตามหลัง release** และ **ไม่เปิด PR เพื่อจด `/api/health`** — `keepalive.yml` ตรวจอัตโนมัติ)
 - ประหยัด token ได้เฉพาะวิธีที่ไม่ลดคุณภาพ ห้ามข้ามเทสต์/ผู้ตรวจ · เปิดแชตใหม่ต่อรอบ
 - boss merge และออกรุ่นเอง: `npx tsx scripts/release.ts <ver> --skip-gates` แล้ว push tag · AI เสนอเลขเวอร์ชันได้ (ดู [docs/VERSIONING.md](docs/VERSIONING.md)) แต่รันได้เฉพาะ `--dry-run`
 
