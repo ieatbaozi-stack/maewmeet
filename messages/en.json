@@ -1100,7 +1100,7 @@
       },
       "skipped": {
         "summary": "Skipped {count, plural, one {# entry} other {# entries}}",
-        "rrule": "{count, plural, one {# recurring event} other {# recurring events}} — try adding a Routine in the app instead",
+        "rrule": "{count, plural, one {# complex recurring event} other {# complex recurring events}} — try adding a Routine in the app instead",
         "cancelled": "{count, plural, one {# cancelled event} other {# cancelled events}}",
         "transparent": "{count, plural, one {# event marked Free} other {# events marked Free}}",
         "past": "{count, plural, one {# event} other {# events}} ended more than 7 days ago",
