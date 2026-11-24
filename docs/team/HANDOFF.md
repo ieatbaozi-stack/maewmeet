@@ -6,7 +6,7 @@
 ## 1. Production
 - เวอร์ชันล่าสุดที่ออกแล้ว: **v1.1.0** · tag `v1.1.0` → commit `87f7db0` (`chore(release): v1.1.0`, 2026-11-24) ✔ ตรวจด้วย `git rev-parse v1.1.0^{commit}`
 - `package.json` = `1.1.0` · CHANGELOG `[1.1.0] - 2026-11-24` ✔ · การแก้ CHANGELOG ของ ops commit แล้ว `26d7548` และอยู่ใน main แล้ว ✔
-- หน้าเว็บ production หลัง v1.1.0: boss ตรวจแล้ว 2026-11-24 ว่าปกติ · `/api/health` บน prod หลัง v1.1.0: **ยังไม่ยืนยันค่า version ใน JSON** (ยังไม่ได้ตรวจโดยตรง) · ครั้งล่าสุดที่ยืนยันแล้วคือ v1.0.1 (2026-11-23 19:43 · `ok:true`, `db:true`, `argon2:true`, `pepper.ok:true`)
+- หน้าเว็บ production หลัง v1.1.0: boss ตรวจแล้ว 2026-11-24 ว่าปกติ · `/api/health` บน prod หลัง v1.1.0: **boss ตรวจแล้ว 2026-11-24 ว่าถูกต้อง เป็น version `1.1.0`** (ฟิลด์อื่นใน JSON ยังไม่ได้ระบุ) · ครั้งก่อนหน้าที่ยืนยันแล้วคือ v1.0.1 (2026-11-23 19:43 · `ok:true`, `db:true`, `argon2:true`, `pepper.ok:true`)
 - header `/i/<token ปลอม>` บน prod `v1.0.1`: `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate` · `X-Robots-Tag: noindex, nofollow` ✔ (token จริงบน prod ยังไม่ได้ลอง)
 - โหมด: **maintenance mode** (ดู `docs/NEXT_PHASE.md`) ไม่มีรอบ R ใหม่โดยค่าเริ่มต้น · งานที่เข้ามาคือแก้บั๊ก/security ตามรายงาน และงานที่ boss ตัดสินแล้ว
 
@@ -38,7 +38,7 @@
 ## 4. งานต้องให้ boss ทำเอง
 - เช็กลิสต์เครื่องจริง: [r18-boss-device-checklist.md](../reports/r18-boss-device-checklist.md) (LINE ในแอป, แบนเนอร์ iOS, iPad, Apple Maps 768) · **ยังไม่มีผลจด**
 - ตรวจ header `/i/<token>` บน prod ด้วย token จริง (ตรวจแล้วเฉพาะ token ปลอม)
-- ยืนยัน `/api/health` บน prod ว่าเป็น `1.1.0` (ยังไม่ได้ตรวจ)
+- ~~ยืนยัน `/api/health` บน prod ว่าเป็น `1.1.0`~~ ✔ เสร็จแล้ว: boss ยืนยัน 2026-11-24 (ดู §1)
 
 ## 5. รอบปัจจุบัน
 - **ไม่มีรอบพัฒนาเปิดอยู่** · v1.1.0 ออกแล้ว (2026-11-24) · เอกสารหลังออกรุ่น v1.1.0 merge แล้ว (PR #50 · `b5a2c3d`) · ไม่มีรอบเปิดค้าง · รอบถัดไปเริ่มจาก `git pull` ที่ main และ contract ใหม่
