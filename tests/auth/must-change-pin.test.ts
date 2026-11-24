@@ -46,6 +46,9 @@ const SAMPLE_BODY: Record<string, unknown> = {
   // R3 (Platform): busy — body ผ่าน zod ก่อน actor (ปฏิทินกลุ่มตรวจ from/to หลังด่านสิทธิ์ จึงไม่ต้องมีตัวอย่าง)
   'POST /api/me/busy': { kind: 'all_day', startDate: '2026-10-24', endDate: '2026-10-24' },
   'PATCH /api/me/busy/:id': { title: 'x' },
+  // v1.1.0 (Platform): นำเข้าไฟล์ .ics (ADR 0017)
+  'POST /api/me/busy/import/preview': { icsText: 'BEGIN:VCALENDAR\r\nEND:VCALENDAR' },
+  'POST /api/me/busy/import': { items: [{ kind: 'all_day', startDate: '2026-10-24', endDate: '2026-10-24' }] },
   // R14 (Platform): busy routine
   'POST /api/me/busy-routines': { rangeKind: 'weeks', fromWeek: '2026-11-16', toWeek: '2026-11-23', weekdays: [1, 2, 3, 4, 5], allDay: false, startTime: '09:00', endTime: '18:00' },
   'PATCH /api/me/busy-routines/:id': { rangeKind: 'weeks', fromWeek: '2026-11-16', toWeek: '2026-11-23', weekdays: [1, 2, 3, 4, 5], allDay: false, startTime: '09:00', endTime: '18:00' }, // PATCH = กฎใหม่ทั้งชุด

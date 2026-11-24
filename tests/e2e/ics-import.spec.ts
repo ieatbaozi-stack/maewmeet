@@ -99,12 +99,25 @@ for (const locale of LOCALES) {
       await expect(page.getByTestId('ics-item-check-1')).toBeChecked();
       await expect(page.getByTestId('ics-item-rounded-0')).toBeVisible();
 
-      // ขยายรายละเอียดที่ข้าม → เห็น RRULE
+      // ขยายรายละเอียดที่ข้าม → เห็นไอคอนลูกศร + RRULE
       const details = page.getByTestId('ics-skipped-details');
       await expect(details).toBeVisible();
+      await expect(details.locator('summary svg.ics-skipped-chevron')).toBeVisible();
       await details.locator('summary').click();
       await expect(page.getByTestId('ics-skip-rrule')).toBeVisible();
       await assertNoOverflow(page, `${locale}/${theme} step-preview`);
+
+      // ยืนยัน alert-info ใช้สี info (--accent-soft) ไม่ใช่สี error (--danger-soft)
+      const infoColors = await page.getByTestId('ics-rounded-note').evaluate((el) => {
+        const probe = document.createElement('div');
+        probe.className = 'alert';
+        el.parentElement?.appendChild(probe);
+        const infoBg = getComputedStyle(el).backgroundColor;
+        const errBg = getComputedStyle(probe).backgroundColor;
+        probe.remove();
+        return { infoBg, errBg };
+      });
+      expect(infoColors.infoBg).not.toBe(infoColors.errBg);
 
       // ยืนยันนำเข้า
       const submitBtn = page.getByTestId('ics-import-submit');
@@ -153,6 +166,24 @@ test('ไฟล์ไม่ใช่ .ics แสดง error และ /privacy 
   });
   await expect(page.getByTestId('ics-import-error')).toBeVisible();
   await expect(page.getByTestId('ics-import-error')).toContainText(msg('th', 'errors.ICS_INVALID'));
+
+  // เปิด preview จากไฟล์ดี แล้วเปลี่ยนเป็นไฟล์เสีย → ชื่อไฟล์เดิมต้องไม่ถูกทับด้วยชื่อไฟล์เสีย
+  await page.getByTestId('ics-file-input').setInputFiles({
+    name: 'good-keep.ics',
+    mimeType: 'text/calendar',
+    buffer: buildSampleIcs(),
+  });
+  await expect(page.getByTestId('ics-preview-list')).toBeVisible();
+  await expect(page.locator('.ics-file-name')).toContainText('good-keep.ics');
+
+  await page.getByTestId('ics-file-input').setInputFiles({
+    name: 'broken-second.ics',
+    mimeType: 'text/calendar',
+    buffer: Buffer.from('still not an ics file', 'utf8'),
+  });
+  await expect(page.getByTestId('ics-import-error')).toBeVisible();
+  await expect(page.locator('.ics-file-name')).toContainText('good-keep.ics');
+  await expect(page.locator('.ics-file-name')).not.toContainText('broken-second.ics');
 
   for (const loc of LOCALES) {
     await setPrefs(context, baseURL!, { locale: loc });
