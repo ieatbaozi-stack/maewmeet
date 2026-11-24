@@ -61,6 +61,17 @@ export const SHARE_RATE_LIMITS = {
   guestRemoveUser: { prefix: 'share:guest:remove:u', limit: 60, windowMs: 10 * MINUTE_MS },
 } as const satisfies Record<string, RateSpec>;
 
+/**
+ * v1.1.0 — นำเข้าไฟล์ `.ics` เป็นเวลาไม่ว่าง (ICS_IMPORT_CONTRACT A5 · ADR 0017 §4)
+ * ใช้ `rate_limit_bucket` เดิม (ไม่มี migration) · แยกถัง preview กับ confirm เพื่อไม่ให้การสลับช่วงวันกินโควตาบันทึก
+ *  - preview `busy:import:preview` 20 / 10 นาที / ผู้ใช้
+ *  - confirm `busy:import`         10 / 10 นาที / ผู้ใช้
+ */
+export const BUSY_IMPORT_RATE_LIMITS = {
+  preview: { prefix: 'busy:import:preview', limit: 20, windowMs: 10 * MINUTE_MS },
+  confirm: { prefix: 'busy:import', limit: 10, windowMs: 10 * MINUTE_MS },
+} as const satisfies Record<string, RateSpec>;
+
 const subkeys = new Map<string, Buffer>();
 
 /** subkey สำหรับ HMAC ของ IP — HKDF-SHA256 จาก APP_SECRET (แยกจากการใช้งานอื่นด้วย info) */

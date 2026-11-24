@@ -48,6 +48,9 @@ export const ERROR_CODES = [
   'SHARE_LINK_INVALID',
   'SHARE_LINK_EXPIRED',
   'SHARE_FULL',
+  // v1.1.0 นำเข้าไฟล์ .ics (ADR 0017 §5)
+  'ICS_TOO_LARGE',
+  'ICS_INVALID',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -104,6 +107,10 @@ export const ERROR_HTTP_STATUS = {
   SHARE_LINK_INVALID: 404,
   SHARE_LINK_EXPIRED: 410,
   SHARE_FULL: 409, // params: { max: 10 }
+
+  // v1.1.0 นำเข้าไฟล์ .ics (ADR 0017 §5)
+  ICS_TOO_LARGE: 413,
+  ICS_INVALID: 400,
 } as const satisfies Record<ErrorCode, number>;
 
 export function httpStatusOf(code: ErrorCode): number {

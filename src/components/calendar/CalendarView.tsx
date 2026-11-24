@@ -11,6 +11,7 @@ import { markFreeSeen } from "@/components/groups/free-seen";
 import { GoingList } from "./GoingList";
 import { callApiFull } from "@/components/appointments/api";
 import { BusyFormSheet, type BusyDone } from "@/components/busy/BusyFormSheet";
+import { IcsImportSheet } from "@/components/busy/IcsImportSheet";
 import { RoutineFormSheet, type RoutineFormMode } from "@/components/busy/RoutineFormSheet";
 import { RoutineList, type RoutineListState } from "@/components/busy/RoutineList";
 import { RoutineScopeSheet } from "@/components/busy/RoutineScopeSheet";
@@ -93,6 +94,7 @@ const TOAST_KEY: Record<BusyDone, string> = {
   deleted: "busy.toast.deleted",
   deletedDay: "busy.toast.deletedDay",
   deletedSeries: "busy.toast.deletedSeries",
+  imported: "busy.toast.imported",
   gone: "busy.form.error.gone",
 };
 
@@ -132,6 +134,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   const [today, setToday] = useState<DateISO>(initialToday);
   const [version, setVersion] = useState(0);
   const [form, setForm] = useState<FormState>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [routineUi, setRoutineUi] = useState<RoutineUi>(null);
   const [routineToast, setRoutineToast] = useState<RoutineDone | null>(null);
@@ -442,7 +445,15 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
   function toastText(result: BusyDone, count: number | undefined): string {
     if (result === "created" && count !== undefined) return t("busy.toast.savedDaily", { count });
     if (result === "deletedSeries" && count !== undefined) return t("busy.toast.deletedSeriesCount", { count });
+    if (result === "imported" && count !== undefined) return t("busy.toast.imported", { count });
     return t(TOAST_KEY[result]);
+  }
+
+  function onImported(createdCount: number) {
+    setImportOpen(false);
+    setRoutineToast(null);
+    setToast({ result: "imported", count: createdCount });
+    setVersion((v) => v + 1);
   }
 
   function pickGroup(id: string) {
@@ -540,7 +551,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       body = (
         <>
           {mine.truncated ? <TruncatedNote messageKey="busy.mine.truncated" /> : null}
-          {hasRoutines && mine.items.length === 0 ? null : <MineList items={mine.items} nowMs={mine.nowMs} onOpen={(it) => openForm(it)} onAdd={() => openForm(null)} onAddRoutine={openRoutineForm} />}
+          {hasRoutines && mine.items.length === 0 ? null : <MineList items={mine.items} nowMs={mine.nowMs} onOpen={(it) => openForm(it)} onAdd={() => openForm(null)} onAddRoutine={openRoutineForm} onImportIcs={() => setImportOpen(true)} />}
           {mineRoutines && !(mine.items.length === 0 && mineRoutines.status === "ready" && mineRoutines.routines.length === 0) ? (
             <RoutineList
               state={mineRoutines}
@@ -745,10 +756,16 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
             <h2>{t("busy.mine.title")}</h2>
             <p>{t("busy.mine.lead")}</p>
             {mine?.status === "ready" && mine.key === mineKey ? (
-              <button type="button" className="btn btn-secondary rt-add" data-testid="routine-add" onClick={openRoutineForm}>
-                <Icon name="repeat" />
-                <span>{t("busy.routine.add")}</span>
-              </button>
+              <div className="busy-head-actions">
+                <button type="button" className="btn btn-secondary rt-add" data-testid="routine-add" onClick={openRoutineForm}>
+                  <Icon name="repeat" />
+                  <span>{t("busy.routine.add")}</span>
+                </button>
+                <button type="button" className="btn btn-secondary" data-testid="ics-import-open" onClick={() => setImportOpen(true)}>
+                  <Icon name="calendar-plus" />
+                  <span>{t("busy.import.button")}</span>
+                </button>
+              </div>
             ) : null}
           </div>
         ) : null}
@@ -768,6 +785,7 @@ export function CalendarView({ groups, gid, tz, userId, initialToday, initialNow
       {form ? (
         <BusyFormSheet edit={form.edit} defaultDate={form.defaultDate} today={form.today} groupCount={groups.length} userId={userId} routineDayNote={form.routineDayNote === true} onClose={() => setForm(null)} onDone={onDone} />
       ) : null}
+      {importOpen ? <IcsImportSheet onClose={() => setImportOpen(false)} onImported={onImported} /> : null}
       {routineUi?.type === "scope" ? (
         <RoutineScopeSheet
           action={routineUi.action}

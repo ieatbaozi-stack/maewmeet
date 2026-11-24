@@ -150,6 +150,149 @@ export async function insertBusySeriesIfUnderCap(
     .orderBy(asc(busyBlock.startAt), asc(busyBlock.id));
 }
 
+/** แถวหนึ่งรายการที่จะนำเข้าแบบ batch (v1.1.0 ADR 0017 §3) */
+export type BusyImportRow = {
+  readonly id: string;
+  readonly title: string | null;
+  readonly allDay: boolean;
+  readonly startAt: number;
+  readonly endAt: number;
+  readonly localStartDate: string;
+  readonly localEndDate: string;
+  readonly tz: string;
+};
+
+export type BusyDedupeKeyRow = {
+  readonly allDay: boolean;
+  readonly startAt: number;
+  readonly endAt: number;
+  readonly localStartDate: string;
+  readonly localEndDate: string;
+};
+
+/**
+ * v1.1.0 (ADR 0017 §3): คืนเฉพาะคีย์วันเวลาของ busy_block ของเจ้าตัวในช่วง [fromDate, toDate] สำหรับเทียบซ้ำในหน้า preview
+ * ผูก user_id = เจ้าตัวเท่านั้น · ไม่ SELECT note/title
+ */
+export async function listOwnBusyForDedupe(
+  db: DbOrTx,
+  userId: string,
+  fromDate: string,
+  toDate: string,
+): Promise<BusyDedupeKeyRow[]> {
+  return db
+    .select({
+      allDay: busyBlock.allDay,
+      startAt: busyBlock.startAt,
+      endAt: busyBlock.endAt,
+      localStartDate: busyBlock.localStartDate,
+      localEndDate: busyBlock.localEndDate,
+    })
+    .from(busyBlock)
+    .where(and(eq(busyBlock.userId, userId), lte(busyBlock.localStartDate, toDate), gte(busyBlock.localEndDate, fromDate)));
+}
+
+export type InsertBusyBatchResult =
+  | { readonly ok: true; readonly rows: OwnBusyRow[]; readonly skippedDuplicates: number }
+  | { readonly ok: false; readonly pendingCount: number };
+
+/**
+ * v1.1.0 (ADR 0017 §3 · A3/A4): นำเข้า N แถวแบบอะตอมมิกในคำสั่ง SQL เดียวภายใต้ inTx (คำสั่งเขียนแรกของธุรกรรม)
+ *  - skipDuplicates = true: กรองแถวที่เวลาตรงกับ busy_block เดิมของเจ้าตัวออกใน CTE เดียวกัน (กัน race ตอนกดซ้ำ)
+ *  - ตรวจ user active + windowCount + pending <= cap แบบ all-or-nothing (เกินเพดาน = 0 แถว)
+ *  - พารามิเตอร์สูงสุดสำหรับ N = 100: 8×100 + 9 = 809 < 999 (ขีดจำกัด SQLite)
+ */
+export async function insertBusyBatchIfUnderCap(
+  tx: Tx,
+  input: {
+    readonly userId: string;
+    readonly cap: number;
+    readonly hideDetail: boolean;
+    readonly skipDuplicates: boolean;
+    readonly rows: readonly BusyImportRow[];
+  },
+  now: number,
+): Promise<InsertBusyBatchResult> {
+  const n = input.rows.length;
+  if (n === 0) return { ok: true, rows: [], skippedDuplicates: 0 };
+
+  const values = sql.join(
+    input.rows.map(
+      (r) => sql`(${r.id}, ${r.title}, ${r.allDay ? 1 : 0}, ${r.startAt}, ${r.endAt}, ${r.localStartDate}, ${r.localEndDate}, ${r.tz})`,
+    ),
+    sql`, `,
+  );
+  const hideFlag = input.hideDetail ? 1 : 0;
+
+  if (input.skipDuplicates) {
+    const inserted = await tx.all<{ id: string }>(sql`
+      WITH v(id, title, all_day, start_at, end_at, local_start_date, local_end_date, tz) AS (VALUES ${values}),
+      new_rows AS (
+        SELECT v.* FROM v
+        WHERE NOT EXISTS (
+          SELECT 1 FROM busy_block b
+          WHERE b.user_id = ${input.userId}
+            AND b.all_day = v.all_day
+            AND b.start_at = v.start_at
+            AND b.end_at = v.end_at
+            AND b.local_start_date = v.local_start_date
+            AND b.local_end_date = v.local_end_date
+        )
+      )
+      INSERT INTO busy_block (id, user_id, series_id, routine_id, title, note, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at)
+      SELECT nr.id, ${input.userId}, NULL, NULL, nr.title, NULL, nr.all_day, nr.start_at, nr.end_at, nr.local_start_date, nr.local_end_date, nr.tz, ${hideFlag}, ${now}, ${now}
+      FROM new_rows nr
+      WHERE EXISTS (SELECT 1 FROM user WHERE id = ${input.userId} AND status = 'active')
+        AND ${windowCount(input.userId, now)} + (SELECT count(*) FROM new_rows) <= ${input.cap}
+      RETURNING id`);
+
+    if (inserted.length > 0) {
+      const ids = inserted.map((r) => r.id);
+      const created = await tx
+        .select()
+        .from(busyBlock)
+        .where(and(eq(busyBlock.userId, input.userId), inArray(busyBlock.id, ids)))
+        .orderBy(asc(busyBlock.startAt), asc(busyBlock.id));
+      return { ok: true, rows: created, skippedDuplicates: n - created.length };
+    }
+
+    // 0 แถวที่ถูกสร้าง: แยกกรณี "ซ้ำทั้งหมด" กับ "เกินเพดาน 300 / บัญชีไม่ active"
+    const pending = await tx.all<{ c: number }>(sql`
+      WITH v(id, title, all_day, start_at, end_at, local_start_date, local_end_date, tz) AS (VALUES ${values})
+      SELECT count(*) AS c FROM v
+      WHERE NOT EXISTS (
+        SELECT 1 FROM busy_block b
+        WHERE b.user_id = ${input.userId}
+          AND b.all_day = v.all_day
+          AND b.start_at = v.start_at
+          AND b.end_at = v.end_at
+          AND b.local_start_date = v.local_start_date
+          AND b.local_end_date = v.local_end_date
+      )`);
+    const pendingCount = Number(pending[0]?.c ?? 0);
+    if (pendingCount === 0) {
+      return { ok: true, rows: [], skippedDuplicates: n };
+    }
+    return { ok: false, pendingCount };
+  }
+
+  const inserted = await tx.all<{ id: string }>(sql`
+    WITH v(id, title, all_day, start_at, end_at, local_start_date, local_end_date, tz) AS (VALUES ${values})
+    INSERT INTO busy_block (id, user_id, series_id, routine_id, title, note, all_day, start_at, end_at, local_start_date, local_end_date, tz, hide_detail, created_at, updated_at)
+    SELECT v.id, ${input.userId}, NULL, NULL, v.title, NULL, v.all_day, v.start_at, v.end_at, v.local_start_date, v.local_end_date, v.tz, ${hideFlag}, ${now}, ${now}
+    FROM v
+    WHERE EXISTS (SELECT 1 FROM user WHERE id = ${input.userId} AND status = 'active')
+      AND ${windowCount(input.userId, now)} + ${n} <= ${input.cap}
+    RETURNING id`);
+  if (inserted.length !== n) return { ok: false, pendingCount: n };
+  const created = await tx
+    .select()
+    .from(busyBlock)
+    .where(and(eq(busyBlock.userId, input.userId), inArray(busyBlock.id, input.rows.map((r) => r.id))))
+    .orderBy(asc(busyBlock.startAt), asc(busyBlock.id));
+  return { ok: true, rows: created, skippedDuplicates: 0 };
+}
+
 export async function activeBusyCount(db: DbOrTx, userId: string, now: number): Promise<number> {
   const rows = await db.all<{ n: number }>(sql`SELECT ${windowCount(userId, now)} AS n`);
   return Number(rows[0]?.n ?? 0);

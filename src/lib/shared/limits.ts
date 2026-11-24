@@ -55,6 +55,9 @@ export const UPCOMING_BUSY_LOOKAHEAD_DAYS = 30;
 /** ความยาวสูงสุดของ title / note (อักขระ = code point) */
 export const BUSY_TITLE_MAX = 80;
 export const BUSY_NOTE_MAX = 500;
+/** v1.1.0 (ADR 0017 §1, §3): เพดานนำเข้าไฟล์ .ics ต่อครั้ง (≤ 100 รายการ) และเพดาน JSON body ของ preview (768 KB สำหรับไฟล์ .ics ≤ 512 KB) */
+export const ICS_IMPORT_MAX_BATCH = 100;
+export const ICS_IMPORT_PREVIEW_MAX_BODY_BYTES = 768 * 1024;
 /**
  * R6F (ADR 0010 §8 · main ตัดสิน 2026-11-02): limiter เขียน busy ต่อผู้ใช้ — fixed window ผ่าน rate_limit_bucket · เกิน → RATE_LIMITED + Retry-After
  * create นับต่อคำขอ (ทุก kind — ชุดรายวัน 62 แถวก็นับ 1) · delete นับต่อคำขอ (ทั้ง scope=one และ series)

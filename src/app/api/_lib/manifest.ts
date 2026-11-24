@@ -68,6 +68,9 @@ export const ROUTE_MANIFEST = [
   { method: 'POST', path: '/api/me/busy', action: 'busy.create', auth: 'actor', owner: 'platform' },
   { method: 'PATCH', path: '/api/me/busy/:id', action: 'busy.update', auth: 'actor', owner: 'platform' },
   { method: 'DELETE', path: '/api/me/busy/:id', action: 'busy.delete', auth: 'actor', owner: 'platform' },
+  // ── v1.1.0 (Platform) — นำเข้าไฟล์ .ics เป็นเวลาไม่ว่างของฉัน (ADR 0017 §3) ──
+  { method: 'POST', path: '/api/me/busy/import/preview', action: 'busy.create', auth: 'actor', owner: 'platform' },
+  { method: 'POST', path: '/api/me/busy/import', action: 'busy.create', auth: 'actor', owner: 'platform' },
   // ── R14 (Platform) — busy routine ของฉัน (ADR 0012 §5) · "เฉพาะวันนี้" ใช้ PATCH/DELETE /api/me/busy/:id เดิม ──
   { method: 'GET', path: '/api/me/busy-routines', action: 'busy.routine.list.own', auth: 'actor', owner: 'platform' },
   { method: 'POST', path: '/api/me/busy-routines', action: 'busy.routine.create', auth: 'actor', owner: 'platform' },

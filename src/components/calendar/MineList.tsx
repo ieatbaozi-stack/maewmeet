@@ -16,10 +16,12 @@ export interface MineListProps {
   onAdd: () => void;
   /** R14: ปุ่มรองใต้ปุ่ม "ลงวันไม่ว่าง" ในหน้าว่าง (ลงแบบประจำ) */
   onAddRoutine?: () => void;
+  /** v1.1.0: ปุ่มนำเข้าไฟล์ .ics ในหน้าว่าง */
+  onImportIcs?: () => void;
 }
 
 /** "ของฉัน" (UX X32): รายการช่วงไม่ว่างที่ยังไม่สิ้นสุด ใช้ทุกกลุ่ม · แตะแถว = เปิดฟอร์มแก้ไข */
-export function MineList({ items, nowMs, onOpen, onAdd, onAddRoutine }: MineListProps) {
+export function MineList({ items, nowMs, onOpen, onAdd, onAddRoutine, onImportIcs }: MineListProps) {
   const t = useTranslations();
   const locale = useLocale() as CalendarLocale;
 
@@ -41,6 +43,12 @@ export function MineList({ items, nowMs, onOpen, onAdd, onAddRoutine }: MineList
             </button>
             <p className="small muted">{t("busy.routine.addHelp")}</p>
           </>
+        ) : null}
+        {onImportIcs ? (
+          <button type="button" className="btn btn-secondary" data-testid="ics-import-empty-mine" onClick={onImportIcs}>
+            <Icon name="calendar-plus" />
+            <span>{t("busy.import.button")}</span>
+          </button>
         ) : null}
       </section>
     );

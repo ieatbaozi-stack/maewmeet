@@ -471,7 +471,7 @@ describe('สถานะบัญชี (R3-6)', () => {
     expect(await h.count('busy_block')).toBe(0);
   });
 
-  it('manifest: route busy/ปฏิทิน (R3 5 ตัว + R14 routine 4 ตัว + R15 skips) ลงทะเบียนด้วย action ที่ตรงกับ RBAC', () => {
+  it('manifest: route busy/ปฏิทิน (R3 5 ตัว + R14 routine 4 ตัว + R15 skips + v1.1.0 import 2 ตัว) ลงทะเบียนด้วย action ที่ตรงกับ RBAC', () => {
     const mine = ROUTE_MANIFEST.filter((e) => e.path.startsWith('/api/me/busy') || e.path.endsWith('/calendar')).map((e) => `${e.method} ${e.path} ${e.action}`);
     expect(mine.sort()).toEqual([
       'DELETE /api/me/busy-routines/:id busy.routine.delete',
@@ -484,6 +484,8 @@ describe('สถานะบัญชี (R3-6)', () => {
       'POST /api/me/busy busy.create',
       'POST /api/me/busy-routines busy.routine.create',
       'POST /api/me/busy-routines/:id/skips busy.routine.update',
+      'POST /api/me/busy/import busy.create',
+      'POST /api/me/busy/import/preview busy.create',
     ]);
   });
 });

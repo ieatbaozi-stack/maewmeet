@@ -286,6 +286,7 @@
   .btn-secondary:disabled { color: var(--ink-muted); }
   .alert-warn { background: var(--warn); color: var(--warn-ink); }
   .alert-free { background: var(--free); color: var(--free-ink); }
+  .alert-info { background: var(--accent-soft); color: var(--accent-soft-ink); }
   .alert span { display: block; }
   .tag { display: inline-flex; align-items: center; gap: var(--space-1); padding: 0 var(--space-2); border-radius: var(--radius-sm); font-size: var(--text-xs); font-weight: var(--weight-medium); line-height: var(--leading); white-space: nowrap; }
   .tag-wait { background: var(--event); color: var(--event-ink); }

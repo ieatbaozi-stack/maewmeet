@@ -7,13 +7,18 @@ import { MINUTES_PER_DAY, type DateISO, type EpochMs } from './constants';
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 let supported: Set<string> | undefined;
-const validTz = new Map<string, boolean>();
+// cache เฉพาะชื่อที่ถูกต้อง (ชุดเขตเวลามีจำนวนจำกัด) · ผลที่ผิดไม่เก็บ กันอินพุตผู้ใช้ทำให้ cache โตไม่จำกัด (security M1)
+const validTz = new Set<string>();
+
+/** ขนาด cache ของ isValidTimeZone — ใช้ในเทสต์เท่านั้น */
+export function validTimeZoneCacheSize(): number {
+  return validTz.size;
+}
 
 /** true ถ้าเป็นชื่อ IANA ที่ใช้ได้ (ตัวพิมพ์ตรง, ไม่รับรูปแบบ offset เช่น +07:00) */
 export function isValidTimeZone(tz: unknown): tz is string {
   if (typeof tz !== 'string' || tz === '') return false;
-  const cached = validTz.get(tz);
-  if (cached !== undefined) return cached;
+  if (validTz.has(tz)) return true;
   supported ??= new Set([...Intl.supportedValuesOf('timeZone'), 'UTC']);
   let ok = supported.has(tz);
   if (!ok && !/^[+-]/.test(tz)) {
@@ -23,7 +28,7 @@ export function isValidTimeZone(tz: unknown): tz is string {
       ok = false;
     }
   }
-  validTz.set(tz, ok);
+  if (ok) validTz.add(tz);
   return ok;
 }
 

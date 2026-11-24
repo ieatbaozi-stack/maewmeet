@@ -1,6 +1,6 @@
 # HANDOFF — สถานะล่าสุดสำหรับเครื่องมือใดก็ได้ที่เพิ่งเปิด repo
 
-> อัปเดต: 2026-11-23 20:02 (เวลาไทย) โดย secretary (Antigravity · Gemini 4 Neon · branch `docs/ics-import-contract`) · ตรวจกับ `git log`, `gh pr view 47`, `docs/contracts/ICS_IMPORT_CONTRACT.md`
+> อัปเดต: 2026-11-23 20:52 (เวลาไทย) โดย secretary (Antigravity · Gemini 4 Neon · branch `feat/ics-import`) · ตรวจกับ `git log`, `docs/contracts/ICS_IMPORT_CONTRACT.md`, `docs/adr/0017-ics-import.md`
 > **กติกา:** ใครจบงาน (Claude Code หรือ Antigravity ก็ได้) ให้อัปเดตไฟล์นี้ในรอบเดียวกับงานนั้น · ไฟล์นี้เป็นสรุป หลักฐานจริงอยู่ที่ git/PR
 
 ## 1. Production
@@ -19,6 +19,7 @@
 | #45 | `fix/post-v1-polish`: F18 `guest.goingHint` (หน้าแขก + หน้าหลัก) + eslint worktree ignore | MERGED (`68c181d`) → tag `v1.0.1` (`80856c2`) |
 | #46 | `docs/release-1.0.1`: เอกสารหลังออกรุ่น v1.0.1 | MERGED (`e71f62c`) |
 | #47 | `docs/v1.0.1-verify`: ยืนยัน deploy v1.0.1 + ปิดหมายเหตุ F18 ใน `V1_UI_AUDIT.md` | MERGED (`f5b23ab`) |
+| #48 | `docs/ics-import-contract`: สัญญา `ICS_IMPORT_CONTRACT.md` (v1.1.0) | MERGED (`65ccfa9`) |
 
 - **งานค้างหลักยึด `docs/team/PROGRESS.md` ส่วน "เหลือ"** (ถ้าขัดกันให้ยึด PROGRESS)
 
@@ -36,9 +37,12 @@
 - ตรวจ header `/i/<token>` บน prod ด้วย token จริง (ตรวจแล้วเฉพาะ token ปลอม)
 
 ## 5. รอบปัจจุบัน
-- **งานถัดไปที่มี contract อนุมัติแล้ว:** **นำเข้าไฟล์ `.ics` เป็นเวลาไม่ว่าง (v1.1.0 · ระดับ C · ไม่มี migration)** — ดู [docs/contracts/ICS_IMPORT_CONTRACT.md](../contracts/ICS_IMPORT_CONTRACT.md) (branch `docs/ics-import-contract` · boss อนุมัติ 2026-11-23, B1–B4 = ค่าแนะนำ (ก) ทั้ง 4 ข้อ)
-- **ขั้นถัดไปเมื่อ contract merge แล้ว:** เปิดรอบงานโค้ด `feat/ics-import` จาก `main` ล่าสุด — แนะนำทำใน **Claude Code (ทีม agent เต็ม)** ตาม `AGENTS.md` §3 (เริ่มจาก `architect` เขียน ADR 0017 + `ux` เขียน `docs/design/ICS_IMPORT.md`) · บังคับผ่าน `qa` + Claude Code `security` agent ก่อน boss merge
-- งานใหม่รอบถัดไปให้เปิดแชตใหม่ต่อรอบตาม `AGENTS.md` §2
+- **งานรอบนี้ (พัฒนาครบแล้วบน `feat/ics-import` · รอตรวจอิสระก่อน merge):** **นำเข้าไฟล์ `.ics` เป็นเวลาไม่ว่าง (v1.1.0 · ระดับ C · ไม่มี migration)** — ดู [docs/contracts/ICS_IMPORT_CONTRACT.md](../contracts/ICS_IMPORT_CONTRACT.md) · [ADR 0017](../adr/0017-ics-import.md) · [docs/design/ICS_IMPORT.md](../design/ICS_IMPORT.md)
+  - ทำเสร็จแล้วโดยสวมบทบาทแยก commit ตาม `AGENTS.md` §5 (Gemini 4 Neon): `architect` (ADR 0017 + `ARCHITECTURE.md`) · `ux` (`ICS_IMPORT.md` + `messages/*.json`) · `platform` (parser `src/lib/calendar/ics-import.ts` + API preview/import + atomic batch insert) · `auth` (`BUSY_IMPORT_RATE_LIMITS`) · `frontend` (`IcsImportSheet` + ปุ่มในปฏิทินแท็บ "ของฉัน" + `/privacy`) · `test` (unit + integration + Playwright E2E 375/390/768 × TH/EN × light/dark) · `ops` + `main` + `secretary` (DOCS_SYNC)
+- **ขั้นถัดไป (บังคับก่อน boss merge):**
+  1. เปิด **แชตใหม่คนละโมเดลกับคนทำ** (เช่น Claude Opus/Sonnet) สวมบทบาท `qa` ตรวจ `git diff main...HEAD` + รันคำสั่งตรวจซ้ำเอง + เขียน `docs/reports/qa-ics-import.md`
+  2. เปิด **Claude Code** เรียก `security` agent ตรวจ 1 รอบ + เขียน `docs/reports/security-ics-import.md` (บังคับตาม `ICS_IMPORT_CONTRACT.md` §4 และ `AGENTS.md` §3/§6)
+  3. หลังผ่านทั้ง `qa` + `security` + CI เขียว → boss merge PR → ออกรุ่น **v1.1.0** (`npx tsx scripts/release.ts 1.1.0 --skip-gates` + push tag · ไม่มี migration)
 
 ## 6. วิธีเริ่มงานถัดไป
 - **Claude Code:** อ่าน `CLAUDE.md` → `docs/team/TEAM.md` → `docs/team/PROCESS.md` → contract ของรอบ → ไฟล์นี้
