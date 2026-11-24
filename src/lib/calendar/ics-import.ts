@@ -331,10 +331,15 @@ export function sanitizeIcsSummary(raw: string | undefined, maxCodePoints = DEFA
   return truncated.join('');
 }
 
+// TZID ที่ยาวเกินหรือมีอักขระนอกชุดที่ชื่อ IANA/Windows ใช้ → ไม่รู้จักทันที ไม่ส่งถึง validator (security M1)
+const MAX_TZID_LENGTH = 64;
+const TZID_CHARS = /^[A-Za-z0-9 _+\-/.(),]+$/;
+
 /** แปลง TZID → IANA ที่ isValidTimeZone ยอมรับ (รองรับ Windows TZID จาก Outlook · ไม่รู้จัก = null) */
 export function resolveIcsTimeZone(rawTzid: string): string | null {
   const cleaned: string = rawTzid.trim();
   if (!cleaned) return null;
+  if (cleaned.length > MAX_TZID_LENGTH || !TZID_CHARS.test(cleaned)) return null;
   if (isValidTimeZone(cleaned as unknown)) return cleaned;
   if (cleaned.startsWith('/')) {
     const stripped = cleaned.slice(1);
