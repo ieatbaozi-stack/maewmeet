@@ -1,41 +1,32 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-24 (เวลาไทย) · **v1.1.0 เป็นรุ่นล่าสุดที่ออกแล้ว** (ออก 2026-11-23 · tag `v1.0.1` → `80856c2`) · **โปรเจกต์ปิดรอบ R0–R18 · เข้าโหมดดูแล (maintenance mode)**
+> อัปเดตล่าสุด: 2026-11-24 (เวลาไทย) · **v1.1.0 เป็นรุ่นล่าสุดที่ออกแล้ว** (ออก 2026-11-24 · tag `v1.1.0` → `87f7db0`) · **โปรเจกต์ปิดรอบ R0–R18 · เข้าโหมดดูแล (maintenance mode)**
 
-> **วิธีอ่านไฟล์นี้:** สถานะจริงอยู่ที่หัวข้อ **สถานะปัจจุบัน** และ **เหลือ** (ตรวจกับ git log, CHANGELOG, `docs/reports/` เมื่อ 2026-11-23) · ประวัติรอบเดิมทั้งหมดอยู่ใน [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md) (คำต่อคำ)
+> **วิธีอ่านไฟล์นี้:** สถานะจริงอยู่ที่หัวข้อ **สถานะปัจจุบัน** และ **เหลือ** (ตรวจกับ git log, CHANGELOG, `docs/reports/` เมื่อ 2026-11-24) · ประวัติรอบเดิมทั้งหมดอยู่ใน [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md) (คำต่อคำ)
 
-## สถานะปัจจุบัน — 2026-11-23 (v1.0.1 ออกแล้ว · maintenance mode)
-- **ออกรุ่น patch v1.0.1** (2026-11-23): PR #45 (`fix/post-v1-polish`) merge `68c181d` · release commit `80856c2` `chore(release): v1.0.1` · tag `v1.0.1` → `80856c2` · แก้ F18 (`guest.goingHint` TH/EN บนหน้านัดแขกและการ์ดแขกหน้าหลัก) + เพิ่ม `.claude/worktrees/**` ใน `eslint.config.mjs` · ผ่าน QA อิสระ 2 รอบ (`docs/reports/qa-post-v1-polish.md`: รอบแรก Claude Opus 5.5, รอบสอง Gemini 4 Neon) · ไม่มี migration
-- **R18 ปิดรอบ + ออกรุ่น v1.0.0** (2026-11-23): PR #42 merge `1b07381` · release commit `c906d09` `chore(release): v1.0.0` · tag `v1.0.0` → `c906d09` · บรรทัดปิดรอบใน contract `68a8a97` · รายละเอียดรอบ R18 [ประวัติ] อยู่ที่ PROGRESS_ARCHIVE
-- **migration `0007`** (เพิ่มตาราง `appointment_share_link` + `appointment_guest` อย่างเดียว) รันแล้ว preview 2026-11-22 · prod 2026-11-23 ก่อน merge (ตามที่ main แจ้ง)
-- **ผลตรวจอิสระ R18:** qa `docs/reports/qa-r18.md` ผ่านแบบมีข้อสังเกต · security `docs/reports/security-v1.md` ผ่าน (ตรวจซ้ำ `3c7d8c2`)
-- **เลขรุ่นในระบบ:** `package.json` = `1.0.1` · ตรงกับ CHANGELOG `[1.0.1] - 2026-11-23` · quickstart ท้ายหน้า `app v1.0.1` · PRD หมายเหตุ 1.0.1 (ตรวจด้วย `tests/ops/docs-sync.test.ts`)
-- **production `/api/health` version:** ยืนยันแล้ว = **`1.0.1`** (2026-11-23 19:43 · `ok:true`, `db:true`, `pepper.ok:true`, `node:v24.22.3`) · CI `chore(release): v1.0.1` (`45174826022`) บน `main` ผ่าน ✔
-- **DUALTOOL (Claude Code + Antigravity):** PR #44 merge `55469e5` · PR #46 (`docs/release-1.0.1`) merge `e71f62c` · PR #47 (`docs/v1.0.1-verify`) merge `f5b23ab` · อยู่บน `main` แล้ว
+## สถานะปัจจุบัน — 2026-11-24 (v1.1.0 ออกแล้ว · maintenance mode)
+- **ออกรุ่น minor v1.1.0** (2026-11-24): PR #49 (`feat/ics-import`, นำเข้าไฟล์ .ics เป็นเวลาไม่ว่าง) merge `2d2b93b` · release commit `87f7db0` `chore(release): v1.1.0` · tag `v1.1.0` → `87f7db0` · ไม่มี migration · ICS_IMPORT_CONTRACT ปิดรอบแล้ว (`155ec05`)
+- **ผลตรวจอิสระ ICS:** qa `docs/reports/qa-ics-import.md` รอบ 2 ผ่าน (`12f5120`) · security `docs/reports/security-ics-import.md` รอบ 1 ไม่ผ่าน (M1 แคช TZID ไม่มีเพดาน `e4a2a2c`) → platform แก้ `d0804a6` → security รอบ 2 ผ่าน (`984f5a4`) · ไม่มี 🔴/🟡 ค้าง
+- **CI ของ PR #49** (`gh pr checks 49` ตรวจ 2026-11-24): ทุกรายการ pass รวม `test + migration`, `e2e (Playwright)` 1–4 และ Vercel Preview
+- **เลขรุ่นในเอกสาร:** `package.json` = `1.1.0` · CHANGELOG `[1.1.0] - 2026-11-24` · quickstart ท้ายหน้า `app v1.1.0` · PRD หมายเหตุ v1.1.0 · บรรทัดนี้ตรงกับ `package.json`
+- **production `/api/health` หลัง v1.1.0:** ยังไม่ยืนยัน (ยังไม่ได้ตรวจในรอบนี้)
+- **DUALTOOL (Claude Code + Antigravity):** PR #44 merge `55469e5` · PR #46–#48 merge แล้ว · อยู่บน `main` แล้ว
 
-## เหลือ (รายการเปิดจริงหลัง 1.0 · ตรวจ 2026-11-23)
+## เหลือ (รายการเปิดจริงหลัง v1.1.0 · ตรวจ 2026-11-24)
 
 ### 1. ระดับเครื่อง boss / ของจริง (ไม่บล็อกรุ่น · ต้องจดผล)
 - **เช็กลิสต์บนมือถือจริง:** [docs/reports/r18-boss-device-checklist.md](../reports/r18-boss-device-checklist.md) — ช่อง "ผล" ยังว่างทั้งหมด (ลิงก์ในชื่อนัดบน LINE · ป้าย "ผู้ดูแลระบบ" · เปิดเต็มจอบน iOS · ปุ่ม Apple Maps ที่ 768 · ชวนคนนอก/LINE in-app browser · แบนเนอร์ iOS (G1) · iPad 1 เครื่อง) · ผลส่งให้ main/secretary เพื่อจด
 - **header ของ `/i/<token>` บน production:** ตรวจซ้ำบน `v1.0.1` แล้ว 2026-11-23 (token ปลอม) `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate` + `X-Robots-Tag: noindex, nofollow` (security-v1 Info 3 ปิดแล้ว · ยังไม่ได้ลองกับ token จริงบน prod)
+- **ยืนยัน v1.1.0 บน production:** `/api/health` (คาดว่า `1.1.0`) และ `.ics` จริงจากผู้ใช้ — ยังไม่มีผลจด
 - **เครื่อง boss:** ติดตั้ง Node 24 (เครื่องเป็น v26 ทำให้เทสต์ health ล้ม) · ติดตั้ง Python สำหรับเทสต์ที่ต้องใช้ Python
 - **เทสต์ที่ล้มเฉพาะเครื่อง Windows** (ปัญหาเครื่อง ไม่ใช่ repo): `release.test` (`.bin/tsx` ENOENT) · `config-hygiene` ข้อ permissions (CRLF) · `npm test` ทั้งชุดมี EPERM/timeout · ผลจริงดูจาก CI
 
 ### 2. เฝ้าดู (watch)
 - **picomatch GHSA-fc5q-39xc-vjpf** — ยังไม่มีรุ่นแก้ (ตรวจซ้ำ 2026-11-20) คงยอมรับความเสี่ยงตาม OPERATIONS (dev/test/lint เท่านั้น) · ตรวจใหม่เมื่อมี Dependabot alert หรือรุ่นแก้
+- **เอกสารผล qa ICS:** `docs/reports/qa-ics-import.md` หัวรายงานยังเขียน "Verdict: ไม่ผ่าน" (ของรอบ 1) แม้ท้ายไฟล์ระบุรอบ 2 ผ่านแล้ว · secretary ไม่แก้ไฟล์ของ qa · ส่ง main ให้ qa แก้หัวรายงาน
 
-### 3. งานหลัง 1.0 (รอบ ICS import · PR #49 · branch `feat/ics-import` · ยังไม่ออกรุ่น)
-- **นำเข้า ICS (v1.1.0 · ระดับ C · ไม่มี migration):** [docs/contracts/ICS_IMPORT_CONTRACT.md](../contracts/ICS_IMPORT_CONTRACT.md) (PR #48 merge `65ccfa9`) · [ADR 0017](../adr/0017-ics-import.md) · [docs/design/ICS_IMPORT.md](../design/ICS_IMPORT.md) — พัฒนาครบทุกส่วนและ push แล้ว (head `984f5a4`) · ติ๊กผู้ตรวจใน PR #49 แล้ว
-- **ตรวจอิสระ:**
-  - qa รอบ 2 ผ่าน (`12f5120` · CI 12/12 ตอนนั้น) — รายงานนี้ตรวจ**ก่อน**แก้ M1 · ยังไม่มีผล qa หลังแก้ M1 (ยังไม่ยืนยันว่า main ต้องให้ qa ตรวจซ้ำหรือไม่)
-  - security รอบ 1 ไม่ผ่าน (`e4a2a2c`): 🟡 M1 cache TZID ใน `zone.ts` ไม่มีเพดาน (heap ค้าง 26.4 MB / 200 คำขอ)
-  - platform แก้ M1 (`d0804a6`): cache เฉพาะ TZID ที่ถูก + กรอง TZID ยาวเกิน 64 ตัว/อักขระแปลกก่อน validator + เทสต์ 19 ข้อ · main เพิ่ม §7 ใน contract (`fe1a3db`)
-  - security รอบ 2 **ผ่าน** (`984f5a4`): heap ค้าง 0.7 MB / 200 คำขอ · ไม่มี 🔴/🟡 ค้าง · 🟢 L1–L4 ไม่บล็อก
-- **CI ของ head `984f5a4` (ตรวจ 2026-11-24 ด้วย `gh pr view 49`):** lint/typecheck/test+migration/contrast/build/changes/Vercel Preview ผ่าน · **e2e (Playwright) 1–4 ยังรันอยู่ (IN_PROGRESS)** — ยังไม่ยืนยันผลสุดท้าย
-- **เหลือ:** CI e2e ให้เขียว · boss merge PR #49 · boss รัน `npx tsx scripts/release.ts 1.1.0` + push tag `v1.1.0` (ยังไม่ออกรุ่น · เลขรุ่นเสนอโดย main)
-
-### 4. ตัดสินแล้ว — ไม่ทำ (ไม่ใช่งานค้าง)
+### 3. ตัดสินแล้ว — ไม่ทำ (ไม่ใช่งานค้าง)
 - ข้อเสนอ PRD ที่ไม่มีคนขอ: deny list ผู้ถูกลบ · ผู้รับปิดรับคำเชิญตรง · ชื่อกลุ่มคล้ายกัน — ไม่ทำใน 1.0 (R18 §4 · B3)
 - guard ตอบ 200 ก่อน redirect (R16 H5) · Server-Timing บนหน้า RSC (R16 H6) · DST day strip (ไม่จำเป็น ใช้ Asia/Bangkok อย่างเดียว)
 - CSP แบบ nonce — ยอมรับความเสี่ยง (ADR 0014)
