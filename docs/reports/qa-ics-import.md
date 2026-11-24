@@ -2,7 +2,12 @@
 
 > ผู้ตรวจ: qa (อิสระ) · Antigravity · **Gemini 4 Neon** (แชตใหม่ · ผู้ทำ: Gemini 4 Neon — ใช้โมเดลเดียวกันตามที่ boss อนุญาต 2026-11-24; ตาม `AGENTS.md` §6 ปกติควรเป็นคนละโมเดล) · branch `feat/ics-import` HEAD `139315c` (ฐาน PR #49 เทียบ `origin/main` `65ccfa9`) · ตรวจ 2026-11-24 · ระดับงาน **C** (แตะ `src/lib/calendar`, `src/app/api`, `src/lib/auth`, `src/lib/data`, `src/components`, อัปโหลดไฟล์) — **บังคับผ่าน Claude Code `security` agent (`docs/reports/security-ics-import.md`) เพิ่มอีก 1 รอบก่อน merge**
 
-## Verdict: ไม่ผ่าน
+## Verdict ล่าสุด: รอบ 2 ผ่าน (`12f5120`, CI 12/12)
+- **รอบ 1 (`77b66cf`): ไม่ผ่าน** — 2 blocker + 3 medium · แก้แล้ว (`68dfbc7`, `bbeeb1b`) · รอบ 2 ตรวจซ้ำผ่านที่ `12f5120` และ CI 12/12 (ดู "QA รอบสอง" ด้านล่าง)
+- **หมายเหตุ:** รายงานนี้ตรวจก่อนการแก้ security M1 (`d0804a6`) ซึ่ง `security` ตรวจซ้ำผ่านแล้ว (`984f5a4`)
+- เนื้อหาผลรอบ 1 ด้านล่างเก็บไว้ตามเดิมเป็นประวัติ
+
+### ผลรอบ 1 (ไม่ผ่าน)
 พบ **2 🔴 Blocker** (CI `test + migration` ล้มจริงที่ `tests/auth/must-change-pin.test.ts:97` และกล่อง `alert-info` 3 จุดใน `IcsImportSheet` แสดงเป็นสีแดงข้อผิดพลาดจริงในภาพหน้าจอเพราะไม่มีคลาส `.alert-info` ใน CSS) และ **3 🟡 ควรแก้** (เปลี่ยนไฟล์เป็นไฟล์เสียในขั้น Preview แล้วชื่อไฟล์เปลี่ยนแต่รายการเก่าค้างและกดนำเข้าได้, ขาด `aria-busy`/สถานะโหลดตอนรีเฟรชใน Preview, `<summary>` ไม่มีลูกศรพับ/ขยาย) · ส่วนตรรกะ pure ICS parser, atomic batch insert, rate limit, RBAC, dedupe, i18n, และ DOCS_SYNC ทำได้ดีมาก — แก้ข้อ 🔴 และ 🟡 แล้วตรวจซ้ำ
 
 ## ข้อพบ (เรียงตามความรุนแรง)
