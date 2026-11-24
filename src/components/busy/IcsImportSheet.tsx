@@ -9,6 +9,7 @@ import { Icon } from "@/components/icons/Icon";
 import { Name } from "@/components/Name";
 import { BusyButton } from "@/components/shell/BusyButton";
 import { Sheet } from "@/components/shell/Sheet";
+import { icsBulkActionDisabled, initialIcsSelection } from "./ics-import-model";
 import {
   ICS_IMPORT_DEFAULT_WINDOW_DAYS,
   ICS_IMPORT_MAX_BYTES,
@@ -59,15 +60,6 @@ const SKIP_KEYS: readonly (keyof IcsSkipCounts)[] = [
   "invalid",
 ];
 
-function initialSelection(items: readonly IcsPreviewItem[], maxSelectable: number): boolean[] {
-  let count = 0;
-  return items.map((item) => {
-    if (item.duplicate || count >= maxSelectable) return false;
-    count++;
-    return true;
-  });
-}
-
 /**
  * Sheet นำเข้าไฟล์ `.ics` แบบ 2 ขั้น (ICS_IMPORT_CONTRACT U1–U2 · docs/design/ICS_IMPORT.md):
  * ขั้น 1: เลือกไฟล์ `.ics` + ช่วงล่วงหน้า (30/60/90/180 วัน ดีฟอลต์ 90)
@@ -110,7 +102,7 @@ export function IcsImportSheet({ onClose, onImported }: IcsImportSheetProps) {
     setIcsText(text);
     setWindowDays(days);
     setPreview(res.data);
-    setSelected(initialSelection(res.data.items, maxCap));
+    setSelected(initialIcsSelection(res.data.items, maxCap));
     setStep("preview");
   }
 
@@ -156,7 +148,7 @@ export function IcsImportSheet({ onClose, onImported }: IcsImportSheetProps) {
   function selectAllNonDupes() {
     if (!preview) return;
     const maxCap = Math.min(preview.quota.remaining, preview.maxImportPerBatch);
-    setSelected(initialSelection(preview.items, maxCap));
+    setSelected(initialIcsSelection(preview.items, maxCap));
   }
 
   function selectNone() {
@@ -171,6 +163,13 @@ export function IcsImportSheet({ onClose, onImported }: IcsImportSheetProps) {
   const allDuplicates = preview !== null && preview.items.length > 0 && preview.items.every((it) => it.duplicate);
   const skippedTotal = preview ? SKIP_KEYS.reduce((acc, k) => acc + preview.skipped[k], 0) : 0;
   const canSubmit = !loading && !submitting && selectedCount > 0 && !overQuota && !overBatch;
+  const bulkDisabled = icsBulkActionDisabled({
+    loading,
+    submitting,
+    allDuplicates,
+    quotaRemaining: preview?.quota.remaining ?? 0,
+    selectedCount,
+  });
 
   async function onConfirm() {
     if (!preview || !canSubmit) return;
@@ -417,7 +416,7 @@ export function IcsImportSheet({ onClose, onImported }: IcsImportSheetProps) {
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    disabled={loading || submitting}
+                    disabled={bulkDisabled.selectAll}
                     data-testid="ics-select-all"
                     onClick={selectAllNonDupes}
                   >
@@ -426,7 +425,7 @@ export function IcsImportSheet({ onClose, onImported }: IcsImportSheetProps) {
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    disabled={loading || submitting}
+                    disabled={bulkDisabled.selectNone}
                     data-testid="ics-select-none"
                     onClick={selectNone}
                   >
