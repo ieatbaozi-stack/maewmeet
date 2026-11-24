@@ -69,7 +69,7 @@
      - ทุก item ผ่าน `normalizeBusyInput` + `parseBusyTitle` ใหม่ทั้งหมดฝั่งเซิร์ฟเวอร์ (ไม่ไว้ใจค่าจาก client)
      - บันทึกด้วยคำสั่ง SQL เดียวแบบ atomic ภายใต้ `inTx` (เป็นคำสั่งแรกของธุรกรรมเพื่อให้ได้ write lock ทันที ตาม ADR 0010 §3 [S5]):
        - เมื่อ `skipDuplicates = true`: ตัดแถวซ้ำใน batch ก่อน แล้วใช้ CTE `WITH v(...) AS (VALUES ...), new_rows AS (SELECT ... WHERE NOT EXISTS (SELECT 1 FROM busy_block b WHERE b.user_id = ... AND b.all_day = v.all_day AND b.start_at = v.start_at AND b.end_at = v.end_at AND b.local_start_date = v.local_start_date AND b.local_end_date = v.local_end_date)) INSERT INTO busy_block ... SELECT ... FROM new_rows WHERE EXISTS (user active) AND windowCount + (SELECT count(*) FROM new_rows) <= 300 RETURNING id`
-       - จำนวน bind parameter สูงสุดสำหรับ 100 แถว = `7 × 100 + 8 = 708` < ขีดจำกัด SQLite 999
+       - จำนวน bind parameter สูงสุดสำหรับ 100 แถว = `8 × 100 + 9 = 809` < ขีดจำกัด SQLite 999 (ส่ง `tz` รายแถว ตาม `src/lib/data/repos/busy.ts`)
        - ถ้ายัดไม่ลง (`windowCount + pending > 300`) → ไม่ insert แม้แต่แถวเดียว (all-or-nothing) และตอบ `409 LIMIT_REACHED { limit: 'busyCount', max: 300 }`
        - แถวที่สร้างทั้งหมดมี `series_id = NULL`, `routine_id = NULL`, `note = NULL`, `hide_detail = hideDetail ? 1 : 0` (ดีฟอลต์ `1`)
 

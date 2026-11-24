@@ -145,7 +145,17 @@ for (const locale of LOCALES) {
       await expect(page.getByTestId('ics-item-dup-1')).toBeVisible();
       await expect(page.getByTestId('ics-item-check-0')).not.toBeChecked();
       await expect(page.getByTestId('ics-item-check-1')).not.toBeChecked();
+      await expect(page.getByTestId('ics-select-all')).toBeDisabled();
+      await expect(page.getByTestId('ics-select-none')).toBeDisabled();
       await expect(page.getByTestId('ics-import-submit')).toBeDisabled();
+
+      // ถ้าผู้ใช้ติ๊กเลือกรายการซ้ำเอง ปุ่ม "ไม่เลือก" เปิดให้ล้างได้ ส่วน "เลือกทั้งหมด" ยังคงปิด
+      await page.getByTestId('ics-item-check-0').check();
+      await expect(page.getByTestId('ics-select-all')).toBeDisabled();
+      await expect(page.getByTestId('ics-select-none')).toBeEnabled();
+      await page.getByTestId('ics-select-none').click();
+      await expect(page.getByTestId('ics-item-check-0')).not.toBeChecked();
+      await expect(page.getByTestId('ics-select-none')).toBeDisabled();
 
       expect(problems).toEqual([]);
     });
