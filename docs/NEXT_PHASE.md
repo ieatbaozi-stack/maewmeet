@@ -1,6 +1,8 @@
 # NEXT_PHASE — เอกสารส่งต่อให้ Claude Code (อัปเดต 2026-11-25)
 
-> **หมายเหตุ (2026-11-25): ออกรุ่น patch v1.1.1 แล้ว** (PR #52 `fix/post-v1.1-polish` merge `6a18e09` · tag `v1.1.1` → `7f4c853` · ไม่มี migration · ปิดปุ่มเลือกเร็ว `IcsImportSheet` ตอนซ้ำหมด/โควตาเป็น 0/ไม่ได้เลือก + unit/E2E test · แก้ตัวเลข bind param ADR 0017 เป็น `809 < 999` · จดผลทดสอบเครื่องจริง R18/v1.1.0 ของ boss ครบแล้ว)
+> **หมายเหตุ (2026-11-25 · กำลังเปิด PR `feat/v1.2-ics-rrule` · เสนอ v1.2.0):** [V1_2_CONTRACT.md](contracts/V1_2_CONTRACT.md) (ระดับ B · ไม่มี migration) — ขยายนำเข้า `.ics` รองรับ `RRULE` (`DAILY`/`WEEKLY`/`MONTHLY`) + `EXDATE` + `RECURRENCE-ID`, บังคับ `END:VCALENDAR`, ตรวจ actor+ด่านบัญชีก่อนอ่าน body > 64 KB ใน `route.ts`, ขยาย `scripts/release.ts` ครบ 5 ไฟล์เอกสาร และยกเลิก PR เอกสารตามหลัง release / PR จด `/api/health` · ล้าง branch เก่าที่ merge แล้ว (53 local + 53 remote)
+>
+> **หมายเหตุ (2026-11-25): ออกรุ่น patch v1.1.1 แล้ว** (PR #52 `fix/post-v1.1-polish` merge `6a18e09` · tag `v1.1.1` → `7f4c853` · ไม่มี migration · ปิดปุ่มเลือกเร็ว `IcsImportSheet` ตอนซ้ำหมด/โควตาเป็น 0/ไม่ได้เลือก + unit/E2E test · แก้ตัวเลข bind param ADR 0017 เป็น `809 < 999` · จดผลทดสอบเครื่องจริง R18/v1.1.0 ของ boss ครบแล้ว · boss ยืนยัน `/api/health = 1.1.1` แล้ว)
 >
 > **หมายเหตุ (2026-11-24): ออกรุ่น v1.1.0 แล้ว** (นำเข้าไฟล์ .ics เป็นเวลาไม่ว่าง · PR #49 merge `2d2b93b` · tag `v1.1.0` → `87f7db0` · ไม่มี migration · ตรวจอิสระ qa รอบ 2 ผ่าน และ security รอบ 2 ผ่าน) · contract `docs/contracts/ICS_IMPORT_CONTRACT.md` ปิดรอบแล้ว · รายการเปิดดู `docs/team/PROGRESS.md` หัวข้อ "เหลือ"
 >
