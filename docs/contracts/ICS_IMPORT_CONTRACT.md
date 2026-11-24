@@ -5,6 +5,8 @@
 > branch งานโค้ดที่แนะนำ: `feat/ics-import` จาก `main` ล่าสุด (หลัง merge contract นี้) · ใช้คู่กับ [DOCS_SYNC_CONTRACT.md](DOCS_SYNC_CONTRACT.md)
 > ระดับงาน: **ระดับ C** (ฟีเจอร์ใหม่หลายส่วน แตะ `src/lib/calendar`, `src/app/api`, `src/lib/rbac`, `src/lib/data`, `src/components`, ไฟล์อัปโหลดจากผู้ใช้) · แนะนำทำใน Claude Code ทีม agent เต็มตาม `AGENTS.md` §3 · **บังคับผ่าน qa + Claude Code `security` agent** ก่อน merge · เลขรุ่นหลังเสร็จตาม semver: **v1.1.0**
 
+> **ปิดรอบ + ออกรุ่น v1.1.0 (2026-11-24)** · PR #49 merge แล้ว (`2d2b93b`) · tag `v1.1.0` → `87f7db0` · ไม่มี migration · qa รอบ 2 ผ่าน (`12f5120`) · security รอบ 1 ไม่ผ่าน (M1) → แก้ตาม §7 (`d0804a6`) → ตรวจซ้ำผ่าน (`984f5a4`)
+
 ---
 
 ## 0. หลักของรอบนี้

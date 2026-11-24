@@ -16,6 +16,23 @@
 - **ออก v0.10.0 แล้ว** (2026-11-09, tag `v0.10.0` → commit `d670fcc` `chore(release): v0.10.0`) รวม R8 · **repo เปลี่ยนเป็น public** (2026-11-08) · รายละเอียดหัวข้อ "v0.10.0 + repo public" ด้านล่าง
 - **ออก v0.11.0 แล้ว** (2026-11-10, tag `v0.11.0` → commit `a77fc50` `chore(release): v0.11.0`) รวม **R10** (F6 เตือนก่อนนัดทาง LINE OA + กระดิ่ง, เชื่อม LINE, ปุ่มขั้น 2) · migration `0004` (รันหลัง merge — ดูหัวข้อ R10) · รายละเอียดด้านล่าง
 
+## v1.1.0 — นำเข้าไฟล์ .ics เป็นเวลาไม่ว่าง — ออกรุ่นแล้ว 2026-11-24 (PR #49 merge `2d2b93b` · tag `v1.1.0` → `87f7db0` · ไม่มี migration) [ประวัติ]
+- contract PR #48 merge `65ccfa9` (2026-11-23) · ADR 0017 · `docs/design/ICS_IMPORT.md`
+- งานที่ทำ (ตาม commit): parser `43aa53a` · rate-limit `21c2fed` · API preview/import `3129160` · tests `6b684b4` · copy TH/EN `b334f5a` · UI `0663f2c` · E2E `04fc8c0` · เอกสาร `0286953`, `e6947e6`, `606d9c7`, `139315c`
+- qa รอบ 1 **ไม่ผ่าน** (2 🔴 + 3 🟡 · `77b66cf`) → แก้ `68dfbc7`, `bbeeb1b` → qa รอบ 2 **ผ่าน** (`12f5120`, CI 12/12 ตอนนั้น)
+- security รอบ 1 **ไม่ผ่าน** (🟡 M1 แคช TZID ไม่มีเพดาน · `e4a2a2c`) → contract §7 `fe1a3db` → platform `d0804a6` → security รอบ 2 **ผ่าน** (`984f5a4`)
+- merge `2d2b93b` (2026-11-24 10:12 เวลาไทย) · release `87f7db0` (10:39) · ปิด contract `155ec05` (10:40)
+- ข้อสังเกต: qa รอบ 2 ระบุว่าผู้ทำกับผู้ตรวจใช้โมเดลเดียวกัน (Gemini 4 Neon) ตามที่ boss อนุญาต 2026-11-24 · ตาม `AGENTS.md` §6 ปกติควรเป็นคนละโมเดล · หัวรายงาน qa ยังเป็น "ไม่ผ่าน" ของรอบ 1 (ดู PROGRESS "เฝ้าดู")
+
+## สถานะก่อนหน้า — 2026-11-23 (v1.0.1 ออกแล้ว · maintenance mode) [ประวัติ]
+- **ออกรุ่น patch v1.0.1** (2026-11-23): PR #45 (`fix/post-v1-polish`) merge `68c181d` · release commit `80856c2` `chore(release): v1.0.1` · tag `v1.0.1` → `80856c2` · แก้ F18 (`guest.goingHint` TH/EN บนหน้านัดแขกและการ์ดแขกหน้าหลัก) + เพิ่ม `.claude/worktrees/**` ใน `eslint.config.mjs` · ผ่าน QA อิสระ 2 รอบ (`docs/reports/qa-post-v1-polish.md`: รอบแรก Claude Opus 5.5, รอบสอง Gemini 4 Neon) · ไม่มี migration
+- **R18 ปิดรอบ + ออกรุ่น v1.0.0** (2026-11-23): PR #42 merge `1b07381` · release commit `c906d09` `chore(release): v1.0.0` · tag `v1.0.0` → `c906d09` · บรรทัดปิดรอบใน contract `68a8a97` · รายละเอียดรอบ R18 [ประวัติ] อยู่ที่ PROGRESS_ARCHIVE
+- **migration `0007`** (เพิ่มตาราง `appointment_share_link` + `appointment_guest` อย่างเดียว) รันแล้ว preview 2026-11-22 · prod 2026-11-23 ก่อน merge (ตามที่ main แจ้ง)
+- **ผลตรวจอิสระ R18:** qa `docs/reports/qa-r18.md` ผ่านแบบมีข้อสังเกต · security `docs/reports/security-v1.md` ผ่าน (ตรวจซ้ำ `3c7d8c2`)
+- **เลขรุ่นในระบบ:** `package.json` = `1.0.1` · ตรงกับ CHANGELOG `[1.0.1] - 2026-11-23` · quickstart ท้ายหน้า `app v1.0.1` · PRD หมายเหตุ 1.0.1 (ตรวจด้วย `tests/ops/docs-sync.test.ts`)
+- **production `/api/health` version:** ยืนยันแล้ว = **`1.0.1`** (2026-11-23 19:43 · `ok:true`, `db:true`, `pepper.ok:true`, `node:v24.22.3`) · CI `chore(release): v1.0.1` (`45174826022`) บน `main` ผ่าน ✔
+- **DUALTOOL (Claude Code + Antigravity):** PR #44 merge `55469e5` · PR #46 (`docs/release-1.0.1`) merge `e71f62c` · PR #47 (`docs/v1.0.1-verify`) merge `f5b23ab` · อยู่บน `main` แล้ว
+
 ## R18 — ปิดโปรเจกต์ ออกรุ่น v1.0.0 (2026-11-23) [ประวัติ]
 - **v1.0.0 ออกแล้ว** (2026-11-23 · tag `v1.0.0` → `c906d09` `chore(release): v1.0.0`) · PR #42 merge `1b07381` · contract `docs/contracts/R18_CONTRACT.md` (boss เห็นชอบ 2026-11-20 · ตัดสิน §11 2026-11-22) · บรรทัดปิดรอบ `68a8a97` (main)
 - **migration `0007`** (`appointment_share_link` + `appointment_guest`, เพิ่มอย่างเดียว) รันแล้ว: preview 2026-11-22 · prod 2026-11-23 ก่อน merge (ตามที่ main แจ้ง · เลขาไม่ได้ตรวจฐาน Turso เอง)
