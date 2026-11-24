@@ -1,20 +1,19 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-24 (เวลาไทย) · **v1.1.1 เป็นรุ่นล่าสุดที่ออกแล้ว** (ออก 2026-11-24 · tag `v1.1.0` → `87f7db0`) · **โปรเจกต์ปิดรอบ R0–R18 · เข้าโหมดดูแล (maintenance mode)**
+> อัปเดตล่าสุด: 2026-11-25 (เวลาไทย) · **v1.1.1 เป็นรุ่นล่าสุดที่ออกแล้ว** (ออก 2026-11-25 · tag `v1.1.1` → `7f4c853`) · **โปรเจกต์ปิดรอบ R0–R18 · เข้าโหมดดูแล (maintenance mode)**
 
-> **วิธีอ่านไฟล์นี้:** สถานะจริงอยู่ที่หัวข้อ **สถานะปัจจุบัน** และ **เหลือ** (ตรวจกับ git log, CHANGELOG, `docs/reports/` เมื่อ 2026-11-24) · ประวัติรอบเดิมทั้งหมดอยู่ใน [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md) (คำต่อคำ)
+> **วิธีอ่านไฟล์นี้:** สถานะจริงอยู่ที่หัวข้อ **สถานะปัจจุบัน** และ **เหลือ** (ตรวจกับ git log, CHANGELOG, `docs/reports/` เมื่อ 2026-11-25) · ประวัติรอบเดิมทั้งหมดอยู่ใน [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md) (คำต่อคำ)
 
-## สถานะปัจจุบัน — 2026-11-24 (v1.1.0 ออกแล้ว · maintenance mode)
-- **ออกรุ่น minor v1.1.0** (2026-11-24): PR #49 (`feat/ics-import`, นำเข้าไฟล์ .ics เป็นเวลาไม่ว่าง) merge `2d2b93b` · release commit `87f7db0` `chore(release): v1.1.0` · tag `v1.1.0` → `87f7db0` · ไม่มี migration · ICS_IMPORT_CONTRACT ปิดรอบแล้ว (`155ec05`)
-- **ผลตรวจอิสระ ICS:** qa `docs/reports/qa-ics-import.md` รอบ 2 ผ่าน (`12f5120`) · security `docs/reports/security-ics-import.md` รอบ 1 ไม่ผ่าน (M1 แคช TZID ไม่มีเพดาน `e4a2a2c`) → platform แก้ `d0804a6` → security รอบ 2 ผ่าน (`984f5a4`) · ไม่มี 🔴/🟡 ค้าง
-- **CI ของ PR #49** (`gh pr checks 49` ตรวจ 2026-11-24): ทุกรายการ pass รวม `test + migration`, `e2e (Playwright)` 1–4 และ Vercel Preview
-- **เลขรุ่นในเอกสาร:** `package.json` = `1.1.0` · CHANGELOG `[1.1.0] - 2026-11-24` · quickstart ท้ายหน้า `app v1.1.0` · PRD หมายเหตุ v1.1.0 · บรรทัดนี้ตรงกับ `package.json`
-- **production หลัง v1.1.0:** boss ยืนยันแล้ว 2026-11-24 — `/api/health` เป็น `1.1.0`, เช็กลิสต์มือถือจริง R18 ผ่านครบ 6 ข้อ ([r18-boss-device-checklist.md](../reports/r18-boss-device-checklist.md)), และทดสอบนำเข้าไฟล์ `.ics` จริงผ่าน ✔
-- **DUALTOOL (Claude Code + Antigravity):** PR #44 merge `55469e5` · PR #46–#48 merge แล้ว · อยู่บน `main` แล้ว
-- **รอบเก็บตกระดับ A (`fix/post-v1.1-polish`, 2026-11-24):** ปิดปุ่มเลือกเร็วใน `IcsImportSheet` ตอนซ้ำหมด/โควตาเป็น 0/ไม่ได้เลือก (+ unit/E2E test), แก้ตัวเลข bind param ใน ADR 0017 (`809 < 999`), และจดผลทดสอบเครื่องจริง + ซิงก์เอกสาร · **รอ QA อิสระคนละโมเดลตรวจก่อนเปิด PR**
+## สถานะปัจจุบัน — 2026-11-25 (v1.1.1 ออกแล้ว · maintenance mode)
+- **ออกรุ่น patch v1.1.1** (2026-11-25): PR #52 (`fix/post-v1.1-polish`, ระดับ A) merge `6a18e09` · release commit `7f4c853` `chore(release): v1.1.1` · tag `v1.1.1` → `7f4c853` · ไม่มี migration · ปิดปุ่มเลือกเร็ว `IcsImportSheet` ตอนซ้ำหมด/โควตาเป็น 0/ไม่ได้เลือก (+ unit/E2E test), แก้ bind param ADR 0017 (`809 < 999`), จดผลทดสอบเครื่องจริง R18/v1.1.0 และซิงก์เอกสาร
+- **ผลตรวจ QA ของ PR #52:** `docs/reports/qa-post-v1.1-polish.md` (`06070ae`) ผ่าน (0 🔴 · 0 🟡 · ใช้โมเดลเดียวกับผู้ทำตามที่ boss อนุญาต 2026-11-24) · **CI ของ PR #52** (`gh pr checks 52`): ผ่านครบ **12/12** · **CI บน `main` หลัง merge `6a18e09`** (run `45443870251`): ผ่าน (`success`)
+- **รุ่นก่อนหน้า v1.1.0** (2026-11-24): PR #49 (`feat/ics-import`, นำเข้าไฟล์ .ics เป็นเวลาไม่ว่าง) merge `2d2b93b` · tag `v1.1.0` → `87f7db0` · qa รอบ 2 ผ่าน (`12f5120`) · security รอบ 2 ผ่าน (`984f5a4`) · boss ยืนยัน `/api/health` = `1.1.0`, เช็กลิสต์มือถือจริง R18 ผ่านครบ 6 ข้อ ([r18-boss-device-checklist.md](../reports/r18-boss-device-checklist.md)), และนำเข้าไฟล์ `.ics` จริงผ่าน ✔
+- **เลขรุ่นในเอกสาร:** `package.json` = `1.1.1` · CHANGELOG `[1.1.1] - 2026-11-25` · quickstart ท้ายหน้า `app v1.1.1` · PRD หมายเหตุ v1.1.1 · README สถานะ v1.1.1 · บรรทัดนี้ตรงกับ `package.json`
+- **production `/api/health` หลัง v1.1.1:** ยังไม่ยืนยันหลัง deploy `7f4c853` (ครั้งก่อนหน้ายืนยันแล้วที่ v1.1.0)
+- **DUALTOOL (Claude Code + Antigravity):** PR #44 merge `55469e5` · PR #46–#52 merge แล้ว · อยู่บน `main` แล้ว · **ไม่มีรอบพัฒนาเปิดค้าง**
 
-## เหลือ (รายการเปิดจริงหลัง v1.1.0 · ตรวจ 2026-11-24)
+## เหลือ (รายการเปิดจริงหลัง v1.1.1 · ตรวจ 2026-11-25)
 
 ### 1. ระดับเครื่อง boss (ไม่บล็อกรุ่น)
 - **เครื่อง boss:** ติดตั้ง Node 24 (เครื่องเป็น v26 ทำให้เทสต์ health ล้ม) · ติดตั้ง Python สำหรับเทสต์ที่ต้องใช้ Python
