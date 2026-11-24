@@ -1,7 +1,7 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-23 (เวลาไทย) · **v1.0.1 เป็นรุ่นล่าสุดที่ออกแล้ว** (ออก 2026-11-23 · tag `v1.0.1` → `80856c2`) · **โปรเจกต์ปิดรอบ R0–R18 · เข้าโหมดดูแล (maintenance mode)**
+> อัปเดตล่าสุด: 2026-11-24 (เวลาไทย) · **v1.0.1 เป็นรุ่นล่าสุดที่ออกแล้ว** (ออก 2026-11-23 · tag `v1.0.1` → `80856c2`) · **โปรเจกต์ปิดรอบ R0–R18 · เข้าโหมดดูแล (maintenance mode)**
 
 > **วิธีอ่านไฟล์นี้:** สถานะจริงอยู่ที่หัวข้อ **สถานะปัจจุบัน** และ **เหลือ** (ตรวจกับ git log, CHANGELOG, `docs/reports/` เมื่อ 2026-11-23) · ประวัติรอบเดิมทั้งหมดอยู่ใน [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md) (คำต่อคำ)
 
@@ -25,8 +25,15 @@
 ### 2. เฝ้าดู (watch)
 - **picomatch GHSA-fc5q-39xc-vjpf** — ยังไม่มีรุ่นแก้ (ตรวจซ้ำ 2026-11-20) คงยอมรับความเสี่ยงตาม OPERATIONS (dev/test/lint เท่านั้น) · ตรวจใหม่เมื่อมี Dependabot alert หรือรุ่นแก้
 
-### 3. งานหลัง 1.0 (พัฒนาครบแล้วบน `feat/ics-import` · รอตรวจอิสระ qa + security)
-- **นำเข้า ICS (v1.1.0 · ระดับ C · ไม่มี migration):** [docs/contracts/ICS_IMPORT_CONTRACT.md](../contracts/ICS_IMPORT_CONTRACT.md) (PR #48 merge `65ccfa9`) · [ADR 0017](../adr/0017-ics-import.md) · [docs/design/ICS_IMPORT.md](../design/ICS_IMPORT.md) — พัฒนาครบทุกส่วน (parser + preview/confirm API + rate limit + 2-step UI + `/privacy` + unit/integration/E2E + DOCS_SYNC) บน branch `feat/ics-import` · **เหลือ:** ตรวจอิสระ `qa` (แชตใหม่คนละโมเดล) + Claude Code `security` agent ก่อน boss merge และออกรุ่น **v1.1.0**
+### 3. งานหลัง 1.0 (รอบ ICS import · PR #49 · branch `feat/ics-import` · ยังไม่ออกรุ่น)
+- **นำเข้า ICS (v1.1.0 · ระดับ C · ไม่มี migration):** [docs/contracts/ICS_IMPORT_CONTRACT.md](../contracts/ICS_IMPORT_CONTRACT.md) (PR #48 merge `65ccfa9`) · [ADR 0017](../adr/0017-ics-import.md) · [docs/design/ICS_IMPORT.md](../design/ICS_IMPORT.md) — พัฒนาครบทุกส่วนและ push แล้ว (head `984f5a4`) · ติ๊กผู้ตรวจใน PR #49 แล้ว
+- **ตรวจอิสระ:**
+  - qa รอบ 2 ผ่าน (`12f5120` · CI 12/12 ตอนนั้น) — รายงานนี้ตรวจ**ก่อน**แก้ M1 · ยังไม่มีผล qa หลังแก้ M1 (ยังไม่ยืนยันว่า main ต้องให้ qa ตรวจซ้ำหรือไม่)
+  - security รอบ 1 ไม่ผ่าน (`e4a2a2c`): 🟡 M1 cache TZID ใน `zone.ts` ไม่มีเพดาน (heap ค้าง 26.4 MB / 200 คำขอ)
+  - platform แก้ M1 (`d0804a6`): cache เฉพาะ TZID ที่ถูก + กรอง TZID ยาวเกิน 64 ตัว/อักขระแปลกก่อน validator + เทสต์ 19 ข้อ · main เพิ่ม §7 ใน contract (`fe1a3db`)
+  - security รอบ 2 **ผ่าน** (`984f5a4`): heap ค้าง 0.7 MB / 200 คำขอ · ไม่มี 🔴/🟡 ค้าง · 🟢 L1–L4 ไม่บล็อก
+- **CI ของ head `984f5a4` (ตรวจ 2026-11-24 ด้วย `gh pr view 49`):** lint/typecheck/test+migration/contrast/build/changes/Vercel Preview ผ่าน · **e2e (Playwright) 1–4 ยังรันอยู่ (IN_PROGRESS)** — ยังไม่ยืนยันผลสุดท้าย
+- **เหลือ:** CI e2e ให้เขียว · boss merge PR #49 · boss รัน `npx tsx scripts/release.ts 1.1.0` + push tag `v1.1.0` (ยังไม่ออกรุ่น · เลขรุ่นเสนอโดย main)
 
 ### 4. ตัดสินแล้ว — ไม่ทำ (ไม่ใช่งานค้าง)
 - ข้อเสนอ PRD ที่ไม่มีคนขอ: deny list ผู้ถูกลบ · ผู้รับปิดรับคำเชิญตรง · ชื่อกลุ่มคล้ายกัน — ไม่ทำใน 1.0 (R18 §4 · B3)
