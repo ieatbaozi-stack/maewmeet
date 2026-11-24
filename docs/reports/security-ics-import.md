@@ -9,12 +9,14 @@
 | ระดับ | จำนวน |
 |---|---|
 | 🔴 | 0 |
-| 🟡 | 1 (ต้องแก้ก่อน merge) |
+| 🟡 | 1 → **ปิดแล้วรอบ 2** (d0804a6) |
 | 🟢 | 4 |
 
-**Verdict: FAIL** — เหตุผลเดียวคือ 🟡 M1 (TZID จากไฟล์ถูกเก็บลง cache ระดับ module แบบไม่มีเพดาน → หน่วยความจำโตข้ามคำขอ ขัด A3/ADR 0017 §2 "ไม่สะสมหน่วยความจำ") · แก้ได้ในไม่กี่บรรทัด · ส่วนอื่นผ่านหมด: parser เป็นเส้นตรงจริง (worst case ที่วัดได้ ≤ 31 ms ต่อไฟล์ 512 KB), cap ทั้ง 3 ตรวจระหว่างสแกน, ไม่มี prototype pollution, ไม่ fetch URL, RBAC/`must_change_pin`/SA/strict/CSRF/rate limit/atomic cap ถูก, ไม่เก็บ DESCRIPTION/LOCATION/ATTENDEE/ORGANIZER/URL, ไม่ log เนื้อหา, `hideDetail` ดีฟอลต์ `true` · แก้ M1 แล้ว security ตรวจซ้ำเฉพาะจุดนั้นได้
+**Verdict รอบ 2 (HEAD `d0804a6`): PASS** — M1 ปิดแล้ว ดูหัวข้อ "รอบตรวจซ้ำ" ท้ายรายงาน · 🟢 L1–L4 ไม่บล็อก
 
-## ข้อพบ
+~~**Verdict รอบ 1 (HEAD `12f5120`): FAIL**~~ — เหตุผลเดียวคือ 🟡 M1 (TZID จากไฟล์ถูกเก็บลง cache ระดับ module แบบไม่มีเพดาน → หน่วยความจำโตข้ามคำขอ ขัด A3/ADR 0017 §2 "ไม่สะสมหน่วยความจำ") · แก้ได้ในไม่กี่บรรทัด · ส่วนอื่นผ่านหมด: parser เป็นเส้นตรงจริง (worst case ที่วัดได้ ≤ 31 ms ต่อไฟล์ 512 KB), cap ทั้ง 3 ตรวจระหว่างสแกน, ไม่มี prototype pollution, ไม่ fetch URL, RBAC/`must_change_pin`/SA/strict/CSRF/rate limit/atomic cap ถูก, ไม่เก็บ DESCRIPTION/LOCATION/ATTENDEE/ORGANIZER/URL, ไม่ log เนื้อหา, `hideDetail` ดีฟอลต์ `true` · แก้ M1 แล้ว security ตรวจซ้ำเฉพาะจุดนั้นได้
+
+### 🟡 M1 — TZID จากไฟล์ `.ics` สะสมใน cache `validTz` แบบไม่มีเพดาน (memory โตข้ามคำขอ) — **ปิดแล้ว (รอบ 2)**
 
 ### 🟡 M1 — TZID จากไฟล์ `.ics` สะสมใน cache `validTz` แบบไม่มีเพดาน (memory โตข้ามคำขอ)
 - ที่: `src/lib/calendar/zone.ts:10,15-27` (`const validTz = new Map<string, boolean>()` เก็บทั้งผลบวกและลบของทุกสตริงที่ส่งเข้ามา ไม่มีเพดาน/ไม่มีหมดอายุ) · ถูกป้อนจาก `src/lib/calendar/ics-import.ts:335-345` (`resolveIcsTimeZone` เรียก `isValidTimeZone` กับ TZID ดิบ และกับตัวที่ตัด `/` ออก) ← `:411-414` (ทุก `DTSTART`/`DTEND` ที่มี `TZID=`) · `parsePropertyLine` `:247-257` ไม่จำกัดความยาวค่า parameter
@@ -88,3 +90,39 @@ $ node -e "<TextDecoder + JSON.parse body 786,014 B ×50>"            → 0.72 m
 - ❓ race ข้าม instance บน Turso production (เทสต์เป็น libsql ในเครื่อง)
 - ❓ อายุ instance จริงบน Vercel (ใช้ประเมินผลกระทบ M1 — ตัวเลข 390 MB/วันเป็นกรณีคำขอทั้งหมดลง instance เดียว)
 - ไม่ได้รัน e2e ในเครื่อง Windows (CI e2e 4 shard pass)
+
+## รอบตรวจซ้ำ (รอบ 2) — เฉพาะ M1 · 2026-11-24 · HEAD `d0804a6`
+- ขอบเขต: `git show d0804a6` (platform · ตาม ICS_IMPORT_CONTRACT §7 S1–S2) · แตะ `src/lib/calendar/zone.ts`, `src/lib/calendar/ics-import.ts` + เทสต์ใหม่ 2 ไฟล์ · ไม่ได้ตรวจส่วนอื่นซ้ำ (ไม่มีการเปลี่ยน)
+
+| ตรวจ | ผล | หลักฐาน |
+|---|---|---|
+| **S1 cache เฉพาะผลที่ถูก** | **PASS** | 📖 `zone.ts:11` `validTz` เป็น `Set` · `:31` `if (ok) validTz.add(tz)` → ผลที่ผิดไม่ถูกเก็บ · ผลที่ถูกมีจำนวนจำกัด (offset `+/-` ถูกปฏิเสธ, Temporal ต้องคืน `timeZoneId === tz` ตรงตัว) · ผลต่อผู้เรียกเดิมเหมือนเดิม (คืน true/false เท่าเดิม) · ✅ หลังป้อน TZID ผิด 1,000 ค่าต่อไฟล์ × 20 ไฟล์ `validTimeZoneCacheSize()` = 422 (≈ จำนวน IANA ที่ถูก) |
+| **S2 กรอง TZID ก่อนเรียก validator** | **PASS** | 📖 `ics-import.ts:335-342` ยาว > 64 หรือไม่ตรง `/^[A-Za-z0-9 _+\-/.(),]+$/` → `null` (= `invalid` ตามนโยบาย TZID ไม่รู้จักเดิมของ ADR 0017) |
+| **regex ใหม่ไม่มี ReDoS** | **PASS** | 📖 character class เดียว + `+` ครอบด้วย `^…$` ไม่มี quantifier ซ้อน/alternation → เส้นตรง · และถูกเรียกหลัง trim กับค่าจาก parameter เท่านั้น · ✅ near-miss 500 KB 3 แบบ (`a…!`, ช่องว่าง…`\u0000`, `(,…#`) = 0.55–0.59 ms |
+| **TZID ที่ถูกต้องไม่หลุด** | **PASS** | ✅ IANA ทั้งหมดจาก `Intl.supportedValuesOf('timeZone')` + `UTC`, `Etc/GMT+5`, `Etc/GMT-14`, `America/Port-au-Prince`, `America/Argentina/ComodRivadavia` = 423 ค่า → หลุดจาก guard **0** · `/Asia/Bangkok`→`Asia/Bangkok` · `SE Asia Standard Time`→`Asia/Bangkok` · `cen. australia standard time`→`Australia/Adelaide` · `Coordinated Universal Time`→`UTC` · `W. Europe Standard Time`→`Europe/Berlin` · `DTSTART;TZID="Asia/Tokyo"` ผ่าน parser เต็ม → 1 รายการ เริ่ม 08:00 (Bangkok) ถูก · 📖 คีย์ตาราง Windows ทั้ง 38 ตัวมีแค่ตัวอักษร/ช่องว่าง/จุด อยู่ในชุดอักขระ |
+| **heap ไม่โตข้ามคำขอ** | **PASS** | ✅ สคริปต์ `tzcache.ts` เดิม (200 คำขอ, ไฟล์ 522,812 ไบต์, TZID ไม่ซ้ำ 1,000 ค่า/คำขอ): **0.7 MB (≈ 4 KB/คำขอ)** เทียบรอบ 1 = 26.4 MB · ตัวควบคุม 0.5 MB → อยู่ในระดับ noise |
+| **ต้นทุน CPU ที่เพิ่ม (ผลผิดไม่ cache แล้ว)** | **PASS** | ✅ 1,000 TZID ผิด (≤ 64 ตัว ผ่านชุดอักขระ) ต่อไฟล์ → parse median 6.3 ms, max 10.3 ms (20 รอบ) · ผู้เรียกเดิม (`tz` ≤ 64 ตัว 1 ค่า/คำขอ) ได้รับผลน้อยมาก |
+
+### คำสั่งที่รัน (รอบ 2) + ผลจริง
+```
+$ git show d0804a6 -- src/        → zone.ts (+13/-4), ics-import.ts (+5)
+
+$ npx vitest run tests/calendar/zone-cache.test.ts tests/calendar/ics-tzid-guard.test.ts tests/calendar/ics-import.test.ts tests/busy/ics-import-api.test.ts tests/security --reporter=agent
+ Test Files  13 passed (13)
+      Tests  451 passed | 1 skipped (452)
+
+$ npx vitest run tests/calendar --reporter=agent      (zone.ts กระทบทั้งโฟลเดอร์)
+ Test Files  1 failed | 17 passed (18)
+      Tests  1 failed | 538 passed (539)
+   → ตัวที่ล้ม: free-time.test.ts "oracle.py (Python zoneinfo)" — "Python was not found" (เครื่อง Windows ไม่มี python3) ไม่เกี่ยวกับ M1 · ดูผล CI
+
+$ NODE_OPTIONS=--expose-gc node node_modules/tsx/dist/cli.mjs <scratchpad>/fuzz/tzcache.ts
+200 previews (worst-case unique TZID) retained heap ≈ 0.7 MB  (≈ 4 KB/request) · parse ms median=21.3 max=26.7
+control (same file 200x) retained ≈ 0.5 MB
+
+$ node node_modules/tsx/dist/cli.mjs <scratchpad>/fuzz/recheck.ts
+IANA checked 423 lost by guard: [] · regex 500KB near-miss 0.55–0.59 ms · 1000 uncached invalid TZID: median 6.3 ms, cache size 422
+```
+- ❓ ยังไม่เห็นผล CI ของ `d0804a6` ตอนเขียนรายงาน — ให้ main ดู `gh pr checks 49` หลัง push
+
+**Verdict รอบ 2: PASS** — M1 ปิดครบทั้งต้นเหตุ (S1) และจุดป้อน (S2) · ไม่มี 🔴/🟡 ค้าง · 🟢 L1–L4 เป็นข้อสังเกต ไม่บล็อก merge
