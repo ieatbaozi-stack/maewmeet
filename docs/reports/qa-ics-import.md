@@ -135,3 +135,59 @@
 - **ผลตรวจของผู้ทำหลังแก้:** `check-style-literals.sh src` ผ่าน · `npm run lint` ผ่าน · `npm run typecheck` ผ่าน · `node docs/design/tools/contrast.mjs` ผ่าน (338/338) · `npm run build` ผ่าน · `vitest` 8 ไฟล์รวม `must-change-pin.test.ts` ผ่าน 315/315 · Playwright `ics-import.spec.ts` ผ่าน 15/15 (375/390/768 × TH/EN × สว่าง/มืด)
 - **ยังไม่นับเป็น QA รอบสอง (ตาม `AGENTS.md` §5.6 / §6):** แชตนี้เป็นผู้เขียนโค้ดส่วนแก้ (`68dfbc7`, `bbeeb1b`) เอง จึงห้ามตรวจรับรองงานที่เพิ่งแก้ในแชตเดียวกัน — **ต้องเปิดแชตใหม่เพื่อสวมบทบาท `qa` ตรวจรอบสองแล้วต่อท้ายรายงานนี้** และ **ต้องรัน Claude Code `security` agent เขียน `docs/reports/security-ics-import.md`** ก่อน merge
 
+---
+
+## QA รอบสอง — ตรวจส่วนแก้ (`68dfbc7`, `bbeeb1b`) + ผล CI PR #49 (2026-11-24)
+
+> ผู้ตรวจ: qa (อิสระ · แชตใหม่) · Antigravity · **Gemini 4 Neon** (ใช้โมเดลเดียวกับผู้ทำตามที่ boss อนุญาต 2026-11-24; ตาม `AGENTS.md` §6 ปกติควรเป็นคนละโมเดล) · branch `feat/ics-import` HEAD `80a1ef7` (ตรวจ diff ของ `68dfbc7` + `bbeeb1b` และผล CI PR #49 run `45300000564`)
+
+### Verdict รอบสอง: ผ่าน (สำหรับ QA · ยังคงรอ Claude Code `security` agent ก่อน merge)
+ข้อพบ **🔴 1–2** และ **🟡 3–5** จากรอบแรกถูกแก้ครบตรงจุด ไม่พบข้อพบ 🔴/🟡 ใหม่ และ **CI บน PR #49 ผ่านครบทุก job** (รวม `test + migration` 190/190 ไฟล์ และ `e2e (Playwright) (1)–(4)`) · คงเหลือเฉพาะข้อเสนอ 🟢 6–7 เดิมซึ่งไม่บังคับ · งานนี้เป็นระดับ **C** จึงยัง **ต้องรัน Claude Code `security` agent เขียน `docs/reports/security-ics-import.md` ก่อน boss merge**
+
+### ตรวจปิดข้อพบ 1–5 (ยืนยันจาก diff + รันซ้ำเอง + ภาพหน้าจอจริง)
+
+| ข้อพบเดิม | Commit | ผลตรวจรอบสอง | หลักฐานที่ตรวจจริง |
+|---|---|---|---|
+| 1. 🔴 `must-change-pin.test.ts` ล้ม (CI `test + migration`) | `bbeeb1b` | **ปิดแล้ว (ผ่าน)** | เพิ่ม `SAMPLE_BODY` ของทั้ง `POST /api/me/busy/import/preview` และ `POST /api/me/busy/import` ใน `tests/auth/must-change-pin.test.ts:50-51` · รันซ้ำในเครื่องผ่านครบ และบน CI `test + migration` (job `138129848689`) ผ่าน 190/190 ไฟล์ |
+| 2. 🔴 กล่อง `alert-info` 3 จุดเป็นสีแดง error | `68dfbc7`, `bbeeb1b` | **ปิดแล้ว (ผ่าน)** | นิยาม `.alert-info { background: var(--accent-soft); color: var(--accent-soft-ink); }` ใน `src/app/globals.css:289` (อยู่หลัง `.alert` บรรทัด 214 จึง override ถูกต้อง ใช้ token ล้วน และผ่าน `contrast.mjs` 338/338 — คู่ `--accent-soft-ink`/`--accent-soft` สว่าง/มืด 8.54:1) · ยืนยันจากภาพหน้าจอจริงทั้ง 3 จุด (`ics-privacy`, `ics-rounded-note`, `ics-all-duplicates`): สว่าง `rgb(227, 230, 247)` / `rgb(47, 58, 148)`, มืด `rgb(43, 47, 80)` / `rgb(202, 208, 247)` + มี regression assertion ใน `tests/e2e/ics-import.spec.ts:110-120` |
+| 3. 🟡 เปลี่ยนไฟล์เสียหรือเปลี่ยนช่วงวันล้มเหลวใน Preview แล้ว state เพี้ยน | `68dfbc7`, `bbeeb1b` | **ปิดแล้ว (ผ่าน)** | `requestPreview()` ใน `src/components/busy/IcsImportSheet.tsx:95-115` commit `fileName`/`icsText`/`windowDays` เฉพาะเมื่อ `res.ok === true` · ทดสอบจริงในเบราว์เซอร์: (ก) เปลี่ยนเป็นไฟล์เสียใน Preview → แสดง error แต่ชื่อไฟล์เดิมและ `icsText` เดิมยังอยู่ (กดสลับช่วงวันต่อยังส่งไฟล์ดีเดิมสำเร็จ) · (ข) จำลอง 429 ตอนเปลี่ยนช่วงจาก 30→180 วัน → `aria-pressed` คงที่ 30 วันไม่เพี้ยน + มี regression test ใน `tests/e2e/ics-import.spec.ts:170-186` |
+| 4. 🟡 ขาด `aria-busy` และตัวบ่งชี้โหลดในขั้น Preview | `68dfbc7` | **ปิดแล้ว (ผ่าน)** | เพิ่ม `aria-busy={loading \|\| submitting}` ที่ `ics-import-sheet` (`IcsImportSheet.tsx:259`), `aria-busy={loading}` ที่ `ics-pick-button` (`:287`), และแถบ `ics-preview-loading` (`role="status"`, `:321-325`) · ยืนยันในเบราว์เซอร์ด้วยการหน่วง `/api/me/busy/import/preview` 400ms → `aria-busy="true"` และแสดง `"กำลังอ่านไฟล์ปฏิทิน…"` แล้วสลับกลับ `"false"` เมื่อเสร็จ |
+| 5. 🟡 `<summary>` ไม่มีไอคอนลูกศรพับ/ขยาย | `68dfbc7`, `bbeeb1b` | **ปิดแล้ว (ผ่าน)** | เพิ่ม `<Icon name="chevron-right" size="sm" className="ics-skipped-chevron" />` (`IcsImportSheet.tsx:387`) พร้อม CSS ซ่อน native marker และหมุน 90° เมื่อ `[open]` (`calendar-view.css:157-160`) · ยืนยันจากภาพหน้าจอและ computed transform (`none` → `matrix(0, 1, -1, 0, 0, 0)`) + assertion ใน `tests/e2e/ics-import.spec.ts:105` |
+| เสริม (`68dfbc7`): ปุ่ม "เปลี่ยนไฟล์" ไม่ตัด 2 บรรทัด | `68dfbc7` | **ผ่าน** | `.ics-file-bar .btn { flex: none; white-space: nowrap; }` (`calendar-view.css:152`) · ทดสอบชื่อไฟล์ยาว 59 ตัวอักษรที่ 375/390/768 (TH/EN): ชื่อไฟล์ตัด `...` ปุ่มสูง 44px บรรทัดเดียว ไม่ล้นแนวนอน |
+
+### อัปเดตเกณฑ์ contract และ Anti-slop หลังแก้
+- **A2 (Endpoints + Manifest + RBAC):** **ผ่าน** (ข้อพบ 1 ปิดแล้วทั้งในเครื่องและ CI)
+- **U1 (Sheet 2 ขั้น + 375/390/768 × TH/EN × สว่าง/มืด):** **ผ่าน** (ข้อพบ 2–5 ปิดครบ)
+- **Anti-slop checklist (ตรวจภาพหน้าจอจริงรอบสอง 9 ภาพ — 375 TH light [step1/preview/alldup], 375 EN dark [step1/preview], 390 EN light [step1/preview], 768 TH dark [step1/preview]):**
+  - `scrollWidth <= clientWidth` ครบทุกจอ (0 overflow) · เป้าแตะทุก control ≥ 44px (`smallControls: []`)
+  - กล่อง `alert-info` ทั้ง 3 จุดเป็นโทนฟ้าม่วงอ่อน (`--accent-soft`/`--accent-soft-ink`) สบายตา อ่านง่ายทั้งธีมสว่างและมืด ไม่สับสนกับ error
+  - แถบ `<details>` มีลูกศร `chevron-right` พับ/ขยายชัดทั้งตอนปิดและเปิด
+  - **คำตัดสินต่อหน้า:** `IcsImportSheet` ขั้น 1 และขั้น 2 — **เหมือนผลิตภัณฑ์จริง** ทั้ง 375/390/768 × TH/EN × สว่าง/มืด
+
+### คำสั่งที่รันซ้ำเองรอบสอง + ผลจริง (เครื่อง Windows, HEAD `80a1ef7`)
+
+| คำสั่ง | ผลจริง |
+|---|---|
+| `npm run typecheck` | ผ่าน (exit 0) |
+| `npm run lint` + `npx eslint tests/e2e/ics-import.spec.ts` | ผ่าน (exit 0) |
+| `tr -d '\r' < .github/scripts/check-style-literals.sh \| bash -s -- src` | ผ่าน (`src: ไม่มีค่าสี hex / px นอก tokens`) |
+| `node docs/design/tools/contrast.mjs` | ผ่าน (338 คู่ · ไม่ผ่าน 0 · คู่ข้อความต่ำสุด 4.54:1) |
+| `npm run build` | ผ่าน (`next build` 51/51 pages) |
+| `npx vitest run tests/auth/must-change-pin.test.ts tests/calendar/ics-import.test.ts tests/busy/ics-import-api.test.ts tests/busy/busy-api.test.ts tests/busy/calendar-visibility.test.ts tests/platform/manifest.test.ts tests/security/authorize-first.test.ts tests/rbac/matrix.test.ts tests/i18n/messages.test.ts tests/i18n/no-hardcoded-text.test.ts tests/i18n/render.test.ts tests/ops/docs-sync.test.ts tests/ops/operations-doc.test.ts --reporter=agent --testTimeout=60000` | ผ่าน **13 ไฟล์ / 2,787 tests** (35.04s) |
+| `$env:PW_CHROMIUM_PATH=...; $env:E2E_PORT=3126; npx playwright test tests/e2e/ics-import.spec.ts tests/e2e/privacy.spec.ts --reporter=line --workers=4` | ผ่าน **24/24** (18.1s · 375/390/768 × TH/EN × light/dark) |
+| สคริปต์ตรวจภาพหน้าจอ + DOM + พฤติกรรมรอบสอง (375/390/768 × TH/EN × light/dark · broken file · delayed preview · 429 window change · all-duplicates) | ผ่านทั้งหมด · 0 overflow · 0 control < 44px · ตรวจภาพจริง 9 ภาพผ่านทุกจุด |
+
+### ผล CI บน PR #49 (`gh pr checks 49`, HEAD `80a1ef7`, run `45300000564`)
+ผ่านครบ **12/12 checks**:
+- `test + migration` ✔ (4m31s · job `138129848689`: Vitest **190/190 ไฟล์ผ่าน** + `db:check` + `drizzle-kit migrate` บน DB ว่าง)
+- `lint` ✔ (45s · รวม `check-env-example.sh` และ `check-style-literals.sh`)
+- `typecheck` ✔ (28s) · `contrast` ✔ (6s) · `build` ✔ (45s) · `changes` ✔ (4s)
+- `e2e (Playwright) (1)` ✔ (12m30s) · `(2)` ✔ (18m34s) · `(3)` ✔ (20m4s) · `(4)` ✔ (19m57s)
+- `Vercel` ✔ (`Deployment has completed`) · `Vercel Preview Comments` ✔
+
+### สิ่งที่ตรวจไม่ได้ (คงเดิม)
+- ไม่ได้รัน `npm test` ทั้งชุดในเครื่อง Windows (ข้อจำกัดเดิมตาม `AGENTS.md` §9 — อ้างอิงผล CI `test + migration` 190/190 ไฟล์ผ่านแทน)
+- ไม่ได้ลองอัปโหลดไฟล์ `.ics` จริงจากแอปบนอุปกรณ์มือถือจริง (iOS Safari / LINE in-app browser)
+- ไม่ได้ตรวจความปลอดภัยเชิงลึกแทน Claude Code `security` agent — **ยังคงบังคับต้องรัน Claude Code `security` agent สร้าง `docs/reports/security-ics-import.md` ก่อน merge**
+
+
