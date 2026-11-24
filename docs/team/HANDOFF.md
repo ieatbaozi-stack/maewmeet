@@ -1,12 +1,12 @@
 # HANDOFF — สถานะล่าสุดสำหรับเครื่องมือใดก็ได้ที่เพิ่งเปิด repo
 
-> อัปเดต: 2026-11-24 (เวลาไทย) โดย secretary (Claude Code · branch `docs/release-1.1.0`) · ตรวจกับ `git log`, `git tag`, `gh pr checks 49`, `CHANGELOG.md`, `docs/reports/qa-ics-import.md`, `docs/reports/security-ics-import.md`
+> อัปเดต: 2026-11-24 (เวลาไทย) โดย secretary (Claude Code · branch `docs/handoff-1.1.0`) · ตรวจจาก main `b5a2c3d` กับ `git log`, `git tag`, `gh pr view 50`, `gh pr checks 49`, `CHANGELOG.md`, `docs/reports/qa-ics-import.md`, `docs/reports/security-ics-import.md`
 > **กติกา:** ใครจบงาน (Claude Code หรือ Antigravity ก็ได้) ให้อัปเดตไฟล์นี้ในรอบเดียวกับงานนั้น · ไฟล์นี้เป็นสรุป หลักฐานจริงอยู่ที่ git/PR
 
 ## 1. Production
 - เวอร์ชันล่าสุดที่ออกแล้ว: **v1.1.0** · tag `v1.1.0` → commit `87f7db0` (`chore(release): v1.1.0`, 2026-11-24) ✔ ตรวจด้วย `git rev-parse v1.1.0^{commit}`
-- `package.json` = `1.1.0` · CHANGELOG `[1.1.0] - 2026-11-24` ✔  · ตอนเขียนมีการแก้ `CHANGELOG.md` ค้างใน working tree (ops ยังไม่ commit) ยังไม่ยืนยันเนื้อหา
-- `/api/health` บน prod หลัง v1.1.0: **ยังไม่ยืนยัน** (ยังไม่ได้ตรวจ) · ครั้งล่าสุดที่ยืนยันแล้วคือ v1.0.1 (2026-11-23 19:43 · `ok:true`, `db:true`, `argon2:true`, `pepper.ok:true`)
+- `package.json` = `1.1.0` · CHANGELOG `[1.1.0] - 2026-11-24` ✔ · การแก้ CHANGELOG ของ ops commit แล้ว `26d7548` และอยู่ใน main แล้ว ✔
+- หน้าเว็บ production หลัง v1.1.0: boss ตรวจแล้ว 2026-11-24 ว่าปกติ · `/api/health` บน prod หลัง v1.1.0: **ยังไม่ยืนยันค่า version ใน JSON** (ยังไม่ได้ตรวจโดยตรง) · ครั้งล่าสุดที่ยืนยันแล้วคือ v1.0.1 (2026-11-23 19:43 · `ok:true`, `db:true`, `argon2:true`, `pepper.ok:true`)
 - header `/i/<token ปลอม>` บน prod `v1.0.1`: `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate` · `X-Robots-Tag: noindex, nofollow` ✔ (token จริงบน prod ยังไม่ได้ลอง)
 - โหมด: **maintenance mode** (ดู `docs/NEXT_PHASE.md`) ไม่มีรอบ R ใหม่โดยค่าเริ่มต้น · งานที่เข้ามาคือแก้บั๊ก/security ตามรายงาน และงานที่ boss ตัดสินแล้ว
 
@@ -21,7 +21,7 @@
 | #47 | `docs/v1.0.1-verify`: ยืนยัน deploy v1.0.1 + ปิดหมายเหตุ F18 | MERGED (`f5b23ab`) |
 | #48 | `docs/ics-import-contract`: สัญญา `ICS_IMPORT_CONTRACT.md` (v1.1.0) | MERGED (`65ccfa9`) |
 | #49 | `feat/ics-import`: นำเข้าไฟล์ .ics เป็นเวลาไม่ว่าง (v1.1.0) | MERGED (`2d2b93b`) → tag `v1.1.0` (`87f7db0`) · `gh pr checks 49` ทุกรายการ pass |
-| — | `docs/release-1.1.0`: เอกสารหลังออกรุ่น v1.1.0 (DOCS_SYNC §3) | ยังไม่พบ PR ตอนตรวจ (`gh pr list`) |
+| #50 | `docs/release-1.1.0`: เอกสารหลังออกรุ่น v1.1.0 (DOCS_SYNC §3) | MERGED (`b5a2c3d`) |
 
 - **งานค้างหลักยึด `docs/team/PROGRESS.md` ส่วน "เหลือ"** (ถ้าขัดกันให้ยึด PROGRESS)
 
@@ -41,7 +41,7 @@
 - ยืนยัน `/api/health` บน prod ว่าเป็น `1.1.0` (ยังไม่ได้ตรวจ)
 
 ## 5. รอบปัจจุบัน
-- **ไม่มีรอบพัฒนาเปิดอยู่** · v1.1.0 ออกแล้ว (2026-11-24) · รอบเอกสารหลังออกรุ่นอยู่บน branch `docs/release-1.1.0` (DOCS_SYNC §3)
+- **ไม่มีรอบพัฒนาเปิดอยู่** · v1.1.0 ออกแล้ว (2026-11-24) · เอกสารหลังออกรุ่น v1.1.0 merge แล้ว (PR #50 · `b5a2c3d`) · ไม่มีรอบเปิดค้าง · รอบถัดไปเริ่มจาก `git pull` ที่ main และ contract ใหม่
 - **บทเรียนจากรอบ ICS (ตามที่ main แจ้ง):**
   - PR จาก Antigravity อาจเปิดเป็น **Draft** → ต้องกด Ready for review ก่อน boss merge
   - บน Windows `release.ts` เกตเทสต์ล้มเพราะปัญหาเครื่อง (EPERM / Python) → รอ CI บน `main` เขียวก่อน แล้วใช้ `--skip-gates` ตามที่ main กำหนด
