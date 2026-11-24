@@ -92,7 +92,7 @@ export function IcsImportSheet({ onClose, onImported }: IcsImportSheetProps) {
   // B3 = (ก): เปิดซ่อนรายละเอียดจากคนในกลุ่มเป็นค่าเริ่มต้น
   const [hideDetail, setHideDetail] = useState(true);
 
-  async function requestPreview(text: string, days: IcsImportWindowDays) {
+  async function requestPreview(text: string, days: IcsImportWindowDays, nextFileName?: string) {
     setLoading(true);
     setErrorMsg(null);
     const res = await callApi<PreviewResponse>("/api/me/busy/import/preview", {
@@ -106,6 +106,9 @@ export function IcsImportSheet({ onClose, onImported }: IcsImportSheetProps) {
       return;
     }
     const maxCap = Math.min(res.data.quota.remaining, res.data.maxImportPerBatch);
+    if (nextFileName !== undefined) setFileName(nextFileName);
+    setIcsText(text);
+    setWindowDays(days);
     setPreview(res.data);
     setSelected(initialSelection(res.data.items, maxCap));
     setStep("preview");
@@ -115,7 +118,7 @@ export function IcsImportSheet({ onClose, onImported }: IcsImportSheetProps) {
     const file = e.target.files?.[0];
     // รีเซ็ตค่าเพื่อให้เลือกไฟล์เดิมซ้ำได้
     e.target.value = "";
-    if (!file) return;
+    if (!file || loading || submitting) return;
     setErrorMsg(null);
 
     if (file.size > ICS_IMPORT_MAX_BYTES) {
@@ -134,17 +137,16 @@ export function IcsImportSheet({ onClose, onImported }: IcsImportSheetProps) {
       setErrorMsg(t("errors.ICS_INVALID"));
       return;
     }
-    setFileName(file.name);
-    setIcsText(text);
-    await requestPreview(text, windowDays);
+    await requestPreview(text, windowDays, file.name);
   }
 
   async function changeWindow(days: IcsImportWindowDays) {
     if (days === windowDays || loading || submitting) return;
-    setWindowDays(days);
     if (step === "preview" && icsText) {
       await requestPreview(icsText, days);
+      return;
     }
+    setWindowDays(days);
   }
 
   function toggleIndex(index: number) {
@@ -254,7 +256,7 @@ export function IcsImportSheet({ onClose, onImported }: IcsImportSheetProps) {
       footer={footer}
       initialFocusRef={pickBtnRef}
     >
-      <div className="ics-sheet" data-testid="ics-import-sheet">
+      <div className="ics-sheet" data-testid="ics-import-sheet" aria-busy={loading || submitting}>
         <input
           ref={fileInputRef}
           type="file"
@@ -282,6 +284,7 @@ export function IcsImportSheet({ onClose, onImported }: IcsImportSheetProps) {
               type="button"
               className="ics-dropzone"
               disabled={loading}
+              aria-busy={loading}
               data-testid="ics-pick-button"
               onClick={() => fileInputRef.current?.click()}
             >
@@ -314,6 +317,12 @@ export function IcsImportSheet({ onClose, onImported }: IcsImportSheetProps) {
             </div>
 
             {windowPicker}
+
+            {loading ? (
+              <div className="ics-loading small muted" role="status" data-testid="ics-preview-loading">
+                {t("busy.import.loading")}
+              </div>
+            ) : null}
 
             <div className="ics-summary" role="status" data-testid="ics-preview-summary">
               <p className="ics-summary-main">{t("busy.import.preview.found", { total: preview.items.length, selected: selectedCount })}</p>
@@ -375,6 +384,7 @@ export function IcsImportSheet({ onClose, onImported }: IcsImportSheetProps) {
             {skippedTotal > 0 ? (
               <details className="ics-skipped" data-testid="ics-skipped-details">
                 <summary className="ics-skipped-summary">
+                  <Icon name="chevron-right" size="sm" className="ics-skipped-chevron" />
                   <span>{t("busy.import.skipped.summary", { count: skippedTotal })}</span>
                 </summary>
                 <ul className="ics-skipped-list">
