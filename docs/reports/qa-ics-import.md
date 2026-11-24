@@ -125,3 +125,13 @@
 - ไม่ได้รัน `npm test` ทั้งชุดในเครื่อง Windows (ข้อจำกัดเดิมตาม `AGENTS.md` §9 — อ้างอิงผล CI `test + migration` 190 ไฟล์แทน)
 - ไม่ได้ลองอัปโหลดไฟล์ `.ics` จริงจากแอปบนอุปกรณ์มือถือจริง (iOS Safari / LINE in-app browser)
 - ไม่ได้ตรวจความปลอดภัยเชิงลึกแทน Claude Code `security` agent — **ยังคงบังคับต้องรัน `security` agent และสร้าง `docs/reports/security-ics-import.md` ก่อน merge**
+
+---
+
+## ติดตามผลหลังแก้ข้อพบ 1–5 (2026-11-24)
+- boss สั่งให้แก้ข้อพบ 🔴 1–2 และ 🟡 3–5 ใน branch `feat/ics-import` แล้วส่งตรวจ `qa` รอบสอง:
+  - `68dfbc7` (`frontend`): เพิ่ม `.alert-info` (`--accent-soft`/`--accent-soft-ink`) ใน `src/app/globals.css`, อัปเดต `fileName`/`icsText`/`windowDays` ใน `IcsImportSheet.tsx` เฉพาะเมื่อ preview สำเร็จ, เพิ่ม `aria-busy` + สถานะโหลดในขั้น Preview, เพิ่มไอคอน `chevron-right` หมุนตาม `<details open>` ใน `<summary>`, และป้องกันปุ่ม "เปลี่ยนไฟล์" ตัด 2 บรรทัด
+  - `bbeeb1b` (`test`): เพิ่ม `SAMPLE_BODY` ของ `POST /api/me/busy/import/preview` และ `POST /api/me/busy/import` ใน `tests/auth/must-change-pin.test.ts` + เพิ่ม regression assertion ใน `tests/e2e/ics-import.spec.ts` (ตรวจสี `.alert-info` ≠ error, ตรวจ chevron, ตรวจเปลี่ยนไฟล์เสียใน Preview แล้วชื่อไฟล์เดิมไม่หาย)
+- **ผลตรวจของผู้ทำหลังแก้:** `check-style-literals.sh src` ผ่าน · `npm run lint` ผ่าน · `npm run typecheck` ผ่าน · `node docs/design/tools/contrast.mjs` ผ่าน (338/338) · `npm run build` ผ่าน · `vitest` 8 ไฟล์รวม `must-change-pin.test.ts` ผ่าน 315/315 · Playwright `ics-import.spec.ts` ผ่าน 15/15 (375/390/768 × TH/EN × สว่าง/มืด)
+- **ยังไม่นับเป็น QA รอบสอง (ตาม `AGENTS.md` §5.6 / §6):** แชตนี้เป็นผู้เขียนโค้ดส่วนแก้ (`68dfbc7`, `bbeeb1b`) เอง จึงห้ามตรวจรับรองงานที่เพิ่งแก้ในแชตเดียวกัน — **ต้องเปิดแชตใหม่เพื่อสวมบทบาท `qa` ตรวจรอบสองแล้วต่อท้ายรายงานนี้** และ **ต้องรัน Claude Code `security` agent เขียน `docs/reports/security-ics-import.md`** ก่อน merge
+
