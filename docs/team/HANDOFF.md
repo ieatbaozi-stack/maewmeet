@@ -45,7 +45,7 @@
 - **บทเรียนจากรอบ ICS (ตามที่ main แจ้ง):**
   - PR จาก Antigravity อาจเปิดเป็น **Draft** → ต้องกด Ready for review ก่อน boss merge
   - บน Windows `release.ts` เกตเทสต์ล้มเพราะปัญหาเครื่อง (EPERM / Python) → รอ CI บน `main` เขียวก่อน แล้วใช้ `--skip-gates` ตามที่ main กำหนด
-- **ข้อสังเกตเอกสาร:** `docs/reports/qa-ics-import.md` หัวรายงานยังเป็น "ไม่ผ่าน" ของรอบ 1 · ท้ายไฟล์บันทึกรอบ 2 ผ่านแล้ว · รอ qa แก้หัวรายงาน
+- ~~**ข้อสังเกตเอกสาร:** `docs/reports/qa-ics-import.md` หัวรายงานยังเป็น "ไม่ผ่าน" ของรอบ 1 · รอ qa แก้หัวรายงาน~~ ✔ เสร็จแล้ว: qa แก้หัวรายงาน `46d2caf` (2026-11-24) · หัวรายงานแสดง "Verdict ล่าสุด: รอบ 2 ผ่าน (`12f5120`)"
 
 ## 6. วิธีเริ่มงานถัดไป
 - **Claude Code:** อ่าน `CLAUDE.md` → `docs/team/TEAM.md` → `docs/team/PROCESS.md` → contract ของรอบ → ไฟล์นี้
