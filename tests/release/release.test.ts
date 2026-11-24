@@ -299,7 +299,7 @@ const PKG = '{\n  "name": "demo",\n  "version": "0.0.0",\n  "private": true\n}\n
 const LOCK =
   '{\n  "name": "demo",\n  "version": "0.0.0",\n  "lockfileVersion": 3,\n  "requires": true,\n  "packages": {\n    "": {\n      "name": "demo",\n      "version": "0.0.0"\n    }\n  }\n}\n';
 
-// เอกสารจำลอง 3 ไฟล์ที่ release.ts ต้องเปลี่ยนเลขรุ่นให้ (PRD ใช้ CRLF · มีเลขรุ่นอื่นในไฟล์เดียวกันที่ห้ามแตะ)
+// เอกสารจำลอง 5 ไฟล์ที่ release.ts ต้องเปลี่ยนเลขรุ่นให้ (PRD ใช้ CRLF · มีเลขรุ่นอื่นในไฟล์เดียวกันที่ห้ามแตะ)
 const DOCS: Record<string, string> = {
   "docs/guides/quickstart-th.html":
     "<footer>\n  <span>app v0.0.0</span>\n</footer>\n<!-- เดิมเคยเป็น app v9.9.9 -->\n<span>app v0.0.0</span>\n",
@@ -307,6 +307,10 @@ const DOCS: Record<string, string> = {
     "# PRD\r\n\r\n> **สถานะปัจจุบัน (2026-01-01):** แอปอยู่ที่ **v0.0.0** (รอบ R0 ออกแล้ว) · ดู v1.0.0 ในแผนเดิม\r\n\r\nเนื้อหา v0.0.0 ที่ไม่ใช่หมายเหตุ\r\n",
   "docs/team/PROGRESS.md":
     '# PROGRESS\n\n> อัปเดตล่าสุด: 2026-01-01 · ออกรุ่น v0.0.0 แล้ว · ก่อนหน้า v0.0.0\n\nบรรทัดอื่นที่ไม่เกี่ยวกับ "อัปเดตล่าสุด" v0.0.0\n',
+  "README.md":
+    "# README\n\n**สถานะ:** v0.0.0 ออกแล้ว (2026-01-01) · ก่อนหน้า v0.0.0\n\nอ้างอิงอื่น v0.0.0\n",
+  "docs/team/HANDOFF.md":
+    "# HANDOFF\n\n- เวอร์ชันล่าสุดที่ออกแล้ว: **v0.0.0** · tag `v0.0.0`\n\nอ้างอิงอื่น v0.0.0\n",
 };
 
 function writeDocs(dir: string, docs: Record<string, string>): void {
@@ -438,8 +442,10 @@ describe("runRelease บน git repo ชั่วคราว", () => {
     expect(g(dir, "status", "--porcelain")).toBe("");
     expect(g(dir, "show", "--name-only", "--format=", "HEAD").split("\n").sort()).toEqual([
       "CHANGELOG.md",
+      "README.md",
       "docs/guides/quickstart-th.html",
       "docs/prd/PRD.md",
+      "docs/team/HANDOFF.md",
       "docs/team/PROGRESS.md",
       "package-lock.json",
       "package.json",
@@ -508,8 +514,8 @@ describe("runRelease บน git repo ชั่วคราว", () => {
   });
 });
 
-describe("เลขรุ่นในเอกสาร (DOCS_SYNC §7)", () => {
-  const [quickstart, prd, progress] = DOC_VERSION_TARGETS;
+describe("เลขรุ่นในเอกสาร (DOCS_SYNC §7 · V1_2_CONTRACT O1)", () => {
+  const [quickstart, prd, progress, readme, handoff] = DOC_VERSION_TARGETS;
   const NEW = "0.2.0";
 
   it("replaceDocVersion เปลี่ยนเฉพาะเลขรุ่นในตำแหน่งที่ docs-sync อ่าน ไม่แตะอย่างอื่น (รวม CRLF)", () => {
@@ -524,18 +530,26 @@ describe("เลขรุ่นในเอกสาร (DOCS_SYNC §7)", () => 
 
     const rOld = DOCS[progress!.file]!;
     expect(replaceDocVersion(rOld, progress!, NEW)).toBe(rOld.replace("ออกรุ่น v0.0.0", "ออกรุ่น v0.2.0"));
+
+    const rmOld = DOCS[readme!.file]!;
+    expect(replaceDocVersion(rmOld, readme!, NEW)).toBe(rmOld.replace("**สถานะ:** v0.0.0", "**สถานะ:** v0.2.0"));
+
+    const hOld = DOCS[handoff!.file]!;
+    expect(replaceDocVersion(hOld, handoff!, NEW)).toBe(hOld.replace("**v0.0.0**", "**v0.2.0**"));
   });
 
   it("หาตำแหน่งไม่เจอ → null · รองรับ prerelease", () => {
     expect(replaceDocVersion("ไม่มีอะไร", quickstart!, NEW)).toBeNull();
     expect(replaceDocVersion("> สถานะปัจจุบัน ไม่มีเลข", prd!, NEW)).toBeNull();
     expect(replaceDocVersion("ไม่มีคำนั้น v1.0.0", progress!, NEW)).toBeNull();
+    expect(replaceDocVersion("ไม่มีสถานะ v1.0.0", readme!, NEW)).toBeNull();
+    expect(replaceDocVersion("ไม่มีเวอร์ชัน v1.0.0", handoff!, NEW)).toBeNull();
     const pre = replaceDocVersion("> อัปเดตล่าสุด v1.0.0-rc.1 จบ", progress!, "1.0.0-rc.2")!;
     expect(pre).toBe("> อัปเดตล่าสุด v1.0.0-rc.2 จบ");
     expect(readDocVersion(pre, progress!)).toBe("1.0.0-rc.2");
   });
 
-  it("ออกรุ่นจริงบน temp copy: commit เดียวกันเปลี่ยนเลขใน 3 ไฟล์ และ diff เป็นแค่เลขรุ่น", () => {
+  it("ออกรุ่นจริงบน temp copy: commit เดียวกันเปลี่ยนเลขใน 5 ไฟล์ และ diff เป็นแค่เลขรุ่น", () => {
     const dir = makeRepo();
     expect(runRelease({ version: NEW, dryRun: false, skipGates: true, cwd: dir, now: NOW, log: () => {} })).toBe(0);
     for (const t of DOC_VERSION_TARGETS) {
@@ -544,15 +558,17 @@ describe("เลขรุ่นในเอกสาร (DOCS_SYNC §7)", () => 
       expect(text.length).toBe(DOCS[t.file]!.length); // 0.0.0 → 0.2.0 ยาวเท่าเดิม และ CRLF คงเดิม
     }
     expect(g(dir, "diff", "--numstat", "HEAD~1", "HEAD", "--", ...DOC_VERSION_TARGETS.map((t) => t.file)).split("\n").sort()).toEqual([
+      "1\t1\tREADME.md",
       "1\t1\tdocs/guides/quickstart-th.html",
       "1\t1\tdocs/prd/PRD.md",
+      "1\t1\tdocs/team/HANDOFF.md",
       "1\t1\tdocs/team/PROGRESS.md",
     ]);
     expect(g(dir, "status", "--porcelain")).toBe("");
     expect(g(dir, "log", "-1", "--format=%s")).toBe("chore(release): v0.2.0");
   });
 
-  it("ตรรกะเทียบของ docs-sync (package.json = quickstart = PRD = PROGRESS) ผ่านหลังออกรุ่น", () => {
+  it("ตรรกะเทียบของ docs-sync (package.json = 5 ไฟล์เอกสารหลัก) ผ่านหลังออกรุ่น", () => {
     const dir = makeRepo();
     const mismatched = (): string[] => {
       const pkg = (JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as { version: string }).version;
@@ -560,7 +576,7 @@ describe("เลขรุ่นในเอกสาร (DOCS_SYNC §7)", () => 
     };
     expect(mismatched()).toEqual([]);
     writeFileSync(join(dir, "package.json"), PKG.replace("0.0.0", "0.1.0")); // จำลอง release.ts เดิม: ขยับแค่ package.json
-    expect(mismatched()).toHaveLength(3);
+    expect(mismatched()).toHaveLength(5);
     g(dir, "checkout", "-q", "--", "package.json");
     expect(runRelease({ version: NEW, dryRun: false, skipGates: true, cwd: dir, now: NOW, log: () => {} })).toBe(0);
     expect(mismatched()).toEqual([]);
@@ -575,6 +591,8 @@ describe("เลขรุ่นในเอกสาร (DOCS_SYNC §7)", () => 
     expect(out).toContain("+++ b/docs/prd/PRD.md");
     expect(out).toContain("+++ b/docs/team/PROGRESS.md");
     expect(out).toContain("+++ b/docs/guides/quickstart-th.html");
+    expect(out).toContain("+++ b/README.md");
+    expect(out).toContain("+++ b/docs/team/HANDOFF.md");
     expect(snapshot(dir)).toEqual(before);
   });
 

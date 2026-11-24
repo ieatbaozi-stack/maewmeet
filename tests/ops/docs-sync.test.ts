@@ -25,8 +25,8 @@ describe('DOCS_SYNC §4 — เลขรุ่นตรงกันทุกไ�
     expect(latestChangelog(), `CHANGELOG.md หัวข้อรุ่นล่าสุดไม่ตรง package.json (${pkgVersion})`).toBe(pkgVersion);
   });
 
-  // ตำแหน่งที่อ่านเลขรุ่นใช้ตัวเดียวกับที่ scripts/release.ts แก้ให้ตอนออกรุ่น (DOCS_SYNC §7) — จึงไม่มีทางเพี้ยนกัน
-  const [quickstart, prd, progress] = DOC_VERSION_TARGETS;
+  // ตำแหน่งที่อ่านเลขรุ่นใช้ตัวเดียวกับที่ scripts/release.ts แก้ให้ตอนออกรุ่น (DOCS_SYNC §7 · V1_2_CONTRACT O1) — จึงไม่มีทางเพี้ยนกัน
+  const [quickstart, prd, progress, readme, handoff] = DOC_VERSION_TARGETS;
 
   it('docs/guides/quickstart-th.html ท้ายหน้า "app vX.Y.Z" = package.json', () => {
     const v = readDocVersion(read(quickstart!.file), quickstart!);
@@ -48,6 +48,22 @@ describe('DOCS_SYNC §4 — เลขรุ่นตรงกันทุกไ�
     const v = readDocVersion(text, progress!);
     if (!v) fail('docs/team/PROGRESS.md: บรรทัด "อัปเดตล่าสุด" ไม่มีเลขรุ่น vX.Y.Z');
     expect(v, `docs/team/PROGRESS.md บรรทัด "อัปเดตล่าสุด" เป็น v${v} แต่ package.json เป็น v${pkgVersion}`).toBe(pkgVersion);
+  });
+
+  it('README.md บรรทัด "**สถานะ:**" มีรุ่น = package.json', () => {
+    const text = read(readme!.file);
+    if (!text.includes('**สถานะ:**')) fail('README.md: ไม่พบบรรทัด "**สถานะ:**"');
+    const v = readDocVersion(text, readme!);
+    if (!v) fail('README.md: บรรทัด "**สถานะ:**" ไม่มีเลขรุ่น vX.Y.Z');
+    expect(v, `README.md บรรทัด "**สถานะ:**" เป็น v${v} แต่ package.json เป็น v${pkgVersion}`).toBe(pkgVersion);
+  });
+
+  it('docs/team/HANDOFF.md บรรทัด "เวอร์ชันล่าสุดที่ออกแล้ว" มีรุ่น = package.json', () => {
+    const text = read(handoff!.file);
+    if (!text.includes('เวอร์ชันล่าสุดที่ออกแล้ว')) fail('docs/team/HANDOFF.md: ไม่พบบรรทัด "เวอร์ชันล่าสุดที่ออกแล้ว"');
+    const v = readDocVersion(text, handoff!);
+    if (!v) fail('docs/team/HANDOFF.md: บรรทัด "เวอร์ชันล่าสุดที่ออกแล้ว" ไม่มีเลขรุ่น vX.Y.Z');
+    expect(v, `docs/team/HANDOFF.md บรรทัด "เวอร์ชันล่าสุดที่ออกแล้ว" เป็น v${v} แต่ package.json เป็น v${pkgVersion}`).toBe(pkgVersion);
   });
 });
 

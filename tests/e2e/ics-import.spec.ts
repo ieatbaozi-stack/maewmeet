@@ -15,7 +15,8 @@ function buildSampleIcs(): Buffer {
   const dTimed = ymdCompact(addDays(today, 5));
   const dAllStart = ymdCompact(addDays(today, 8));
   const dAllEndExcl = ymdCompact(addDays(today, 10)); // 2 วัน (inclusive: +8 ถึง +9)
-  const dRec = ymdCompact(addDays(today, 6));
+  const dRecWeekly = ymdCompact(addDays(today, 12));
+  const dRecYearly = ymdCompact(addDays(today, 6));
 
   const text = [
     'BEGIN:VCALENDAR',
@@ -33,10 +34,16 @@ function buildSampleIcs(): Buffer {
     `DTEND;VALUE=DATE:${dAllEndExcl}`,
     'END:VEVENT',
     'BEGIN:VEVENT',
-    'SUMMARY:นัดซ้ำทุกสัปดาห์',
-    `DTSTART;TZID=Asia/Bangkok:${dRec}T100000`,
-    `DTEND;TZID=Asia/Bangkok:${dRec}T110000`,
-    'RRULE:FREQ=WEEKLY;BYDAY=MO',
+    'SUMMARY:เรียนประจำสัปดาห์ E2E',
+    `DTSTART;TZID=Asia/Bangkok:${dRecWeekly}T140000`,
+    `DTEND;TZID=Asia/Bangkok:${dRecWeekly}T150000`,
+    'RRULE:FREQ=WEEKLY;COUNT=2',
+    'END:VEVENT',
+    'BEGIN:VEVENT',
+    'SUMMARY:นัดซ้ำรายปีซับซ้อน',
+    `DTSTART;TZID=Asia/Bangkok:${dRecYearly}T100000`,
+    `DTEND;TZID=Asia/Bangkok:${dRecYearly}T110000`,
+    'RRULE:FREQ=YEARLY',
     'END:VEVENT',
     'END:VCALENDAR',
     '',
@@ -90,13 +97,15 @@ for (const locale of LOCALES) {
         buffer: sample,
       });
 
-      // ขั้น 2: Preview — เห็น 2 รายการ, hideDetail เปิดเป็นค่าเริ่มต้น, เห็นปัดเวลา, เห็น skipped RRULE
+      // ขั้น 2: Preview — เห็น 4 รายการ (2 เดี่ยว + 2 แตกจาก RRULE WEEKLY COUNT=2), hideDetail เปิดเป็นค่าเริ่มต้น, เห็นปัดเวลา, เห็น skipped RRULE ซับซ้อน
       await expect(page.getByTestId('ics-preview-list')).toBeVisible();
       await expect(page.getByTestId('ics-hide-detail')).toHaveAttribute('aria-checked', 'true');
       await expect(page.getByTestId('ics-rounded-note')).toBeVisible();
       await expect(page.getByTestId('ics-preview-quota')).toContainText('0/300');
       await expect(page.getByTestId('ics-item-check-0')).toBeChecked();
       await expect(page.getByTestId('ics-item-check-1')).toBeChecked();
+      await expect(page.getByTestId('ics-item-check-2')).toBeChecked();
+      await expect(page.getByTestId('ics-item-check-3')).toBeChecked();
       await expect(page.getByTestId('ics-item-rounded-0')).toBeVisible();
 
       // ขยายรายละเอียดที่ข้าม → เห็นไอคอนลูกศร + RRULE
@@ -124,13 +133,14 @@ for (const locale of LOCALES) {
       await expect(submitBtn).toBeEnabled();
       await submitBtn.click();
 
-      // ปิด sheet + ขึ้น toast + เห็น 2 รายการในปฏิทินของฉัน
+      // ปิด sheet + ขึ้น toast + เห็นทั้งรายการเดี่ยวและรายการที่แตกจาก RRULE ในปฏิทินของฉัน
       await expect(sheet).toHaveCount(0);
       await expect(page.getByTestId('cal-toast')).toBeVisible();
       const mineList = page.getByTestId('busy-mine-list');
       await expect(mineList).toBeVisible();
       await expect(mineList).toContainText('ประชุมวางแผน E2E');
       await expect(mineList).toContainText('ทริปต่างจังหวัด E2E');
+      await expect(mineList).toContainText('เรียนประจำสัปดาห์ E2E');
 
       // อัปโหลดไฟล์เดิมซ้ำ → ทุกรายการติดสถานะซ้ำ ไม่ติ๊กเลือกเริ่มต้น และปุ่มนำเข้า disabled
       await openBtn.click();
