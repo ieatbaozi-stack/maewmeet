@@ -1,14 +1,13 @@
 # HANDOFF — สถานะล่าสุดสำหรับเครื่องมือใดก็ได้ที่เพิ่งเปิด repo
 
-> อัปเดต: 2026-11-25 (เวลาไทย) โดย secretary (Antigravity / Gemini 4 Neon · branch `docs/release-1.1.1`) · ตรวจจาก `origin/main` `7f4c853`, `git log`, `git tag`, `gh pr view 52`, `gh pr checks 52`, `CHANGELOG.md`
-> **กติกา:** ใครจบงาน (Claude Code หรือ Antigravity ก็ได้) ให้อัปเดตไฟล์นี้ในรอบเดียวกับงานนั้น · ไฟล์นี้เป็นสรุป หลักฐานจริงอยู่ที่ git/PR
+> อัปเดต: 2026-11-25 (เวลาไทย) โดย secretary (Antigravity / Gemini 4 Neon · branch `feat/v1.2-ics-rrule`) · ตรวจจาก `origin/main` `fcbccd6`, `git log`, `git tag`, `gh pr list`
+> **กติกา:** อัปเดตไฟล์นี้พร้อม PR งานหลัก · เมื่อ boss รัน `scripts/release.ts <ver>` สคริปต์จะขยับเลขรุ่นในไฟล์นี้ให้อัตโนมัติ (ไม่ต้องเปิด PR เอกสารตามหลัง release หรือ PR จด `/api/health`)
 
 ## 1. Production
-- เวอร์ชันล่าสุดที่ออกแล้ว: **v1.1.1** · tag `v1.1.1` → commit `7f4c853` (`chore(release): v1.1.1`, 2026-11-25) ✔ ตรวจด้วย `git ls-remote origin refs/heads/main refs/tags/v1.1.1`
-- `package.json` = `1.1.1` · CHANGELOG `[1.1.1] - 2026-11-25` ✔ (`[Unreleased]` ว่าง)
-- `/api/health` บน prod หลัง v1.1.1: **ยังไม่ยืนยันหลัง deploy `7f4c853`** · ครั้งก่อนหน้าที่ยืนยันแล้วคือ v1.1.0 (boss · 2026-11-24: หน้าเว็บปกติ, `/api/health` = `1.1.0`, เช็กลิสต์เครื่องจริง R18 ผ่านครบ 6 ข้อใน `r18-boss-device-checklist.md`, และทดสอบนำเข้าไฟล์ `.ics` จริงผ่าน ✔)
-- header `/i/<token>` บน prod `v1.0.1` (token ปลอม): `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate` · `X-Robots-Tag: noindex, nofollow` ✔ (boss ตัดสินใจข้ามการยิง `curl` ด้วย token จริง 2026-11-24 เพราะ UI จริงผ่านแล้ว)
-- โหมด: **maintenance mode** (ดู `docs/NEXT_PHASE.md`) ไม่มีรอบ R ใหม่โดยค่าเริ่มต้น · งานที่เข้ามาคือแก้บั๊ก/security ตามรายงาน และงานที่ boss ตัดสินแล้ว
+- เวอร์ชันล่าสุดที่ออกแล้ว: **v1.1.1** (ปรับเลขรุ่นอัตโนมัติโดย `scripts/release.ts` · ดูประวัติและ tag จริงใน `CHANGELOG.md` และ `git tag`)
+- รุ่นที่ยืนยันบน prod ล่าสุด: **v1.1.1** (tag `v1.1.1` → `7f4c853`, 2026-11-25) — boss ยืนยัน `/api/health = 1.1.1` และผู้ใช้จริงใช้งานปกติ
+- `/api/health` บน prod: `.github/workflows/keepalive.yml` ตรวจอัตโนมัติทุก 12 ชม. — ไม่ต้องเปิด PR แยกเพื่อจดผลอีก (boss อนุมัติ 2026-11-25)
+- โหมด: **maintenance mode** (ดู `docs/NEXT_PHASE.md`) · งานที่ทำคือแก้บั๊ก/security และงานที่ boss เห็นชอบแล้ว
 
 ## 2. Pull Request
 | PR | หัวข้อ | สถานะ (ตรวจจาก `git log` / `gh pr view` 2026-11-25) |
@@ -24,8 +23,10 @@
 | #50 | `docs/release-1.1.0`: เอกสารหลังออกรุ่น v1.1.0 (DOCS_SYNC §3) | MERGED (`b5a2c3d`) |
 | #51 | `docs/handoff-1.1.0`: ปรับ HANDOFF + หัวรายงาน qa-ics-import | MERGED (`a36b9b2`) |
 | #52 | `fix/post-v1.1-polish`: ปิดปุ่มเลือกเร็ว ICS + ADR 0017 (809) + ผลเครื่องจริง | MERGED (`6a18e09`) → tag `v1.1.1` (`7f4c853`) · `gh pr checks 52` 12/12 pass |
+| #53 | `docs/release-1.1.1`: เอกสารหลังออกรุ่น v1.1.1 | MERGED (`fcbccd6`) · CI main pass (`45456461197`) |
 
 - **งานค้างหลักยึด `docs/team/PROGRESS.md` ส่วน "เหลือ"** (ถ้าขัดกันให้ยึด PROGRESS)
+- **ล้าง branch เก่าแล้ว (2026-11-25):** ลบ local 53 + remote 53 branch ที่ merge เข้า `main` แล้ว (ไม่แตะ `main` และ `docs/public-scan` ที่ยังไม่ merge)
 
 ## 3. สถานะรายการ R18 / หลัง 1.0 (ตรวจกับ git)
 | ข้อ | งาน | สถานะ |
@@ -38,12 +39,12 @@
 | 6 | นำเข้าไฟล์ .ics (v1.1.0 + patch v1.1.1 · ไม่มี migration) | ออกรุ่นแล้ว (PR #49 `v1.1.0` · PR #52 `v1.1.1`) ✔ · boss ยืนยัน `/api/health` + `.ics` จริงบน prod ที่ v1.1.0 แล้ว ✔ |
 
 ## 4. งานต้องให้ boss ทำเอง
-- กด Merge PR เอกสารหลังออกรุ่น `docs/release-1.1.1` (เมื่อ CI เขียว)
-- *(ตัวเลือก · ไม่บังคับ)* ตรวจ `https://maewmeet.vercel.app/api/health` หลัง Vercel deploy `v1.1.1` ว่า `version` เป็น `1.1.1`
+- ส่ง PR `feat/v1.2-ics-rrule` (ระดับ B · ไม่มี migration) ให้ **QA แชตใหม่** และ **Claude Code `security` agent** ตรวจ 1 รอบก่อนกด Merge
+- หลัง Merge และ CI บน `main` เขียว: ออกรุ่น **v1.2.0** (`npx tsx scripts/release.ts 1.2.0 --skip-gates` แล้ว push `main` + `v1.2.0`) — จบใน commit เดียว ไม่ต้องเปิด PR เอกสารตามหลัง
 
 ## 5. รอบปัจจุบัน
-- **ไม่มีรอบพัฒนาเปิดอยู่** · v1.1.1 ออกแล้ว (2026-11-25 · tag `v1.1.1` → `7f4c853`) · กำลังปิดเอกสารหลังออกรุ่นใน PR `docs/release-1.1.1` · รอบถัดไปเริ่มจาก `git pull` ที่ `main` และ contract ใหม่
-- **บทเรียนที่ยึดใช้:** PR จาก Antigravity ต้องตรวจว่าไม่ค้าง Draft ก่อนให้ boss merge · บน Windows รอ CI บน `main` เขียวแล้วค่อยออกรุ่นด้วย `--skip-gates` · หลังรัน `scripts/release.ts` ต้อง `git push origin main` และ `git push origin vX.Y.Z` ครบทั้งสองคำสั่ง
+- **รอบ v1.2.0 (`feat/v1.2-ics-rrule` · [V1_2_CONTRACT.md](../contracts/V1_2_CONTRACT.md) · ระดับ B · ไม่มี migration):** อัปเกรด `.ics` import รองรับ `RRULE` (`DAILY`/`WEEKLY`/`MONTHLY`) + `EXDATE` + `RECURRENCE-ID`, บังคับ `END:VCALENDAR` (H1), ตรวจ actor+ด่านบัญชีก่อนอ่าน body > 64 KB ใน `route.ts` (H2/Security L1), ขยาย `scripts/release.ts` ขยับเลขรุ่นครบ 5 ไฟล์เอกสาร และยกเลิก PR เอกสารตามหลัง release + ล้าง branch เก่าแล้ว
+- **บทเรียนที่ยึดใช้:** PR จาก Antigravity ต้องตรวจว่าไม่ค้าง Draft ก่อนให้ boss merge · บน Windows รอ CI บน `main` เขียวแล้วค่อยออกรุ่นด้วย `--skip-gates` · หลังรัน `scripts/release.ts` ต้อง `git push origin main` และ `git push origin vX.Y.Z` ครบทั้งสองคำสั่ง · ไม่เปิด PR เอกสารตามหลัง release และไม่เปิด PR จด `/api/health`
 
 ## 6. วิธีเริ่มงานถัดไป
 - **Claude Code:** อ่าน `CLAUDE.md` → `docs/team/TEAM.md` → `docs/team/PROCESS.md` → contract ของรอบ → ไฟล์นี้

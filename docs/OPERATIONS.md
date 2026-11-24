@@ -163,10 +163,10 @@ Remove-Item Env:TURSO_AUTH_TOKEN, Env:TURSO_DATABASE_URL
 > - **B3 ไม่ทำ CSP nonce (boss ยอมรับความเสี่ยง 2026-11-18)**: nonce บังคับให้ทุกหน้า render ใหม่ทุกคำขอ (ไม่มี static/cache) ทำให้ช้าลง ขัดกับ F2 ความเร็ว · แอปไม่มี HTML จากผู้ใช้ (React escape ทั้งหมด) ความเสี่ยง XSS จึงต่ำ · ถ้าจะทำในอนาคตต้องเป็นรอบแยก
 > - **รู้ไว้ (H5)**: หน้า auth ที่ redirect ระหว่าง stream ตอบ status 200 + meta refresh — เกิดจาก root `loading.tsx` (streaming) ครอบทุกหน้า ไม่ใช่เฉพาะ auth · client redirect ทันทีจาก RSC payload และไม่มีข้อมูลหลุด (redirect ถูกโยนก่อน render) · แก้ได้เฉพาะ `proxy.ts` (ขัด ADR 0001) หรือถอด loading boundary (หน้าช้าลง) จึงไม่แก้ · Server-Timing บนหน้า RSC ทำไม่ได้ (header ถูกส่งก่อน query จบ) ใช้ `tests/perf/r7-baseline.test.ts` แทน
 
-> **หมายเหตุนำเข้าไฟล์ `.ics` (v1.1.0 · ADR 0017 · ไม่มี migration · ไม่มี env ใหม่)**: รอบนี้เพิ่มถังจำกัดอัตราต่อผู้ใช้ใน `rate_limit_bucket` เดิม (`BUSY_IMPORT_RATE_LIMITS` ใน `src/lib/auth/throttle.ts`) ไม่ต้องตั้งค่าเพิ่ม:
-> - `busy:import:preview` 20 คำขอ / 10 นาที — `POST /api/me/busy/import/preview` (ขนาดไฟล์ `.ics` ≤ 512 KB, JSON body ≤ 768 KB, ≤ 20,000 บรรทัด, ≤ 500 VEVENT)
+> **หมายเหตุนำเข้าไฟล์ `.ics` (v1.1.0 + v1.2.0 · ADR 0017 · ไม่มี migration · ไม่มี env ใหม่)**: รอบนี้เพิ่มถังจำกัดอัตราต่อผู้ใช้ใน `rate_limit_bucket` เดิม (`BUSY_IMPORT_RATE_LIMITS` ใน `src/lib/auth/throttle.ts`) ไม่ต้องตั้งค่าเพิ่ม:
+> - `busy:import:preview` 20 คำขอ / 10 นาที — `POST /api/me/busy/import/preview` (ขนาดไฟล์ `.ics` ≤ 512 KB, JSON body ≤ 768 KB, ≤ 20,000 บรรทัด, ≤ 500 VEVENT, แตก `RRULE` `DAILY`/`WEEKLY`/`MONTHLY` + `EXDATE` + `RECURRENCE-ID` ได้ ≤ 200 รายการ/VEVENT และรวม ≤ 500 รายการทั้งไฟล์, บังคับ `END:VCALENDAR` · ตรวจ session/ด่านบัญชีก่อนอ่าน body 768 KB)
 > - `busy:import` 10 คำขอ / 10 นาที — `POST /api/me/busy/import` (≤ 100 รายการ/ครั้ง, เพดานรวม 300 แถวแบบอะตอมมิก)
-> - เกินถัง → `429 RATE_LIMITED` + `Retry-After` · แอปไม่ log เนื้อหา `.ics` หรือ `SUMMARY` · ไม่เก็บไฟล์ต้นฉบับ และไม่รับ URL ภายนอก (ปิดความเสี่ยง SSRF)
+> - เกินถัง → `429 RATE_LIMITED` + `Retry-After` · แอปไม่ log เนื้อหา `.ics`, `SUMMARY` หรือ `UID` · ไม่เก็บไฟล์ต้นฉบับ และไม่รับ URL ภายนอก (ปิดความเสี่ยง SSRF)
 > - **Rollback**: ย้อนแอปอย่างเดียว (Vercel Instant Rollback) ได้ทันที — ไม่มี migration และแถวที่นำเข้าแล้วเป็น `busy_block` ปกติทุกประการ
 
 ---
@@ -637,7 +637,7 @@ Schedule ชื่อ `reminders` อยู่ใน `vercel.json` ทุก 15 
 - schema เปลี่ยนด้วย migration แบบมีเวอร์ชันเท่านั้น (ส่วน B) · **ลำดับเสมอ:** สำรองฐาน → ซ้อมบน preview → รัน migration บน prod → แล้วจึง merge/deploy · migration ที่ลบ/แปลงข้อมูล = breaking (ขยับ MAJOR ตาม `docs/VERSIONING.md`) · คนรัน migration บน prod คือ boss (token Turso บนเครื่อง boss)
 
 ### ออกรุ่น (release)
-boss รันเอง (agent ไม่ออกรุ่น): `git switch main` → `git pull --ff-only` → `npm ci` → `npx tsx scripts/release.ts <เลข> --dry-run` → ตรวจ → `npx tsx scripts/release.ts <เลข>` → push `main` และ tag ตามที่สคริปต์พิมพ์ · ขั้นตอนเต็มและข้อความ error ใน `docs/VERSIONING.md` §6 · เลขรุ่นตามกติกา "หลัง 1.0": PATCH = แก้บั๊ก · MINOR = ความสามารถใหม่ที่ไม่ breaking · MAJOR = breaking (ต้องมี Upgrade notes) · หลังออกรุ่นตรวจ `/api/health` กับ CI บน `main` (ส่วน F) และทำตาม `docs/contracts/DOCS_SYNC_CONTRACT.md`
+boss รันเอง (agent ไม่ออกรุ่น): `git switch main` → `git pull --ff-only` → `npm ci` → `npx tsx scripts/release.ts <เลข> --dry-run` → ตรวจ → `npx tsx scripts/release.ts <เลข>` → push `main` และ tag ตามที่สคริปต์พิมพ์ · ขั้นตอนเต็มและข้อความ error ใน `docs/VERSIONING.md` §6 · เลขรุ่นตามกติกา "หลัง 1.0": PATCH = แก้บั๊ก · MINOR = ความสามารถใหม่ที่ไม่ breaking · MAJOR = breaking (ต้องมี Upgrade notes) · สคริปต์ขยับเลขรุ่นในเอกสารหลักทั้ง 5 ไฟล์ให้ใน commit เดียว (**ไม่ต้องเปิด PR เอกสารตามหลัง release และไม่ต้องเปิด PR จด `/api/health`** — `keepalive.yml` ตรวจ `/api/health` อัตโนมัติทุก 12 ชม.)
 
 ### โควตา LINE OA
 แผนฟรี 300 ข้อความ/เดือน (นับตามเดือนปฏิทิน Asia/Bangkok · แอปหยุดส่งที่ 300 เป็น `LINE_OA_CAP` · กระดิ่งยังทำงาน) · ทุกเดือนดูจำนวนที่ส่งใน LINE Official Account Manager · ใกล้เพดานบ่อย → พิจารณาแผนที่สูงขึ้นแล้วปรับเพดานในโค้ดผ่าน PR · ข้อความหยุดส่งทั้งที่ยังไม่ถึงเพดาน → ตรวจ token/secret ตามส่วน J · การเตือนแขกที่ชวนผ่านลิงก์นับในเพดานเดียวกัน
@@ -711,4 +711,4 @@ cron รายวัน (`/api/cron/daily`) ลบ `busy_block` ที่ `end_a
 
 ## ภาคผนวก — ออกรุ่น: เลขรุ่นในเอกสาร (DOCS_SYNC §7)
 
-`npx tsx scripts/release.ts <เลข>` (boss รันเอง · ขั้นตอนเต็มใน `docs/VERSIONING.md` §6) เปลี่ยนเลข `vX.Y.Z` ใน `docs/guides/quickstart-th.html` (ท้ายหน้า) · `docs/prd/PRD.md` (บรรทัด "สถานะปัจจุบัน") · `docs/team/PROGRESS.md` (บรรทัด "อัปเดตล่าสุด") ให้ใน commit `chore(release)` เดียวกับ `package.json`/`CHANGELOG.md` — CI `test + migration` (docs-sync) บน main จึงไม่แดงหลังออกรุ่น · ถ้าสคริปต์หยุดด้วย `หาตำแหน่งเลขรุ่นไม่เจอ` ให้แจ้ง Lead (เจ้าของไฟล์ต้องคืนบรรทัดนั้น) · เนื้อหาเอกสารอื่นหลังออกรุ่นยังต้องทำตาม `docs/contracts/DOCS_SYNC_CONTRACT.md` §3
+`npx tsx scripts/release.ts <เลข>` (boss รันเอง · ขั้นตอนเต็มใน `docs/VERSIONING.md` §6) เปลี่ยนเลข `vX.Y.Z` ใน 5 ไฟล์เอกสารหลัก — `docs/guides/quickstart-th.html` (ท้ายหน้า) · `docs/prd/PRD.md` (บรรทัด "สถานะปัจจุบัน") · `docs/team/PROGRESS.md` (บรรทัด "อัปเดตล่าสุด") · `README.md` (บรรทัด `**สถานะ:**`) · `docs/team/HANDOFF.md` (บรรทัด "เวอร์ชันล่าสุดที่ออกแล้ว") — ให้ใน commit `chore(release)` เดียวกับ `package.json`/`CHANGELOG.md` — CI `test + migration` (docs-sync) บน main จึงเขียวทันทีและไม่ต้องเปิด PR เอกสารตามหลัง release · ถ้าสคริปต์หยุดด้วย `หาตำแหน่งเลขรุ่นไม่เจอ` ให้แจ้ง Lead (เจ้าของไฟล์ต้องคืนบรรทัดนั้น)

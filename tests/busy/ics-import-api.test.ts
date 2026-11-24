@@ -38,10 +38,10 @@ const SAMPLE_ICS = wrap(
     'DTEND;VALUE=DATE:20261030',
     'END:VEVENT',
     'BEGIN:VEVENT',
-    'SUMMARY:นัดซ้ำทุกจันทร์',
+    'SUMMARY:นัดซ้ำรายปี (ซับซ้อน)',
     'DTSTART;TZID=Asia/Bangkok:20261026T090000',
     'DTEND;TZID=Asia/Bangkok:20261026T100000',
-    'RRULE:FREQ=WEEKLY;BYDAY=MO',
+    'RRULE:FREQ=YEARLY',
     'END:VEVENT',
   ].join('\r\n'),
 );
@@ -315,5 +315,88 @@ describe('A5 — Rate Limit (429 + Retry-After) และไม่ log เนื
     const allLogged = [...logSpy.mock.calls, ...warnSpy.mock.calls, ...errSpy.mock.calls].flat().map(String).join('\n');
     expect(allLogged).not.toContain(secretSummary);
     expect(allLogged).not.toContain('BEGIN:VCALENDAR');
+  });
+});
+
+describe('v1.2.0 — RRULE/EXDATE/RECURRENCE-ID ครบ flow, END:VCALENDAR, และตรวจ actor ก่อนอ่าน body 768 KB (Security L1)', () => {
+  it('ขยาย RRULE + EXDATE + RECURRENCE-ID ครบ flow โดยไม่รั่ว UID ลง API/DB/console', async () => {
+    const secretUid = 'SECRET-UID-INTEGRATION-777@example.com';
+    const rruleIcs = wrap(
+      [
+        'BEGIN:VEVENT',
+        `UID:${secretUid}`,
+        'SUMMARY:ประชุมประจำสัปดาห์',
+        'DTSTART;TZID=Asia/Bangkok:20261019T090000',
+        'DTEND;TZID=Asia/Bangkok:20261019T100000',
+        'RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=4',
+        'EXDATE;TZID=Asia/Bangkok:20261026T090000',
+        'END:VEVENT',
+        'BEGIN:VEVENT',
+        `UID:${secretUid}`,
+        'RECURRENCE-ID;TZID=Asia/Bangkok:20261102T090000',
+        'SUMMARY:ประชุมเลื่อนวันอังคาร',
+        'DTSTART;TZID=Asia/Bangkok:20261103T140000',
+        'DTEND;TZID=Asia/Bangkok:20261103T150000',
+        'END:VEVENT',
+      ].join('\r\n'),
+    );
+
+    const prev = await post<PreviewRes>(a.c, '/api/me/busy/import/preview', { icsText: rruleIcs, windowDays: 60 });
+    expect(prev.status).toBe(200);
+    expect(prev.text).not.toContain(secretUid);
+    // 10-19 (ปกติ), 10-26 (EXDATE ตัด), 11-02 (RECURRENCE-ID ย้ายไป 11-03), 11-09 (ปกติ) → รวม 3 รายการ
+    expect(prev.data.items.map((x) => `${x.startDate} ${x.startTime} ${x.title}`)).toEqual([
+      '2026-10-19 09:00 ประชุมประจำสัปดาห์',
+      '2026-11-03 14:00 ประชุมเลื่อนวันอังคาร',
+      '2026-11-09 09:00 ประชุมประจำสัปดาห์',
+    ]);
+
+    const conf = await post<ConfirmRes>(a.c, '/api/me/busy/import', {
+      items: prev.data.items.map(({ kind, startDate, endDate, startTime, endTime, tz, title }) => ({
+        kind,
+        startDate,
+        endDate,
+        ...(startTime ? { startTime } : {}),
+        ...(endTime ? { endTime } : {}),
+        tz,
+        title,
+      })),
+    });
+    expect(conf.status).toBe(201);
+    expect(conf.data.created).toBe(3);
+    expect(await dumpAllTables(h)).not.toContain(secretUid);
+  });
+
+  it('H1: ไฟล์ .ics ขาด END:VCALENDAR → 400 ICS_INVALID', async () => {
+    const truncated = 'BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nDTSTART;VALUE=DATE:20261025\r\nSUMMARY:Cut\r\nEND:VEVENT\r\n';
+    const r = await post(a.c, '/api/me/busy/import/preview', { icsText: truncated });
+    expect(r.status).toBe(400);
+    expect(r.code).toBe('ICS_INVALID');
+  });
+
+  it('H2 (Security L1): anonymous / suspended / must_change_pin ส่ง body ใหญ่เกิน 768 KB หรือ body ผิดรูป → ถูกปฏิเสธที่ด่านบัญชีก่อนอ่าน body', async () => {
+    const oversized = { icsText: 'X'.repeat(800 * 1024) };
+
+    // anonymous → 401 AUTH_REQUIRED (ไม่ใช่ 413 ICS_TOO_LARGE หรือ 400 VALIDATION)
+    const anon = new Client();
+    const rAnonBig = await post(anon, '/api/me/busy/import/preview', oversized);
+    expect(rAnonBig.status).toBe(401);
+    expect(rAnonBig.code).toBe('AUTH_REQUIRED');
+    const rAnonBad = await post(anon, '/api/me/busy/import/preview', {});
+    expect(rAnonBad.status).toBe(401);
+    expect(rAnonBad.code).toBe('AUTH_REQUIRED');
+
+    // suspended → 401 ACCOUNT_SUSPENDED ก่อนอ่าน body 800 KB
+    await h.rows("UPDATE user SET status = 'suspended' WHERE id = ?", [b.id]);
+    const rSusBig = await post(b.c, '/api/me/busy/import/preview', oversized);
+    expect(rSusBig.status).toBe(401);
+    expect(rSusBig.code).toBe('ACCOUNT_SUSPENDED');
+
+    // must_change_pin → 403 PIN_CHANGE_REQUIRED ก่อนอ่าน body 800 KB
+    const c = await person(h, 'charlie2');
+    await h.rows('UPDATE user SET must_change_pin = 1 WHERE id = ?', [c.id]);
+    const rPinBig = await post(c.c, '/api/me/busy/import/preview', oversized);
+    expect(rPinBig.status).toBe(403);
+    expect(rPinBig.code).toBe('PIN_CHANGE_REQUIRED');
   });
 });

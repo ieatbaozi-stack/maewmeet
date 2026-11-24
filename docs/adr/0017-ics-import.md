@@ -86,5 +86,18 @@
 - `ICS_INVALID` (`400`): ไฟล์ไม่ใช่รูปแบบ `.ics` ที่อ่านได้ (binary/null byte/ไม่มี `VCALENDAR`)
 
 ## Consequences
-- **ข้อดี**: ไม่มี migration และไม่มี env ใหม่ deploy ได้ทันทีไม่กระทบฐานข้อมูลเดิม · ปิดความเสี่ยง SSRF โดยโครงสร้าง · ข้อมูลส่วนตัว (`DESCRIPTION`, `LOCATION`, `ATTENDEE`, `ORGANIZER`, `URL`) ไม่เคยถูกเก็บลง DB และ `hideDetail = true` เป็นค่าเริ่มต้น · ป้องกัน ReDoS และ race condition ชนเพดาน 300 ด้วย single-pass parser + atomic CTE INSERT
-- **ข้อจำกัดที่ยอมรับ**: รายการที่มี `RRULE` ถูกข้ามพร้อมสรุปจำนวน (ผู้ใช้ตั้ง "แบบประจำ" ในแอปแทนตาม B1) · เขตเวลาที่ไม่อยู่ใน IANA และไม่อยู่ในตาราง Windows ยอดนิยมจะถูกข้ามเป็น `invalid` แทนการเดา · การกันซ้ำอาศัยเวลาตรงกันเป๊ะ (B4) หากผู้ใช้แก้เวลาของแถวเดิมในแอปแล้วนำเข้าไฟล์เดิมซ้ำ จะนับเป็นรายการใหม่
+- **ข้อดี**: ไม่มี migration และไม่มี env ใหม่ deploy ได้ทันทีไม่กระทบฐานข้อมูลเดิม · ปิดความเสี่ยง SSRF โดยโครงสร้าง · ข้อมูลส่วนตัว (`DESCRIPTION`, `LOCATION`, `ATTENDEE`, `ORGANIZER`, `URL`, `UID`) ไม่เคยถูกเก็บลง DB และ `hideDetail = true` เป็นค่าเริ่มต้น · ป้องกัน ReDoS และ race condition ชนเพดาน 300 ด้วย single-pass parser + atomic CTE INSERT
+- **ข้อจำกัดที่ยอมรับ**: นัดซ้ำแบบซับซ้อนนอกเหนือจาก `DAILY`/`WEEKLY`/`MONTHLY` (เช่น `YEARLY`, รายชั่วโมง, `BYSETPOS`, `BYYEARDAY`, `BYWEEKNO`, `BYMONTH`) ถูกข้ามพร้อมสรุปจำนวน (ผู้ใช้ตั้ง "แบบประจำ" ในแอปแทน) · เขตเวลาที่ไม่อยู่ใน IANA และไม่อยู่ในตาราง Windows ยอดนิยมจะถูกข้ามเป็น `invalid` แทนการเดา · การกันซ้ำอาศัยเวลาตรงกันเป๊ะ (B4) หากผู้ใช้แก้เวลาของแถวเดิมในแอปแล้วนำเข้าไฟล์เดิมซ้ำ จะนับเป็นรายการใหม่
+
+### 6. ส่วนเติม v1.2.0 — รองรับ `RRULE` / `EXDATE` / `RECURRENCE-ID`, บังคับ `END:VCALENDAR` และตรวจ actor ก่อนอ่าน body ใหญ่ ([V1_2_CONTRACT](../contracts/V1_2_CONTRACT.md))
+อัปเดตเมื่อ 2026-11-25 (boss เห็นชอบ · ยังคงไม่มี migration และไม่มี env ใหม่):
+1. **ขยาย `RRULE` ใน `src/lib/calendar/ics-import.ts` (R1–R4):**
+   - รองรับ `FREQ=DAILY | WEEKLY | MONTHLY` พร้อม `INTERVAL` (`DAILY` ≤ 366, `WEEKLY` ≤ 52, `MONTHLY` ≤ 12), `BYDAY` (plain `MO..SU` สำหรับ `WEEKLY`, ordinal `[+-]?[1-5](MO..SU)` หรือ plain `MO..SU` สำหรับ `MONTHLY`), `BYMONTHDAY` (`1..31`, `-31..-1` สำหรับ `MONTHLY`), `WKST` (`MO..SU`, ดีฟอลต์ `MO`), `COUNT` (`1..10,000`), `UNTIL`
+   - แตกเป็นรายการเดี่ยวในช่วง `[วันนี้ - 7 วัน, วันนี้ + windowDays]` โดยคงเวลาท้องถิ่น (wall-clock) ใน `TZID` ของเหตุการณ์ข้าม DST แล้วผ่านกติกา outward rounding 30 นาที + `normalizeBusyInput` + dedupe + `hideDetail = true` เดิมทั้งหมด
+   - รองรับ `EXDATE` (หลายบรรทัด/คั่นด้วย `,`, ≤ 200 ค่า/VEVENT) และ `RECURRENCE-ID` โดยอ่าน `UID` เฉพาะในหน่วยความจำระหว่าง parse เพื่อจับคู่ override (ไม่ว่าอยู่ก่อนหรือหลัง master) — **ห้ามเก็บ `UID` ลง DB/ส่งออก API/log**
+   - กฎนอกขอบเขต (`YEARLY`/รายชั่วโมง/`BYSETPOS` ฯลฯ, มีทั้ง `COUNT` และ `UNTIL`, `RRULE` > 512 ตัว, `EXDATE` > 200, รูปแบบผิด, หรือเกินงบ step) → ข้ามลง `skipped.rrule`
+   - **เพดานกัน DoS:** O(1) fast-forward ข้ามช่วงอดีต, จำกัด step ≤ `2,000`/VEVENT, จำกัดรายการที่แตกออก ≤ `200`/VEVENT (`ICS_IMPORT_MAX_OCCURRENCES_PER_EVENT`), จำกัดรายการที่ส่งออกรวมทั้งไฟล์ ≤ `500` (`ICS_IMPORT_MAX_EXPANDED_ITEMS` — เกินคืน `413 ICS_TOO_LARGE`)
+2. **บังคับกรอบ `END:VCALENDAR` (H1 · QA #6):**
+   - ไฟล์ที่ไม่มี `END:VCALENDAR` ปิดครบ หรือมี `VEVENT` ค้างเปิดตอนจบไฟล์ → `{ ok: false, error: 'INVALID', reason: 'NOT_ICS' }` (`400 ICS_INVALID`)
+3. **ตรวจ actor + ด่านบัญชีก่อนอ่าน body > 64 KB ใน `src/app/api/_lib/route.ts` (H2 · Security L1):**
+   - สำหรับ route non-GET ที่ `auth === 'actor'`, `!isPublicAction(entry.action)` และ `spec.maxBodyBytes > MAX_BODY_BYTES` (`POST /api/me/busy/import/preview` 768 KB) ให้ `resolveActor(req)` และบังคับด่านบัญชี (`AUTH_REQUIRED` 401 · `ACCOUNT_SUSPENDED` 401 · `PIN_CHANGE_REQUIRED` 403 · `FORBIDDEN` 403 สำหรับ SA-only) **ก่อน** `readJsonBody` พร้อมยกเลิก stream body เมื่อถูกปฏิเสธ · service ยังเรียก `authorize()` บรรทัดแรกเป็น defense-in-depth ตามเดิม

@@ -15,7 +15,7 @@
 //          R18 H1 (security-r16 Info 1): เดิมจองขนานกับ handler แล้วทิ้งผล — handler ยังอ่านฐาน/บันทึก audit ของ SA ทั้งที่ได้ 429 · แลกกับ +1 round trip ต่อเนื่อง
 //          (ดู src/lib/data/read-limit.ts)
 import type { z } from 'zod';
-import { isPublicAction, type Action } from '@/lib/rbac/actions';
+import { isPinChangeAllowed, isPublicAction, isSuperAdminOnly, type Action } from '@/lib/rbac/actions';
 import type { Actor } from '@/lib/rbac/types';
 import { clock } from '@/lib/shared/clock';
 import { getDb } from '@/db/client';
@@ -278,6 +278,41 @@ export function route<S extends AnySchema | undefined = undefined, PS extends An
         if (!checkCsrf(req, getEnv())) return errorResponse('CSRF_REJECTED');
       }
 
+      // 1½. Security L1 (v1.2.0 · ADR 0017 §6 H2): route non-GET ที่รับ body ใหญ่กว่า 64 KB และต้องล็อกอิน
+      //     ตรวจ actor + ด่านบัญชี (anonymous / suspended / must_change_pin / SA-only) *ก่อน* อ่าน body
+      //     เพื่อไม่ให้ผู้ที่ยังไม่ผ่านด่านบัญชีส่ง payload ใหญ่เข้ามา buffer (service ยังคงเรียก authorize() บรรทัดแรกตามเดิม)
+      const preAuthLargeBody =
+        !isRead &&
+        entry.auth === 'actor' &&
+        entry.action !== null &&
+        !isPublicAction(entry.action) &&
+        (spec.maxBodyBytes ?? MAX_BODY_BYTES) > MAX_BODY_BYTES;
+      let preResolvedActor: Actor | undefined;
+      if (preAuthLargeBody) {
+        preResolvedActor = await resolveActor(req);
+        seen.user = preResolvedActor.kind === 'user';
+        if (preResolvedActor.kind !== 'user') {
+          await req.body?.cancel().catch(() => undefined);
+          return errorResponse('AUTH_REQUIRED');
+        }
+        if (preResolvedActor.status === 'suspended') {
+          await req.body?.cancel().catch(() => undefined);
+          return errorResponse('ACCOUNT_SUSPENDED');
+        }
+        if (preResolvedActor.status !== 'active') {
+          await req.body?.cancel().catch(() => undefined);
+          return errorResponse('AUTH_REQUIRED');
+        }
+        if (preResolvedActor.mustChangePin && !isPinChangeAllowed(entry.action!)) {
+          await req.body?.cancel().catch(() => undefined);
+          return errorResponse('PIN_CHANGE_REQUIRED');
+        }
+        if (isSuperAdminOnly(entry.action!) && !preResolvedActor.isSuperAdmin) {
+          await req.body?.cancel().catch(() => undefined);
+          return errorResponse('FORBIDDEN');
+        }
+      }
+
       // 2. validate input + params
       let input: unknown = undefined;
       if (spec.input) {
@@ -294,8 +329,8 @@ export function route<S extends AnySchema | undefined = undefined, PS extends An
         params = parsed.data;
       }
 
-      // 3. actor (R0: anonymous — R1 session)
-      const actor: Actor = entry.auth === 'actor' ? await resolveActor(req) : { kind: 'anonymous' };
+      // 3. actor (R0: anonymous — R1 session · ใช้ผลจากขั้น 1½ ถ้าตรวจไปแล้ว)
+      const actor: Actor = preResolvedActor ?? (entry.auth === 'actor' ? await resolveActor(req) : { kind: 'anonymous' });
       seen.user = actor.kind === 'user';
 
       const now = clock.now();

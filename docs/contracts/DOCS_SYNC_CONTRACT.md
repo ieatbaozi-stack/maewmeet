@@ -5,7 +5,7 @@
 
 ## 1. กติกา
 1. **รอบยังไม่ปิด ถ้าเอกสารยังไม่ตรง** — PR ทุกอันที่มีโค้ด ต้องแก้เอกสารที่เกี่ยวข้อง (ตาราง §2) **ใน PR เดียวกัน** ไม่เลื่อนไปทีหลัง
-2. **ออกรุ่นแล้วต้องตามแก้ทันที** — หลัง boss ออกรุ่น main ส่ง secretary + ops แก้รายการใน §3 ในรอบปิดงาน (PR เอกสาร) ก่อนเริ่มรอบใหม่
+2. **ออกรุ่นจบใน commit เดียว — ไม่เปิด PR เอกสารตามหลัง (อัปเดต 2026-11-25, boss สั่งลดงาน manual):** เนื้อหาเอกสารตาม §2 ต้องอัปเดตให้ครบใน PR งานหลักตั้งแต่ก่อน merge · ตอน boss รัน `scripts/release.ts <ver>` สคริปต์จะย้าย `CHANGELOG.md` และขยับเลขรุ่น `vX.Y.Z` ในเอกสารหลักทั้ง 5 ไฟล์ (`quickstart-th.html`, `PRD.md`, `PROGRESS.md`, `README.md`, `HANDOFF.md`) ให้จบใน commit release เดียว · **ห้ามเปิด PR แยกเพื่อจด `/api/health` หรือปรับสถานะหลังออกรุ่นเล็กน้อย** (`keepalive.yml` ตรวจ `/api/health` อัตโนมัติทุก 12 ชม.) · รายละเอียดสรุปรอบถัดไปค่อยอัปเดตพร้อม PR งานถัดไป
 3. **PR ทุกอันต้องมีหัวข้อ "เอกสาร"** ในคำอธิบาย: ติ๊กทุกแถวใน §2 ว่า "แก้แล้ว (ไฟล์)" หรือ "ไม่เกี่ยว" — ห้ามเว้นว่าง
 4. **qa ตรวจเรื่องนี้ด้วย** ในทุกรอบที่มีโค้ด: เปิดเอกสารเทียบกับของที่ส่งจริง ถ้าไม่ตรง = ตีกลับ
 5. **มีเครื่องตรวจอัตโนมัติ** (§4) — CI จะล้มถ้าเลขเวอร์ชันหรือสถานะในเอกสารหลักไม่ตรงกัน
@@ -25,19 +25,16 @@
 | จบขั้นตอนสำคัญ / จบวัน | `docs/team/PROGRESS.md`, `docs/reports/YYYY-MM-DD.md` | secretary |
 | สถานะงาน/แผน | `docs/NEXT_PHASE.md`, `docs/prd/PRD.md` (ติ๊กที่ส่งแล้ว), สถานะใน `R*_CONTRACT.md` | secretary · main |
 
-## 3. หลังออกรุ่น (ทุกครั้ง) — ต้องตรงกันทุกไฟล์
-- [ ] `CHANGELOG.md` มีหัวข้อรุ่นนั้นครบทุกรายการที่ส่งจริง (ops)
-- [ ] `docs/guides/quickstart-th.html` ท้ายหน้าเป็นเลขรุ่นล่าสุด (secretary)
-- [ ] `docs/team/PROGRESS.md` หัวข้อ "เหลือ" ไม่มีของที่ทำเสร็จแล้ว + บรรทัดรุ่นล่าสุด (secretary)
-- [ ] `docs/NEXT_PHASE.md` สถานะของรอบนั้น = เสร็จ/ออกรุ่นแล้ว (secretary)
-- [ ] `docs/prd/PRD.md` หมายเหตุรุ่นปัจจุบัน + ติ๊กของที่ส่งแล้ว (main)
-- [ ] `R*_CONTRACT.md` ของรอบ มีบรรทัดสถานะ "ปิดรอบ + ออกรุ่น vX.Y.Z" (main)
-- [ ] `docs/reports/YYYY-MM-DD.md` ของวันที่ออกรุ่น (secretary)
-- [ ] `docs/design/ARCHITECTURE.md` ตรงกับ schema/routes/env ของรุ่นนั้น (architect)
+## 3. การออกรุ่น (อัตโนมัติใน `scripts/release.ts` · ไม่เปิด PR ตามหลัง)
+เนื้อหาและคำอธิบายฟีเจอร์ทั้งหมดต้องอัปเดตให้ครบตาม §2 **ใน PR งานหลักก่อน merge** · เมื่อ boss รัน `scripts/release.ts <ver>` สคริปต์จัดการให้อัตโนมัติใน commit `chore(release): vX.Y.Z` เดียว:
+- [x] `CHANGELOG.md` ย้าย `[Unreleased]` → `## [X.Y.Z] - YYYY-MM-DD`
+- [x] `package.json` + `package-lock.json` ขยับเลขรุ่น
+- [x] ขยับเลขรุ่น `vX.Y.Z` ใน 5 ไฟล์เอกสารหลัก: `docs/guides/quickstart-th.html`, `docs/prd/PRD.md`, `docs/team/PROGRESS.md`, `README.md`, `docs/team/HANDOFF.md`
+- **ไม่ต้องเปิด PR เอกสารตามหลัง release** และ **ไม่ต้องเปิด PR เพื่อจดผล `/api/health`** (`keepalive.yml` ตรวจอัตโนมัติทุก 12 ชม.)
 
-## 4. เครื่องตรวจอัตโนมัติ (ops ทำ รอบถัดไป)
+## 4. เครื่องตรวจอัตโนมัติ
 เทสต์ `tests/ops/docs-sync.test.ts` รันใน CI (`test + migration`) ตรวจอย่างน้อย:
-- เลขรุ่นใน `package.json` = หัวข้อรุ่นล่าสุดใน `CHANGELOG.md` = ท้าย `quickstart-th.html` = หมายเหตุรุ่นใน `PRD.md` = บรรทัดรุ่นใน `PROGRESS.md`
+- เลขรุ่นใน `package.json` = หัวข้อรุ่นล่าสุดใน `CHANGELOG.md` = ท้าย `quickstart-th.html` = หมายเหตุรุ่นใน `PRD.md` = บรรทัดรุ่นใน `PROGRESS.md` = บรรทัดสถานะใน `README.md` = บรรทัดรุ่นล่าสุดใน `HANDOFF.md`
 - ทุก route ใน ROUTE_MANIFEST มีชื่อใน `ARCHITECTURE.md`
 - ทุก migration ใน `drizzle/` มีชื่อตารางที่สร้างอยู่ใน `ARCHITECTURE.md`
 - ทุกตัวแปรใน `.env.example` มีใน `docs/OPERATIONS.md`

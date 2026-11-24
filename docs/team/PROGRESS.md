@@ -1,7 +1,7 @@
 # PROGRESS — ความคืบหน้า maewmeet
 
 > ผู้ดูแล: `secretary` (อัปเดตทุกครั้งที่จบขั้นตอนสำคัญ) · รายละเอียด: [CHANGELOG.md](../../CHANGELOG.md) · งานถัดไป: [docs/NEXT_PHASE.md](../NEXT_PHASE.md)
-> อัปเดตล่าสุด: 2026-11-25 (เวลาไทย) · **v1.1.1 เป็นรุ่นล่าสุดที่ออกแล้ว** (ออก 2026-11-25 · tag `v1.1.1` → `7f4c853`) · **โปรเจกต์ปิดรอบ R0–R18 · เข้าโหมดดูแล (maintenance mode)**
+> อัปเดตล่าสุด: 2026-11-25 (เวลาไทย) · **รุ่นล่าสุดที่ออกแล้ว: v1.1.1** (ดูรายละเอียด tag/วันที่ใน `CHANGELOG.md`) · **โปรเจกต์ปิดรอบ R0–R18 · เข้าโหมดดูแล (maintenance mode)**
 
 > **วิธีอ่านไฟล์นี้:** สถานะจริงอยู่ที่หัวข้อ **สถานะปัจจุบัน** และ **เหลือ** (ตรวจกับ git log, CHANGELOG, `docs/reports/` เมื่อ 2026-11-25) · ประวัติรอบเดิมทั้งหมดอยู่ใน [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md) (คำต่อคำ)
 
@@ -10,8 +10,9 @@
 - **ผลตรวจ QA ของ PR #52:** `docs/reports/qa-post-v1.1-polish.md` (`06070ae`) ผ่าน (0 🔴 · 0 🟡 · ใช้โมเดลเดียวกับผู้ทำตามที่ boss อนุญาต 2026-11-24) · **CI ของ PR #52** (`gh pr checks 52`): ผ่านครบ **12/12** · **CI บน `main` หลัง merge `6a18e09`** (run `45443870251`): ผ่าน (`success`)
 - **รุ่นก่อนหน้า v1.1.0** (2026-11-24): PR #49 (`feat/ics-import`, นำเข้าไฟล์ .ics เป็นเวลาไม่ว่าง) merge `2d2b93b` · tag `v1.1.0` → `87f7db0` · qa รอบ 2 ผ่าน (`12f5120`) · security รอบ 2 ผ่าน (`984f5a4`) · boss ยืนยัน `/api/health` = `1.1.0`, เช็กลิสต์มือถือจริง R18 ผ่านครบ 6 ข้อ ([r18-boss-device-checklist.md](../reports/r18-boss-device-checklist.md)), และนำเข้าไฟล์ `.ics` จริงผ่าน ✔
 - **เลขรุ่นในเอกสาร:** `package.json` = `1.1.1` · CHANGELOG `[1.1.1] - 2026-11-25` · quickstart ท้ายหน้า `app v1.1.1` · PRD หมายเหตุ v1.1.1 · README สถานะ v1.1.1 · บรรทัดนี้ตรงกับ `package.json`
-- **production `/api/health` หลัง v1.1.1:** ยังไม่ยืนยันหลัง deploy `7f4c853` (ครั้งก่อนหน้ายืนยันแล้วที่ v1.1.0)
-- **DUALTOOL (Claude Code + Antigravity):** PR #44 merge `55469e5` · PR #46–#52 merge แล้ว · อยู่บน `main` แล้ว · **ไม่มีรอบพัฒนาเปิดค้าง**
+- **production `/api/health` หลัง v1.1.1:** boss ยืนยันแล้ว `version = 1.1.1` และผู้ใช้จริงใช้งานปกติ (2026-11-25) · ต่อไปไม่ต้องเปิด PR จด `/api/health` (`keepalive.yml` ตรวจอัตโนมัติทุก 12 ชม.)
+- **PR #53 (`docs/release-1.1.1`):** merge แล้ว (`fcbccd6`) · CI บน `main` เขียว (`45456461197`) · ล้าง branch เก่าที่ merge แล้ว (local 53 + remote 53) เรียบร้อย (2026-11-25)
+- **รอบเปิดอยู่ — v1.2.0 (`feat/v1.2-ics-rrule` · [V1_2_CONTRACT.md](../contracts/V1_2_CONTRACT.md) · ระดับ B · ไม่มี migration):** อัปเกรด `.ics` import รองรับ `RRULE` (`DAILY`/`WEEKLY`/`MONTHLY`) + `EXDATE` + `RECURRENCE-ID`, บังคับ `END:VCALENDAR` (H1), ตรวจ actor+ด่านบัญชีก่อนอ่าน body > 64 KB ใน `route.ts` (H2/Security L1), ขยาย `scripts/release.ts` ครบ 5 ไฟล์เอกสาร + เลิก PR เอกสารตามหลัง release · รอผู้ตรวจอิสระ `qa` (แชตใหม่) + Claude Code `security` agent ก่อน boss merge และออกรุ่น **v1.2.0**
 
 ## เหลือ (รายการเปิดจริงหลัง v1.1.1 · ตรวจ 2026-11-25)
 

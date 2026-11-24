@@ -5,6 +5,7 @@ import {
   busyDedupeKey,
   ICS_IMPORT_MAX_BYTES,
   ICS_IMPORT_MAX_EVENTS,
+  ICS_IMPORT_MAX_EXPANDED_ITEMS,
   ICS_IMPORT_MAX_LINES,
   parseIcsToBusy,
   parseLocalDateTime,
@@ -350,12 +351,12 @@ describe('I4 — การกรองและนับเหตุผลที
         'DTEND;VALUE=DATE:20271210',
         'SUMMARY:Too Long AllDay',
         'END:VEVENT',
-        // 6. rrule
+        // 6. rrule (ซับซ้อนเกินขอบเขต v1.2.0 เช่น FREQ=YEARLY)
         'BEGIN:VEVENT',
         'DTSTART:20261125T090000',
         'DTEND:20261125T100000',
-        'RRULE:FREQ=WEEKLY;BYDAY=MO,WE',
-        'SUMMARY:Standup',
+        'RRULE:FREQ=YEARLY',
+        'SUMMARY:Annual Review',
         'END:VEVENT',
         // 7. invalid (ไม่มี DTSTART)
         'BEGIN:VEVENT',
@@ -493,5 +494,332 @@ describe('A3 — เพดานขนาด, binary, บรรทัด, VEVENT
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(busyDedupeKey(r.items[0]!.row)).not.toBe(busyDedupeKey(r.items[1]!.row));
+  });
+});
+
+describe('v1.2.0 H1 — บังคับกรอบ END:VCALENDAR และ VEVENT ปิดครบ', () => {
+  it('ปฏิเสธไฟล์ที่ขาด END:VCALENDAR หรือ VEVENT ไม่ปิด', () => {
+    const noEndCal = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'DTSTART;VALUE=DATE:20261125',
+      'SUMMARY:Truncated',
+      'END:VEVENT',
+    ].join('\r\n');
+    expect(parseIcsToBusy(noEndCal, { nowMs: NOW_MS })).toEqual({
+      ok: false,
+      error: 'INVALID',
+      reason: 'NOT_ICS',
+    });
+
+    const unclosedEvent = [
+      'BEGIN:VCALENDAR',
+      'BEGIN:VEVENT',
+      'DTSTART;VALUE=DATE:20261125',
+      'SUMMARY:Unclosed',
+      'END:VCALENDAR',
+    ].join('\r\n');
+    expect(parseIcsToBusy(unclosedEvent, { nowMs: NOW_MS })).toEqual({
+      ok: false,
+      error: 'INVALID',
+      reason: 'NOT_ICS',
+    });
+  });
+});
+
+describe('v1.2.0 R1–R4 — ขยาย RRULE (DAILY/WEEKLY/MONTHLY), EXDATE, RECURRENCE-ID และเพดาน DoS', () => {
+  it('DAILY: INTERVAL=2 + COUNT และ UNTIL + outward rounding 30 นาที', () => {
+    const ics = wrap(
+      [
+        'BEGIN:VEVENT',
+        'SUMMARY:Daily Check',
+        'DTSTART;TZID=Asia/Bangkok:20261125T091500',
+        'DTEND;TZID=Asia/Bangkok:20261125T094500',
+        'RRULE:FREQ=DAILY;INTERVAL=2;COUNT=3',
+        'END:VEVENT',
+        'BEGIN:VEVENT',
+        'SUMMARY:Daily Until',
+        'DTSTART;VALUE=DATE:20261126',
+        'RRULE:FREQ=DAILY;UNTIL=20261128',
+        'END:VEVENT',
+      ].join('\r\n'),
+    );
+    const r = parseIcsToBusy(ics, { nowMs: NOW_MS, windowDays: 30 });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const checks = r.items.filter((x) => x.title === 'Daily Check');
+    expect(checks.map((x) => `${x.startDate} ${x.startTime}-${x.endTime}`)).toEqual([
+      '2026-11-25 09:00-10:00',
+      '2026-11-27 09:00-10:00',
+      '2026-11-29 09:00-10:00',
+    ]);
+    expect(checks.every((x) => x.rounded)).toBe(true);
+
+    const untils = r.items.filter((x) => x.title === 'Daily Until');
+    expect(untils.map((x) => x.startDate)).toEqual(['2026-11-26', '2026-11-27', '2026-11-28']);
+  });
+
+  it('WEEKLY: BYDAY, INTERVAL=2, WKST=SU และ COUNT ที่เริ่มจากอดีตคำนวณแม่นยำ', () => {
+    // 2026-11-02 = จันทร์ · INTERVAL=2, BYDAY=MO,WE → สัปดาห์ 0: 11-02, 11-04 · สัปดาห์ 2: 11-16, 11-18 · สัปดาห์ 4: 11-30, 12-02 (COUNT=6)
+    // NOW = 2026-11-23 (ย้อนหลังได้ถึง 2026-11-16) → ต้องได้ 11-16, 11-18, 11-30, 12-02 (4 รายการ)
+    const ics = wrap(
+      [
+        'BEGIN:VEVENT',
+        'SUMMARY:Biweekly Sync',
+        'DTSTART;TZID=Asia/Bangkok:20261102T100000',
+        'DTEND;TZID=Asia/Bangkok:20261102T110000',
+        'RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE;COUNT=6',
+        'END:VEVENT',
+        // WKST=SU: 2026-11-28 (เสาร์) + 2026-11-29 (อาทิตย์) อยู่คนละสัปดาห์เมื่อ WKST=SU และ INTERVAL=2
+        'BEGIN:VEVENT',
+        'SUMMARY:Weekend WKST',
+        'DTSTART;VALUE=DATE:20261128',
+        'RRULE:FREQ=WEEKLY;INTERVAL=2;WKST=SU;BYDAY=SU,SA;COUNT=3',
+        'END:VEVENT',
+      ].join('\r\n'),
+    );
+    const r = parseIcsToBusy(ics, { nowMs: NOW_MS, windowDays: 60 });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.items.filter((x) => x.title === 'Biweekly Sync').map((x) => x.startDate)).toEqual([
+      '2026-11-16',
+      '2026-11-18',
+      '2026-11-30',
+      '2026-12-02',
+    ]);
+    // WKST=SU: สัปดาห์เริ่ม 2026-11-22 มีเสาร์ 11-28 (#1) · ข้าม 1 สัปดาห์ไปเริ่ม 2026-12-06 มีอาทิตย์ 12-06 (#2) และเสาร์ 12-12 (#3)
+    expect(r.items.filter((x) => x.title === 'Weekend WKST').map((x) => x.startDate)).toEqual([
+      '2026-11-28',
+      '2026-12-06',
+      '2026-12-12',
+    ]);
+  });
+
+  it('MONTHLY: วันที่ 31 (ข้ามเดือนที่ไม่มี 31), BYMONTHDAY=-1 (สิ้นเดือน), BYDAY=-1FR และ 2TU', () => {
+    const ics = wrap(
+      [
+        // 31st: พ.ย. ไม่มี 31 → ธ.ค. 31, ม.ค. 31, (ก.พ. ข้าม), มี.ค. 31
+        'BEGIN:VEVENT',
+        'SUMMARY:Day31',
+        'DTSTART;VALUE=DATE:20261031',
+        'RRULE:FREQ=MONTHLY',
+        'END:VEVENT',
+        // วันสิ้นเดือน: 30 พ.ย., 31 ธ.ค., 31 ม.ค., 28 ก.พ.
+        'BEGIN:VEVENT',
+        'SUMMARY:MonthEnd',
+        'DTSTART;VALUE=DATE:20261130',
+        'RRULE:FREQ=MONTHLY;BYMONTHDAY=-1;COUNT=4',
+        'END:VEVENT',
+        // ศุกร์สุดท้ายของเดือน: 27 พ.ย., 25 ธ.ค., 29 ม.ค.
+        'BEGIN:VEVENT',
+        'SUMMARY:LastFri',
+        'DTSTART;TZID=Asia/Bangkok:20261127T180000',
+        'DTEND;TZID=Asia/Bangkok:20261127T200000',
+        'RRULE:FREQ=MONTHLY;BYDAY=-1FR;COUNT=3',
+        'END:VEVENT',
+        // อังคารที่ 2 ของเดือน (2026-11-10 ผ่านไปแล้วเกิน 7 วัน → ได้ 8 ธ.ค., 12 ม.ค.)
+        'BEGIN:VEVENT',
+        'SUMMARY:SecondTue',
+        'DTSTART;VALUE=DATE:20261110',
+        'RRULE:FREQ=MONTHLY;BYDAY=2TU;COUNT=3',
+        'END:VEVENT',
+      ].join('\r\n'),
+    );
+    const r = parseIcsToBusy(ics, { nowMs: NOW_MS, windowDays: 180 });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.items.filter((x) => x.title === 'Day31').map((x) => x.startDate)).toEqual([
+      '2026-12-31',
+      '2027-01-31',
+      '2027-03-31',
+    ]);
+    expect(r.items.filter((x) => x.title === 'MonthEnd').map((x) => x.startDate)).toEqual([
+      '2026-11-30',
+      '2026-12-31',
+      '2027-01-31',
+      '2027-02-28',
+    ]);
+    expect(r.items.filter((x) => x.title === 'LastFri').map((x) => x.startDate)).toEqual([
+      '2026-11-27',
+      '2026-12-25',
+      '2027-01-29',
+    ]);
+    expect(r.items.filter((x) => x.title === 'SecondTue').map((x) => x.startDate)).toEqual([
+      '2026-12-08',
+      '2027-01-12',
+    ]);
+  });
+
+  it('EXDATE (หลายบรรทัด + คั่นด้วยคอมมา + VALUE=DATE บน timed) และ RECURRENCE-ID (ย้ายเวลา/ยกเลิก/อยู่ก่อน master) + ไม่รั่ว UID', () => {
+    const secretUid = 'SECRET-UID-NEVER-LEAK-999@example.com';
+    const ics = wrap(
+      [
+        // Override อยู่ *ก่อน* master: ย้ายจันทร์ 2026-12-07 ไปอังคาร 2026-12-08 14:00–15:00
+        'BEGIN:VEVENT',
+        `UID:${secretUid}`,
+        'RECURRENCE-ID;TZID=Asia/Bangkok:20261207T090000',
+        'DTSTART;TZID=Asia/Bangkok:20261208T140000',
+        'DTEND;TZID=Asia/Bangkok:20261208T150000',
+        'SUMMARY:Weekly Moved',
+        'END:VEVENT',
+        // Override ยกเลิกจันทร์ 2026-12-14 (STATUS:CANCELLED)
+        'BEGIN:VEVENT',
+        `UID:${secretUid}`,
+        'RECURRENCE-ID;TZID=Asia/Bangkok:20261214T090000',
+        'DTSTART;TZID=Asia/Bangkok:20261214T090000',
+        'DTEND;TZID=Asia/Bangkok:20261214T100000',
+        'STATUS:CANCELLED',
+        'SUMMARY:Weekly Standup',
+        'END:VEVENT',
+        // Master: ทุกจันทร์ 09:00–10:00 จำนวน 5 ครั้ง (11-23, 11-30, 12-07, 12-14, 12-21) · EXDATE ตัด 11-30
+        'BEGIN:VEVENT',
+        `UID:${secretUid}`,
+        'DTSTART;TZID=Asia/Bangkok:20261123T090000',
+        'DTEND;TZID=Asia/Bangkok:20261123T100000',
+        'RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=5',
+        'EXDATE;TZID=Asia/Bangkok:20261130T090000',
+        'SUMMARY:Weekly Standup',
+        'END:VEVENT',
+        // EXDATE แบบคั่นคอมมา + VALUE=DATE บน timed
+        'BEGIN:VEVENT',
+        'DTSTART;TZID=Asia/Bangkok:20261125T130000',
+        'DTEND;TZID=Asia/Bangkok:20261125T140000',
+        'RRULE:FREQ=DAILY;COUNT=4',
+        'EXDATE;VALUE=DATE:20261126,20261127',
+        'SUMMARY:Daily With Exdate',
+        'END:VEVENT',
+      ].join('\r\n'),
+    );
+    const r = parseIcsToBusy(ics, { nowMs: NOW_MS, windowDays: 60 });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.skipped.cancelled).toBe(1);
+    const standups = r.items.filter((x) => x.title === 'Weekly Standup' || x.title === 'Weekly Moved');
+    expect(standups.map((x) => `${x.startDate} ${x.startTime}-${x.endTime} ${x.title}`)).toEqual([
+      '2026-11-23 09:00-10:00 Weekly Standup',
+      '2026-12-08 14:00-15:00 Weekly Moved',
+      '2026-12-21 09:00-10:00 Weekly Standup',
+    ]);
+    expect(r.items.filter((x) => x.title === 'Daily With Exdate').map((x) => x.startDate)).toEqual([
+      '2026-11-25',
+      '2026-11-28',
+    ]);
+    // UID ห้ามรั่วในผลลัพธ์เด็ดขาด
+    expect(JSON.stringify(r)).not.toContain(secretUid);
+  });
+
+  it('คงเวลาท้องถิ่น (wall-clock) ใน TZID ข้ามช่วง DST (America/New_York)', () => {
+    // อเมริกาเปลี่ยน DST เป็นฤดูร้อน (EDT UTC-4) วันอาทิตย์ที่ 2027-03-14 (ก่อนนั้น EST UTC-5)
+    // 09:00 America/New_York:
+    //   2027-03-08 (EST, UTC-5) → 21:00 Asia/Bangkok
+    //   2027-03-15 (EDT, UTC-4) → 20:00 Asia/Bangkok
+    const marchNow = parseLocalDateTime('2027-03-01', '10:00', 'Asia/Bangkok');
+    const ics = wrap(
+      [
+        'BEGIN:VEVENT',
+        'SUMMARY:US Call',
+        'DTSTART;TZID=America/New_York:20270308T090000',
+        'DTEND;TZID=America/New_York:20270308T100000',
+        'RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=2',
+        'END:VEVENT',
+      ].join('\r\n'),
+    );
+    const r = parseIcsToBusy(ics, { nowMs: marchNow, windowDays: 30 });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.items.map((x) => `${x.startDate} ${x.startTime}-${x.endTime}`)).toEqual([
+      '2027-03-08 21:00-22:00',
+      '2027-03-15 20:00-21:00',
+    ]);
+  });
+
+  it('ข้ามกฎซับซ้อนลง skipped.rrule และแยก past / tooFarAhead ของนัดซ้ำได้ถูกต้อง', () => {
+    const ics = wrap(
+      [
+        // YEARLY → skipped.rrule
+        'BEGIN:VEVENT',
+        'DTSTART;VALUE=DATE:20261125',
+        'RRULE:FREQ=YEARLY',
+        'SUMMARY:Birthday',
+        'END:VEVENT',
+        // BYSETPOS → skipped.rrule
+        'BEGIN:VEVENT',
+        'DTSTART;VALUE=DATE:20261125',
+        'RRULE:FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1',
+        'SUMMARY:Last Weekday',
+        'END:VEVENT',
+        // มีทั้ง COUNT และ UNTIL → skipped.rrule
+        'BEGIN:VEVENT',
+        'DTSTART;VALUE=DATE:20261125',
+        'RRULE:FREQ=DAILY;COUNT=3;UNTIL=20261201',
+        'SUMMARY:Both Count Until',
+        'END:VEVENT',
+        // นัดซ้ำที่จบไปแล้วในอดีต → skipped.past
+        'BEGIN:VEVENT',
+        'DTSTART;VALUE=DATE:20250101',
+        'RRULE:FREQ=WEEKLY;UNTIL=20250601',
+        'SUMMARY:Old Recurring',
+        'END:VEVENT',
+        // นัดซ้ำที่เริ่มไกลเกินช่วง → skipped.tooFarAhead
+        'BEGIN:VEVENT',
+        'DTSTART;VALUE=DATE:20270501',
+        'RRULE:FREQ=WEEKLY;COUNT=4',
+        'SUMMARY:Future Recurring',
+        'END:VEVENT',
+      ].join('\r\n'),
+    );
+    const r = parseIcsToBusy(ics, { nowMs: NOW_MS, windowDays: 30 });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.items).toHaveLength(0);
+    expect(r.skipped.rrule).toBe(3);
+    expect(r.skipped.past).toBe(1);
+    expect(r.skipped.tooFarAhead).toBe(1);
+  });
+
+  it('O(1) fast-forward จากปี 1990 เร็ว (< 50 ms) และแตกเกิน 500 รายการคืน TOO_LARGE ทันที', () => {
+    const oldDaily = wrap(
+      [
+        'BEGIN:VEVENT',
+        'SUMMARY:Ancient Daily',
+        'DTSTART;VALUE=DATE:19900101',
+        'RRULE:FREQ=DAILY',
+        'END:VEVENT',
+        'BEGIN:VEVENT',
+        'SUMMARY:Ancient Weekly Count',
+        'DTSTART;VALUE=DATE:19950102',
+        'RRULE:FREQ=WEEKLY;BYDAY=MO,WE;COUNT=5000',
+        'END:VEVENT',
+      ].join('\r\n'),
+    );
+    const t0 = performance.now();
+    const r = parseIcsToBusy(oldDaily, { nowMs: NOW_MS, windowDays: 30 });
+    const elapsed = performance.now() - t0;
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      // DAILY 30 วันข้างหน้า + 7 วันย้อนหลัง + วันนี้ = 38 รายการ · WEEKLY 1995 COUNT=5000 (~48 ปี) ยังอยู่ในช่วงนี้ด้วย
+      expect(r.items.length).toBeGreaterThanOrEqual(38);
+    }
+    expect(elapsed).toBeLessThan(100);
+
+    // 4 daily events × 180 days (> 500 รายการ) → TOO_LARGE ทันที
+    const fourDailies = wrap(
+      [1, 2, 3, 4]
+        .map((n) => {
+          const hh = String(n + 7).padStart(2, '0');
+          return [
+            'BEGIN:VEVENT',
+            `SUMMARY:Daily ${n}`,
+            `DTSTART;TZID=Asia/Bangkok:20261123T${hh}0000`,
+            `DTEND;TZID=Asia/Bangkok:20261123T${hh}3000`,
+            'RRULE:FREQ=DAILY',
+            'END:VEVENT',
+          ].join('\r\n');
+        })
+        .join('\r\n'),
+    );
+    const rBig = parseIcsToBusy(fourDailies, { nowMs: NOW_MS, windowDays: 180 });
+    expect(rBig).toEqual({ ok: false, error: 'TOO_LARGE', limit: 'events', max: ICS_IMPORT_MAX_EXPANDED_ITEMS });
   });
 });

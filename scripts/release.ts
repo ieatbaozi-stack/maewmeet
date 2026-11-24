@@ -220,11 +220,13 @@ export interface DocVersionTarget {
   lineKeyword: string | null;
 }
 
-/** 3 ตำแหน่งที่ tests/ops/docs-sync.test.ts เทียบกับ package.json — ใช้ร่วมกัน ห้ามต่างกัน */
+/** 5 ตำแหน่งที่ tests/ops/docs-sync.test.ts เทียบกับ package.json — ใช้ร่วมกัน ห้ามต่างกัน */
 export const DOC_VERSION_TARGETS: readonly DocVersionTarget[] = [
   { file: "docs/guides/quickstart-th.html", where: 'ท้ายหน้า "app vX.Y.Z"', lineKeyword: null },
   { file: "docs/prd/PRD.md", where: 'บรรทัด "สถานะปัจจุบัน"', lineKeyword: "สถานะปัจจุบัน" },
   { file: "docs/team/PROGRESS.md", where: 'บรรทัด "อัปเดตล่าสุด"', lineKeyword: "อัปเดตล่าสุด" },
+  { file: "README.md", where: 'บรรทัด "**สถานะ:**"', lineKeyword: "**สถานะ:**" },
+  { file: "docs/team/HANDOFF.md", where: 'บรรทัด "เวอร์ชันล่าสุดที่ออกแล้ว"', lineKeyword: "เวอร์ชันล่าสุดที่ออกแล้ว" },
 ];
 
 /** ตำแหน่ง [เริ่ม, จบ) ของตัวเลขรุ่น (ไม่รวมตัว "v") ในไฟล์ · ไม่พบ → null */
@@ -386,7 +388,7 @@ export function checkPreconditions(input: PreconditionInput): { ok: boolean; che
 
   if (input.docVersionMissing !== undefined) {
     if (input.docVersionMissing.length === 0) {
-      checks.push({ id: "docs-version", ok: true, message: "พบตำแหน่งเลขรุ่นในเอกสารครบ (quickstart · PRD · PROGRESS)" });
+      checks.push({ id: "docs-version", ok: true, message: "พบตำแหน่งเลขรุ่นในเอกสารครบ (quickstart · PRD · PROGRESS · README · HANDOFF)" });
     } else {
       for (const m of input.docVersionMissing)
         checks.push({

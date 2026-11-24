@@ -7,6 +7,16 @@
 
 ## [Unreleased]
 
+### Added
+- **นำเข้าไฟล์ `.ics` รองรับนัดซ้ำ (`RRULE` + `EXDATE` + `RECURRENCE-ID`) (ADR 0017 §6 · ไม่มี migration · เสนอรุ่น v1.2.0):** ขยายนัดซ้ำแบบ `DAILY` / `WEEKLY` / `MONTHLY` (รองรับ `INTERVAL`, `BYDAY` รวม `1MO`/`-1FR`, `BYMONTHDAY` รวม `-1`, `WKST`, `COUNT`, `UNTIL`) เป็นรายการช่วงไม่ว่างในช่วงวันที่เลือก (`-7` ถึง `+30/60/90/180` วัน) โดยคงเวลาท้องถิ่นข้าม DST · รองรับ `EXDATE` (วันที่ยกเว้น) และ `RECURRENCE-ID` (ย้ายเวลาหรือยกเลิกบางครั้งในชุดซ้ำ โดยใช้ `UID` จับคู่เฉพาะในหน่วยความจำระหว่าง parse ไม่เก็บลงฐาน/ไม่ส่งออก/ไม่ log) · นัดซ้ำแบบซับซ้อนกว่านี้ (`YEARLY`/รายชั่วโมง/`BYSETPOS` ฯลฯ) ข้ามไปนับใน `skipped.rrule` · คุมเพดานกัน DoS ด้วย O(1) fast-forward, สูงสุด 200 รายการ/VEVENT และ 500 รายการรวมทั้งไฟล์ (เกินตอบ `413 ICS_TOO_LARGE`)
+
+### Changed
+- บังคับไฟล์ `.ics` ต้องปิดกรอบ `END:VCALENDAR` และ `END:VEVENT` ครบ (ไฟล์ขาดกลางทางตอบ `400 ICS_INVALID`)
+- ปรับขั้นตอนออกรุ่นและ `DOCS_SYNC`: `scripts/release.ts` ขยับเลขรุ่นใน `README.md` และ `docs/team/HANDOFF.md` เพิ่มเติม (รวม 5 ไฟล์เอกสารหลักใน commit release เดียว) และยกเลิกการเปิด PR เอกสารตามหลัง release รวมถึงเลิกเปิด PR เพื่อจด `/api/health` (`keepalive.yml` ตรวจอัตโนมัติทุก 12 ชม.)
+
+### Security
+- ใน `src/app/api/_lib/route.ts` (security-ics-import L1): route non-GET ที่ `auth = actor`, action ไม่สาธารณะ และกำหนด `maxBodyBytes > 64 KB` (`POST /api/me/busy/import/preview` 768 KB) จะตรวจ session และด่านบัญชี (`401 AUTH_REQUIRED` / `401 ACCOUNT_SUSPENDED` / `403 PIN_CHANGE_REQUIRED` / `403 FORBIDDEN`) พร้อมยกเลิก body stream **ก่อน** อ่าน JSON body ขนาดใหญ่ (service ยังคงเรียก `authorize()` บรรทัดแรกตามเดิม)
+
 ## [1.1.1] - 2026-11-25
 
 ### Changed

@@ -72,13 +72,13 @@ npm ci
 ```powershell
 npx tsx scripts/release.ts 0.1.0 --dry-run
 ```
-ดูว่า "ผลการตรวจ" ผ่านทุกข้อ และ diff ของ `CHANGELOG.md` / `package.json` / เลขรุ่นใน quickstart · PRD · PROGRESS ถูกต้อง · exit code 0 = พร้อม
+ดูว่า "ผลการตรวจ" ผ่านทุกข้อ และ diff ของ `CHANGELOG.md` / `package.json` / เลขรุ่นในเอกสารหลักทั้ง 5 ไฟล์ (quickstart · PRD · PROGRESS · README · HANDOFF) ถูกต้อง · exit code 0 = พร้อม
 
 **4) ออกรุ่นจริง** (รันเกต lint/typecheck/test/build ก่อน ใช้เวลาหลายนาที)
 ```powershell
 npx tsx scripts/release.ts 0.1.0
 ```
-สคริปต์จะ: แก้ `CHANGELOG.md` + `package.json` (+ `package-lock.json`) + เลขรุ่น `vX.Y.Z` ใน 3 บรรทัดเอกสาร (ดู §7) → commit `chore(release): v0.1.0` → สร้าง tag `v0.1.0` (ในเครื่องเท่านั้น)
+สคริปต์จะ: แก้ `CHANGELOG.md` + `package.json` (+ `package-lock.json`) + เลขรุ่น `vX.Y.Z` ใน 5 บรรทัดเอกสาร (ดู §7) → commit `chore(release): v0.1.0` → สร้าง tag `v0.1.0` (ในเครื่องเท่านั้น) · **ไม่ต้องเปิด PR เอกสารตามหลัง release** (เนื้อหาเอกสารตาม DOCS_SYNC §2 ต้องอัปเดตครบใน PR งานหลักตั้งแต่ก่อน merge)
 
 **5) ตรวจแล้ว push** (สคริปต์พิมพ์คำสั่งนี้ให้ตอนจบด้วย)
 ```powershell
@@ -114,7 +114,7 @@ npx tsx scripts/release.ts <version> [--dry-run] [--skip-gates]
 | `--dry-run` | ตรวจเงื่อนไข + แสดงแผนและ diff ทั้งหมด **ไม่แก้ไฟล์ ไม่รันคำสั่ง git ที่เขียน ไม่รันเกต npm** · exit 0 = เงื่อนไขครบ, exit 1 = มีข้อไม่ผ่าน (แผนยังแสดงให้ดู) |
 | `--skip-gates` | ข้ามเกต npm (ใช้เมื่อ Lead ยืนยันว่า CI เขียวบน commit นี้แล้วเท่านั้น) |
 
-**เลขรุ่นในเอกสาร (ตั้งแต่หลัง v0.14.0):** ในคอมมิตออกรุ่นเดียวกัน สคริปต์เปลี่ยน *เฉพาะตัวเลข* `vX.Y.Z` ในบรรทัดที่ `tests/ops/docs-sync.test.ts` เทียบกับ `package.json` — (1) `app vX.Y.Z` ตัวสุดท้ายใน `docs/guides/quickstart-th.html` (2) `vX.Y.Z` แรกในบรรทัดที่มี "สถานะปัจจุบัน" ของ `docs/prd/PRD.md` (3) `vX.Y.Z` แรกในบรรทัดที่มี "อัปเดตล่าสุด" ของ `docs/team/PROGRESS.md` · ข้อความอื่นไม่ถูกแตะ จึงไม่ต้องมี PR มาแก้เลขรุ่นให้ CI เขียว (เหลือแต่เนื้อหาตาม DOCS_SYNC §3 ที่เจ้าของไฟล์ทำ) · หาบรรทัดไหนไม่เจอ สคริปต์หยุดก่อนแก้ไฟล์พร้อมบอกชื่อไฟล์ (ทั้ง `--dry-run` และของจริง) · ใช้ร่วมกับ `--skip-gates` ได้เหมือนเดิม · ตำแหน่งที่อ่าน/แก้ใช้ตัวเดียวกัน (`DOC_VERSION_TARGETS`, `readDocVersion`, `replaceDocVersion` ใน `scripts/release.ts`) — docs-sync test import ไปใช้ จึงไม่เพี้ยนกัน
+**เลขรุ่นในเอกสาร (อัปเดต v1.2.0):** ในคอมมิตออกรุ่นเดียวกัน สคริปต์เปลี่ยน *เฉพาะตัวเลข* `vX.Y.Z` ใน 5 บรรทัดที่ `tests/ops/docs-sync.test.ts` เทียบกับ `package.json` — (1) `app vX.Y.Z` ตัวสุดท้ายใน `docs/guides/quickstart-th.html` (2) `vX.Y.Z` แรกในบรรทัดที่มี "สถานะปัจจุบัน" ของ `docs/prd/PRD.md` (3) `vX.Y.Z` แรกในบรรทัดที่มี "อัปเดตล่าสุด" ของ `docs/team/PROGRESS.md` (4) `vX.Y.Z` แรกในบรรทัดที่มี "**สถานะ:**" ของ `README.md` (5) `vX.Y.Z` แรกในบรรทัดที่มี "เวอร์ชันล่าสุดที่ออกแล้ว" ของ `docs/team/HANDOFF.md` · ข้อความอื่นไม่ถูกแตะ ทำให้จบใน commit release เดียวไม่ต้องเปิด PR เอกสารตามหลัง · หาบรรทัดไหนไม่เจอ สคริปต์หยุดก่อนแก้ไฟล์พร้อมบอกชื่อไฟล์ (ทั้ง `--dry-run` และของจริง) · ใช้ร่วมกับ `--skip-gates` ได้เหมือนเดิม · ตำแหน่งที่อ่าน/แก้ใช้ตัวเดียวกัน (`DOC_VERSION_TARGETS`, `readDocVersion`, `replaceDocVersion` ใน `scripts/release.ts`) — docs-sync test import ไปใช้ จึงไม่เพี้ยนกัน
 
 ลำดับที่ทำ (ไม่ใช่ dry-run): ตรวจเงื่อนไข → เกต npm → แก้ไฟล์ → `git commit` (เฉพาะไฟล์ที่แก้) → `git tag -a` · ถ้าขั้นใดหลังแก้ไฟล์ล้ม สคริปต์คืนไฟล์เดิมให้ (ไม่มี commit/tag ค้าง)
 
