@@ -822,4 +822,166 @@ describe('v1.2.0 R1–R4 — ขยาย RRULE (DAILY/WEEKLY/MONTHLY), EXDATE, 
     const rBig = parseIcsToBusy(fourDailies, { nowMs: NOW_MS, windowDays: 180 });
     expect(rBig).toEqual({ ok: false, error: 'TOO_LARGE', limit: 'events', max: ICS_IMPORT_MAX_EXPANDED_ITEMS });
   });
+
+  it('security M1: กัน DoS 500 VEVENT MONTHLY+COUNT จากปี 1900 (BYDAY=MO..SU และ BYMONTHDAY=1..31) ด้วยงบรวมระดับไฟล์', () => {
+    const make500 = (rrule: string) =>
+      wrap(
+        Array.from({ length: 500 }, (_, i) =>
+          [
+            'BEGIN:VEVENT',
+            `SUMMARY:M1-${i}`,
+            'DTSTART;VALUE=DATE:19000101',
+            `RRULE:${rrule}`,
+            'END:VEVENT',
+          ].join('\r\n'),
+        ).join('\r\n'),
+      );
+
+    // ใช้เพดาน < 250 ms แทน 100 ms เพื่อให้ไม่ flaky บน CI runner ที่โหลดสูง (จริงบนเครื่องรัน ~5–20 ms)
+    const byDayIcs = make500('FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR,SA,SU;COUNT=10000');
+    const t0 = performance.now();
+    const rByDay = parseIcsToBusy(byDayIcs, { nowMs: NOW_MS });
+    const elapsedByDay = performance.now() - t0;
+    expect(rByDay).toEqual({ ok: false, error: 'TOO_LARGE', limit: 'events', max: ICS_IMPORT_MAX_EXPANDED_ITEMS });
+    expect(elapsedByDay).toBeLessThan(250);
+
+    const allDays = Array.from({ length: 31 }, (_, i) => i + 1).join(',');
+    const byMonthDayIcs = make500(`FREQ=MONTHLY;BYMONTHDAY=${allDays};COUNT=10000`);
+    const t1 = performance.now();
+    const rByMonthDay = parseIcsToBusy(byMonthDayIcs, { nowMs: NOW_MS });
+    const elapsedByMonthDay = performance.now() - t1;
+    expect(rByMonthDay).toEqual({ ok: false, error: 'TOO_LARGE', limit: 'events', max: ICS_IMPORT_MAX_EXPANDED_ITEMS });
+    expect(elapsedByMonthDay).toBeLessThan(250);
+
+    // กรณี single-day / BYDAY=-1 / BYMONTHDAY=31 จากปี 1900 จำนวน 500 VEVENT ก็ต้องโดนเพดานรวมระดับไฟล์เช่นกัน
+    for (const rrule of [
+      'FREQ=MONTHLY;COUNT=1500',
+      'FREQ=MONTHLY;BYDAY=-1MO,-1TU,-1WE,-1TH,-1FR;COUNT=7500',
+      'FREQ=MONTHLY;BYMONTHDAY=31;COUNT=1500',
+    ]) {
+      const t = performance.now();
+      const res = parseIcsToBusy(make500(rrule), { nowMs: NOW_MS });
+      const elapsed = performance.now() - t;
+      expect(res, rrule).toEqual({ ok: false, error: 'TOO_LARGE', limit: 'events', max: ICS_IMPORT_MAX_EXPANDED_ITEMS });
+      expect(elapsed, rrule).toBeLessThan(250);
+    }
+  });
+
+  it('กรณีปกติไม่ชนงบ: 500 VEVENT MONTHLY เริ่มปีนี้ และ MONTHLY+COUNT จากอดีตไม่ไกลยังให้ผลถูกต้อง', () => {
+    // 500 VEVENT รายเดือนเริ่มต้นปี 2026 (COUNT=11 → จบ พ.ย. 2026 ก่อนช่วงอนาคต) ต้องผ่านได้ครบโดยไม่ติดงบ
+    const pastYear500 = wrap(
+      Array.from({ length: 500 }, (_, i) =>
+        [
+          'BEGIN:VEVENT',
+          `SUMMARY:PastThisYear-${i}`,
+          'DTSTART;VALUE=DATE:20260110',
+          'RRULE:FREQ=MONTHLY;COUNT=11',
+          'END:VEVENT',
+        ].join('\r\n'),
+      ).join('\r\n'),
+    );
+    const rPast500 = parseIcsToBusy(pastYear500, { nowMs: NOW_MS });
+    expect(rPast500.ok).toBe(true);
+    if (rPast500.ok) {
+      expect(rPast500.skipped.past).toBe(500);
+      expect(rPast500.items).toHaveLength(0);
+    }
+
+    // 500 VEVENT รายปีแบบ MONTHLY;INTERVAL=12 เริ่มปี 2026 ที่ตกในช่วงอนาคตพอดี (500 รายการ = เพดานพอดี)
+    const active500 = wrap(
+      Array.from({ length: 500 }, (_, i) =>
+        [
+          'BEGIN:VEVENT',
+          `SUMMARY:YearlyViaMonthly-${i}`,
+          'DTSTART;VALUE=DATE:20260115',
+          'RRULE:FREQ=MONTHLY;INTERVAL=12;COUNT=2',
+          'END:VEVENT',
+        ].join('\r\n'),
+      ).join('\r\n'),
+    );
+    const rActive500 = parseIcsToBusy(active500, { nowMs: NOW_MS, windowDays: 90 });
+    expect(rActive500.ok).toBe(true);
+    if (rActive500.ok) {
+      expect(rActive500.items).toHaveLength(500);
+      expect(rActive500.items.every((x) => x.startDate === '2027-01-15')).toBe(true);
+    }
+
+    // VEVENT MONTHLY+COUNT จากอดีตไม่ไกล (2025-01-15, COUNT=25) → ยังมี occurrence 2026-12-15 และ 2027-01-15 ในช่วงอนาคต
+    const recentCount = wrap(
+      [
+        'BEGIN:VEVENT',
+        'SUMMARY:Recent Monthly',
+        'DTSTART;VALUE=DATE:20250115',
+        'RRULE:FREQ=MONTHLY;COUNT=25',
+        'END:VEVENT',
+      ].join('\r\n'),
+    );
+    const rRecent = parseIcsToBusy(recentCount, { nowMs: NOW_MS, windowDays: 90 });
+    expect(rRecent.ok).toBe(true);
+    if (rRecent.ok) {
+      expect(rRecent.items.map((x) => x.startDate)).toEqual(['2026-12-15', '2027-01-15']);
+    }
+  });
+
+  it('MONTHLY+COUNT (เลขคณิตข้ามเดือนอดีต) ตรงกับปฏิทินจริง: ข้ามเดือนไม่มี 31 / สัปดาห์ที่ 5 / BYMONTHDAY ลบ / เดือนแรก', () => {
+    const ics = wrap(
+      [
+        // 1) วันที่ 31 จาก ม.ค. 2026 (ก.พ./เม.ย./มิ.ย./ก.ย./พ.ย. ไม่มี 31): COUNT=8 → #7=2026-12-31, #8=2027-01-31
+        'BEGIN:VEVENT',
+        'SUMMARY:CountDay31',
+        'DTSTART;VALUE=DATE:20260131',
+        'RRULE:FREQ=MONTHLY;COUNT=8',
+        'END:VEVENT',
+        // 2) สัปดาห์ที่ 5 (5FR จาก ม.ค. 2026): มีใน ม.ค., พ.ค., ก.ค., ต.ค., ม.ค. 2027 → #5=2027-01-29
+        'BEGIN:VEVENT',
+        'SUMMARY:Count5Fri',
+        'DTSTART;VALUE=DATE:20260101',
+        'RRULE:FREQ=MONTHLY;BYDAY=5FR;COUNT=5',
+        'END:VEVENT',
+        // 3) BYMONTHDAY=30,-1 (กันนับซ้ำวันที่ 30 ในเดือน 30 วัน): ส.ค.(2)+ก.ย.(1)+ต.ค.(2)+พ.ย.(1)+ธ.ค.(2) = 8
+        'BEGIN:VEVENT',
+        'SUMMARY:CountNegOverlap',
+        'DTSTART;VALUE=DATE:20260801',
+        'RRULE:FREQ=MONTHLY;BYMONTHDAY=30,-1;COUNT=8',
+        'END:VEVENT',
+        // 4) BYMONTHDAY=-31 (มีเฉพาะเดือน 31 วัน): ส.ค., ต.ค., ธ.ค., ม.ค. 2027 → #3=2026-12-01, #4=2027-01-01
+        'BEGIN:VEVENT',
+        'SUMMARY:CountNeg31',
+        'DTSTART;VALUE=DATE:20260801',
+        'RRULE:FREQ=MONTHLY;BYMONTHDAY=-31;COUNT=4',
+        'END:VEVENT',
+        // 5) ข้ามปีอธิกสุรทิน 2024-02-29 ด้วย BYMONTHDAY=-1 (COUNT=35 → #34=2026-11-30, #35=2026-12-31)
+        'BEGIN:VEVENT',
+        'SUMMARY:CountLeapMonthEnd',
+        'DTSTART;VALUE=DATE:20240229',
+        'RRULE:FREQ=MONTHLY;BYMONTHDAY=-1;COUNT=35',
+        'END:VEVENT',
+        // 6) กรองวัน < DTSTART ในเดือนแรก + ordinal ซ้ำกับ plain (MO,1MO,-5MO): ก.ย.(28,30=#1,#2) + ต.ค.(1,15,28,31=#3..#6) + พ.ย.(1,15,28=#7..#9)
+        'BEGIN:VEVENT',
+        'SUMMARY:CountFirstMonthFilter',
+        'DTSTART;VALUE=DATE:20260928',
+        'RRULE:FREQ=MONTHLY;BYMONTHDAY=1,15,28,-1;COUNT=9',
+        'END:VEVENT',
+        // 7) BYDAY=MO,1MO,-5MO กันนับซ้ำในเดือน 4/5 สัปดาห์: ก.ย.(4)+ต.ค.(4)+พ.ย.(5)+ธ.ค.(#14=2026-12-07)
+        'BEGIN:VEVENT',
+        'SUMMARY:CountByDayOverlap',
+        'DTSTART;VALUE=DATE:20260901',
+        'RRULE:FREQ=MONTHLY;BYDAY=MO,1MO,-5MO;COUNT=14',
+        'END:VEVENT',
+      ].join('\r\n'),
+    );
+
+    const r = parseIcsToBusy(ics, { nowMs: NOW_MS, windowDays: 90 });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    const datesOf = (title: string) => r.items.filter((x) => x.title === title).map((x) => x.startDate);
+    expect(datesOf('CountDay31')).toEqual(['2026-12-31', '2027-01-31']);
+    expect(datesOf('Count5Fri')).toEqual(['2027-01-29']);
+    expect(datesOf('CountNegOverlap')).toEqual(['2026-11-30', '2026-12-30', '2026-12-31']);
+    expect(datesOf('CountNeg31')).toEqual(['2026-12-01', '2027-01-01']);
+    expect(datesOf('CountLeapMonthEnd')).toEqual(['2026-11-30', '2026-12-31']);
+    expect(datesOf('CountFirstMonthFilter')).toEqual(['2026-11-28']);
+    expect(datesOf('CountByDayOverlap')).toEqual(['2026-11-16', '2026-11-23', '2026-11-30', '2026-12-07']);
+  });
 });
