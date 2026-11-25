@@ -3,6 +3,7 @@
 - ผู้ตรวจ: `security` (อิสระ · แชตใหม่ใน Antigravity · **Gemini 4 Carbon** — คนละโมเดลกับผู้ทำ `Gemini 4 Neon` และคนละโมเดลกับผู้ตรวจ QA `Gemini 4 Hydrogen` · **boss อนุญาตเป็นกรณีพิเศษชั่วคราว 2026-11-25** แทน Claude Code `security` agent)
 - ขอบเขต: 2026-11-25 · branch `feat/v1.2-ics-rrule` HEAD `acb3e5d` (ฐาน `origin/main` `fcbccd6`) · ช่วง `git diff main...HEAD` · เทียบ [V1_2_CONTRACT](../contracts/V1_2_CONTRACT.md) (R1–R4, H1–H2, O1–O2), [ICS_IMPORT_CONTRACT](../contracts/ICS_IMPORT_CONTRACT.md), [ADR 0017](../adr/0017-ics-import.md) §6 และกฎเหล็ก `CLAUDE.md` ข้อ 6–9
 - วิธี: อ่านโค้ดจริงทุกไฟล์ที่แตะและไฟล์ข้างเคียงที่เชื่อมกัน (`src/app/api/_lib/route.ts`, `src/app/api/_lib/actor.ts`, `src/lib/rbac/can.ts`, `src/lib/rbac/actions.ts`, `src/lib/auth/session.ts`, `src/lib/calendar/ics-import.ts`, `src/lib/calendar/zone.ts`, `src/lib/data/services/busy-import.ts`, `src/components/busy/IcsImportSheet.tsx`, `scripts/release.ts`) · เขียนสคริปต์จำลองอินพุตร้าย (adversarial CPU/memory/prototype/stream-cancel) นอก repo ใน scratch · รันเกตและเทสต์ซ้ำด้วยตัวเอง · ไม่แก้ `src/`/`tests/`/config
+- **ตรวจซ้ำรอบ 2 (เฉพาะ M1):** 2026-11-25 · HEAD `aea3845` (`fix(ics): file-level RRULE budget …` โดย `platform` · Gemini) · ผู้ตรวจซ้ำ `security` แชตเดิมใน Antigravity · **Claude Opus 5.5** (คนละโมเดลกับผู้แก้) · ขอบเขต `git diff 0e61f56..aea3845` (2 ไฟล์: `src/lib/calendar/ics-import.ts`, `tests/calendar/ics-import.test.ts`)
 - เครื่อง: Windows · ✅ = ยืนยันด้วยการรันจริง · 📖 = ยืนยันจากการอ่านโค้ด · ❓ = ยืนยันไม่ได้
 - ระดับ: 🔴 ร้ายแรง (ต้องแก้) · 🟡 กลาง · 🟢 ต่ำ/ข้อสังเกต
 
@@ -10,8 +11,10 @@
 | ระดับ | จำนวน |
 |---|---|
 | 🔴 | 0 |
-| 🟡 | 1 |
-| 🟢 | 3 |
+| 🟡 | 0 (M1 แก้แล้วในรอบ 2) |
+| 🟢 | 4 (L1–L3 เดิม + L4 ใหม่ ไม่บล็อก) |
+
+**Verdict รอบ 2 (HEAD `aea3845`): PASS (ผ่าน)** — 🟡 M1 ปิดแล้ว: งบรวมระดับไฟล์ `MAX_TOTAL_RRULE_STEPS = 12_000` / `MAX_TOTAL_EVALUATED_DATES = 25_000` ใช้ร่วมข้ามทุก `VEVENT` ผ่าน `ParseCtx` + เดือนอดีตนับด้วย bitmask/เลขคณิตโดยไม่สร้าง `Temporal.PlainDate` · ชุดโจมตีเดิมจาก ~10.1–10.2 วินาที เหลือ **~3.3–3.9 ms (median)** และได้ `TOO_LARGE` (`413 ICS_TOO_LARGE`) · differential test เทียบโค้ดเดิม 4,000 กฎสุ่มได้ผลตรงกัน 100% · เหลือข้อสังเกต 🟢 L4 (งบ step รวมอาจตัดไฟล์ปกติบางแบบ — ไม่ใช่ช่องโหว่ ไม่บล็อก merge) · รายละเอียดใน "ตรวจซ้ำรอบ 2" ด้านล่าง
 
 **Verdict รอบ 1 (HEAD `acb3e5d`): FAIL (ไม่ผ่าน)** — ติดประเด็นเดียวคือ **🟡 M1** (การขยาย `RRULE:FREQ=MONTHLY` ที่มี `COUNT` จากปี `1900` ไม่มีงบรวมระดับไฟล์และจัดสรร `Temporal.PlainDate` ทุกเดือนในอดีต → ไฟล์ `.ics` ขนาดเพียง **~62 KB** บล็อก Node.js event loop แบบ synchronous นาน **~10.4–12.3 วินาทีต่อคำขอ** ขัดเกณฑ์รับ `V1_2_CONTRACT` ข้อ R4 "เพดานกัน DoS (CPU / Memory)") · แก้ได้ในไม่กี่บรรทัดใน `src/lib/calendar/ics-import.ts` · ส่วนอื่นทั้งหมดผ่านครบและแข็งแรง: H2 (`preAuthLargeBody` + stream cancel), H1 (`END:VCALENDAR`), R1–R3, ความเป็นส่วนตัวของ `UID` (ไม่หลุดออก DTO/DB/log), `hideDetail` ดีฟอลต์ `true`, ไม่มี ReDoS, ไม่มี prototype pollution, ไม่มี memory leak ข้ามคำขอ (`0.00 MB`), RBAC/`authorize()` บรรทัดแรก และ `scripts/release.ts` ปลอดภัย · เมื่อ `platform` แก้ M1 แล้ว ส่งตรวจซ้ำเฉพาะจุด M1 ได้ทันที
 
@@ -19,7 +22,7 @@
 
 ## ข้อพบ
 
-### 🟡 M1 — `RRULE:FREQ=MONTHLY` พร้อม `COUNT` จากปีอดีต (`1900`) ไม่มีเพดานรวมทั้งไฟล์และจัดสรร `Temporal.PlainDate` ทุกเดือน → ไฟล์ ~62 KB บล็อก CPU นาน ~10–12 วินาที/คำขอ
+### 🟡 M1 — `RRULE:FREQ=MONTHLY` พร้อม `COUNT` จากปีอดีต (`1900`) ไม่มีเพดานรวมทั้งไฟล์และจัดสรร `Temporal.PlainDate` ทุกเดือน → ไฟล์ ~62 KB บล็อก CPU นาน ~10–12 วินาที/คำขอ — ✅ **แก้แล้ว (`aea3845`) · ตรวจซ้ำ PASS**
 - **ที่:** `src/lib/calendar/ics-import.ts:30` (`MAX_RRULE_STEPS = 2_000`), `:412, :443` (`year >= 1900`), `:746-783` (`monthlyDatesInMonth`), `:869-897` (`expandRruleDates` สาขา `MONTHLY`), `:1363` (`for (const ev of rawEvents)`)
 - **กลไกที่หลุดเพดาน:**
   1. `parseDateToken` / `parseDateTimeToken` (`:412, :443`) ยอมรับ `DTSTART` ตั้งแต่ปี `1900` (ห่างจากปัจจุบัน ~126 ปี ≈ 1,512 เดือน)
@@ -56,6 +59,11 @@
 - **ที่:** `src/lib/calendar/ics-import.ts:537-545, 584, 635`
 - **ประเมิน:** 📖 ✅ ปลอดภัยจากคีย์บน `Object.prototype` (`toString`, `valueOf`, `constructor`, `__proto__`) เพราะ `kv.WKST` ถูกแปลงเป็น `.toUpperCase()` ที่ `:584` ก่อนเสมอ และบน `Object.prototype` ไม่มี property ใดที่เป็นตัวพิมพ์ใหญ่ล้วน (`Object.getOwnPropertyNames(Object.prototype).filter(k => k === k.toUpperCase())` = `[]` · ทดสอบจริง `WKST=toString` ถูกปฏิเสธลง `skipped.rrule` ใน `0.73 ms`) · ไม่ต้องแก้ (หากปรับโค้ดรอบหน้าจะใช้ `Object.hasOwn` เพื่อความชัดเจนก็ได้)
 
+### 🟢 L4 (ใหม่ รอบ 2) — งบ step รวม `12_000` อาจตัดไฟล์ปกติที่มี `MONTHLY;COUNT` ย้อนหลังหลายปีจำนวนมาก (ด้านการใช้งาน ไม่ใช่ช่องโหว่)
+- **ที่:** `src/lib/calendar/ics-import.ts:32` (`MAX_TOTAL_RRULE_STEPS`) + `expandMonthlyDates` ที่กิน 1 step ต่อเดือนตั้งแต่ `DTSTART` เมื่อมี `COUNT`
+- **หลักฐาน (✅ เทียบโค้ดเดิม `0e61f56`):** `500× MONTHLY;COUNT=60` เริ่ม `2022-01` → เดิม `ok items=500` / ใหม่ `TOO_LARGE` · `100× MONTHLY;COUNT=240` เริ่ม `2010-01` → เดิม `ok items=300` / ใหม่ `TOO_LARGE` · ส่วน `500× COUNT=24` จาก `2025`, `20× COUNT=2000` จาก `1990`, `400× INTERVAL=12` จาก `2000` ผลตรงกับเดิม
+- **ประเมิน:** ปลอดภัย (fail-closed เป็น `413`) และไฟล์แบบนี้พบไม่บ่อย (ปฏิทินส่วนใหญ่ใช้ `UNTIL` หรือไม่มีจุดจบ ซึ่ง fast-forward) · เดือนอดีตตอนนี้เป็นเลขคณิต O(1) จึงเพิ่มงบ step ได้อีกมากโดย CPU ยังต่ำ — ข้อเสนอ (ไม่บังคับ · เจ้าของ `platform`): แยกนับ "เดือนอดีตแบบเลขคณิต" ด้วยงบที่สูงกว่า (เช่น `100_000`) หรือยกเพดานแล้ววัดซ้ำว่าชุดโจมตียัง `< 100 ms` · ไม่บล็อก merge
+
 ---
 
 ## ผลต่อเกต
@@ -68,7 +76,7 @@
 | **Prototype pollution (`RRULE` / `EXDATE` / `UID` / `RECURRENCE-ID`)** | **PASS** | 📖 `kv` ใน `parseRrule` (`:578`) และ `params` ใน `parsePropertyLine` (`:282`) ใช้ `Object.create(null)` · คีย์ `RRULE` กรองด้วย `RRULE_ALLOWED_KEYS` (`Set` 7 คีย์) · `overridesByUid` และ `overrideCounts` (`:1334-1335`) ใช้ `Map` · ✅ ทดสอบ `UID:__proto__`, `UID:constructor`, `RRULE:__proto__=1`, `WKST=toString`, `DTSTART;__proto__=polluted` → `0.73 ms`, `Object.keys(Object.prototype)` = `[]` |
 | **ความเป็นส่วนตัวของ `UID` และ property อื่น (R2 / กฎ 7)** | **PASS** | 📖 `UID` ถูกตัดความยาว `≤ 256` (`:1320`) และใช้เฉพาะในตัวแปร local `overridesByUid` ใน `parseIcsToBusy` (`:1334-1349`) เท่านั้น ไม่อยู่ใน `ParsedIcsBusyItem`, `PreviewBusyImportResult`, `ConfirmBusyImportInput`, DB หรือ `console.*` · `DESCRIPTION`, `LOCATION`, `ATTENDEE`, `ORGANIZER`, `URL` ยังคงไม่อยู่ใน `ALLOWED_PROPS` · `hideDetail` ดีฟอลต์ `true` ทั้งฝั่ง service (`busy-import.ts:237`) และ UI (`IcsImportSheet.tsx:85`) · ✅ `ics-import-api.test.ts:303-368` (ตรวจ response text, `dumpAllTables` และ spy `console.log/warn/error`) |
 | **Memory retention ข้ามคำขอ (M1 รอบ v1.1.0 + โครงสร้างใหม่)** | **PASS** | 📖 ไม่มี module-level mutable cache ใหม่ใน `ics-import.ts` · `EXDATE` / `RECURRENCE-ID` / `UNTIL` วิ่งผ่าน `resolveIcsTimeZone` (จำกัด `≤ 64` ตัวอักษร + `TZID_CHARS`) และ `zone.ts` cache เฉพาะผล `true` · ✅ รัน 200 คำขอด้วย `UID` ยาว 220 ตัว + `TZID` แปลกไม่ซ้ำ + `EXDATE` + `RECURRENCE-ID` (รวม 20,000 ค่าไม่ซ้ำ) หลัง `gc()`: **retained heap = `0.00 MB`** (control 200× = `0.12 MB`) |
-| **เพดานกัน CPU DoS ของ `RRULE` / `EXDATE` (R4)** | **FAIL (🟡 M1)** | ✅ `DAILY` และ `WEEKLY` ทำ O(1) fast-forward แม่นยำทั้งกรณีมีและไม่มี `COUNT` · `140× VEVENT` ที่มี `200 EXDATE` (~491 KB) ใช้เวลา `75.03 ms` · แตกเกิน `500` รายการคืน `413 ICS_TOO_LARGE` ทันที · ❌ **แต่สาขา `MONTHLY` ที่มี `COUNT` จากปี `1900` ไม่มีงบรวมระดับไฟล์ ทำให้ `500 VEVENT` (~62–96 KB) ใช้เวลา `10.09–12.27 s`/คำขอ (ดู 🟡 M1)** |
+| **เพดานกัน CPU DoS ของ `RRULE` / `EXDATE` (R4)** | **PASS (รอบ 2 `aea3845`)** — ✅ ชุดโจมตี M1 ทั้ง 5 แบบเหลือ median `3.3–3.9 ms` → `TOO_LARGE` · WEEKLY/DAILY `COUNT=10000` จากปี 1900 ยัง `7.6–11.6 ms` เท่าเดิม · ดู "ตรวจซ้ำรอบ 2" · ~~รอบ 1: **FAIL (🟡 M1)**~~ | ✅ `DAILY` และ `WEEKLY` ทำ O(1) fast-forward แม่นยำทั้งกรณีมีและไม่มี `COUNT` · `140× VEVENT` ที่มี `200 EXDATE` (~491 KB) ใช้เวลา `75.03 ms` · แตกเกิน `500` รายการคืน `413 ICS_TOO_LARGE` ทันที · ❌ **แต่สาขา `MONTHLY` ที่มี `COUNT` จากปี `1900` ไม่มีงบรวมระดับไฟล์ ทำให้ `500 VEVENT` (~62–96 KB) ใช้เวลา `10.09–12.27 s`/คำขอ (ดู 🟡 M1)** |
 | **RBAC / `authorize()` บรรทัดแรก / atomic cap 300 / rate limit / CSRF** | **PASS** | ✅ `tests/security` ทั้งโฟลเดอร์ (9 ไฟล์), `tests/rbac/matrix.test.ts`, `tests/auth/must-change-pin.test.ts`, `tests/platform/manifest.test.ts`, `tests/busy/ics-import-api.test.ts`, `tests/busy/calendar-visibility.test.ts` ผ่านครบ |
 | **O1–O2: `scripts/release.ts` และเอกสาร (กฎ 7–8)** | **PASS** | 📖 `scripts/release.ts` ใช้ `execFileSync("git", args)` แบบอาร์เรย์อาร์กิวเมนต์ (ไม่ผ่าน shell) และรันเกตจากค่าคงที่ `GATES` เท่านั้น · ขยาย `DOC_VERSION_TARGETS` ครบ 5 ไฟล์ตรงกับ `tests/ops/docs-sync.test.ts` · ไม่มี migration ใหม่ (`db:check` ผ่าน) ไม่มี env ใหม่ และไม่พบความลับใน diff · ✅ `docs-sync.test.ts`, `operations-doc.test.ts`, `release.test.ts` (32 non-CLI) ผ่าน |
 
@@ -102,6 +110,35 @@ $ NODE_OPTIONS=--expose-gc node node_modules/tsx/dist/cli.mjs <scratch>/sec-h2-a
 → H2 ReadableStream cancel ก่อนอ่าน body ครบทั้ง 4 สถานะ (anonymous 401, suspended 401, must_change_pin 403, deleted_user 401 · cancelled=true · cache-control=private, no-store · server-timing=null)
 → Heap retention 200 คำขอ unique UID/TZID/EXDATE = -0.00 MB (control 200× = 0.12 MB)
 ```
+
+## ตรวจซ้ำรอบ 2 — เฉพาะ M1 (HEAD `aea3845`)
+- **📖 อ่านโค้ด:** `ParseCtx` เพิ่ม `rruleStepsUsed` / `rruleEvaluatedDates` เริ่ม `0` ต่อการเรียก `parseIcsToBusy` (ไม่ใช่ module-level state → ไม่รั่วข้ามคำขอ) · `consumeRruleStep` เรียกทุกรอบลูปของ DAILY/WEEKLY/MONTHLY และ `consumeEvaluatedDates` ก่อนสร้าง `Temporal.PlainDate` ทุกตัว · เกินงบ → `{ status: 'too_large' }` → `TOO_LARGE` · ยังคง `MAX_RRULE_STEPS = 2_000` ต่อ `VEVENT` · `monthlyDayMask` ใช้บิต `0..30` (`1 << 30` ยังเป็นบวกใน int32) ถูกต้อง · ordinal ลบ `idx = count + ordinal` ตรงกับ `matches[length + ordinal]` เดิม · ไม่มี `new Date()`/string date math · `gregorianDaysInMonth` เป็นเลขคณิตปฏิทิน Gregorian ภายใน `src/lib/calendar` (สอดคล้องกฎข้อ 9)
+- **✅ ชุดโจมตี (500 `VEVENT`, `DTSTART 19000101`, median จาก 5 รอบ · ใหม่ vs เดิม):**
+  ```
+  MONTHLY BYDAY=MO..SU COUNT=10000      (83,345 B): new 3.39 ms (max 8.90)  -> TOO_LARGE | old 10,248.59 ms -> ok items=0
+  MONTHLY BYMONTHDAY=1..31 COUNT=10000 (117,345 B): new 3.32 ms (max 25.34) -> TOO_LARGE | old 10,103.74 ms -> ok items=0
+  MONTHLY BYDAY=-1MO..-1FR COUNT=7500   (84,845 B): new 3.49 ms (max 32.83) -> TOO_LARGE | old  8,836.73 ms -> ok items=0
+  MONTHLY single-day COUNT=1500         (69,345 B): new 3.90 ms (max 4.07)  -> TOO_LARGE | old  2,584.04 ms -> ok items=0
+  MONTHLY BYMONTHDAY=31 COUNT=1500      (76,345 B): new 3.90 ms (max 36.68) -> TOO_LARGE | old  1,001.48 ms -> TOO_LARGE
+  WEEKLY BYDAY=MO..SU COUNT=10000       (82,845 B): new 11.62 ms -> ok items=0          | old 12.10 ms
+  DAILY COUNT=10000                     (68,845 B): new 7.62 ms  -> ok items=0          | old 8.62 ms
+  ```
+- **✅ Differential (ความถูกต้องไม่ถดถอย):** สุ่ม 4,000 กฎ 1 `VEVENT` (MONTHLY/WEEKLY/DAILY · `BYDAY` มี/ไม่มี ordinal รวม `5xx`/`-5xx` · `BYMONTHDAY` บวก/ลบ · `INTERVAL 1–4` · `COUNT ≤ 3000` / `UNTIL` / ไม่มีจุดจบ · `DTSTART 1990–2027`) เทียบ `parseIcsToBusy` ของ `0e61f56` กับ `aea3845` ด้วย `JSON.stringify` → **same=4000 diff=0**
+- **✅ เทสต์ regression ใหม่** `tests/calendar/ics-import.test.ts:826-986` (500 VEVENT ปี 1900 ห้าแบบ → `TOO_LARGE` ใน `< 250 ms` · กรณีปกติไม่ชนงบ · เทียบเลขคณิตเดือนไม่มีวันที่ 31 / `5FR` / `BYMONTHDAY` ลบ / `2024-02-29`) ผ่าน · เพดาน 250 ms หลวมกว่าข้อเสนอ 100 ms เพื่อกัน flaky บน CI แต่ยังจับการถดถอยระดับวินาทีได้
+- **คำสั่ง:**
+  ```
+  $ npm run lint && npm run typecheck
+  → eslint . (exit 0) · tsc --noEmit (exit 0)
+
+  $ npx vitest run tests/calendar/ics-import.test.ts tests/calendar/ics-tzid-guard.test.ts tests/calendar/zone-cache.test.ts tests/busy/ics-import-api.test.ts tests/security --reporter=agent --testTimeout=60000
+   Test Files  13 passed (13)
+        Tests  465 passed | 1 skipped (466)
+     Duration  22.17s
+
+  $ node node_modules/tsx/dist/cli.mjs <scratch>/m1-recheck.ts   (โค้ดเดิมดึงจาก git show 0e61f56 ไว้นอก repo)
+  → (a) ชุดโจมตีข้างบน · (b) same=4000 diff=0 · (c) probe ไฟล์ปกติ (ดู 🟢 L4)
+  ```
+- **ไม่ได้ตรวจในรอบ 2:** `npm run build`, E2E และ `npm test` ทั้งชุด (นอกขอบเขต M1 · รอ CI ของ PR #54 บน commit ใหม่) · ส่วนอื่นนอก M1 ยึดผลรอบ 1
 
 ## สิ่งที่ตรวจไม่ได้
 - ไม่ได้รัน `npm test` ทั้งชุดและ 2 ข้อ CLI ของ `tests/release/release.test.ts` ในเครื่อง Windows ตามหมายเหตุเครื่อง boss (`AGENTS.md` §9 — อ้างผล CI `test + migration` pass แทน)
