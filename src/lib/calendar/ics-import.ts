@@ -28,6 +28,9 @@ const MAX_EXDATES_PER_EVENT = 200;
 const MAX_UID_LENGTH = 256;
 const MAX_RRULE_COUNT = 10_000;
 const MAX_RRULE_STEPS = 2_000;
+// งบรวมระดับไฟล์ข้ามทุก VEVENT (security M1): กัน 500×MONTHLY+COUNT จากปี 1900 บล็อก CPU แต่ไม่ขวางไฟล์จริงปกติ
+const MAX_TOTAL_RRULE_STEPS = 12_000;
+const MAX_TOTAL_EVALUATED_DATES = 25_000;
 const MAX_BYDAY_ITEMS = 35;
 const MAX_BYMONTHDAY_ITEMS = 31;
 const MAX_INTERVAL: Readonly<Record<'DAILY' | 'WEEKLY' | 'MONTHLY', number>> = {
@@ -743,52 +746,252 @@ function weekStartOf(d: Temporal.PlainDate, wkst: number): Temporal.PlainDate {
   return shift === 0 ? d : d.subtract({ days: shift });
 }
 
-function monthlyDatesInMonth(
-  year: number,
-  month: number,
-  dtstartDay: number,
-  rule: ParsedRrule,
-): Temporal.PlainDate[] {
-  const first = Temporal.PlainDate.from({ year, month, day: 1 });
-  const dim = first.daysInMonth;
-  const dayNums = new Set<number>();
+const DAYS_IN_COMMON_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] as const;
+
+function gregorianDaysInMonth(year: number, month: number): number {
+  const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  return month === 2 && isLeap ? 29 : DAYS_IN_COMMON_MONTH[month]!;
+}
+
+/** จำนวนบิตที่เปิดใน bitmask 31 บิต (วัน 1..31) */
+function popcount31(n: number): number {
+  let x = n;
+  let c = 0;
+  while (x !== 0) {
+    x &= x - 1;
+    c++;
+  }
+  return c;
+}
+
+/**
+ * คืน bitmask (บิต day-1 สำหรับวัน 1..dim) ของวันที่ตรงกติกา MONTHLY ในเดือนหนึ่ง
+ * ใช้เลขคณิตล้วนแทนการสร้าง Temporal.PlainDate ทีละวันในเดือนอดีต (security M1)
+ */
+function monthlyDayMask(dim: number, firstDow: number, dtstartDay: number, rule: ParsedRrule): number {
+  let mask = 0;
 
   if (rule.monthlyByDay) {
     for (const spec of rule.monthlyByDay) {
-      // หาวันแรกในเดือนที่ตรงวันในสัปดาห์ spec.dow แล้วกระโดดทีละ 7 วัน (สูงสุด 5 วัน/เดือน)
-      const firstDowOffset = (spec.dow - first.dayOfWeek + 7) % 7;
-      const matches: number[] = [];
-      for (let d = 1 + firstDowOffset; d <= dim; d += 7) matches.push(d);
+      const firstMatch = 1 + ((spec.dow - firstDow + 7) % 7);
       if (spec.ordinal === undefined) {
-        for (const d of matches) dayNums.add(d);
+        for (let d = firstMatch; d <= dim; d += 7) {
+          mask |= 1 << (d - 1);
+        }
       } else if (spec.ordinal > 0) {
-        const picked = matches[spec.ordinal - 1];
-        if (picked !== undefined) dayNums.add(picked);
+        const d = firstMatch + (spec.ordinal - 1) * 7;
+        if (d <= dim) mask |= 1 << (d - 1);
       } else {
-        const picked = matches[matches.length + spec.ordinal];
-        if (picked !== undefined) dayNums.add(picked);
+        // จำนวนครั้งที่ dow นี้เกิดในเดือน: floor((dim - firstMatch) / 7) + 1 (firstMatch <= 7 <= dim เสมอ)
+        const count = Math.floor((dim - firstMatch) / 7) + 1;
+        const idx = count + spec.ordinal;
+        if (idx >= 0) {
+          const d = firstMatch + idx * 7;
+          mask |= 1 << (d - 1);
+        }
       }
     }
   } else {
     const targets = rule.monthlyDays ?? [dtstartDay];
     for (const md of targets) {
       const d = md > 0 ? md : dim + 1 + md;
-      if (d >= 1 && d <= dim) dayNums.add(d);
+      if (d >= 1 && d <= dim) mask |= 1 << (d - 1);
     }
   }
 
-  return [...dayNums]
-    .sort((a, b) => a - b)
-    .map((day) => Temporal.PlainDate.from({ year, month, day }));
+  return mask;
 }
 
 type RruleExpandResult =
   | { readonly ok: true; readonly dates: Temporal.PlainDate[] }
   | { readonly ok: false; readonly reason: 'UNSUPPORTED' | 'TOO_LARGE' };
 
+function consumeRruleStep(ctx: ParseCtx): boolean {
+  return ++ctx.rruleStepsUsed <= MAX_TOTAL_RRULE_STEPS;
+}
+
+function consumeEvaluatedDates(ctx: ParseCtx, count: number): boolean {
+  ctx.rruleEvaluatedDates += count;
+  return ctx.rruleEvaluatedDates <= MAX_TOTAL_EVALUATED_DATES;
+}
+
+function advanceMonthsWithDow(
+  year: number,
+  month: number,
+  firstDow: number,
+  interval: number,
+): { year: number; month: number; firstDow: number } {
+  let deltaDays = 0;
+  let y = year;
+  let m = month;
+  for (let i = 0; i < interval; i++) {
+    deltaDays += gregorianDaysInMonth(y, m);
+    m++;
+    if (m > 12) {
+      m = 1;
+      y++;
+    }
+  }
+  return { year: y, month: m, firstDow: ((firstDow - 1 + deltaDays) % 7) + 1 };
+}
+
+function expandDailyDates(
+  dtstartDate: Temporal.PlainDate,
+  rule: ParsedRrule,
+  earliestStartDate: Temporal.PlainDate,
+  hardEndDate: Temporal.PlainDate,
+  maxCandidates: number,
+  ctx: ParseCtx,
+): RruleExpandResult {
+  const diffDays = dtstartDate.until(earliestStartDate, { largestUnit: 'days' }).days;
+  const startK = diffDays > 0 ? Math.floor(diffDays / rule.interval) : 0;
+  if (rule.count !== undefined && startK >= rule.count) {
+    return { ok: true, dates: [] };
+  }
+
+  const out: Temporal.PlainDate[] = [];
+  let steps = 0;
+  for (let k = startK; ; k++) {
+    if (rule.count !== undefined && k >= rule.count) break;
+    if (++steps > MAX_RRULE_STEPS) return { ok: false, reason: 'UNSUPPORTED' };
+    if (!consumeRruleStep(ctx)) return { ok: false, reason: 'TOO_LARGE' };
+    if (!consumeEvaluatedDates(ctx, 1)) return { ok: false, reason: 'TOO_LARGE' };
+    const occ = dtstartDate.add({ days: k * rule.interval });
+    if (occ.year > MAX_YEAR + 1 || Temporal.PlainDate.compare(occ, hardEndDate) > 0) break;
+    if (Temporal.PlainDate.compare(occ, earliestStartDate) >= 0) {
+      out.push(occ);
+      if (out.length > maxCandidates) return { ok: false, reason: 'TOO_LARGE' };
+    }
+  }
+  return { ok: true, dates: out };
+}
+
+function expandWeeklyDates(
+  dtstartDate: Temporal.PlainDate,
+  rule: ParsedRrule,
+  earliestStartDate: Temporal.PlainDate,
+  hardEndDate: Temporal.PlainDate,
+  maxCandidates: number,
+  ctx: ParseCtx,
+): RruleExpandResult {
+  const days = rule.weeklyDays ?? [dtstartDate.dayOfWeek];
+  const offsets = days.map((dow) => (dow - rule.wkst + 7) % 7).sort((a, b) => a - b);
+  const ws0 = weekStartOf(dtstartDate, rule.wkst);
+
+  // จำนวน instance ที่เกิดจริงในสัปดาห์แรก (w = 0) ที่ >= dtstartDate
+  let firstWeekCount = 0;
+  for (const off of offsets) {
+    if (Temporal.PlainDate.compare(ws0.add({ days: off }), dtstartDate) >= 0) firstWeekCount++;
+  }
+
+  const wsEarliest = weekStartOf(earliestStartDate, rule.wkst);
+  const diffWeeks = Math.floor(ws0.until(wsEarliest, { largestUnit: 'days' }).days / 7);
+  const startW = diffWeeks > 0 ? Math.floor(diffWeeks / rule.interval) : 0;
+  let emitted = startW === 0 ? 0 : firstWeekCount + (startW - 1) * offsets.length;
+  if (rule.count !== undefined && emitted >= rule.count) {
+    return { ok: true, dates: [] };
+  }
+
+  const out: Temporal.PlainDate[] = [];
+  let steps = 0;
+  for (let w = startW; ; w++) {
+    if (++steps > MAX_RRULE_STEPS) return { ok: false, reason: 'UNSUPPORTED' };
+    if (!consumeRruleStep(ctx)) return { ok: false, reason: 'TOO_LARGE' };
+    const ws = ws0.add({ days: w * rule.interval * 7 });
+    if (ws.year > MAX_YEAR + 1 || Temporal.PlainDate.compare(ws, hardEndDate) > 0) break;
+    for (const off of offsets) {
+      if (rule.count !== undefined && emitted >= rule.count) return { ok: true, dates: out };
+      if (!consumeEvaluatedDates(ctx, 1)) return { ok: false, reason: 'TOO_LARGE' };
+      const occ = ws.add({ days: off });
+      if (w === 0 && Temporal.PlainDate.compare(occ, dtstartDate) < 0) continue;
+      if (occ.year > MAX_YEAR + 1 || Temporal.PlainDate.compare(occ, hardEndDate) > 0) return { ok: true, dates: out };
+      emitted++;
+      if (Temporal.PlainDate.compare(occ, earliestStartDate) >= 0) {
+        out.push(occ);
+        if (out.length > maxCandidates) return { ok: false, reason: 'TOO_LARGE' };
+      }
+    }
+  }
+  return { ok: true, dates: out };
+}
+
+function expandMonthlyDates(
+  dtstartDate: Temporal.PlainDate,
+  rule: ParsedRrule,
+  earliestStartDate: Temporal.PlainDate,
+  hardEndDate: Temporal.PlainDate,
+  maxCandidates: number,
+  ctx: ParseCtx,
+): RruleExpandResult {
+  const diffMonths = (earliestStartDate.year - dtstartDate.year) * 12 + (earliestStartDate.month - dtstartDate.month);
+  // ถ้ามี COUNT ต้องนับจากเดือนแรกเพราะบางเดือนไม่มีวันที่ 31 หรือสัปดาห์ที่ 5
+  const startM = rule.count === undefined && diffMonths > 0 ? Math.floor(diffMonths / rule.interval) : 0;
+  const baseAbsMonth = dtstartDate.year * 12 + (dtstartDate.month - 1);
+  const startAbsMonth = baseAbsMonth + startM * rule.interval;
+  let year = Math.floor(startAbsMonth / 12);
+  let month = (startAbsMonth % 12) + 1;
+  if (year > MAX_YEAR + 1) return { ok: true, dates: [] };
+
+  // ยึด dayOfWeek ของวันที่ 1 เดือนเริ่มต้นจาก Temporal ครั้งเดียว แล้วเลื่อนด้วยจำนวนวันในแต่ละเดือน
+  let firstDow = Temporal.PlainDate.from({ year, month, day: 1 }).dayOfWeek;
+  const fastSkipCutoff =
+    Temporal.PlainDate.compare(earliestStartDate, hardEndDate) <= 0 ? earliestStartDate : hardEndDate;
+
+  const out: Temporal.PlainDate[] = [];
+  let steps = 0;
+  let emitted = 0;
+
+  for (let m = startM; ; m++) {
+    if (++steps > MAX_RRULE_STEPS) return { ok: false, reason: 'UNSUPPORTED' };
+    if (!consumeRruleStep(ctx)) return { ok: false, reason: 'TOO_LARGE' };
+    if (year > MAX_YEAR + 1) break;
+    if (year > hardEndDate.year || (year === hardEndDate.year && month > hardEndDate.month)) break;
+
+    const isStrictlyBeforeCutoff =
+      year < fastSkipCutoff.year || (year === fastSkipCutoff.year && month < fastSkipCutoff.month);
+
+    if (!isStrictlyBeforeCutoff || rule.count !== undefined) {
+      const dim = gregorianDaysInMonth(year, month);
+      const minDay = year === dtstartDate.year && month === dtstartDate.month ? dtstartDate.day : 1;
+      let mask = monthlyDayMask(dim, firstDow, dtstartDate.day, rule);
+      if (minDay > 1) mask &= ~((1 << (minDay - 1)) - 1);
+
+      if (isStrictlyBeforeCutoff) {
+        const countInMonth = popcount31(mask);
+        if (countInMonth > 0) {
+          const needed = Math.min(countInMonth, rule.count! - emitted);
+          if (!consumeEvaluatedDates(ctx, needed)) return { ok: false, reason: 'TOO_LARGE' };
+          emitted += needed;
+          if (emitted >= rule.count!) return { ok: true, dates: out };
+        }
+      } else if (mask !== 0) {
+        for (let day = minDay; day <= dim; day++) {
+          if ((mask & (1 << (day - 1))) === 0) continue;
+          if (!consumeEvaluatedDates(ctx, 1)) return { ok: false, reason: 'TOO_LARGE' };
+          const occ = Temporal.PlainDate.from({ year, month, day });
+          if (occ.year > MAX_YEAR + 1 || Temporal.PlainDate.compare(occ, hardEndDate) > 0) {
+            return { ok: true, dates: out };
+          }
+          emitted++;
+          if (Temporal.PlainDate.compare(occ, earliestStartDate) >= 0) {
+            out.push(occ);
+            if (out.length > maxCandidates) return { ok: false, reason: 'TOO_LARGE' };
+          }
+          if (rule.count !== undefined && emitted >= rule.count) {
+            return { ok: true, dates: out };
+          }
+        }
+      }
+    }
+
+    ({ year, month, firstDow } = advanceMonthsWithDow(year, month, firstDow, rule.interval));
+  }
+  return { ok: true, dates: out };
+}
+
 /**
  * แตกวันที่ของผู้สมัครจาก RRULE ในช่วง [earliestStartDate, hardEndDate] แบบ O(1) fast-forward
- * และจำกัดจำนวน step (MAX_RRULE_STEPS) + จำนวนผู้สมัครสูงสุด (maxCandidates) กัน DoS
+ * และจำกัดจำนวน step/วันประเมินทั้งต่อ VEVENT และรวมระดับไฟล์ (security M1) + จำนวนผู้สมัครสูงสุด (maxCandidates)
  */
 function expandRruleDates(
   dtstartDate: Temporal.PlainDate,
@@ -796,6 +999,7 @@ function expandRruleDates(
   earliestStartDate: Temporal.PlainDate,
   latestStartDate: Temporal.PlainDate,
   maxCandidates: number,
+  ctx: ParseCtx,
 ): RruleExpandResult {
   const hardEndDate =
     rule.untilDate !== undefined && Temporal.PlainDate.compare(rule.untilDate, latestStartDate) < 0
@@ -806,95 +1010,13 @@ function expandRruleDates(
     return { ok: true, dates: [] };
   }
 
-  const out: Temporal.PlainDate[] = [];
-  let steps = 0;
-
   if (rule.freq === 'DAILY') {
-    const diffDays = dtstartDate.until(earliestStartDate, { largestUnit: 'days' }).days;
-    const startK = diffDays > 0 ? Math.floor(diffDays / rule.interval) : 0;
-    if (rule.count !== undefined && startK >= rule.count) {
-      return { ok: true, dates: [] };
-    }
-    for (let k = startK; ; k++) {
-      if (++steps > MAX_RRULE_STEPS) return { ok: false, reason: 'UNSUPPORTED' };
-      if (rule.count !== undefined && k >= rule.count) break;
-      const occ = dtstartDate.add({ days: k * rule.interval });
-      if (occ.year > MAX_YEAR + 1 || Temporal.PlainDate.compare(occ, hardEndDate) > 0) break;
-      if (Temporal.PlainDate.compare(occ, earliestStartDate) >= 0) {
-        out.push(occ);
-        if (out.length > maxCandidates) return { ok: false, reason: 'TOO_LARGE' };
-      }
-    }
-    return { ok: true, dates: out };
+    return expandDailyDates(dtstartDate, rule, earliestStartDate, hardEndDate, maxCandidates, ctx);
   }
-
   if (rule.freq === 'WEEKLY') {
-    const days = rule.weeklyDays ?? [dtstartDate.dayOfWeek];
-    const offsets = days.map((dow) => (dow - rule.wkst + 7) % 7).sort((a, b) => a - b);
-    const ws0 = weekStartOf(dtstartDate, rule.wkst);
-
-    // จำนวน instance ที่เกิดจริงในสัปดาห์แรก (w = 0) ที่ >= dtstartDate
-    let firstWeekCount = 0;
-    for (const off of offsets) {
-      if (Temporal.PlainDate.compare(ws0.add({ days: off }), dtstartDate) >= 0) firstWeekCount++;
-    }
-
-    const wsEarliest = weekStartOf(earliestStartDate, rule.wkst);
-    const diffWeeks = Math.floor(ws0.until(wsEarliest, { largestUnit: 'days' }).days / 7);
-    const startW = diffWeeks > 0 ? Math.floor(diffWeeks / rule.interval) : 0;
-    let emitted = startW === 0 ? 0 : firstWeekCount + (startW - 1) * offsets.length;
-    if (rule.count !== undefined && emitted >= rule.count) {
-      return { ok: true, dates: [] };
-    }
-
-    for (let w = startW; ; w++) {
-      if (++steps > MAX_RRULE_STEPS) return { ok: false, reason: 'UNSUPPORTED' };
-      const ws = ws0.add({ days: w * rule.interval * 7 });
-      if (ws.year > MAX_YEAR + 1 || Temporal.PlainDate.compare(ws, hardEndDate) > 0) break;
-      for (const off of offsets) {
-        const occ = ws.add({ days: off });
-        if (w === 0 && Temporal.PlainDate.compare(occ, dtstartDate) < 0) continue;
-        if (rule.count !== undefined && emitted >= rule.count) return { ok: true, dates: out };
-        if (occ.year > MAX_YEAR + 1 || Temporal.PlainDate.compare(occ, hardEndDate) > 0) return { ok: true, dates: out };
-        emitted++;
-        if (Temporal.PlainDate.compare(occ, earliestStartDate) >= 0) {
-          out.push(occ);
-          if (out.length > maxCandidates) return { ok: false, reason: 'TOO_LARGE' };
-        }
-      }
-    }
-    return { ok: true, dates: out };
+    return expandWeeklyDates(dtstartDate, rule, earliestStartDate, hardEndDate, maxCandidates, ctx);
   }
-
-  // MONTHLY
-  const diffMonths = (earliestStartDate.year - dtstartDate.year) * 12 + (earliestStartDate.month - dtstartDate.month);
-  // ถ้ามี COUNT ต้องนับจากเดือนแรกเพราะบางเดือนไม่มีวันที่ 31 หรือสัปดาห์ที่ 5 (100 ปี = 1,200 เดือน < MAX_RRULE_STEPS)
-  const startM = rule.count === undefined && diffMonths > 0 ? Math.floor(diffMonths / rule.interval) : 0;
-  let emitted = 0;
-  const baseAbsMonth = dtstartDate.year * 12 + (dtstartDate.month - 1);
-
-  for (let m = startM; ; m++) {
-    if (++steps > MAX_RRULE_STEPS) return { ok: false, reason: 'UNSUPPORTED' };
-    const absMonth = baseAbsMonth + m * rule.interval;
-    const year = Math.floor(absMonth / 12);
-    const month = (absMonth % 12) + 1;
-    if (year > MAX_YEAR + 1) break;
-    const firstOfMonth = Temporal.PlainDate.from({ year, month, day: 1 });
-    if (Temporal.PlainDate.compare(firstOfMonth, hardEndDate) > 0) break;
-
-    const monthDates = monthlyDatesInMonth(year, month, dtstartDate.day, rule);
-    for (const occ of monthDates) {
-      if (Temporal.PlainDate.compare(occ, dtstartDate) < 0) continue;
-      if (rule.count !== undefined && emitted >= rule.count) return { ok: true, dates: out };
-      if (occ.year > MAX_YEAR + 1 || Temporal.PlainDate.compare(occ, hardEndDate) > 0) return { ok: true, dates: out };
-      emitted++;
-      if (Temporal.PlainDate.compare(occ, earliestStartDate) >= 0) {
-        out.push(occ);
-        if (out.length > maxCandidates) return { ok: false, reason: 'TOO_LARGE' };
-      }
-    }
-  }
-  return { ok: true, dates: out };
+  return expandMonthlyDates(dtstartDate, rule, earliestStartDate, hardEndDate, maxCandidates, ctx);
 }
 
 // ───────── แปลง 1 occurrence (all-day / timed) เป็น ParsedIcsBusyItem ─────────
@@ -910,6 +1032,8 @@ type ParseCtx = {
   readonly titleMax: number;
   readonly maxOccurrencesPerEvent: number;
   readonly maxItems: number;
+  rruleStepsUsed: number;
+  rruleEvaluatedDates: number;
 };
 
 type SingleOutcome =
@@ -1107,7 +1231,7 @@ function processRawEvent(
   // เผื่อ candidate สำหรับวันที่จะโดนตัดด้วย EXDATE/RECURRENCE-ID หรือขอบเขตวัน
   const maxCandidates = Math.max(perEventCap, ctx.maxOccurrencesPerEvent) + MAX_EXDATES_PER_EVENT + 16;
 
-  const expanded = expandRruleDates(dtstartPlainDate, rule, earliestStartDate, latestStartDate, maxCandidates);
+  const expanded = expandRruleDates(dtstartPlainDate, rule, earliestStartDate, latestStartDate, maxCandidates, ctx);
   if (!expanded.ok) {
     return expanded.reason === 'TOO_LARGE' ? { status: 'too_large' } : { status: 'skip', reason: 'rrule' };
   }
@@ -1220,6 +1344,8 @@ export function parseIcsToBusy(raw: string, options: ParseIcsOptions): ParseIcsR
     titleMax,
     maxOccurrencesPerEvent,
     maxItems,
+    rruleStepsUsed: 0,
+    rruleEvaluatedDates: 0,
   };
 
   // เฟส 1: สแกนโครงสร้าง VCALENDAR / VEVENT แบบ single-pass (บังคับ END:VCALENDAR ปิดครบ · V1_2_CONTRACT H1)
